@@ -22,7 +22,6 @@ export async function POST(request: Request) {
       process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
       'https://api-gateway-production-6a68.up.railway.app';
 
-    // Generate unique Idempotency-Key for each payment request
     const idempotencyKey = randomUUID();
 
     const response = await fetch(`${backendUrl}/api/payments/create`, {
@@ -31,21 +30,30 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
         'Idempotency-Key': idempotencyKey,
+        // ✅ ضيف الـ internal secret عشان payment-service بيتحقق منه
+        'x-internal-secret': process.env.INTERNAL_SECRET || '',
       },
-      body: JSON.stringify({ userId, amount, currency, payment_method, metadata }),
+      body: JSON.stringify({
+        userId,
+        amount,
+        currency,
+        payment_method,
+        metadata,
+      }),
     });
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
       console.error('[Payment Create] Backend error:', JSON.stringify(errData));
       return NextResponse.json(
-        { error: errData?.error?.message || `Backend error ${response.status}` },
+        { error: errData?.message || errData?.error || `Backend error ${response.status}` },
         { status: response.status }
       );
     }
 
     const data = await response.json();
     return NextResponse.json(data);
+
   } catch (error: unknown) {
     console.error('[Payment Create Route] Error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

@@ -32,8 +32,6 @@
     "node": ">=20.0.0"
   },
   "workspaces": [
-    "tec-frontend",
-    "packages/*"
-  ],
-  "workspacesDependencyResolution": "hoisted"
+    "tec-frontend"
+  ]
 }

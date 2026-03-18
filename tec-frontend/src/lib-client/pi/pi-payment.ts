@@ -216,16 +216,16 @@ export const createU2APayment = async (
             });
             onDiagnostic?.('completion', `Completion successful (${internalId})`, { piPaymentId, internalId, txid });
             clearPaymentTimer();
-            // ✅ status بعد ...result عشان يـoverride
+            // ✅ ...result أول عشان يُـoverride بكل حاجة بعده
             resolve({
+              ...result,
               success: true,
               paymentId: piPaymentId,
               txid,
               amount,
               memo,
-              message: 'Payment successful! 🎉',
-              ...result,
               status: 'completed',
+              message: 'Payment successful! 🎉',
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Payment failed';

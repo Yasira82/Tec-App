@@ -1,40 +1,25 @@
 {
-  "name": "tec-frontend",
+  "name": "tec-platform",
   "version": "1.0.0",
+  "description": "TEC Ecosystem - 24 App Digital Platform",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint .",
-    "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
-  },
-  "dependencies": {
-    "@yasser172/tec-sdk": "^1.0.2",
-    "axios": "^1.13.5",
-    "next": "15.5.12",
-    "react": "18.2.0",
-    "react-dom": "18.2.0"
+    "dev": "npm run dev --workspace=tec-frontend",
+    "build": "npm run build --workspace=tec-frontend",
+    "prepare": "husky || true",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.0.0",
-    "@testing-library/dom": "^10.4.1",
-    "@testing-library/jest-dom": "^6.9.1",
-    "@testing-library/react": "^16.3.2",
-    "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20.19.33",
-    "@types/react": "^18.2.0",
-    "@types/react-dom": "^18.2.0",
-    "@vitejs/plugin-react": "^5.1.4",
-    "eslint": "^9.0.0",
-    "eslint-config-next": "15.5.12",
-    "eslint-config-prettier": "^10.1.8",
-    "jsdom": "^28.1.0",
-    "prettier": "^3.8.1",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.18"
+    "husky": "^9.1.7",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
   }
 }

@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npm run dev --workspace=tec-frontend",
-    "build": "npm run build --workspace=tec-frontend",
+    "build": "cd tec-frontend && npm run build",
     "typecheck": "npm run typecheck --workspace=tec-frontend",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",

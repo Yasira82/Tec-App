@@ -1,6 +1,6 @@
 {
   "name": "@yasser172/tec-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "TEC SDK — The sovereign bridge between 24 Domains and TEC Core Platform",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",

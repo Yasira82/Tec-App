@@ -16,7 +16,6 @@ export interface A2UPaymentRequest {
   metadata?: Record<string, unknown>;
 }
 
-// ✅ أضفنا 'created'
 export interface PaymentResult {
   success: boolean;
   paymentId?: string;
@@ -217,15 +216,16 @@ export const createU2APayment = async (
             });
             onDiagnostic?.('completion', `Completion successful (${internalId})`, { piPaymentId, internalId, txid });
             clearPaymentTimer();
+            // ✅ status بعد ...result عشان يـoverride
             resolve({
               success: true,
               paymentId: piPaymentId,
               txid,
-              status: 'completed',
               amount,
               memo,
               message: 'Payment successful! 🎉',
               ...result,
+              status: 'completed',
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Payment failed';

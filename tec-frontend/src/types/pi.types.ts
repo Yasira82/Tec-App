@@ -1,5 +1,3 @@
-// tec-frontend/src/types/pi.types.ts
-
 export interface PiUser {
   uid: string;
   username: string;
@@ -42,16 +40,15 @@ export interface PiPaymentCallbacks {
   onError: (error: Error, payment?: unknown) => void;
 }
 
-// ✅ أضفنا 'created' و 'failed'
 export type PaymentStatus =
   | 'idle'
-  | 'created'      // ← جديد
+  | 'created'
   | 'pending'
   | 'approved'
   | 'completing'
   | 'completed'
   | 'cancelled'
-  | 'failed'       // ← جديد
+  | 'failed'
   | 'error';
 
 export interface PaymentState {
@@ -60,3 +57,4 @@ export interface PaymentState {
   txid: string | null;
   error: string | null;
   amount: number;
+}

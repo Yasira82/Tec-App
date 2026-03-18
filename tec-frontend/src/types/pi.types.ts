@@ -1,3 +1,5 @@
+// tec-frontend/src/types/pi.types.ts
+
 export interface PiUser {
   uid: string;
   username: string;
@@ -27,7 +29,6 @@ export interface TecAuthResponse {
   };
 }
 
-// Payment Types
 export interface PiPaymentData {
   amount: number;
   memo: string;
@@ -41,7 +42,17 @@ export interface PiPaymentCallbacks {
   onError: (error: Error, payment?: unknown) => void;
 }
 
-export type PaymentStatus = 'idle' | 'pending' | 'approved' | 'completing' | 'completed' | 'cancelled' | 'error';
+// ✅ أضفنا 'created' و 'failed'
+export type PaymentStatus =
+  | 'idle'
+  | 'created'      // ← جديد
+  | 'pending'
+  | 'approved'
+  | 'completing'
+  | 'completed'
+  | 'cancelled'
+  | 'failed'       // ← جديد
+  | 'error';
 
 export interface PaymentState {
   status: PaymentStatus;
@@ -49,4 +60,3 @@ export interface PaymentState {
   txid: string | null;
   error: string | null;
   amount: number;
-}

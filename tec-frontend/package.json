@@ -21,6 +21,7 @@
     "*.{json,css,md}": "prettier --write"
   },
   "dependencies": {
+    "@yasser172/tec-sdk": "^1.0.0",
     "axios": "^1.13.5",
     "next": "15.5.12",
     "react": "18.2.0",

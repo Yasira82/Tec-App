@@ -1,8 +1,11 @@
 {
   "name": "tec-platform",
   "version": "1.0.0",
-  "description": "TEC Ecosystem - 24 App Digital Platform",
   "private": true,
+  "workspaces": [
+    "tec-frontend",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace=tec-frontend",
     "build": "npm run build --workspace=tec-frontend",

@@ -9,30 +9,48 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'userId is required' }, { status: 400 });
     }
 
-    const backendUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL || 'http://localhost:8080';
+    // ✅ خد الـ Authorization من الـ request
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    // Fetch wallets for the user from the API Gateway → Wallet Service
-    const response = await fetch(`${backendUrl}/api/wallets?userId=${encodeURIComponent(userId)}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-      cache: 'no-store',
-    });
+    const backendUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
+      'https://api-gateway-production-6a68.up.railway.app';
+
+    const response = await fetch(
+      `${backendUrl}/api/wallets?userId=${encodeURIComponent(userId)}`,
+      {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authHeader,           // ✅ ضيف الـ token
+        },
+        cache: 'no-store',
+      }
+    );
 
     if (!response.ok) {
-      throw new Error('Failed to fetch balance from backend');
+      const errData = await response.json().catch(() => ({}));
+      console.error('[Wallet Balance] Backend error:', response.status, errData);
+      throw new Error(`Failed to fetch balance: ${response.status}`);
     }
 
     const data = await response.json();
 
-    // Extract balance from the primary wallet (or the first wallet)
     const wallets: Array<{ balance: number; is_primary: boolean; currency: string }> =
-      data?.data?.wallets ?? [];
+      data?.data?.wallets ?? data?.wallets ?? [];
     const primary = wallets.find((w) => w.is_primary) ?? wallets[0];
     const balance = primary?.balance ?? 0;
 
     return NextResponse.json({ balance }, { status: 200 });
+
   } catch (error) {
     console.error('Balance fetch error:', error);
-    return NextResponse.json({ error: 'Failed to fetch balance' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to fetch balance from backend' },
+      { status: 500 }
+    );
   }
 }

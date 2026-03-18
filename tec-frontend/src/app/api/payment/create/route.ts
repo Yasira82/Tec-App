@@ -30,8 +30,8 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
         'Authorization': authHeader,
         'Idempotency-Key': idempotencyKey,
-        // ✅ ضيف الـ internal secret عشان payment-service بيتحقق منه
-        'x-internal-secret': process.env.INTERNAL_SECRET || '',
+        // ✅ x-internal-key (الاسم الصح)
+        'x-internal-key': process.env.INTERNAL_SECRET || '',
       },
       body: JSON.stringify({
         userId,

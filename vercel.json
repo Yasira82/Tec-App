@@ -1,4 +1,4 @@
 {
-  "outputDirectory": "tec-frontend/.next",
+  "outputDirectory": ".next",
   "framework": "nextjs"
 }

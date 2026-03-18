@@ -16,11 +16,12 @@ export interface A2UPaymentRequest {
   metadata?: Record<string, unknown>;
 }
 
+// ✅ أضفنا 'created'
 export interface PaymentResult {
   success: boolean;
   paymentId?: string;
   txid?: string;
-  status: 'pending' | 'approved' | 'completed' | 'cancelled' | 'failed' | 'error';
+  status: 'created' | 'pending' | 'approved' | 'completed' | 'cancelled' | 'failed' | 'error';
   amount: number;
   memo: string;
   message?: string;
@@ -32,7 +33,6 @@ const retryFetch = async (
   maxRetries = MAX_RETRIES
 ): Promise<Response> => {
   let lastError: Error | null = null;
-
   for (let i = 0; i <= maxRetries; i++) {
     try {
       const response = await fetch(url, options);
@@ -55,9 +55,7 @@ const retryFetch = async (
 export const createA2UPayment = async (data: A2UPaymentRequest): Promise<PaymentResult> => {
   const token = getAccessToken();
   if (!token) throw new Error('Unauthorized - Please log in first');
-
   const idempotencyKey = crypto.randomUUID();
-
   try {
     const response = await retryFetch(
       `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/payments/a2u`,
@@ -71,12 +69,10 @@ export const createA2UPayment = async (data: A2UPaymentRequest): Promise<Payment
         body: JSON.stringify(data),
       }
     );
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Unknown error' }));
       throw new Error(error?.error?.message || error?.message || 'Failed to create payment');
     }
-
     return response.json();
   } catch (err) {
     throw new Error(err instanceof Error ? err.message : 'Failed to create payment');
@@ -104,13 +100,10 @@ export const createU2APayment = async (
   let internalId: string | null = null;
   const storedUser = getStoredUser();
   const userId = storedUser?.id ?? null;
-  const token = getAccessToken();
 
   if (userId) {
     try {
       onDiagnostic?.('info', `Creating payment record (userId: ${userId})`, { userId, amount });
-
-      // ✅ SDK بدل fetch مباشر
       const payment = await sdk.payment.create({
         userId,
         amount,
@@ -118,10 +111,8 @@ export const createU2APayment = async (
         payment_method: 'pi',
         metadata,
       });
-
       internalId = payment?.id ?? null;
       onDiagnostic?.('info', `Backend record created (internalId: ${internalId})`, { internalId });
-
     } catch (createErr) {
       console.warn('[Pi Payment] Backend payment create error (non-blocking):', createErr);
       onDiagnostic?.('warn', 'Backend create failed — proceeding without internalId');
@@ -160,10 +151,7 @@ export const createU2APayment = async (
     };
 
     const clearPaymentTimer = () => {
-      if (paymentTimer) {
-        clearTimeout(paymentTimer);
-        paymentTimer = null;
-      }
+      if (paymentTimer) { clearTimeout(paymentTimer); paymentTimer = null; }
     };
 
     startApprovalTimer();
@@ -174,21 +162,17 @@ export const createU2APayment = async (
         onReadyForServerApproval: async (piPaymentId: string) => {
           if (paymentTimedOut) return;
           onDiagnostic?.('approval', `onReadyForServerApproval: ${piPaymentId}`, { piPaymentId, internalId });
-
           if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
             clearPaymentTimer();
             reject(new Error('Invalid payment ID format'));
             return;
           }
-
           if (!internalId) {
             onDiagnostic?.('error', 'No internalId — skipping approve', { piPaymentId });
             startCompletionTimer();
             return;
           }
-
           try {
-            // ✅ SDK بدل fetch مباشر
             await sdk.payment.approve({ payment_id: internalId, pi_payment_id: piPaymentId });
             onDiagnostic?.('approval', `Approval successful (${internalId})`, { piPaymentId, internalId });
             startCompletionTimer();
@@ -203,19 +187,16 @@ export const createU2APayment = async (
         onReadyForServerCompletion: async (piPaymentId: string, txid: string) => {
           if (paymentTimedOut) return;
           onDiagnostic?.('completion', `onReadyForServerCompletion: ${piPaymentId} txid=${txid}`, { piPaymentId, txid, internalId });
-
           if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
             clearPaymentTimer();
             reject(new Error('Invalid payment ID format'));
             return;
           }
-
           if (!PI_TXID_REGEX.test(txid)) {
             clearPaymentTimer();
             reject(new Error('Invalid transaction ID format'));
             return;
           }
-
           if (!internalId) {
             clearPaymentTimer();
             resolve({
@@ -229,14 +210,11 @@ export const createU2APayment = async (
             });
             return;
           }
-
           try {
-            // ✅ SDK بدل fetch مباشر
             const result = await sdk.payment.complete({
               payment_id: internalId,
               transaction_id: txid,
             });
-
             onDiagnostic?.('completion', `Completion successful (${internalId})`, { piPaymentId, internalId, txid });
             clearPaymentTimer();
             resolve({
@@ -275,7 +253,6 @@ export const createU2APayment = async (
 
 export const getPaymentStatus = async (paymentId: string): Promise<PaymentResult> => {
   try {
-    // ✅ SDK بدل fetch مباشر
     const result = await sdk.payment.getStatus(paymentId);
     return result as unknown as PaymentResult;
   } catch (err) {

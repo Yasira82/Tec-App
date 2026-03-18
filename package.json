@@ -9,7 +9,7 @@
     "typecheck": "npm run typecheck --workspace=tec-frontend",
     "test": "npm run test --workspaces --if-present",
     "lint": "npm run lint --workspaces --if-present",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "prisma:deploy": "prisma migrate deploy",

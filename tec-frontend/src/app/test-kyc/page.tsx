@@ -25,7 +25,7 @@ export default function TestKycPage() {
       const res = await fetch(`${GATEWAY}/api/kyc${path}`, {
         method,
         headers: authHeaders,
-        ...(body ? { body: JSON.stringify(body) } : {}),
+        body: method !== 'GET' ? JSON.stringify(body ?? {}) : undefined,
       });
       const data = await res.json();
       setResult(data);
@@ -74,4 +74,4 @@ export default function TestKycPage() {
       )}
     </div>
   );
-}
+      }

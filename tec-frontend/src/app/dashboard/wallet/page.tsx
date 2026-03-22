@@ -1,6 +1,8 @@
 'use client';
 
+import { useState, useCallback } from 'react';
 import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/useWallet';
+import { useWalletRealtime, WalletUpdatedEvent } from '@/lib-client/hooks/useWalletRealtime';
 import styles from './wallet.module.css';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -59,6 +61,28 @@ export default function WalletPage() {
     setFilterStatus,
   } = useWallet();
 
+  // Live balance يتحدث من WebSocket
+  const [liveBalance, setLiveBalance] = useState<number | null>(null);
+  const [liveFlash,   setLiveFlash]   = useState(false);
+
+  const handleBalanceUpdate = useCallback((event: WalletUpdatedEvent) => {
+    setLiveBalance(event.balance);
+
+    // Flash animation لما الرصيد يتحدث
+    setLiveFlash(true);
+    setTimeout(() => setLiveFlash(false), 1000);
+
+    // Refresh الـ transactions بعد كل update
+    refetch();
+  }, [refetch]);
+
+  const { isConnected } = useWalletRealtime({
+    onBalanceUpdate: handleBalanceUpdate,
+  });
+
+  // الرصيد الفعلي = live لو موجود، غير كده من الـ API
+  const displayBalance = liveBalance ?? wallet?.balance ?? null;
+
   // ── Loading ──
   if (isLoading) {
     return (
@@ -92,18 +116,24 @@ export default function WalletPage() {
           <h1 className={styles.title}>Wallet</h1>
           <p className={styles.subtitle}>Manage your Pi balance and transactions</p>
         </div>
-        {/* Refresh indicator */}
-        {isRefreshing && (
-          <span className={styles.refreshing}>⟳ جاري التحديث...</span>
-        )}
+        <div className={styles.headerRight}>
+          {/* Live indicator */}
+          <div className={`${styles.liveIndicator} ${isConnected ? styles.liveOn : styles.liveOff}`}>
+            <span className={styles.liveDot} />
+            {isConnected ? 'Live' : 'Offline'}
+          </div>
+          {isRefreshing && (
+            <span className={styles.refreshing}>⟳ جاري التحديث...</span>
+          )}
+        </div>
       </header>
 
       {/* ── Balance Card ── */}
       <section className={`${styles.balanceCard} fade-up`}>
         <div className={styles.balanceLabel}>Total Balance</div>
-        <div className={`${styles.balanceAmount} gold-text`}>
-          {wallet?.balance != null
-            ? `${wallet.balance.toFixed(2)} π`
+        <div className={`${styles.balanceAmount} gold-text ${liveFlash ? styles.balanceFlash : ''}`}>
+          {displayBalance != null
+            ? `${displayBalance.toFixed(2)} π`
             : '— π'}
         </div>
         <div className={styles.balanceActions}>
@@ -124,7 +154,7 @@ export default function WalletPage() {
               </div>
               <div className={styles.walletName}>Pi Wallet</div>
               <div className={`${styles.walletBalance} gold-text`}>
-                {wallet.balance.toFixed(2)} π
+                {displayBalance?.toFixed(2) ?? wallet.balance.toFixed(2)} π
               </div>
               {wallet.address && (
                 <div className={styles.walletAddress}>{wallet.address}</div>
@@ -137,7 +167,6 @@ export default function WalletPage() {
               </div>
             </div>
           )}
-
           <div className={`${styles.walletCard} ${styles.walletCardAdd}`}>
             <div className={styles.addIcon}>+</div>
             <div className={styles.addText}>Link New Wallet</div>
@@ -150,7 +179,6 @@ export default function WalletPage() {
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Transaction History</h2>
           <div className={styles.filters}>
-            {/* Type Filter */}
             <select
               className={styles.filterSelect}
               value={filterType}
@@ -161,8 +189,6 @@ export default function WalletPage() {
               <option value="receive">Receive</option>
               <option value="payment">Payment</option>
             </select>
-
-            {/* Status Filter */}
             <select
               className={styles.filterSelect}
               value={filterStatus}
@@ -184,7 +210,6 @@ export default function WalletPage() {
             <span>Date</span>
             <span>TX Hash</span>
           </div>
-
           <div className={styles.tableBody}>
             {transactions.length === 0 ? (
               <EmptyTransactions />
@@ -196,7 +221,6 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* Pagination */}
         <div className={styles.pagination}>
           <button
             className={styles.paginationBtn}

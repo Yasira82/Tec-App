@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { fetchWithAuth } from '@/lib-client/pi/pi-auth';
-import { getStoredUser } from '@/lib-client/pi/pi-auth';
+import { fetchWithAuth, getStoredUser } from '@/lib-client/pi/pi-auth';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -182,9 +181,12 @@ export function useWallet(): UseWalletReturn {
     setState(prev => ({ ...prev, filterStatus: s, page: 1 }));
   }, []);
 
+  // ✅ memoized عشان مش يسبب WebSocket reconnect على كل render
+  const refetch = useCallback(() => fetchWallet(true), [fetchWallet]);
+
   return {
     ...state,
-    refetch:         () => fetchWallet(true),
+    refetch,
     setPage,
     setFilterType,
     setFilterStatus,

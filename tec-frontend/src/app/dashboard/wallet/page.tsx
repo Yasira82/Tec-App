@@ -1,76 +1,143 @@
 'use client';
 
-import { useState } from 'react';
+import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/useWallet';
 import styles from './wallet.module.css';
 
-const TRANSACTIONS = [
-  { id: '1', type: 'receive', amount: 100, status: 'completed', date: '2026-02-16', txHash: 'abc123...' },
-  { id: '2', type: 'send', amount: 25, status: 'completed', date: '2026-02-15', txHash: 'def456...' },
-  { id: '3', type: 'payment', amount: 5, status: 'pending', date: '2026-02-14', txHash: 'ghi789...' },
-  { id: '4', type: 'receive', amount: 50, status: 'completed', date: '2026-02-13', txHash: 'jkl012...' },
-  { id: '5', type: 'send', amount: 10, status: 'failed', date: '2026-02-12', txHash: 'mno345...' },
-];
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getTypeIcon(type: string) {
+  switch (type) {
+    case 'receive':
+    case 'credit':  return '↓';
+    case 'send':
+    case 'debit':   return '↑';
+    case 'payment': return '→';
+    default:        return '•';
+  }
+}
+
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric',
+  });
+}
+
+function isPositive(type: string) {
+  return type === 'receive' || type === 'credit';
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    completed: styles.statusCompleted,
+    pending:   styles.statusPending,
+    failed:    styles.statusFailed,
+    cancelled: styles.statusFailed,
+  };
+  return (
+    <span className={`${styles.statusBadge} ${map[status] ?? ''}`}>
+      {status}
+    </span>
+  );
+}
+
+// ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function WalletPage() {
-  const [filterType, setFilterType] = useState<string>('all');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const {
+    wallet,
+    transactions,
+    isLoading,
+    isRefreshing,
+    error,
+    page,
+    totalPages,
+    filterType,
+    filterStatus,
+    refetch,
+    setPage,
+    setFilterType,
+    setFilterStatus,
+  } = useWallet();
 
-  const filteredTransactions = TRANSACTIONS.filter(tx => {
-    if (filterType !== 'all' && tx.type !== filterType) return false;
-    if (filterStatus !== 'all' && tx.status !== filterStatus) return false;
-    return true;
-  });
+  // ── Loading ──
+  if (isLoading) {
+    return (
+      <div className={styles.container}>
+        <WalletSkeleton />
+      </div>
+    );
+  }
 
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'receive': return '↓';
-      case 'send': return '↑';
-      case 'payment': return '→';
-      default: return '•';
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      completed: { label: 'Completed', className: styles.statusCompleted },
-      pending: { label: 'Pending', className: styles.statusPending },
-      failed: { label: 'Failed', className: styles.statusFailed },
-    };
-    const config = statusConfig[status as keyof typeof statusConfig];
-    return <span className={`${styles.statusBadge} ${config.className}`}>{config.label}</span>;
-  };
+  // ── Error ──
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorState}>
+          <span>⚠️</span>
+          <p>{error}</p>
+          <button className={styles.actionBtn} onClick={() => refetch()}>
+            إعادة المحاولة
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={styles.container}>
+
+      {/* ── Header ── */}
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Wallet</h1>
           <p className={styles.subtitle}>Manage your Pi balance and transactions</p>
         </div>
+        {/* Refresh indicator */}
+        {isRefreshing && (
+          <span className={styles.refreshing}>⟳ جاري التحديث...</span>
+        )}
       </header>
 
+      {/* ── Balance Card ── */}
       <section className={`${styles.balanceCard} fade-up`}>
         <div className={styles.balanceLabel}>Total Balance</div>
-        <div className={`${styles.balanceAmount} gold-text`}>175.00 π</div>
+        <div className={`${styles.balanceAmount} gold-text`}>
+          {wallet?.balance != null
+            ? `${wallet.balance.toFixed(2)} π`
+            : '— π'}
+        </div>
         <div className={styles.balanceActions}>
           <button className={styles.actionBtn}>↓ Receive</button>
           <button className={styles.actionBtn}>↑ Send</button>
         </div>
       </section>
 
+      {/* ── Wallets ── */}
       <section className={`${styles.walletsSection} fade-up-1`}>
         <h2 className={styles.sectionTitle}>My Wallets</h2>
         <div className={styles.walletsGrid}>
-          <div className={styles.walletCard}>
-            <div className={styles.walletHeader}>
-              <span className={styles.walletIcon}>π</span>
-              <span className={styles.walletBadge}>Primary</span>
+          {wallet ? (
+            <div className={styles.walletCard}>
+              <div className={styles.walletHeader}>
+                <span className={styles.walletIcon}>π</span>
+                <span className={styles.walletBadge}>Primary</span>
+              </div>
+              <div className={styles.walletName}>Pi Wallet</div>
+              <div className={`${styles.walletBalance} gold-text`}>
+                {wallet.balance.toFixed(2)} π
+              </div>
+              {wallet.address && (
+                <div className={styles.walletAddress}>{wallet.address}</div>
+              )}
             </div>
-            <div className={styles.walletName}>Pi Wallet</div>
-            <div className={`${styles.walletBalance} gold-text`}>175.00 π</div>
-            <div className={styles.walletAddress}>pi:abc123...xyz789</div>
-          </div>
-          
+          ) : (
+            <div className={styles.walletCard}>
+              <div className={styles.walletName} style={{ color: 'var(--muted)' }}>
+                لا توجد محفظة
+              </div>
+            </div>
+          )}
+
           <div className={`${styles.walletCard} ${styles.walletCardAdd}`}>
             <div className={styles.addIcon}>+</div>
             <div className={styles.addText}>Link New Wallet</div>
@@ -78,24 +145,28 @@ export default function WalletPage() {
         </div>
       </section>
 
+      {/* ── Transactions ── */}
       <section className={`${styles.transactionsSection} fade-up-2`}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Transaction History</h2>
           <div className={styles.filters}>
-            <select 
+            {/* Type Filter */}
+            <select
               className={styles.filterSelect}
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
+              onChange={e => setFilterType(e.target.value as TxType | 'all')}
             >
               <option value="all">All Types</option>
               <option value="send">Send</option>
               <option value="receive">Receive</option>
               <option value="payment">Payment</option>
             </select>
-            <select 
+
+            {/* Status Filter */}
+            <select
               className={styles.filterSelect}
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
+              onChange={e => setFilterStatus(e.target.value as TxStatus | 'all')}
             >
               <option value="all">All Status</option>
               <option value="completed">Completed</option>
@@ -113,34 +184,89 @@ export default function WalletPage() {
             <span>Date</span>
             <span>TX Hash</span>
           </div>
+
           <div className={styles.tableBody}>
-            {filteredTransactions.map((tx) => (
-              <div key={tx.id} className={styles.tableRow}>
-                <div className={styles.txType}>
-                  <span className={styles.txIcon}>{getTypeIcon(tx.type)}</span>
-                  <span className={styles.txLabel}>{tx.type}</span>
-                </div>
-                <div className={`${styles.txAmount} ${tx.type === 'send' ? styles.negative : styles.positive}`}>
-                  {tx.type === 'send' ? '-' : '+'}{tx.amount.toFixed(2)} π
-                </div>
-                <div className={styles.txStatus}>
-                  {getStatusBadge(tx.status)}
-                </div>
-                <div className={styles.txDate}>{tx.date}</div>
-                <div className={styles.txHash}>
-                  <a href="#" className={styles.hashLink}>{tx.txHash}</a>
-                </div>
-              </div>
-            ))}
+            {transactions.length === 0 ? (
+              <EmptyTransactions />
+            ) : (
+              transactions.map(tx => (
+                <TransactionRow key={tx.id} tx={tx} />
+              ))
+            )}
           </div>
         </div>
 
+        {/* Pagination */}
         <div className={styles.pagination}>
-          <button className={styles.paginationBtn} disabled>Previous</button>
-          <span className={styles.paginationInfo}>Page 1 of 1</span>
-          <button className={styles.paginationBtn} disabled>Next</button>
+          <button
+            className={styles.paginationBtn}
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+          >
+            Previous
+          </button>
+          <span className={styles.paginationInfo}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className={styles.paginationBtn}
+            disabled={page >= totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            Next
+          </button>
         </div>
       </section>
+
+    </div>
+  );
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function TransactionRow({ tx }: { tx: Transaction }) {
+  const positive = isPositive(tx.type);
+  return (
+    <div className={styles.tableRow}>
+      <div className={styles.txType}>
+        <span className={styles.txIcon}>{getTypeIcon(tx.type)}</span>
+        <span className={styles.txLabel}>{tx.type}</span>
+      </div>
+      <div className={`${styles.txAmount} ${positive ? styles.positive : styles.negative}`}>
+        {positive ? '+' : '-'}{tx.amount.toFixed(2)} π
+      </div>
+      <div className={styles.txStatus}>
+        <StatusBadge status={tx.status} />
+      </div>
+      <div className={styles.txDate}>{formatDate(tx.createdAt)}</div>
+      <div className={styles.txHash}>
+        {tx.txHash ? (
+          <a href="#" className={styles.hashLink}>
+            {tx.txHash.slice(0, 10)}...
+          </a>
+        ) : (
+          <span style={{ color: 'var(--muted)' }}>—</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmptyTransactions() {
+  return (
+    <div className={styles.emptyState}>
+      <span>📭</span>
+      <p>No transactions yet</p>
+    </div>
+  );
+}
+
+function WalletSkeleton() {
+  return (
+    <div className={styles.skeleton}>
+      <div className={styles.skeletonHeader} />
+      <div className={styles.skeletonCard} />
+      <div className={styles.skeletonTable} />
     </div>
   );
 }

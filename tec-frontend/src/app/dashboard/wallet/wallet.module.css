@@ -340,3 +340,47 @@
   font-size: 14px;
   color: var(--muted);
 }
+.errorState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 64px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+}
+.errorState span { font-size: 32px; }
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 48px;
+  color: var(--muted);
+  font-size: 14px;
+}
+.emptyState span { font-size: 28px; }
+
+.refreshing {
+  font-size: 12px;
+  color: var(--gold-dim);
+  align-self: center;
+  animation: fadePulse 1.2s ease-in-out infinite;
+}
+@keyframes fadePulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+.skeleton        { display: flex; flex-direction: column; gap: 24px; }
+.skeletonHeader  { height: 60px;  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;  animation: shimmer 1.4s ease infinite; }
+.skeletonCard    { height: 200px; background: var(--surface); border: 1px solid var(--border); border-radius: 16px; animation: shimmer 1.4s ease infinite; animation-delay: 0.1s; }
+.skeletonTable   { height: 300px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: shimmer 1.4s ease infinite; animation-delay: 0.2s; }
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
+}

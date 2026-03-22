@@ -384,3 +384,53 @@
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.4; }
 }
+/* ─── أضيف في آخر wallet.module.css ─────────────────────────── */
+
+/* Header Right */
+.headerRight {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Live Indicator */
+.liveIndicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.liveOn  { color: var(--success); border-color: rgba(46, 204, 113, 0.3); }
+.liveOff { color: var(--muted);   border-color: var(--border); }
+
+.liveDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.liveOn .liveDot {
+  animation: livePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Balance Flash — لما الرصيد يتحدث live */
+.balanceFlash {
+  animation: balanceFlash 0.8s ease;
+}
+
+@keyframes balanceFlash {
+  0%   { color: var(--gold); transform: scale(1); }
+  30%  { color: var(--success); transform: scale(1.04); }
+  100% { color: var(--gold); transform: scale(1); }
+}

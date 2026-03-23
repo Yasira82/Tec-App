@@ -14,37 +14,24 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { user, isAuthenticated, isLoading, logout } = usePiAuth();
-  const { t }      = useTranslation();
-  const router     = useRouter();
-  const pathname   = usePathname();
+  const { t }    = useTranslation();
+  const router   = useRouter();
+  const pathname = usePathname();
 
-  // ── Mobile menu state ────────────────────────────────────────
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  // Auth guard
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/');
   }, [isAuthenticated, isLoading, router]);
 
-  // Prevent scroll when mobile menu is open
   useEffect(() => {
-    if (mobileOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = '';
-    }
+    document.body.style.overflow = mobileOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen]);
 
-  const handleLogout = () => {
-    logout();
-    router.push('/');
-  };
+  const handleLogout = () => { logout(); router.push('/'); };
 
   if (isLoading || !user) {
     return (
@@ -55,12 +42,13 @@ export default function DashboardLayout({
   }
 
   const navItems = [
-    { icon: '⊞', label: t.dashboard.nav.dashboard,    href: '/dashboard' },
-    { icon: '◎', label: t.dashboard.nav.wallet,        href: '/dashboard/wallet' },
-    { icon: '◈', label: t.dashboard.nav.subscription,  href: '/dashboard/subscription' },
-    { icon: '◇', label: t.dashboard.nav.security,      href: '/dashboard/security' },
-    { icon: '◉', label: 'Profile',                     href: '/dashboard/profile' },
-    { icon: '◐', label: 'KYC',                         href: '/dashboard/kyc' },
+    { icon: '⊞', label: t.dashboard.nav.dashboard,   href: '/dashboard' },
+    { icon: '◎', label: t.dashboard.nav.wallet,       href: '/dashboard/wallet' },
+    { icon: '◫', label: 'Orders',                     href: '/dashboard/orders' },  // ← جديد
+    { icon: '◈', label: t.dashboard.nav.subscription, href: '/dashboard/subscription' },
+    { icon: '◇', label: t.dashboard.nav.security,     href: '/dashboard/security' },
+    { icon: '◉', label: 'Profile',                    href: '/dashboard/profile' },
+    { icon: '◐', label: 'KYC',                        href: '/dashboard/kyc' },
   ];
 
   const isActive = (href: string) =>
@@ -110,7 +98,6 @@ export default function DashboardLayout({
             >
               <span className={styles.navIcon}>{item.icon}</span>
               <span className={styles.navLabel}>{item.label}</span>
-              {/* Active bar */}
               {isActive(item.href) && (
                 <span className={styles.navActiveBar} />
               )}
@@ -134,4 +121,4 @@ export default function DashboardLayout({
 
     </div>
   );
-  }
+}

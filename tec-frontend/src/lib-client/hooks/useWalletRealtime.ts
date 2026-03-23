@@ -1,11 +1,12 @@
 'use client';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState } from 'react';
 
-// realtime-service-production-9630.up.railway.app
-const WS_URL = process.env.NEXT_PUBLIC_REALTIME_URL
-  ?? 'wss://realtime-service-production-9630.up.railway.app';
+const WS_URL =
+  process.env.NEXT_PUBLIC_REALTIME_URL ??
+  'wss://realtime-service-production-9630.up.railway.app';
 
-interface WalletUpdatedEvent {
+// ─── Export هنا — الـ page بتستخدمه ──────────────────────────
+export interface WalletUpdatedEvent {
   type:    'wallet.updated';
   balance: number;
   amount:  number;
@@ -14,60 +15,70 @@ interface WalletUpdatedEvent {
 }
 
 interface UseWalletRealtimeOptions {
-  userId:          string | null;
-  onBalanceUpdate: (newBalance: number) => void;
-  onNewTx?:        () => void; // optional: re-fetch list
+  onBalanceUpdate: (event: WalletUpdatedEvent) => void; // ← full event مش number
+  onNewTx?:        () => void;
   enabled?:        boolean;
 }
 
-const MAX_RETRIES    = 5;
-const PING_INTERVAL  = 25_000; // 25s
-const BACKOFF_BASE   = 1_000;  // 1s base
+const MAX_RETRIES   = 5;
+const PING_INTERVAL = 25_000;
+const BACKOFF_BASE  = 1_000;
 
 export function useWalletRealtime({
-  userId,
   onBalanceUpdate,
   onNewTx,
   enabled = true,
 }: UseWalletRealtimeOptions) {
+
+  const [isConnected, setIsConnected] = useState(false); // ← الـ page بتستخدمه
+
   const wsRef      = useRef<WebSocket | null>(null);
   const retryRef   = useRef(0);
   const pingRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
+  // ── helpers ────────────────────────────────────────────────
   const getToken = (): string | null =>
     typeof window !== 'undefined'
       ? localStorage.getItem('tec_access_token')
       : null;
 
-  // ── Cleanup helper ──────────────────────────────────────
+  const getUserId = (): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = localStorage.getItem('tec_user');
+      return raw ? (JSON.parse(raw)?.uid ?? null) : null;
+    } catch { return null; }
+  };
+
   const cleanup = useCallback(() => {
     if (pingRef.current) clearInterval(pingRef.current);
     if (wsRef.current) {
-      wsRef.current.onclose = null; // no retry on intentional close
+      wsRef.current.onclose = null;
       wsRef.current.close();
       wsRef.current = null;
     }
+    setIsConnected(false);
   }, []);
 
-  // ── Connect ─────────────────────────────────────────────
+  // ── connect ────────────────────────────────────────────────
   const connect = useCallback(() => {
-    if (!mountedRef.current || !userId) return;
+    if (!mountedRef.current) return;
 
-    const token = getToken();
-    if (!token) return;
+    const token  = getToken();
+    const userId = getUserId();
+    if (!token || !userId) return;
 
     cleanup();
 
-    // Token يتبعت في الـ URL لأن WebSocket مش بيدعم custom headers
     const url = `${WS_URL}/wallet?token=${token}&userId=${userId}`;
     const ws  = new WebSocket(url);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      retryRef.current = 0; // reset retries on success
+      retryRef.current = 0;
+      setIsConnected(true);
 
-      // Ping/Pong keep-alive
       pingRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'ping' }));
@@ -77,44 +88,41 @@ export function useWalletRealtime({
 
     ws.onmessage = (e: MessageEvent) => {
       try {
-        const data: WalletUpdatedEvent | { type: 'pong' } = JSON.parse(e.data);
+        const data = JSON.parse(e.data) as
+          | WalletUpdatedEvent
+          | { type: 'pong' };
 
         if (data.type === 'wallet.updated') {
-          onBalanceUpdate(data.balance);
-          onNewTx?.(); // optional: re-fetch transactions list
+          onBalanceUpdate(data);   // ← بنبعت الـ full event
+          onNewTx?.();
         }
-        // pong → نتجاهله، الـ ping/pong keep-alive تلقائي
-      } catch {
-        // invalid JSON — ignore
-      }
+      } catch { /* invalid JSON */ }
     };
 
-    ws.onerror = () => {
-      // onerror دايماً بييجي قبل onclose — نتجاهله هنا
-    };
+    ws.onerror = () => { /* onclose handles it */ };
 
     ws.onclose = () => {
       if (pingRef.current) clearInterval(pingRef.current);
+      setIsConnected(false);
       if (!mountedRef.current) return;
 
-      // Exponential backoff retry
       if (retryRef.current < MAX_RETRIES) {
         const delay = BACKOFF_BASE * Math.pow(2, retryRef.current);
         retryRef.current += 1;
         setTimeout(connect, delay);
       }
-      // بعد MAX_RETRIES: نوقف المحاولات بهدوء
     };
-  }, [userId, onBalanceUpdate, onNewTx, cleanup]);
+  }, [onBalanceUpdate, onNewTx, cleanup]);
 
-  // ── Mount / Unmount ─────────────────────────────────────
+  // ── mount / unmount ────────────────────────────────────────
   useEffect(() => {
     mountedRef.current = true;
-    if (enabled && userId) connect();
-
+    if (enabled) connect();
     return () => {
       mountedRef.current = false;
       cleanup();
     };
-  }, [enabled, userId, connect, cleanup]);
+  }, [enabled, connect, cleanup]);
+
+  return { isConnected }; // ← الـ page بتستخدمه
 }

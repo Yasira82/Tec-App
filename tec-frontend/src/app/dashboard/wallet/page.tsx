@@ -5,8 +5,7 @@ import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/use
 import { useWalletRealtime, WalletUpdatedEvent } from '@/lib-client/hooks/useWalletRealtime';
 import styles from './wallet.module.css';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
+// ─── Helpers ──────────────────────────────────────────────────
 function getTypeIcon(type: string) {
   switch (type) {
     case 'receive':
@@ -42,8 +41,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Page ────────────────────────────────────────────────────────────────────
-
+// ─── Page ──────────────────────────────────────────────────────
 export default function WalletPage() {
   const {
     wallet,
@@ -59,31 +57,27 @@ export default function WalletPage() {
     setPage,
     setFilterType,
     setFilterStatus,
+    updateBalance,
   } = useWallet();
 
-  // Live balance يتحدث من WebSocket
-  const [liveBalance, setLiveBalance] = useState<number | null>(null);
-  const [liveFlash,   setLiveFlash]   = useState(false);
+  const [liveFlash, setLiveFlash] = useState(false);
 
+  // ← الـ callback بيستقبل الـ full event زي ما الـ page كانت بتتوقع
   const handleBalanceUpdate = useCallback((event: WalletUpdatedEvent) => {
-    setLiveBalance(event.balance);
+    updateBalance(event.balance); // ← بندّي الـ hook يحدّث الـ wallet object
 
-    // Flash animation لما الرصيد يتحدث
     setLiveFlash(true);
     setTimeout(() => setLiveFlash(false), 1000);
 
-    // Refresh الـ transactions بعد كل update
+    // Refresh list بعد أي تحديث على الـ balance
     refetch();
-  }, [refetch]);
+  }, [updateBalance, refetch]);
 
   const { isConnected } = useWalletRealtime({
     onBalanceUpdate: handleBalanceUpdate,
   });
 
-  // الرصيد الفعلي = live لو موجود، غير كده من الـ API
-  const displayBalance = liveBalance ?? wallet?.balance ?? null;
-
-  // ── Loading ──
+  // ── Loading ──────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className={styles.container}>
@@ -92,20 +86,22 @@ export default function WalletPage() {
     );
   }
 
-  // ── Error ──
+  // ── Error ────────────────────────────────────────────────────
   if (error) {
     return (
       <div className={styles.container}>
         <div className={styles.errorState}>
           <span>⚠️</span>
           <p>{error}</p>
-          <button className={styles.actionBtn} onClick={() => refetch()}>
+          <button className={styles.actionBtn} onClick={refetch}>
             إعادة المحاولة
           </button>
         </div>
       </div>
     );
   }
+
+  const displayBalance = wallet?.balance ?? null;
 
   return (
     <div className={styles.container}>
@@ -117,7 +113,6 @@ export default function WalletPage() {
           <p className={styles.subtitle}>Manage your Pi balance and transactions</p>
         </div>
         <div className={styles.headerRight}>
-          {/* Live indicator */}
           <div className={`${styles.liveIndicator} ${isConnected ? styles.liveOn : styles.liveOff}`}>
             <span className={styles.liveDot} />
             {isConnected ? 'Live' : 'Offline'}
@@ -132,9 +127,7 @@ export default function WalletPage() {
       <section className={`${styles.balanceCard} fade-up`}>
         <div className={styles.balanceLabel}>Total Balance</div>
         <div className={`${styles.balanceAmount} gold-text ${liveFlash ? styles.balanceFlash : ''}`}>
-          {displayBalance != null
-            ? `${displayBalance.toFixed(2)} π`
-            : '— π'}
+          {displayBalance != null ? `${displayBalance.toFixed(2)} π` : '— π'}
         </div>
         <div className={styles.balanceActions}>
           <button className={styles.actionBtn}>↓ Receive</button>
@@ -154,7 +147,7 @@ export default function WalletPage() {
               </div>
               <div className={styles.walletName}>Pi Wallet</div>
               <div className={`${styles.walletBalance} gold-text`}>
-                {displayBalance?.toFixed(2) ?? wallet.balance.toFixed(2)} π
+                {wallet.balance.toFixed(2)} π
               </div>
               {wallet.address && (
                 <div className={styles.walletAddress}>{wallet.address}</div>
@@ -246,10 +239,12 @@ export default function WalletPage() {
   );
 }
 
-// ─── Sub-components ───────────────────────────────────────────────────────────
-
+// ─── Sub-components ────────────────────────────────────────────
 function TransactionRow({ tx }: { tx: Transaction }) {
   const positive = isPositive(tx.type);
+  // txHash أو txId — نعرض اللي موجود
+  const hash = tx.txHash ?? tx.txId ?? null;
+
   return (
     <div className={styles.tableRow}>
       <div className={styles.txType}>
@@ -264,9 +259,9 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       </div>
       <div className={styles.txDate}>{formatDate(tx.createdAt)}</div>
       <div className={styles.txHash}>
-        {tx.txHash ? (
+        {hash ? (
           <a href="#" className={styles.hashLink}>
-            {tx.txHash.slice(0, 10)}...
+            {hash.slice(0, 10)}...
           </a>
         ) : (
           <span style={{ color: 'var(--muted)' }}>—</span>
@@ -293,4 +288,4 @@ function WalletSkeleton() {
       <div className={styles.skeletonTable} />
     </div>
   );
-}
+          }

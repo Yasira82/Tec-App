@@ -5,9 +5,8 @@ const WS_URL =
   process.env.NEXT_PUBLIC_REALTIME_URL ??
   'wss://realtime-service-production-9630.up.railway.app';
 
-// ─── Export هنا — الـ page بتستخدمه ──────────────────────────
 export interface WalletUpdatedEvent {
-  type:    'wallet.updated';
+  type:   'wallet.updated';
   balance: number;
   amount:  number;
   txType:  'credit' | 'debit';
@@ -15,7 +14,7 @@ export interface WalletUpdatedEvent {
 }
 
 interface UseWalletRealtimeOptions {
-  onBalanceUpdate: (event: WalletUpdatedEvent) => void; // ← full event مش number
+  onBalanceUpdate: (event: WalletUpdatedEvent) => void;
   onNewTx?:        () => void;
   enabled?:        boolean;
 }
@@ -29,15 +28,13 @@ export function useWalletRealtime({
   onNewTx,
   enabled = true,
 }: UseWalletRealtimeOptions) {
-
-  const [isConnected, setIsConnected] = useState(false); // ← الـ page بتستخدمه
+  const [isConnected, setIsConnected] = useState(false);
 
   const wsRef      = useRef<WebSocket | null>(null);
   const retryRef   = useRef(0);
   const pingRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
-  // ── helpers ────────────────────────────────────────────────
   const getToken = (): string | null =>
     typeof window !== 'undefined'
       ? localStorage.getItem('tec_access_token')
@@ -47,7 +44,9 @@ export function useWalletRealtime({
     if (typeof window === 'undefined') return null;
     try {
       const raw = localStorage.getItem('tec_user');
-      return raw ? (JSON.parse(raw)?.uid ?? null) : null;
+      if (!raw) return null;
+      const u = JSON.parse(raw);
+      return u?.id ?? u?.uid ?? null; // ← id أولاً ثم uid
     } catch { return null; }
   };
 
@@ -61,10 +60,8 @@ export function useWalletRealtime({
     setIsConnected(false);
   }, []);
 
-  // ── connect ────────────────────────────────────────────────
   const connect = useCallback(() => {
     if (!mountedRef.current) return;
-
     const token  = getToken();
     const userId = getUserId();
     if (!token || !userId) return;
@@ -78,7 +75,6 @@ export function useWalletRealtime({
     ws.onopen = () => {
       retryRef.current = 0;
       setIsConnected(true);
-
       pingRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ type: 'ping' }));
@@ -88,24 +84,20 @@ export function useWalletRealtime({
 
     ws.onmessage = (e: MessageEvent) => {
       try {
-        const data = JSON.parse(e.data) as
-          | WalletUpdatedEvent
-          | { type: 'pong' };
-
+        const data = JSON.parse(e.data) as WalletUpdatedEvent | { type: 'pong' };
         if (data.type === 'wallet.updated') {
-          onBalanceUpdate(data);   // ← بنبعت الـ full event
+          onBalanceUpdate(data);
           onNewTx?.();
         }
-      } catch { /* invalid JSON */ }
+      } catch { /* ignore */ }
     };
 
-    ws.onerror = () => { /* onclose handles it */ };
+    ws.onerror = () => { /* handled in onclose */ };
 
     ws.onclose = () => {
       if (pingRef.current) clearInterval(pingRef.current);
       setIsConnected(false);
       if (!mountedRef.current) return;
-
       if (retryRef.current < MAX_RETRIES) {
         const delay = BACKOFF_BASE * Math.pow(2, retryRef.current);
         retryRef.current += 1;
@@ -114,15 +106,11 @@ export function useWalletRealtime({
     };
   }, [onBalanceUpdate, onNewTx, cleanup]);
 
-  // ── mount / unmount ────────────────────────────────────────
   useEffect(() => {
     mountedRef.current = true;
     if (enabled) connect();
-    return () => {
-      mountedRef.current = false;
-      cleanup();
-    };
+    return () => { mountedRef.current = false; cleanup(); };
   }, [enabled, connect, cleanup]);
 
-  return { isConnected }; // ← الـ page بتستخدمه
+  return { isConnected };
 }

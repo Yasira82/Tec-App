@@ -1,9 +1,9 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// ─── Types ────────────────────────────────────────────────────
-export type TxType   = 'send' | 'receive' | 'payment' | 'all';
-export type TxStatus = 'completed' | 'pending' | 'failed' | 'all';
+// ─── Types ─────────────────────────────────────────────────────
+export type TxType   = 'send' | 'receive' | 'payment';
+export type TxStatus = 'completed' | 'pending' | 'failed';
 
 export interface Transaction {
   id:        string;
@@ -15,124 +15,79 @@ export interface Transaction {
   to?:       string;
   memo?:     string;
   txId?:     string;
+  txHash?:   string;   // ← الـ page بتستخدم txHash
   createdAt: string;
 }
 
-export interface WalletState {
-  balance:      number;
-  currency:     string;
-  transactions: Transaction[];
-  total:        number;
-  page:         number;
-  hasMore:      boolean;
-  isLoading:    boolean;
-  isRefreshing: boolean;
-  error:        string | null;
+// ← الـ page بتستخدم wallet object مش balance مباشرة
+export interface WalletInfo {
+  balance:  number;
+  currency: string;
+  address?: string;
 }
 
-interface UseWalletOptions {
-  pageSize?:  number;
-  autoFetch?: boolean;
+interface UseWalletReturn {
+  wallet:        WalletInfo | null;
+  transactions:  Transaction[];
+  total:         number;
+  totalPages:    number;             // ← الـ page بتستخدمه
+  page:          number;
+  hasMore:       boolean;
+  isLoading:     boolean;
+  isRefreshing:  boolean;
+  error:         string | null;
+  filterType:    TxType | 'all';
+  filterStatus:  TxStatus | 'all';
+  setFilterType:   (v: TxType | 'all')   => void;
+  setFilterStatus: (v: TxStatus | 'all') => void;
+  refetch:       () => void;          // ← الـ page بتستخدم refetch
+  loadMore:      () => void;
+  setPage:       (p: number) => void;
+  updateBalance: (b: number) => void;
 }
 
-// ─── Constants ────────────────────────────────────────────────
-const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
-// = https://api-gateway-production-6a68.up.railway.app
+const GATEWAY  = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const PAGE_SIZE = 10;
 
-// ─── Hook ─────────────────────────────────────────────────────
-export function useWallet(options: UseWalletOptions = {}) {
-  const { pageSize = 10, autoFetch = true } = options;
-
-  const [state, setState] = useState<WalletState>({
-    balance:      0,
-    currency:     'PI',
-    transactions: [],
-    total:        0,
-    page:         1,
-    hasMore:      false,
-    isLoading:    true,
-    isRefreshing: false,
-    error:        null,
-  });
-
-  const [filterType,   setFilterType]   = useState<TxType>('all');
-  const [filterStatus, setFilterStatus] = useState<TxStatus>('all');
+// ─── Hook ──────────────────────────────────────────────────────
+export function useWallet(): UseWalletReturn {
+  const [wallet,        setWallet]        = useState<WalletInfo | null>(null);
+  const [transactions,  setTransactions]  = useState<Transaction[]>([]);
+  const [total,         setTotal]         = useState(0);
+  const [page,          setPageState]     = useState(1);
+  const [isLoading,     setIsLoading]     = useState(true);
+  const [isRefreshing,  setIsRefreshing]  = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
+  const [filterType,    setFilterType]    = useState<TxType | 'all'>('all');
+  const [filterStatus,  setFilterStatus]  = useState<TxStatus | 'all'>('all');
 
   const abortRef = useRef<AbortController | null>(null);
 
-  // ── Auth token ────────────────────────────────────────────
-  const getToken = useCallback((): string | null => {
-    if (typeof window === 'undefined') return null;
-    return localStorage.getItem('tec_access_token');
-  }, []);
+  // ── helpers ─────────────────────────────────────────────────
+  const getToken = (): string | null =>
+    typeof window !== 'undefined'
+      ? localStorage.getItem('tec_access_token')
+      : null;
 
-  const getUserId = useCallback((): string | null => {
+  const getUserId = (): string | null => {
     if (typeof window === 'undefined') return null;
     try {
       const raw = localStorage.getItem('tec_user');
-      if (!raw) return null;
-      return JSON.parse(raw)?.uid ?? null;
-    } catch {
-      return null;
-    }
-  }, []);
+      return raw ? (JSON.parse(raw)?.uid ?? null) : null;
+    } catch { return null; }
+  };
 
-  // ── Fetch balance ─────────────────────────────────────────
-  const fetchBalance = useCallback(async (
-    token: string,
-    userId: string,
-    signal: AbortSignal,
-  ): Promise<{ balance: number; currency: string }> => {
-    // مرور على Next.js API Route (تتحقق من Token وتمرر للـ Gateway)
-    const res = await fetch(
-      `/api/wallet/balance?userId=${userId}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal,
-      },
-    );
-    if (!res.ok) throw new Error(`Balance fetch failed: ${res.status}`);
-    return res.json();
-  }, []);
-
-  // ── Fetch transactions ────────────────────────────────────
-  const fetchTransactions = useCallback(async (
-    token: string,
-    userId: string,
-    page: number,
-    signal: AbortSignal,
-  ) => {
-    const params = new URLSearchParams({
-      userId,
-      page:     String(page),
-      limit:    String(pageSize),
-      ...(filterType   !== 'all' && { type:   filterType }),
-      ...(filterStatus !== 'all' && { status: filterStatus }),
-    });
-
-    const res = await fetch(
-      `${GATEWAY}/payments/history?${params}`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-        signal,
-      },
-    );
-    if (!res.ok) throw new Error(`Transactions fetch failed: ${res.status}`);
-    return res.json() as Promise<{
-      transactions: Transaction[];
-      total:        number;
-    }>;
-  }, [pageSize, filterType, filterStatus]);
-
-  // ── Main fetch (parallel) ─────────────────────────────────
+  // ── fetch ────────────────────────────────────────────────────
   const fetchAll = useCallback(async (
-    page = 1,
+    targetPage: number,
     silent = false,
   ) => {
     const token  = getToken();
     const userId = getUserId();
+
     if (!token || !userId) {
-      setState(s => ({ ...s, isLoading: false, error: 'Not authenticated' }));
+      setIsLoading(false);
+      setError('Not authenticated');
       return;
     }
 
@@ -140,72 +95,104 @@ export function useWallet(options: UseWalletOptions = {}) {
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
-    setState(s => ({
-      ...s,
-      isLoading:    !silent,
-      isRefreshing: silent,
-      error:        null,
-    }));
+    if (silent) setIsRefreshing(true);
+    else        setIsLoading(true);
+    setError(null);
 
     try {
-      const [balanceData, txData] = await Promise.all([
-        fetchBalance(token, userId, ctrl.signal),
-        fetchTransactions(token, userId, page, ctrl.signal),
-      ]);
+      // ── Balance ─────────────────────────────────────────────
+      const balanceRes = await fetch(
+        `/api/wallet/balance?userId=${userId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal:  ctrl.signal,
+        },
+      );
+      if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
+      const balanceData: { balance: number; currency: string; address?: string } =
+        await balanceRes.json();
 
-      setState(s => ({
-        ...s,
-        balance:      balanceData.balance,
-        currency:     balanceData.currency,
-        transactions: txData.transactions,
-        total:        txData.total,
-        page,
-        hasMore:      page * pageSize < txData.total,
-        isLoading:    false,
-        isRefreshing: false,
-        error:        null,
-      }));
+      // ── Transactions ─────────────────────────────────────────
+      const params = new URLSearchParams({
+        userId,
+        page:  String(targetPage),
+        limit: String(PAGE_SIZE),
+        ...(filterType   !== 'all' && { type:   filterType }),
+        ...(filterStatus !== 'all' && { status: filterStatus }),
+      });
+
+      const txRes = await fetch(
+        `${GATEWAY}/payments/history?${params}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          signal:  ctrl.signal,
+        },
+      );
+      if (!txRes.ok) throw new Error(`Transactions error: ${txRes.status}`);
+      const txData: { transactions: Transaction[]; total: number } =
+        await txRes.json();
+
+      // ── State update ─────────────────────────────────────────
+      setWallet({
+        balance:  balanceData.balance,
+        currency: balanceData.currency,
+        address:  balanceData.address,
+      });
+      setTransactions(txData.transactions);
+      setTotal(txData.total);
+      setPageState(targetPage);
+
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
-      setState(s => ({
-        ...s,
-        isLoading:    false,
-        isRefreshing: false,
-        error:        (err as Error).message ?? 'Unknown error',
-      }));
+      setError((err as Error).message ?? 'Unknown error');
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
-  }, [fetchBalance, fetchTransactions, getToken, getUserId, pageSize]);
+  }, [filterType, filterStatus]);
 
-  // ── Public actions ────────────────────────────────────────
-  const refresh    = useCallback(() => fetchAll(1, true),  [fetchAll]);
-  const loadMore   = useCallback(() => fetchAll(state.page + 1, true), [fetchAll, state.page]);
-  const setPage    = useCallback((p: number) => fetchAll(p), [fetchAll]);
+  // ── Public actions ───────────────────────────────────────────
+  const refetch  = useCallback(() => fetchAll(1, true),         [fetchAll]);
+  const loadMore = useCallback(() => fetchAll(page + 1, true),  [fetchAll, page]);
+  const setPage  = useCallback((p: number) => fetchAll(p),      [fetchAll]);
 
-  // ── Live balance update (called by useWalletRealtime) ─────
+  // Live balance update من useWalletRealtime
   const updateBalance = useCallback((newBalance: number) => {
-    setState(s => ({ ...s, balance: newBalance }));
+    setWallet(prev => prev ? { ...prev, balance: newBalance } : prev);
   }, []);
 
-  // ── Auto-fetch on mount + filter change ───────────────────
+  // ── Auto-fetch ────────────────────────────────────────────────
   useEffect(() => {
-    if (autoFetch) fetchAll(1);
+    fetchAll(1);
     return () => abortRef.current?.abort();
-  }, [autoFetch, fetchAll]);
+  }, []); // eslint-disable-line
 
-  // filters change → reset to page 1
+  // Filters change → reset to page 1
   useEffect(() => {
-    if (autoFetch) fetchAll(1);
+    fetchAll(1);
   }, [filterType, filterStatus]); // eslint-disable-line
 
+  // ── Computed ──────────────────────────────────────────────────
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasMore    = page < totalPages;
+
   return {
-    ...state,
+    wallet,
+    transactions,
+    total,
+    totalPages,
+    page,
+    hasMore,
+    isLoading,
+    isRefreshing,
+    error,
     filterType,
     filterStatus,
     setFilterType,
     setFilterStatus,
-    refresh,
+    refetch,
     loadMore,
     setPage,
     updateBalance,
   };
-}
+                               }

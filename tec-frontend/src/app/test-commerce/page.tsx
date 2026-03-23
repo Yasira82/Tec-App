@@ -5,50 +5,36 @@ import { useState, useEffect } from 'react';
 const GATEWAY = 'https://api-gateway-production-6a68.up.railway.app';
 
 export default function TestCommercePage() {
-  const [loading,  setLoading]  = useState(false);
-  const [result,   setResult]   = useState<any>(null);
-  const [error,    setError]    = useState<string | null>(null);
+  const [loading,   setLoading]   = useState(false);
+  const [result,    setResult]    = useState<any>(null);
+  const [error,     setError]     = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [userId,    setUserId]    = useState('');
+  const [token,     setToken]     = useState('');
 
+  // ← كل localStorage في useEffect فقط
   useEffect(() => {
-    // نشوف كل اللي في localStorage
-    const token   = localStorage.getItem('tec_access_token');
-    const refresh = localStorage.getItem('tec_refresh_token');
+    const t      = localStorage.getItem('tec_access_token') ?? '';
     const rawUser = localStorage.getItem('tec_user');
-
-    let parsedUser = null;
+    let parsedUser: any = null;
     try { parsedUser = rawUser ? JSON.parse(rawUser) : null; } catch {}
 
-    setDebugInfo({
-      hasToken:    !!token,
-      hasRefresh:  !!refresh,
-      rawUser,
-      parsedUser,
-      // نجرب كل الـ keys الممكنة للـ id
-      uid:  parsedUser?.uid,
-      id:   parsedUser?.id,
-      _id:  parsedUser?._id,
-      piUid: parsedUser?.piUid,
-      userId: parsedUser?.userId,
-      pi_uid: parsedUser?.pi_uid,
-    });
-  }, []);
+    const uid = parsedUser?.uid
+      ?? parsedUser?.id
+      ?? parsedUser?._id
+      ?? parsedUser?.piUid
+      ?? parsedUser?.userId
+      ?? parsedUser?.pi_uid
+      ?? '';
 
-  const getToken  = () => localStorage.getItem('tec_access_token') ?? '';
-  const getUserId = () => {
-    try {
-      const raw  = localStorage.getItem('tec_user');
-      const user = raw ? JSON.parse(raw) : {};
-      // نجرب كل الـ keys الممكنة
-      return user?.uid ?? user?.id ?? user?._id ?? user?.piUid ?? user?.userId ?? '';
-    } catch { return ''; }
-  };
+    setToken(t);
+    setUserId(uid);
+    setDebugInfo({ hasToken: !!t, rawUser, parsedUser });
+  }, []);
 
   const call = async (method: string, path: string, body?: any) => {
     setLoading(true);
     setError(null);
-    const token  = getToken();
-    const userId = getUserId();
 
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -71,13 +57,10 @@ export default function TestCommercePage() {
     }
   };
 
-  const userId = getUserId();
-
   return (
     <div style={{ padding: 20, fontFamily: 'monospace', fontSize: 13 }}>
       <h1>🛒 Commerce Test</h1>
 
-      {/* Debug Info */}
       <div style={{ background: '#111', color: '#aaa', padding: 12, marginBottom: 20, borderRadius: 8 }}>
         <strong style={{ color: '#fff' }}>Debug Info:</strong>
         <pre style={{ margin: '8px 0 0', fontSize: 12 }}>
@@ -85,8 +68,8 @@ export default function TestCommercePage() {
         </pre>
       </div>
 
-      <p>Token:   {getToken()  ? '✅ موجود' : '❌ مفيش'}</p>
-      <p>User ID: {userId ? `✅ ${userId}` : '❌ مفيش — شوف Debug Info فوق'}</p>
+      <p>Token:   {token  ? '✅ موجود' : '❌ مفيش'}</p>
+      <p>User ID: {userId ? `✅ ${userId}` : '❌ مفيش'}</p>
 
       <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', margin: '20px 0' }}>
         <button onClick={() => call('GET', '/products')} disabled={loading}>
@@ -102,7 +85,7 @@ export default function TestCommercePage() {
         </button>
         <button onClick={async () => {
           const pRes  = await fetch(`${GATEWAY}/api/commerce/products`, {
-            headers: { Authorization: `Bearer ${getToken()}` },
+            headers: { Authorization: `Bearer ${token}` },
           });
           const pData = await pRes.json();
           const pid   = pData?.data?.products?.[0]?.id;
@@ -125,4 +108,4 @@ export default function TestCommercePage() {
       )}
     </div>
   );
-}
+  }

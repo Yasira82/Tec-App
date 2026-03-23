@@ -1,8 +1,9 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-// ─── Types ─────────────────────────────────────────────────────
-export type OrderStatus = 'PENDING' | 'PAID' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
+export type OrderStatus =
+  | 'PENDING' | 'PAID' | 'PROCESSING'
+  | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'REFUNDED';
 
 export interface OrderItem {
   id:         string;
@@ -14,36 +15,36 @@ export interface OrderItem {
 }
 
 export interface Order {
-  id:           string;
-  buyer_id:     string;
-  status:       OrderStatus;
-  total:        number;
-  currency:     string;
-  payment_id:   string | null;
-  notes:        string | null;
-  created_at:   string;
-  updated_at:   string;
-  paid_at:      string | null;
-  cancelled_at: string | null;
+  id:            string;
+  buyer_id:      string;
+  status:        OrderStatus;
+  total:         number;
+  currency:      string;
+  payment_id:    string | null;
+  notes:         string | null;
+  created_at:    string;
+  updated_at:    string;
+  paid_at:       string | null;
+  cancelled_at:  string | null;
   cancel_reason: string | null;
-  items:        OrderItem[];
+  items:         OrderItem[];
 }
 
 interface UseOrdersReturn {
-  orders:       Order[];
-  total:        number;
-  totalPages:   number;
-  page:         number;
-  isLoading:    boolean;
-  isRefreshing: boolean;
-  error:        string | null;
-  filterStatus: OrderStatus | 'all';
+  orders:          Order[];
+  total:           number;
+  totalPages:      number;
+  page:            number;
+  isLoading:       boolean;
+  isRefreshing:    boolean;
+  error:           string | null;
+  filterStatus:    OrderStatus | 'all';
   setFilterStatus: (s: OrderStatus | 'all') => void;
-  refetch:      () => void;
-  setPage:      (p: number) => void;
+  refetch:         () => void;
+  setPage:         (p: number) => void;
 }
 
-const GATEWAY  = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const GATEWAY   = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 const PAGE_SIZE = 10;
 
 export function useOrders(): UseOrdersReturn {
@@ -57,11 +58,19 @@ export function useOrders(): UseOrdersReturn {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const getToken  = () => typeof window !== 'undefined' ? localStorage.getItem('tec_access_token') : null;
-  const getUserId = () => {
+  const getToken = (): string | null =>
+    typeof window !== 'undefined'
+      ? localStorage.getItem('tec_access_token')
+      : null;
+
+  const getUserId = (): string | null => {
     if (typeof window === 'undefined') return null;
-    try { return JSON.parse(localStorage.getItem('tec_user') ?? '{}')?.uid ?? null; }
-    catch { return null; }
+    try {
+      const raw = localStorage.getItem('tec_user');
+      if (!raw) return null;
+      const u = JSON.parse(raw);
+      return u?.id ?? u?.uid ?? null; // ← id أولاً ثم uid
+    } catch { return null; }
   };
 
   const fetchOrders = useCallback(async (targetPage: number, silent = false) => {
@@ -85,13 +94,17 @@ export function useOrders(): UseOrdersReturn {
         ...(filterStatus !== 'all' && { status: filterStatus }),
       });
 
-      const res = await fetch(`${GATEWAY}/orders?${params}`, {
-        headers: { Authorization: `Bearer ${token}`, 'x-user-id': userId },
-        signal:  ctrl.signal,
+      const res = await fetch(`${GATEWAY}/api/commerce/orders?${params}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-user-id':   userId,
+        },
+        signal: ctrl.signal,
       });
 
       if (!res.ok) throw new Error(`Orders fetch failed: ${res.status}`);
-      const data: { success: boolean; data: { orders: Order[]; total: number } } = await res.json();
+      const data: { success: boolean; data: { orders: Order[]; total: number } } =
+        await res.json();
 
       setOrders(data.data.orders);
       setTotal(data.data.total);

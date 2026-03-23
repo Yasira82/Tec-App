@@ -1,55 +1,21 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
-import { useTranslation } from '@/lib/i18n';
-import PiIntegration from '@/components/PiIntegration';
-import { fetchWithAuth } from '@/lib-client/pi/pi-auth';
-import styles from './dashboard.module.css';
+import { useState, useCallback } from 'react';
+import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/useWallet';
+import { useWalletRealtime, WalletUpdatedEvent } from '@/lib-client/hooks/useWalletRealtime';
+import styles from './wallet.module.css';
 
-const TEC_APPS = [
-  { name: 'Nexus',      domain: 'nexus.pi',      emoji: '🌐' },
-  { name: 'Commerce',   domain: 'commerce.pi',   emoji: '🛒' },
-  { name: 'Assets',     domain: 'assets.pi',     emoji: '💎' },
-  { name: 'Fundx',      domain: 'fundx.pi',      emoji: '🏦' },
-  { name: 'Estate',     domain: 'estate.pi',     emoji: '🏠' },
-  { name: 'Analytics',  domain: 'analytics.pi',  emoji: '📊' },
-  { name: 'Connection', domain: 'connection.pi', emoji: '🔗' },
-  { name: 'Life',       domain: 'life.pi',       emoji: '❤️' },
-  { name: 'Insure',     domain: 'insure.pi',     emoji: '🛡️' },
-  { name: 'Vip',        domain: 'vip.pi',        emoji: '👑' },
-  { name: 'Zone',       domain: 'zone.pi',       emoji: '🌎' },
-  { name: 'Explorer',   domain: 'explorer.pi',   emoji: '✈️' },
-  { name: 'Alert',      domain: 'alert.pi',      emoji: '🚨' },
-  { name: 'System',     domain: 'system.pi',     emoji: '⚙️' },
-  { name: 'Ecommerce',  domain: 'ecommerce.pi',  emoji: '🏬' },
-  { name: 'Dx',         domain: 'dx.pi',         emoji: '🧪' },
-  { name: 'Nx',         domain: 'nx.pi',         emoji: '🔧' },
-  { name: 'Nbf',        domain: 'nbf.pi',        emoji: '💳' },
-  { name: 'Epic',       domain: 'epic.pi',       emoji: '🔥' },
-  { name: 'Legend',     domain: 'legend.pi',     emoji: '🌟' },
-  { name: 'Titan',      domain: 'titan.pi',      emoji: '⚔️' },
-  { name: 'Elite',      domain: 'elite.pi',      emoji: '🥇' },
-  { name: 'Brookfield', domain: 'brookfield.pi', emoji: '🏢' },
-];
-
-interface Payment {
-  id: string;
-  amount: number;
-  currency: string;
-  status: 'created' | 'approved' | 'completed' | 'cancelled' | 'failed';
-  payment_method: string;
-  created_at: string;
+// ─── Helpers ──────────────────────────────────────────────────
+function getTypeIcon(type: string) {
+  switch (type) {
+    case 'receive':
+    case 'credit':  return '↓';
+    case 'send':
+    case 'debit':   return '↑';
+    case 'payment': return '→';
+    default:        return '•';
+  }
 }
-
-const STATUS_COLORS: Record<string, string> = {
-  completed: '#7ee7c0',
-  approved:  '#7eb8f7',
-  created:   '#f0c040',
-  cancelled: '#6b6b7a',
-  failed:    '#e74c3c',
-};
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', {
@@ -57,195 +23,269 @@ function formatDate(iso: string) {
   });
 }
 
-export default function DashboardPage() {
-  const { user, isAuthenticated, isNewUser } = usePiAuth();
-  const { t } = useTranslation();
-  const [balance, setBalance] = useState<number | null>(null);
-  const [payments, setPayments] = useState<Payment[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+function isPositive(type: string) {
+  return type === 'receive' || type === 'credit';
+}
 
-  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+function StatusBadge({ status }: { status: string }) {
+  const map: Record<string, string> = {
+    completed: styles.statusCompleted,
+    pending:   styles.statusPending,
+    failed:    styles.statusFailed,
+    cancelled: styles.statusFailed,
+  };
+  return (
+    <span className={`${styles.statusBadge} ${map[status] ?? ''}`}>
+      {status}
+    </span>
+  );
+}
 
-  const fetchData = useCallback(async () => {
-    if (!user?.id || !isAuthenticated) return;
+// ─── Page ──────────────────────────────────────────────────────
+export default function WalletPage() {
+  const {
+    wallet,
+    transactions,
+    isLoading,
+    isRefreshing,
+    error,
+    page,
+    totalPages,
+    filterType,
+    filterStatus,
+    refetch,
+    setPage,
+    setFilterType,
+    setFilterStatus,
+    updateBalance,
+  } = useWallet();
 
-    // Fetch balance
-    try {
-      const balRes = await fetch(`/api/wallet/balance?userId=${user.id}`);
-      if (balRes.ok) {
-        const balData = await balRes.json();
-        setBalance(balData.balance ?? 0);
-      }
-    } catch (err) {
-      console.error('Balance fetch error:', err);
-    }
+  const [liveFlash, setLiveFlash] = useState(false);
 
-    // Fetch payment history
-    try {
-      setHistoryLoading(true);
-      const histRes = await fetchWithAuth(
-        `${gatewayUrl}/api/payments/history?limit=5&sort=desc`
-      );
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        setPayments(histData?.data?.payments ?? []);
-      }
-    } catch (err) {
-      console.error('History fetch error:', err);
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, [user?.id, isAuthenticated, gatewayUrl]);
+  // ← الـ callback بيستقبل الـ full event زي ما الـ page كانت بتتوقع
+  const handleBalanceUpdate = useCallback((event: WalletUpdatedEvent) => {
+    updateBalance(event.balance); // ← بندّي الـ hook يحدّث الـ wallet object
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    setLiveFlash(true);
+    setTimeout(() => setLiveFlash(false), 1000);
 
-  const completedPayments = payments.filter(p => p.status === 'completed');
-  const totalPiSpent = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+    // Refresh list بعد أي تحديث على الـ balance
+    refetch();
+  }, [updateBalance, refetch]);
+
+  const { isConnected } = useWalletRealtime({
+    onBalanceUpdate: handleBalanceUpdate,
+  });
+
+  // ── Loading ──────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <div className={styles.container}>
+        <WalletSkeleton />
+      </div>
+    );
+  }
+
+  // ── Error ────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className={styles.container}>
+        <div className={styles.errorState}>
+          <span>⚠️</span>
+          <p>{error}</p>
+          <button className={styles.actionBtn} onClick={refetch}>
+            إعادة المحاولة
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const displayBalance = wallet?.balance ?? null;
 
   return (
-    <>
+    <div className={styles.container}>
+
       {/* ── Header ── */}
       <header className={styles.header}>
-        {isNewUser && (
-          <div className={`${styles.welcomeBanner} fade-up`}>
-            {t.dashboard.welcomeNew}
+        <div>
+          <h1 className={styles.title}>Wallet</h1>
+          <p className={styles.subtitle}>Manage your Pi balance and transactions</p>
+        </div>
+        <div className={styles.headerRight}>
+          <div className={`${styles.liveIndicator} ${isConnected ? styles.liveOn : styles.liveOff}`}>
+            <span className={styles.liveDot} />
+            {isConnected ? 'Live' : 'Offline'}
           </div>
-        )}
-        <div className={styles.headerRow}>
-          <div>
-            <p className={styles.greeting}>{t.dashboard.greeting}</p>
-            <h1 className={styles.username}>
-              @{user?.piUsername}
-              <span className={styles.roleBadge}>{user?.role}</span>
-            </h1>
-          </div>
-          <div className={styles.planBadge}>◈ {user?.subscriptionPlan || 'Free'}</div>
+          {isRefreshing && (
+            <span className={styles.refreshing}>⟳ جاري التحديث...</span>
+          )}
         </div>
       </header>
 
-      {/* ── Stats ── */}
-      <div className={`${styles.statsGrid} fade-up-1`}>
-        {[
-          {
-            label: t.dashboard.stats.piBalance,
-            value: balance !== null ? `${balance.toFixed(2)} TEC` : '— TEC',
-            sub: t.dashboard.stats.tecWallet,
-          },
-          {
-            label: 'Pi Spent',
-            value: `${totalPiSpent.toFixed(3)} π`,
-            sub: `${completedPayments.length} transactions`,
-          },
-          {
-            label: t.dashboard.stats.availableApps,
-            value: '1 / 24',
-            sub: t.dashboard.stats.activeApp,
-          },
-          {
-            label: t.dashboard.stats.subscription,
-            value: user?.subscriptionPlan || 'Free',
-            sub: t.dashboard.stats.upgradePro,
-          },
-        ].map(s => (
-          <div key={s.label} className={styles.statCard}>
-            <p className={styles.statLabel}>{s.label}</p>
-            <p className={`${styles.statValue} gold-text`}>{s.value}</p>
-            <p className={styles.statSub}>{s.sub}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Pi Integration ── */}
-      <PiIntegration />
-
-      {/* ── Recent Transactions ── */}
-      {isAuthenticated && (
-        <section className={`${styles.historySection} fade-up-2`}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Recent Transactions</h2>
-            <span className={styles.sectionMeta}>{payments.length} records</span>
-          </div>
-
-          {historyLoading ? (
-            <div className={styles.historyLoading}>
-              <div className={styles.loadingSpinner} />
-            </div>
-          ) : payments.length === 0 ? (
-            <div className={styles.emptyHistory}>
-              <span>📭</span>
-              <p>No transactions yet</p>
-            </div>
-          ) : (
-            <div className={styles.historyList}>
-              {payments.map(p => (
-                <div key={p.id} className={styles.historyItem}>
-                  <div className={styles.historyLeft}>
-                    <span
-                      className={styles.historyDot}
-                      style={{ backgroundColor: STATUS_COLORS[p.status] }}
-                    />
-                    <div>
-                      <p className={styles.historyMethod}>
-                        {p.payment_method.toUpperCase()} Payment
-                      </p>
-                      <p className={styles.historyDate}>{formatDate(p.created_at)}</p>
-                    </div>
-                  </div>
-                  <div className={styles.historyRight}>
-                    <p
-                      className={styles.historyAmount}
-                      style={{ color: STATUS_COLORS[p.status] }}
-                    >
-                      {p.amount} π
-                    </p>
-                    <p className={styles.historyStatus}>{p.status}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* ── Apps ── */}
-      <section className={`${styles.appsSection} fade-up-2`}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>{t.dashboard.appsTitle}</h2>
-          <span className={styles.sectionMeta}>{t.dashboard.appsCount}</span>
+      {/* ── Balance Card ── */}
+      <section className={`${styles.balanceCard} fade-up`}>
+        <div className={styles.balanceLabel}>Total Balance</div>
+        <div className={`${styles.balanceAmount} gold-text ${liveFlash ? styles.balanceFlash : ''}`}>
+          {displayBalance != null ? `${displayBalance.toFixed(2)} π` : '— π'}
         </div>
-        <div className={styles.appsGrid}>
-          {/* TEC - Active */}
-          <div
-            className={`${styles.appCard} ${styles.appCardActive}`}
-            onClick={() => window.open('https://tec.pi', '_blank', 'noopener,noreferrer')}
-          >
-            <span style={{ fontSize: '20px' }}>🔷</span>
-            <div className={styles.appInfo}>
-              <span className={styles.appName}>{t.common.appName}</span>
-              <span className={styles.appDomain}>tec.pi</span>
-            </div>
-            <span className={styles.appLive}>{t.common.live}</span>
-          </div>
-
-          {/* Other Apps */}
-          {TEC_APPS.map(app => (
-            <div
-              key={app.name}
-              className={styles.appCard}
-              onClick={() => window.open(`https://${app.domain}`, '_blank', 'noopener,noreferrer')}
-            >
-              <span style={{ fontSize: '20px' }}>{app.emoji}</span>
-              <div className={styles.appInfo}>
-                <span className={styles.appName}>{app.name}</span>
-                <span className={styles.appDomain}>{app.domain}</span>
-              </div>
-              <span className={styles.appSoon}>{t.common.comingSoon}</span>
-            </div>
-          ))}
+        <div className={styles.balanceActions}>
+          <button className={styles.actionBtn}>↓ Receive</button>
+          <button className={styles.actionBtn}>↑ Send</button>
         </div>
       </section>
-    </>
+
+      {/* ── Wallets ── */}
+      <section className={`${styles.walletsSection} fade-up-1`}>
+        <h2 className={styles.sectionTitle}>My Wallets</h2>
+        <div className={styles.walletsGrid}>
+          {wallet ? (
+            <div className={styles.walletCard}>
+              <div className={styles.walletHeader}>
+                <span className={styles.walletIcon}>π</span>
+                <span className={styles.walletBadge}>Primary</span>
+              </div>
+              <div className={styles.walletName}>Pi Wallet</div>
+              <div className={`${styles.walletBalance} gold-text`}>
+                {wallet.balance.toFixed(2)} π
+              </div>
+              {wallet.address && (
+                <div className={styles.walletAddress}>{wallet.address}</div>
+              )}
+            </div>
+          ) : (
+            <div className={styles.walletCard}>
+              <div className={styles.walletName} style={{ color: 'var(--muted)' }}>
+                لا توجد محفظة
+              </div>
+            </div>
+          )}
+          <div className={`${styles.walletCard} ${styles.walletCardAdd}`}>
+            <div className={styles.addIcon}>+</div>
+            <div className={styles.addText}>Link New Wallet</div>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Transactions ── */}
+      <section className={`${styles.transactionsSection} fade-up-2`}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Transaction History</h2>
+          <div className={styles.filters}>
+            <select
+              className={styles.filterSelect}
+              value={filterType}
+              onChange={e => setFilterType(e.target.value as TxType | 'all')}
+            >
+              <option value="all">All Types</option>
+              <option value="send">Send</option>
+              <option value="receive">Receive</option>
+              <option value="payment">Payment</option>
+            </select>
+            <select
+              className={styles.filterSelect}
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as TxStatus | 'all')}
+            >
+              <option value="all">All Status</option>
+              <option value="completed">Completed</option>
+              <option value="pending">Pending</option>
+              <option value="failed">Failed</option>
+            </select>
+          </div>
+        </div>
+
+        <div className={styles.transactionsTable}>
+          <div className={styles.tableHeader}>
+            <span>Type</span>
+            <span>Amount</span>
+            <span>Status</span>
+            <span>Date</span>
+            <span>TX Hash</span>
+          </div>
+          <div className={styles.tableBody}>
+            {transactions.length === 0 ? (
+              <EmptyTransactions />
+            ) : (
+              transactions.map(tx => (
+                <TransactionRow key={tx.id} tx={tx} />
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className={styles.pagination}>
+          <button
+            className={styles.paginationBtn}
+            disabled={page <= 1}
+            onClick={() => setPage(page - 1)}
+          >
+            Previous
+          </button>
+          <span className={styles.paginationInfo}>
+            Page {page} of {totalPages}
+          </span>
+          <button
+            className={styles.paginationBtn}
+            disabled={page >= totalPages}
+            onClick={() => setPage(page + 1)}
+          >
+            Next
+          </button>
+        </div>
+      </section>
+
+    </div>
   );
 }
+
+// ─── Sub-components ────────────────────────────────────────────
+function TransactionRow({ tx }: { tx: Transaction }) {
+  const positive = isPositive(tx.type);
+  // txHash أو txId — نعرض اللي موجود
+  const hash = tx.txHash ?? tx.txId ?? null;
+
+  return (
+    <div className={styles.tableRow}>
+      <div className={styles.txType}>
+        <span className={styles.txIcon}>{getTypeIcon(tx.type)}</span>
+        <span className={styles.txLabel}>{tx.type}</span>
+      </div>
+      <div className={`${styles.txAmount} ${positive ? styles.positive : styles.negative}`}>
+        {positive ? '+' : '-'}{tx.amount.toFixed(2)} π
+      </div>
+      <div className={styles.txStatus}>
+        <StatusBadge status={tx.status} />
+      </div>
+      <div className={styles.txDate}>{formatDate(tx.createdAt)}</div>
+      <div className={styles.txHash}>
+        {hash ? (
+          <a href="#" className={styles.hashLink}>
+            {hash.slice(0, 10)}...
+          </a>
+        ) : (
+          <span style={{ color: 'var(--muted)' }}>—</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EmptyTransactions() {
+  return (
+    <div className={styles.emptyState}>
+      <span>📭</span>
+      <p>No transactions yet</p>
+    </div>
+  );
+}
+
+function WalletSkeleton() {
+  return (
+    <div className={styles.skeleton}>
+      <div className={styles.skeletonHeader} />
+      <div className={styles.skeletonCard} />
+      <div className={styles.skeletonTable} />
+    </div>
+  );
+              }

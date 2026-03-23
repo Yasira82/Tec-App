@@ -1,69 +1,483 @@
-.loading { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
-.loadingSpinner { width: 32px; height: 32px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: rotate-slow 0.8s linear infinite; }
-.page { display: grid; grid-template-columns: 220px 1fr; min-height: 100vh; }
-.sidebar { background: var(--dark); border-left: 1px solid var(--border); display: flex; flex-direction: column; padding: 32px 0; position: sticky; top: 0; height: 100vh; }
-.sidebarLogo { padding: 0 24px 32px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-.logoText { font-family: 'Cormorant Garamond', serif; font-size: 28px; }
-.nav { flex: 1; display: flex; flex-direction: column; gap: 4px; padding: 0 12px; }
-.navItem { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: transparent; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all 0.2s; width: 100%; }
-.navItem:hover { color: var(--white); background: var(--surface); }
-.navItemActive { color: var(--gold); background: rgba(201,168,76,0.08); }
-.logoutBtn { display: flex; align-items: center; gap: 8px; padding: 10px 24px; background: transparent; border: none; border-top: 1px solid var(--border); color: var(--muted); font-size: 13px; cursor: pointer; transition: color 0.2s; font-family: 'DM Sans', sans-serif; width: 100%; }
-.logoutBtn:hover { color: var(--error); }
-.main { padding: 40px; overflow-y: auto; }
-.header { margin-bottom: 40px; }
-.welcomeBanner { background: rgba(201,168,76,0.1); border: 1px solid rgba(201,168,76,0.25); color: var(--gold); padding: 10px 16px; font-size: 13px; margin-bottom: 24px; display: inline-block; }
-.headerRow { display: flex; align-items: flex-start; justify-content: space-between; }
-.greeting { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
-.username { font-family: 'Cormorant Garamond', serif; font-size: 32px; display: flex; align-items: center; gap: 12px; }
-.roleBadge { font-family: 'DM Sans', sans-serif; font-size: 11px; padding: 3px 10px; border: 1px solid var(--gold-dim); color: var(--gold); letter-spacing: 0.08em; text-transform: uppercase; font-weight: 400; }
-.planBadge { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border: 1px solid var(--border); font-size: 13px; color: var(--muted); }
-
-/* ── Stats ── */
-.statsGrid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: var(--border); margin-bottom: 40px; border: 1px solid var(--border); }
-.statCard { background: var(--surface); padding: 24px; display: flex; flex-direction: column; gap: 4px; }
-.statLabel { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
-.statValue { font-family: 'Cormorant Garamond', serif; font-size: 28px; }
-.statSub { font-size: 11px; color: var(--muted); margin-top: 4px; }
-
-/* ── History ── */
-.historySection { margin-bottom: 40px; }
-.historyLoading { display: flex; justify-content: center; padding: 32px; }
-.emptyHistory { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 32px; color: var(--muted); font-size: 13px; border: 1px solid var(--border); }
-.historyList { border: 1px solid var(--border); }
-.historyItem { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border); background: var(--surface); transition: background 0.2s; }
-.historyItem:last-child { border-bottom: none; }
-.historyItem:hover { background: #16161f; }
-.historyLeft { display: flex; align-items: center; gap: 12px; }
-.historyDot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.historyMethod { font-size: 13px; color: var(--white); margin-bottom: 2px; }
-.historyDate { font-size: 10px; color: var(--muted); }
-.historyRight { text-align: right; }
-.historyAmount { font-family: 'Cormorant Garamond', serif; font-size: 20px; margin-bottom: 2px; }
-.historyStatus { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
-
-/* ── Apps ── */
-.appsSection {}
-.sectionHeader { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 20px; }
-.sectionTitle { font-size: 22px; }
-.sectionMeta { font-size: 12px; color: var(--muted); }
-.appsGrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); }
-.appCard { background: var(--surface); padding: 20px; display: flex; align-items: center; gap: 12px; transition: background 0.2s; cursor: pointer; }
-.appCard:hover { background: #16161f; }
-.appCardActive { background: rgba(201,168,76,0.06); }
-.appInfo { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.appName { font-size: 14px; color: var(--white); }
-.appDomain { font-size: 10px; color: var(--muted); }
-.appLive { font-size: 9px; padding: 2px 8px; background: rgba(46,204,113,0.15); color: var(--success); border: 1px solid rgba(46,204,113,0.3); letter-spacing: 0.08em; text-transform: uppercase; flex-shrink: 0; }
-.appSoon { font-size: 9px; padding: 2px 8px; background: rgba(107,107,122,0.15); color: var(--muted); border: 1px solid var(--border); flex-shrink: 0; }
-
-/* ── Responsive ── */
-@media (max-width: 900px) {
-  .page { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
-  .statsGrid { grid-template-columns: repeat(2, 1fr); }
-  .main { padding: 24px 16px; }
+/* ══════════════════════════════════════════════
+   LAYOUT
+══════════════════════════════════════════════ */
+.loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
+.loadingSpinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--gold);
+  border-radius: 50%;
+  animation: rotate-slow 0.8s linear infinite;
+}
+
+.page {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: 100vh;
+}
+
+/* ══════════════════════════════════════════════
+   SIDEBAR
+══════════════════════════════════════════════ */
+.sidebar {
+  background: var(--dark);
+  border-right: 1px solid var(--border); /* ← إصلاح: كان border-left */
+  display: flex;
+  flex-direction: column;
+  padding: 32px 0 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+}
+
+.sidebarLogo {
+  padding: 0 24px 28px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 20px;
+}
+
+.logoText {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+}
+
+/* ── Nav ── */
+.nav {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 10px;
+}
+
+.navItem {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  color: var(--muted);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px;
+  text-decoration: none;
+  transition: color 0.2s, background 0.2s;
+  cursor: pointer;
+}
+
+.navItem:hover {
+  color: var(--white);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.navItemActive {
+  color: var(--gold);
+  background: rgba(201, 168, 76, 0.08);
+}
+
+.navIcon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.navLabel {
+  flex: 1;
+}
+
+/* Active indicator bar (right side) */
+.navActiveBar {
+  position: absolute;
+  left: 0;  /* RTL: يظهر على اليسار */
+  top: 20%;
+  height: 60%;
+  width: 2px;
+  background: var(--gold);
+  border-radius: 0 2px 2px 0;
+}
+
+/* ── Sidebar Bottom ── */
+.sidebarBottom {
+  padding: 16px 10px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+}
+
+.logoutBtn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  transition: color 0.2s, background 0.2s;
+  font-family: 'DM Sans', sans-serif;
+  width: 100%;
+  text-align: right;
+}
+
+.logoutBtn:hover {
+  color: var(--error);
+  background: rgba(231, 76, 60, 0.06);
+}
+
+/* ── Main ── */
+.main {
+  padding: 40px;
+  overflow-y: auto;
+  min-width: 0; /* prevent overflow */
+}
+
+/* ══════════════════════════════════════════════
+   MOBILE TOP BAR
+══════════════════════════════════════════════ */
+.mobileTopBar {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  background: var(--dark);
+  border-bottom: 1px solid var(--border);
+  padding: 0 20px;
+  height: 56px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Hamburger button */
+.mobileMenuBtn {
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+.menuIcon {
+  display: block;
+  width: 16px;
+  height: 1px;
+  background: var(--muted);
+  position: relative;
+  transition: background 0.2s;
+}
+.menuIcon::before,
+.menuIcon::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: var(--muted);
+  transition: transform 0.25s ease;
+}
+.menuIcon::before { top: -5px; }
+.menuIcon::after  { top:  5px; }
+
+.menuIconOpen {
+  background: transparent;
+}
+.menuIconOpen::before {
+  transform: rotate(45deg) translate(3.5px, 3.5px);
+  background: var(--gold);
+}
+.menuIconOpen::after {
+  transform: rotate(-45deg) translate(3.5px, -3.5px);
+  background: var(--gold);
+}
+
+/* Mobile overlay */
+.mobileOverlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 150;
+  backdrop-filter: blur(2px);
+}
+
+/* ══════════════════════════════════════════════
+   DASHBOARD PAGE — Header
+══════════════════════════════════════════════ */
+.header {
+  margin-bottom: 40px;
+}
+
+.welcomeBanner {
+  background: rgba(201, 168, 76, 0.1);
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  color: var(--gold);
+  padding: 10px 16px;
+  font-size: 13px;
+  margin-bottom: 24px;
+  display: inline-block;
+}
+
+.headerRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.greeting {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.username {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.roleBadge {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  padding: 3px 10px;
+  border: 1px solid var(--gold-dim);
+  color: var(--gold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.planBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════
+   STATS
+══════════════════════════════════════════════ */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  margin-bottom: 40px;
+  border: 1px solid var(--border);
+}
+
+.statCard {
+  background: var(--surface);
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.statLabel {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.statValue {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px;
+}
+
+.statSub {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ══════════════════════════════════════════════
+   HISTORY
+══════════════════════════════════════════════ */
+.historySection   { margin-bottom: 40px; }
+
+.historyLoading {
+  display: flex;
+  justify-content: center;
+  padding: 32px;
+}
+
+.emptyHistory {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 32px;
+  color: var(--muted);
+  font-size: 13px;
+  border: 1px solid var(--border);
+}
+
+.historyList { border: 1px solid var(--border); }
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  transition: background 0.2s;
+}
+.historyItem:last-child { border-bottom: none; }
+.historyItem:hover      { background: rgba(255,255,255,0.02); }
+
+.historyLeft  { display: flex; align-items: center; gap: 12px; }
+.historyDot   { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.historyMethod { font-size: 13px; color: var(--white); margin-bottom: 2px; }
+.historyDate   { font-size: 10px; color: var(--muted); }
+.historyRight  { text-align: right; }
+
+.historyAmount {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  margin-bottom: 2px;
+}
+
+.historyStatus {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ══════════════════════════════════════════════
+   APPS
+══════════════════════════════════════════════ */
+.appsSection {}
+
+.sectionHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.sectionTitle { font-size: 22px; }
+.sectionMeta  { font-size: 12px; color: var(--muted); }
+
+.appsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+}
+
+.appCard {
+  background: var(--surface);
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: background 0.2s;
+  cursor: pointer;
+}
+.appCard:hover      { background: rgba(255,255,255,0.02); }
+.appCardActive      { background: rgba(201, 168, 76, 0.06); }
+
+.appInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.appName   { font-size: 14px; color: var(--white); }
+.appDomain { font-size: 10px; color: var(--muted); }
+
+.appLive {
+  font-size: 9px;
+  padding: 2px 8px;
+  background: rgba(46, 204, 113, 0.15);
+  color: var(--success);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+.appSoon {
+  font-size: 9px;
+  padding: 2px 8px;
+  background: rgba(107, 107, 122, 0.15);
+  color: var(--muted);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .page {
+    grid-template-columns: 1fr;
+    padding-top: 56px; /* height of mobileTopBar */
+  }
+
+  .mobileTopBar {
+    display: flex; /* ← يظهر على موبايل */
+  }
+
+  .mobileOverlay {
+    display: block; /* ← يظهر لما تكون القائمة مفتوحة */
+  }
+
+  /* Sidebar على موبايل: مخفي بالـ transform */
+  .sidebar {
+    position: fixed;
+    top: 56px;
+    right: 0;        /* RTL: يطلع من اليمين */
+    bottom: 0;
+    width: 260px;
+    z-index: 200;
+    transform: translateX(100%); /* مخفي */
+    transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+    border-right: none;
+    border-left: 1px solid var(--border);
+  }
+
+  .sidebarOpen {
+    transform: translateX(0); /* ظاهر */
+  }
+
+  .statsGrid      { grid-template-columns: repeat(2, 1fr); }
+  .main           { padding: 24px 16px; }
+}
+
 @media (max-width: 500px) {
   .statsGrid { grid-template-columns: 1fr; }
+  .username  { font-size: 24px; }
 }

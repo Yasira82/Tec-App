@@ -1,5 +1,3 @@
-tec-frontend/src/app/dashboard/page.tsx
-
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
@@ -37,12 +35,12 @@ const TEC_APPS = [
 ];
 
 interface Payment {
-  id: string;
-  amount: number;
-  currency: string;
-  status: 'created' | 'approved' | 'completed' | 'cancelled' | 'failed';
+  id:             string;
+  amount:         number;
+  currency:       string;
+  status:         'created' | 'approved' | 'completed' | 'cancelled' | 'failed';
   payment_method: string;
-  created_at: string;
+  created_at:     string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -62,8 +60,8 @@ function formatDate(iso: string) {
 export default function DashboardPage() {
   const { user, isAuthenticated, isNewUser } = usePiAuth();
   const { t } = useTranslation();
-  const [balance, setBalance] = useState<number | null>(null);
-  const [payments, setPayments] = useState<Payment[]>([]);
+  const [balance,        setBalance]        = useState<number | null>(null);
+  const [payments,       setPayments]       = useState<Payment[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
@@ -71,9 +69,11 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
 
-    // Fetch balance
+    // ── Balance ────────────────────────────────────────────────
     try {
-      const balRes = await fetch(`/api/wallet/balance?userId=${user.id}`);
+      const balRes = await fetch(
+        `/api/wallet/balance?userId=${user.id}`,
+      );
       if (balRes.ok) {
         const balData = await balRes.json();
         setBalance(balData.balance ?? 0);
@@ -82,11 +82,11 @@ export default function DashboardPage() {
       console.error('Balance fetch error:', err);
     }
 
-    // Fetch payment history
+    // ── Payment history ────────────────────────────────────────
     try {
       setHistoryLoading(true);
       const histRes = await fetchWithAuth(
-        `${gatewayUrl}/api/payments/history?limit=5&sort=desc`
+        `${gatewayUrl}/api/payments/history?limit=5&sort=desc`,
       );
       if (histRes.ok) {
         const histData = await histRes.json();
@@ -104,7 +104,7 @@ export default function DashboardPage() {
   }, [fetchData]);
 
   const completedPayments = payments.filter(p => p.status === 'completed');
-  const totalPiSpent = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+  const totalPiSpent      = completedPayments.reduce((sum, p) => sum + p.amount, 0);
 
   return (
     <>
@@ -123,7 +123,9 @@ export default function DashboardPage() {
               <span className={styles.roleBadge}>{user?.role}</span>
             </h1>
           </div>
-          <div className={styles.planBadge}>◈ {user?.subscriptionPlan || 'Free'}</div>
+          <div className={styles.planBadge}>
+            ◈ {user?.subscriptionPlan || 'Free'}
+          </div>
         </div>
       </header>
 
@@ -133,22 +135,22 @@ export default function DashboardPage() {
           {
             label: t.dashboard.stats.piBalance,
             value: balance !== null ? `${balance.toFixed(2)} TEC` : '— TEC',
-            sub: t.dashboard.stats.tecWallet,
+            sub:   t.dashboard.stats.tecWallet,
           },
           {
             label: 'Pi Spent',
             value: `${totalPiSpent.toFixed(3)} π`,
-            sub: `${completedPayments.length} transactions`,
+            sub:   `${completedPayments.length} transactions`,
           },
           {
             label: t.dashboard.stats.availableApps,
             value: '1 / 24',
-            sub: t.dashboard.stats.activeApp,
+            sub:   t.dashboard.stats.activeApp,
           },
           {
             label: t.dashboard.stats.subscription,
             value: user?.subscriptionPlan || 'Free',
-            sub: t.dashboard.stats.upgradePro,
+            sub:   t.dashboard.stats.upgradePro,
           },
         ].map(s => (
           <div key={s.label} className={styles.statCard}>
@@ -192,7 +194,9 @@ export default function DashboardPage() {
                       <p className={styles.historyMethod}>
                         {p.payment_method.toUpperCase()} Payment
                       </p>
-                      <p className={styles.historyDate}>{formatDate(p.created_at)}</p>
+                      <p className={styles.historyDate}>
+                        {formatDate(p.created_at)}
+                      </p>
                     </div>
                   </div>
                   <div className={styles.historyRight}>
@@ -218,10 +222,13 @@ export default function DashboardPage() {
           <span className={styles.sectionMeta}>{t.dashboard.appsCount}</span>
         </div>
         <div className={styles.appsGrid}>
-          {/* TEC - Active */}
+
+          {/* TEC — Active */}
           <div
             className={`${styles.appCard} ${styles.appCardActive}`}
-            onClick={() => window.open('https://tec.pi', '_blank', 'noopener,noreferrer')}
+            onClick={() =>
+              window.open('https://tec.pi', '_blank', 'noopener,noreferrer')
+            }
           >
             <span style={{ fontSize: '20px' }}>🔷</span>
             <div className={styles.appInfo}>
@@ -236,7 +243,13 @@ export default function DashboardPage() {
             <div
               key={app.name}
               className={styles.appCard}
-              onClick={() => window.open(`https://${app.domain}`, '_blank', 'noopener,noreferrer')}
+              onClick={() =>
+                window.open(
+                  `https://${app.domain}`,
+                  '_blank',
+                  'noopener,noreferrer',
+                )
+              }
             >
               <span style={{ fontSize: '20px' }}>{app.emoji}</span>
               <div className={styles.appInfo}>
@@ -246,8 +259,9 @@ export default function DashboardPage() {
               <span className={styles.appSoon}>{t.common.comingSoon}</span>
             </div>
           ))}
+
         </div>
       </section>
     </>
   );
-}
+      }

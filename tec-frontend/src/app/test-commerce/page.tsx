@@ -5,27 +5,20 @@ import { useState, useEffect } from 'react';
 const GATEWAY = 'https://api-gateway-production-6a68.up.railway.app';
 
 export default function TestCommercePage() {
-  const [loading,   setLoading]   = useState(false);
-  const [result,    setResult]    = useState<any>(null);
-  const [error,     setError]     = useState<string | null>(null);
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [userId,    setUserId]    = useState('');
-  const [token,     setToken]     = useState('');
+  const [loading,    setLoading]    = useState(false);
+  const [result,     setResult]     = useState<any>(null);
+  const [error,      setError]      = useState<string | null>(null);
+  const [debugInfo,  setDebugInfo]  = useState<any>(null);
+  const [userId,     setUserId]     = useState('');
+  const [token,      setToken]      = useState('');
 
-  // ← كل localStorage في useEffect فقط
   useEffect(() => {
-    const t      = localStorage.getItem('tec_access_token') ?? '';
+    const t       = localStorage.getItem('tec_access_token') ?? '';
     const rawUser = localStorage.getItem('tec_user');
     let parsedUser: any = null;
     try { parsedUser = rawUser ? JSON.parse(rawUser) : null; } catch {}
 
-    const uid = parsedUser?.uid
-      ?? parsedUser?.id
-      ?? parsedUser?._id
-      ?? parsedUser?.piUid
-      ?? parsedUser?.userId
-      ?? parsedUser?.pi_uid
-      ?? '';
+    const uid = parsedUser?.id ?? parsedUser?.uid ?? '';
 
     setToken(t);
     setUserId(uid);
@@ -35,7 +28,6 @@ export default function TestCommercePage() {
   const call = async (method: string, path: string, body?: any) => {
     setLoading(true);
     setError(null);
-
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       Authorization:  `Bearer ${token}`,
@@ -108,4 +100,4 @@ export default function TestCommercePage() {
       )}
     </div>
   );
-  }
+}

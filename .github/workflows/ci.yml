@@ -37,8 +37,8 @@ jobs:
       - name: Install frontend dependencies
         working-directory: ./tec-frontend
         run: npm install --legacy-peer-deps
-      - name: Install jsdom at root for vitest
-        run: npm install jsdom --no-save
+      - name: Install test deps at root
+        run: npm install happy-dom @vitejs/plugin-react --no-save
       - name: Run tests
         working-directory: ./tec-frontend
         run: npm test

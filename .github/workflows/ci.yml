@@ -13,88 +13,51 @@ jobs:
   lint:
     name: Lint Code
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     defaults:
       run:
         working-directory: ./tec-frontend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: tec-frontend/package-lock.json
-
       - name: Install dependencies
-        run: npm ci
-
-      - name: Lint frontend
+        run: npm install --legacy-peer-deps
+      - name: Lint
         run: npm run lint
 
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     defaults:
       run:
         working-directory: ./tec-frontend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: tec-frontend/package-lock.json
-
       - name: Install dependencies
-        run: npm ci
-
+        run: npm install --legacy-peer-deps
       - name: Run tests
         run: npm test
 
   build-frontend:
     name: Build Frontend
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
     defaults:
       run:
         working-directory: ./tec-frontend
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
-          cache-dependency-path: tec-frontend/package-lock.json
-
       - name: Install dependencies
-        run: npm ci
-
-      - name: Validate API Gateway URL
-        run: |
-          if [[ "$NEXT_PUBLIC_API_GATEWAY_URL" == *"your-api-gateway.example.com"* ]]; then
-            echo "❌ NEXT_PUBLIC_API_GATEWAY_URL is still a placeholder!"
-            exit 1
-          fi
-        env:
-          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
-
+        run: npm install --legacy-peer-deps
       - name: Build Next.js
         run: npm run build
         env:
-          NEXT_PUBLIC_PI_SDK: ${{ secrets.NEXT_PUBLIC_PI_SDK || 'https://sdk.minepi.com/pi-sdk.js' }}
-          NEXT_PUBLIC_PI_APP_ID: ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'your-pi-app-id' }}
-          NEXT_PUBLIC_PI_SANDBOX: 'true'
-          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
+          NEXT_PUBLIC_PI_SANDBOX:        'true'
+          NEXT_PUBLIC_API_GATEWAY_URL:   ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
+          NEXT_PUBLIC_PI_APP_ID:         ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}

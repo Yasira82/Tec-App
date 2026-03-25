@@ -1,303 +1,253 @@
 .container {
   padding: 32px;
-  max-width: 900px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
-.header {
+/* ── Header ── */
+.header      { margin-bottom: 32px; }
+.title       { font-size: 36px; font-weight: 300; color: var(--white); margin-bottom: 4px; }
+.subtitle    { font-size: 14px; color: var(--muted); }
+
+/* ── Status Card ── */
+.statusCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  margin-bottom: 32px;
+}
+.statusNotStarted { background: rgba(107,107,122,0.1); border-color: var(--border); }
+.statusPending    { background: rgba(240,192,64,0.08); border-color: rgba(240,192,64,0.3); }
+.statusVerified   { background: rgba(39,174,96,0.08);  border-color: rgba(39,174,96,0.3); }
+.statusRejected   { background: rgba(231,76,60,0.08);  border-color: rgba(231,76,60,0.3); }
+
+.statusIcon  { font-size: 32px; flex-shrink: 0; }
+.statusInfo  { flex: 1; }
+.statusLabel { font-size: 16px; font-weight: 600; color: var(--white); margin-bottom: 4px; }
+.statusDesc  { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.levelBadge  {
+  font-size: 12px; font-weight: 600;
+  padding: 4px 14px;
+  border-radius: 20px;
+  background: rgba(212,160,23,0.15);
+  color: var(--gold);
+  border: 1px solid rgba(212,160,23,0.3);
+  flex-shrink: 0;
+}
+
+/* ── Error Banner ── */
+.errorBanner {
+  background: rgba(231,76,60,0.1);
+  border: 1px solid rgba(231,76,60,0.3);
+  color: var(--error);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  margin-bottom: 20px;
+}
+
+/* ── Steps ── */
+.steps {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  margin-bottom: 28px;
+}
+.step {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.stepActive { color: var(--gold); }
+.stepDone   { color: var(--success); }
+.stepNum {
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+}
+.stepLine { flex: 1; height: 1px; background: var(--border); margin: 0 12px; }
+
+/* ── Form Card ── */
+.formSection {}
+.formCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 28px 32px;
+}
+.formTitle { font-size: 20px; color: var(--white); margin-bottom: 8px; }
+.formHint  { font-size: 13px; color: var(--muted); margin-bottom: 28px; line-height: 1.6; }
+
+.fieldGroup  { margin-bottom: 20px; }
+.label       { display: block; font-size: 13px; color: var(--muted); margin-bottom: 8px; }
+.required    { color: var(--error); }
+.input {
+  width: 100%;
+  padding: 10px 14px;
+  background: var(--dark);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--white);
+  font-size: 14px;
+  font-family: 'DM Sans', sans-serif;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.input:focus { outline: none; border-color: var(--gold-dim); }
+.input::placeholder { color: var(--muted); }
+
+.fieldError {
+  font-size: 12px;
+  color: var(--error);
+  margin-bottom: 16px;
+}
+
+/* ── Review ── */
+.reviewGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 20px;
+}
+.reviewItem {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 48px;
-}
-
-.title {
-  font-size: 36px;
-  font-weight: 300;
-  margin-bottom: 8px;
-  color: var(--white);
-}
-
-.subtitle {
-  font-size: 16px;
-  color: var(--muted);
-}
-
-.statusBadge {
-  padding: 8px 16px;
-  border-radius: 20px;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.statusNone {
-  background: rgba(107, 107, 122, 0.2);
-  color: var(--muted);
-}
-
-.statusPending {
-  background: rgba(255, 193, 7, 0.2);
-  color: #ffc107;
-}
-
-.statusVerified {
-  background: rgba(46, 204, 113, 0.2);
-  color: var(--success);
-}
-
-.statusRejected {
-  background: rgba(231, 76, 60, 0.2);
-  color: var(--error);
-}
-
-.stepper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 48px;
-  padding: 32px;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-}
-
-.step {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.stepNumber {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
   background: var(--dark);
-  border: 2px solid var(--border);
-  color: var(--muted);
-  font-weight: 500;
-  transition: all 0.3s ease;
 }
+.reviewItem:last-child { border-bottom: none; }
+.reviewLabel    { font-size: 13px; color: var(--muted); }
+.reviewValue    { font-size: 13px; font-weight: 500; }
+.reviewOk       { color: var(--success); }
+.reviewMissing  { color: var(--error); }
+.reviewOptional { color: var(--muted); }
 
-.stepActive .stepNumber {
-  background: var(--gold);
-  border-color: var(--gold);
-  color: var(--black);
-}
-
-.stepComplete .stepNumber {
-  background: var(--success);
-  border-color: var(--success);
-  color: var(--white);
-}
-
-.stepLabel {
-  font-size: 14px;
-  color: var(--muted);
-}
-
-.stepActive .stepLabel,
-.stepComplete .stepLabel {
-  color: var(--white);
-}
-
-.stepLine {
-  width: 80px;
-  height: 2px;
-  background: var(--border);
-  margin: 0 16px;
-}
-
-.form {
+.reviewNotice {
   display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-
-.formSection {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 32px;
-}
-
-.formTitle {
-  font-size: 20px;
-  font-weight: 300;
-  margin-bottom: 24px;
-  color: var(--white);
-}
-
-.formGroup {
-  margin-bottom: 24px;
-}
-
-.formGroup:last-child {
-  margin-bottom: 0;
-}
-
-.label {
-  display: block;
-  font-size: 14px;
-  margin-bottom: 8px;
-  color: var(--white);
-}
-
-.input,
-.select {
-  width: 100%;
-  padding: 12px 16px;
-  background: var(--dark);
-  border: 1px solid var(--border);
+  gap: 10px;
+  background: rgba(212,160,23,0.06);
+  border: 1px solid rgba(212,160,23,0.2);
   border-radius: 8px;
-  color: var(--white);
-  font-size: 14px;
-  transition: all 0.3s ease;
-}
-
-.input:focus,
-.select:focus {
-  outline: none;
-  border-color: var(--gold-dim);
-}
-
-.uploadBox {
-  margin-top: 24px;
-  padding: 48px 24px;
-  border: 2px dashed var(--border);
-  border-radius: 12px;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  position: relative;
-}
-
-.uploadBox:hover {
-  border-color: var(--gold-dim);
-  background: rgba(201, 168, 76, 0.05);
-}
-
-.uploadIcon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.uploadText {
-  font-size: 16px;
-  color: var(--white);
-  margin-bottom: 8px;
-}
-
-.uploadHint {
-  font-size: 14px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+  font-size: 13px;
   color: var(--muted);
+  line-height: 1.6;
 }
 
-.fileInput {
-  position: absolute;
-  inset: 0;
-  opacity: 0;
-  cursor: pointer;
+.formActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
-.submitBtn {
-  padding: 16px 32px;
-  background: linear-gradient(135deg, var(--gold-dim), var(--gold));
+/* ── Buttons ── */
+.btnPrimary {
+  padding: 11px 28px;
+  background: var(--gold);
   border: none;
   border-radius: 8px;
-  color: var(--black);
-  font-size: 16px;
-  font-weight: 500;
+  color: var(--dark);
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: opacity 0.2s;
+  font-family: 'DM Sans', sans-serif;
 }
+.btnPrimary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btnPrimary:not(:disabled):hover { opacity: 0.88; }
 
-.submitBtn:hover {
-  background: linear-gradient(135deg, var(--gold), var(--gold-dim));
-  transform: translateY(-2px);
-}
-
-.submitBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.statusCard {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 48px;
-  text-align: center;
-}
-
-.statusCardSuccess {
-  border-color: var(--success);
-  background: rgba(46, 204, 113, 0.05);
-}
-
-.statusCardError {
-  border-color: var(--error);
-  background: rgba(231, 76, 60, 0.05);
-}
-
-.statusIcon {
-  font-size: 64px;
-  margin-bottom: 24px;
-}
-
-.statusTitle {
-  font-size: 24px;
-  font-weight: 300;
-  margin-bottom: 16px;
-  color: var(--white);
-}
-
-.statusText {
-  font-size: 16px;
-  color: var(--muted);
-  line-height: 1.6;
-  max-width: 500px;
-  margin: 0 auto;
-}
-
-.retryBtn {
-  margin-top: 24px;
-  padding: 12px 24px;
-  background: var(--surface);
+.btnOutline {
+  padding: 11px 24px;
+  background: transparent;
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--white);
   font-size: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: border-color 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.btnOutline:hover { border-color: var(--gold-dim); }
+
+/* ── State Cards ── */
+.stateCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 48px 32px;
+  text-align: center;
+}
+.stateCardVerified { border-color: rgba(39,174,96,0.3); background: rgba(39,174,96,0.04); }
+.stateCardRejected { border-color: rgba(231,76,60,0.3); background: rgba(231,76,60,0.04); }
+
+.stateIcon  { font-size: 48px; margin-bottom: 16px; }
+.stateTitle { font-size: 24px; color: var(--white); margin-bottom: 12px; }
+.stateDesc  { font-size: 14px; color: var(--muted); line-height: 1.7; max-width: 480px; margin: 0 auto 28px; }
+
+/* ── Timeline ── */
+.stateTimeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 280px;
+  margin: 0 auto;
+  text-align: right;
+}
+.timelineItem  { display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--muted); }
+.timelineDone  { color: var(--success); }
+.timelineActive { color: var(--gold); }
+
+/* ── Verified Meta ── */
+.verifiedMeta {
+  display: flex;
+  gap: 32px;
+  justify-content: center;
+  margin-top: 8px;
+}
+.verifiedItem  { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.verifiedLabel { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+.verifiedValue { font-size: 18px; color: var(--gold); font-family: 'Cormorant Garamond', serif; }
+
+/* ── Rejection ── */
+.rejectionReason {
+  background: rgba(231,76,60,0.1);
+  border: 1px solid rgba(231,76,60,0.2);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 16px;
+  text-align: right;
+}
+.rejectionLabel { font-size: 11px; color: var(--error); display: block; margin-bottom: 4px; }
+.rejectionText  { font-size: 14px; color: var(--white); }
+
+/* ── Skeleton ── */
+.skeleton       { display: flex; flex-direction: column; gap: 16px; }
+.skeletonHeader { height: 60px;  background: var(--surface); border: 1px solid var(--border); border-radius: 8px;  animation: shimmer 1.4s ease infinite; }
+.skeletonStatus { height: 80px;  background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: shimmer 1.4s ease infinite; }
+.skeletonForm   { height: 320px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; animation: shimmer 1.4s ease infinite; }
+@keyframes shimmer {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.4; }
 }
 
-.retryBtn:hover {
-  border-color: var(--gold-dim);
-  background: var(--dark);
-}
-
-.infoBox {
-  background: rgba(201, 168, 76, 0.05);
-  border: 1px solid var(--gold-dim);
-  border-radius: 12px;
-  padding: 24px;
-  margin-top: 32px;
-}
-
-.infoTitle {
-  font-size: 18px;
-  font-weight: 500;
-  margin-bottom: 12px;
-  color: var(--gold);
-}
-
-.infoText {
-  font-size: 14px;
-  color: var(--white);
-  line-height: 1.6;
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .container   { padding: 20px 16px; }
+  .formCard    { padding: 20px 18px; }
+  .formActions { flex-direction: column; }
+  .btnPrimary,
+  .btnOutline  { width: 100%; text-align: center; }
 }

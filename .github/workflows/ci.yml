@@ -29,18 +29,19 @@ jobs:
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./tec-frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies
+      - name: Install root dependencies
         run: npm install --legacy-peer-deps
+      - name: Install frontend dependencies
+        run: npm install --legacy-peer-deps
+        working-directory: ./tec-frontend
       - name: Run tests
         run: npm test
+        working-directory: ./tec-frontend
 
   build-frontend:
     name: Build Frontend
@@ -58,6 +59,6 @@ jobs:
       - name: Build Next.js
         run: npm run build
         env:
-          NEXT_PUBLIC_PI_SANDBOX:        'true'
-          NEXT_PUBLIC_API_GATEWAY_URL:   ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
-          NEXT_PUBLIC_PI_APP_ID:         ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}
+          NEXT_PUBLIC_PI_SANDBOX:      'true'
+          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
+          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}

@@ -44,7 +44,8 @@ export default function DashboardLayout({
   const navItems = [
     { icon: '⊞', label: t.dashboard.nav.dashboard,   href: '/dashboard' },
     { icon: '◎', label: t.dashboard.nav.wallet,       href: '/dashboard/wallet' },
-    { icon: '◫', label: 'Orders',                     href: '/dashboard/orders' },  // ← جديد
+    { icon: '◫', label: 'Orders',                     href: '/dashboard/orders' },
+    { icon: '🔔', label: 'Notifications',              href: '/dashboard/notifications' }, // ← جديد
     { icon: '◈', label: t.dashboard.nav.subscription, href: '/dashboard/subscription' },
     { icon: '◇', label: t.dashboard.nav.security,     href: '/dashboard/security' },
     { icon: '◉', label: 'Profile',                    href: '/dashboard/profile' },
@@ -121,4 +122,4 @@ export default function DashboardLayout({
 
     </div>
   );
-}
+          }

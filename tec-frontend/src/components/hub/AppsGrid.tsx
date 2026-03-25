@@ -1,3 +1,5 @@
+"use client";
+
 import { apps } from "@/data/apps";
 import AppCard from "./AppCard";
 import { useRouter } from "next/navigation";

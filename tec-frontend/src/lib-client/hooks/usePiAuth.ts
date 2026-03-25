@@ -5,32 +5,31 @@ import { loginWithPi, getStoredUser, logout as piLogout } from '@/lib-client/pi/
 import { TecUser } from '@/types/pi.types';
 
 interface AuthState {
-  user: TecUser | null;
-  isLoading: boolean;
+  user:            TecUser | null;
+  isLoading:       boolean;
   isAuthenticated: boolean;
-  isNewUser: boolean;
-  error: string | null;
-  errorType: 'not_pi_browser' | 'auth_failed' | 'timeout' | 'storage' | null;
+  isNewUser:       boolean;
+  error:           string | null;
+  errorType:       'not_pi_browser' | 'auth_failed' | 'timeout' | 'storage' | null;
 }
 
 export const usePiAuth = () => {
   const [state, setState] = useState<AuthState>({
-    user: null,
-    isLoading: false,
+    user:            null,
+    isLoading:       true,   // ← كان false — ده كان السبب
     isAuthenticated: false,
-    isNewUser: false,
-    error: null,
-    errorType: null,
+    isNewUser:       false,
+    error:           null,
+    errorType:       null,
   });
 
   useEffect(() => {
-    // Simply load stored user on mount
     const stored = getStoredUser();
     setState(prev => ({
       ...prev,
-      user: stored,
+      user:            stored,
       isAuthenticated: !!stored,
-      isLoading: false,
+      isLoading:       false,
     }));
   }, []);
 
@@ -40,18 +39,16 @@ export const usePiAuth = () => {
       const result = await loginWithPi();
       setState(prev => ({
         ...prev,
-        user: result.user,
+        user:            result.user,
         isAuthenticated: true,
-        isNewUser: result.isNewUser,
-        isLoading: false,
-        error: null,
-        errorType: null,
+        isNewUser:       result.isNewUser,
+        isLoading:       false,
+        error:           null,
+        errorType:       null,
       }));
       return result;
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'فشل تسجيل الدخول';
-      
-      // Determine error type based on error message
       let errorType: AuthState['errorType'] = 'auth_failed';
       if (message.includes('Pi Browser') || message.includes('متصفح Pi')) {
         errorType = 'not_pi_browser';
@@ -60,11 +57,10 @@ export const usePiAuth = () => {
       } else if (message.includes('localStorage') || message.includes('بيانات المصادقة')) {
         errorType = 'storage';
       }
-      
       setState(prev => ({
         ...prev,
         isLoading: false,
-        error: message,
+        error:     message,
         errorType,
       }));
       throw err;
@@ -75,11 +71,11 @@ export const usePiAuth = () => {
     piLogout();
     setState(prev => ({
       ...prev,
-      user: null,
+      user:            null,
       isAuthenticated: false,
-      isNewUser: false,
-      error: null,
-      errorType: null,
+      isNewUser:       false,
+      error:           null,
+      errorType:       null,
     }));
   }, []);
 

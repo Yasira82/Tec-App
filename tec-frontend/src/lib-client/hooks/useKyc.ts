@@ -31,39 +31,39 @@ interface UseKycReturn {
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
+const getToken = (): string =>
+  typeof window !== 'undefined'
+    ? localStorage.getItem('tec_access_token') ?? ''
+    : '';
+
+const makeHeaders = () => ({
+  'Content-Type': 'application/json',
+  Authorization:  `Bearer ${getToken()}`,
+});
+
 export function useKyc(): UseKycReturn {
   const [kyc,          setKyc]          = useState<KycRecord | null>(null);
   const [isLoading,    setIsLoading]    = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error,        setError]        = useState<string | null>(null);
 
-  const getToken = (): string =>
-    typeof window !== 'undefined'
-      ? localStorage.getItem('tec_access_token') ?? ''
-      : '';
-
-  const headers = () => ({
-    'Content-Type': 'application/json',
-    Authorization:  `Bearer ${getToken()}`,
-  });
-
-  // ── Fetch status ──────────────────────────────────────
   const fetchStatus = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${GATEWAY}/api/kyc/status`, { headers: headers() });
+      const res = await fetch(`${GATEWAY}/api/kyc/status`, {
+        headers: makeHeaders(),
+      });
       if (!res.ok) throw new Error(`KYC fetch failed: ${res.status}`);
       const data = await res.json();
       setKyc(data.data.kyc);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, []); // ← فاضي — makeHeaders خارج الـ component
 
-  // ── Upload docs ───────────────────────────────────────
   const uploadDocs = useCallback(async (data: {
     idFrontUrl?: string;
     idBackUrl?:  string;
@@ -74,7 +74,7 @@ export function useKyc(): UseKycReturn {
     try {
       const res = await fetch(`${GATEWAY}/api/kyc/upload`, {
         method:  'POST',
-        headers: headers(),
+        headers: makeHeaders(),
         body:    JSON.stringify(data),
       });
       if (!res.ok) {
@@ -83,22 +83,21 @@ export function useKyc(): UseKycReturn {
       }
       const result = await res.json();
       setKyc(result.data.kyc);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       throw err;
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, []); // ← فاضي — makeHeaders خارج الـ component
 
-  // ── Submit ────────────────────────────────────────────
   const submit = useCallback(async () => {
     setIsSubmitting(true);
     setError(null);
     try {
       const res = await fetch(`${GATEWAY}/api/kyc/submit`, {
         method:  'POST',
-        headers: headers(),
+        headers: makeHeaders(),
       });
       if (!res.ok) {
         const e = await res.json();
@@ -106,25 +105,24 @@ export function useKyc(): UseKycReturn {
       }
       const result = await res.json();
       setKyc(result.data.kyc);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
       throw err;
     } finally {
       setIsSubmitting(false);
     }
-  }, []);
+  }, []); // ← فاضي — makeHeaders خارج الـ component
 
-  // ── Reset (start over after rejection) ───────────────
   const reset = useCallback(async () => {
     setIsSubmitting(true);
     try {
       await fetch(`${GATEWAY}/api/kyc/start`, {
         method:  'POST',
-        headers: headers(),
+        headers: makeHeaders(),
       });
       await fetchStatus();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError((err as Error).message);
     } finally {
       setIsSubmitting(false);
     }

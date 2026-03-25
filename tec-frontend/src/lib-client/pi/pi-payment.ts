@@ -95,38 +95,50 @@ export const createU2APayment = async (
 
   await waitForPiSDK();
 
+  const GATEWAY    = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
   let internalId: string | null = null;
   const storedUser = getStoredUser();
   const userId     = storedUser?.id ?? null;
 
-  // ── محاولة إنشاء الـ payment record في الـ backend ────────
+  // ── إنشاء الـ payment record في الـ backend ───────────────
   if (userId) {
     try {
-      onDiagnostic?.('info', `Creating payment record (userId: ${userId})`, { userId, amount });
-      const payment = await sdk.payment.create({
-        userId,
-        amount,
-        currency:       'PI',
-        payment_method: 'pi',
-        metadata,
+      onDiagnostic?.('info', `Creating payment record`, { userId, amount });
+      const token = getAccessToken();
+      const res = await fetch(`${GATEWAY}/api/payments/create`, {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          userId,
+          amount,
+          currency:       'PI',
+          payment_method: 'pi',
+          metadata,
+        }),
       });
-      internalId = payment?.id ?? null;
-      onDiagnostic?.('info', `Backend record created (internalId: ${internalId})`, { internalId });
+      if (res.ok) {
+        const data = await res.json();
+        internalId = data?.data?.payment?.id ?? data?.data?.id ?? null;
+        onDiagnostic?.('info', `Backend record created (internalId: ${internalId})`, { internalId });
+      } else {
+        onDiagnostic?.('warn', `Backend create returned ${res.status} — proceeding`);
+      }
     } catch (createErr) {
-      // ← نكمل حتى لو فشل — بدون internalId
-      console.warn('[Pi Payment] Backend payment create error (non-blocking):', createErr);
+      console.warn('[Pi Payment] Backend create error (non-blocking):', createErr);
       onDiagnostic?.('warn', 'Backend create failed — proceeding without internalId');
     }
   }
 
-  // ← مش بنوقف هنا — بنكمل للـ Pi.createPayment دائماً
   return new Promise((resolve, reject) => {
     if (!window.Pi) {
       reject(new Error('Pi SDK not available - Open in Pi Browser'));
       return;
     }
 
-    let paymentTimedOut   = false;
+    let paymentTimedOut = false;
     let paymentTimer: NodeJS.Timeout | null = null;
 
     const startApprovalTimer = () => {
@@ -165,19 +177,36 @@ export const createU2APayment = async (
           }
 
           if (!internalId) {
-            // لو مفيش internalId — نكمل بدون approve
-            onDiagnostic?.('warn', 'No internalId — skipping approve', { piPaymentId });
+            onDiagnostic?.('warn', 'No internalId — skipping approve');
             startCompletionTimer();
             return;
           }
 
           try {
-            await sdk.payment.approve({ payment_id: internalId, pi_payment_id: piPaymentId });
-            onDiagnostic?.('approval', `Approval successful (${internalId})`, { piPaymentId, internalId });
+            const token = getAccessToken();
+            // ← fetch مباشر بدل SDK
+            const res = await fetch(`${GATEWAY}/api/payments/approve`, {
+              method:  'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization:  `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                payment_id:    internalId,
+                pi_payment_id: piPaymentId,
+              }),
+            });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err?.message ?? `Approval failed: ${res.status}`);
+            }
+
+            onDiagnostic?.('approval', `Approval successful`, { piPaymentId, internalId });
             startCompletionTimer();
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Approval failed';
-            onDiagnostic?.('error', `Approval failed: ${msg}`, { piPaymentId, internalId });
+            onDiagnostic?.('error', `Approval failed: ${msg}`);
             clearPaymentTimer();
             reject(new Error(msg));
           }
@@ -185,43 +214,44 @@ export const createU2APayment = async (
 
         onReadyForServerCompletion: async (piPaymentId: string, txid: string) => {
           if (paymentTimedOut) return;
-          onDiagnostic?.('completion', `onReadyForServerCompletion: ${piPaymentId} txid=${txid}`, { piPaymentId, txid, internalId });
+          onDiagnostic?.('completion', `onReadyForServerCompletion: ${piPaymentId}`, { piPaymentId, txid, internalId });
 
           if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
-            clearPaymentTimer();
-            reject(new Error('Invalid payment ID format'));
-            return;
+            clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
           }
           if (!PI_TXID_REGEX.test(txid)) {
-            clearPaymentTimer();
-            reject(new Error('Invalid transaction ID format'));
-            return;
+            clearPaymentTimer(); reject(new Error('Invalid transaction ID format')); return;
           }
 
           if (!internalId) {
-            // لو مفيش internalId — نعمل resolve بدون complete
             clearPaymentTimer();
-            resolve({
-              success:   true,
-              paymentId: piPaymentId,
-              txid,
-              status:    'completed',
-              amount,
-              memo,
-              message:   'Payment sent (not fully recorded) — please contact support if needed',
-            });
+            resolve({ success: true, paymentId: piPaymentId, txid, status: 'completed', amount, memo });
             return;
           }
 
           try {
-            const result = await sdk.payment.complete({
-              payment_id:     internalId,
-              transaction_id: txid,
+            const token = getAccessToken();
+            // ← fetch مباشر بدل SDK
+            const res = await fetch(`${GATEWAY}/api/payments/complete`, {
+              method:  'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization:  `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                payment_id:     internalId,
+                transaction_id: txid,
+              }),
             });
-            onDiagnostic?.('completion', `Completion successful (${internalId})`, { piPaymentId, internalId, txid });
+
+            if (!res.ok) {
+              const err = await res.json().catch(() => ({}));
+              throw new Error(err?.message ?? `Completion failed: ${res.status}`);
+            }
+
+            onDiagnostic?.('completion', `Completion successful`, { piPaymentId, internalId, txid });
             clearPaymentTimer();
             resolve({
-              ...result,
               success:   true,
               paymentId: piPaymentId,
               txid,
@@ -232,7 +262,7 @@ export const createU2APayment = async (
             });
           } catch (err) {
             const msg = err instanceof Error ? err.message : 'Payment failed';
-            onDiagnostic?.('error', `Completion failed: ${msg}`, { piPaymentId, internalId, txid });
+            onDiagnostic?.('error', `Completion failed: ${msg}`);
             clearPaymentTimer();
             reject(new Error(msg));
           }

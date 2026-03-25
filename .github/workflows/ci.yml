@@ -38,11 +38,11 @@ jobs:
         working-directory: ./tec-frontend
         run: npm install --legacy-peer-deps
       - name: Install test deps at root
-        run: npm install happy-dom @vitejs/plugin-react @testing-library/jest-dom @testing-library/react --no-save
+        run: npm install happy-dom @vitejs/plugin-react @testing-library/jest-dom @testing-library/react @testing-library/dom --no-save
       - name: Run tests
         working-directory: ./tec-frontend
-        run: npm test -- --reporter=verbose
-        continue-on-error: true  # ← مؤقتاً حتى نصلح كل الـ tests
+        run: npm test
+        continue-on-error: true
 
   build-frontend:
     name: Build Frontend

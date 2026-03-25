@@ -71,7 +71,7 @@ export function useWallet(): UseWalletReturn {
       const raw = localStorage.getItem('tec_user');
       if (!raw) return null;
       const u = JSON.parse(raw);
-      return u?.id ?? u?.uid ?? null; // ← id أولاً ثم uid
+      return u?.id ?? u?.uid ?? null;
     } catch { return null; }
   };
 
@@ -106,7 +106,7 @@ export function useWallet(): UseWalletReturn {
           headers: { Authorization: `Bearer ${token}` },
           signal:  ctrl.signal,
         }),
-        fetch(`${GATEWAY}/payments/history?${params}`, {
+        fetch(`${GATEWAY}/api/payments/history?${params}`, { // ← أضفنا /api/
           headers: { Authorization: `Bearer ${token}` },
           signal:  ctrl.signal,
         }),
@@ -137,9 +137,9 @@ export function useWallet(): UseWalletReturn {
     }
   }, [filterType, filterStatus]);
 
-  const refetch      = useCallback(() => fetchAll(1, true),        [fetchAll]);
-  const loadMore     = useCallback(() => fetchAll(page + 1, true), [fetchAll, page]);
-  const setPage      = useCallback((p: number) => fetchAll(p),     [fetchAll]);
+  const refetch       = useCallback(() => fetchAll(1, true),        [fetchAll]);
+  const loadMore      = useCallback(() => fetchAll(page + 1, true), [fetchAll, page]);
+  const setPage       = useCallback((p: number) => fetchAll(p),     [fetchAll]);
   const updateBalance = useCallback((newBalance: number) => {
     setWallet(prev => prev ? { ...prev, balance: newBalance } : prev);
   }, []);
@@ -160,4 +160,4 @@ export function useWallet(): UseWalletReturn {
     filterType, filterStatus, setFilterType, setFilterStatus,
     refetch, loadMore, setPage, updateBalance,
   };
-                               }
+    }

@@ -38,7 +38,7 @@ jobs:
         working-directory: ./tec-frontend
         run: npm install --legacy-peer-deps
       - name: Install test deps at root
-        run: npm install happy-dom @vitejs/plugin-react --no-save
+        run: npm install happy-dom @vitejs/plugin-react @testing-library/jest-dom @testing-library/react --no-save
       - name: Run tests
         working-directory: ./tec-frontend
         run: npm test

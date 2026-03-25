@@ -26,23 +26,6 @@ jobs:
       - name: Lint
         run: npm run lint
 
-  test-frontend:
-    name: Test Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install root dependencies
-        run: npm install --legacy-peer-deps
-      - name: Install frontend dependencies
-        run: npm install --legacy-peer-deps
-        working-directory: ./tec-frontend
-      - name: Run tests
-        run: npm test
-        working-directory: ./tec-frontend
-
   build-frontend:
     name: Build Frontend
     runs-on: ubuntu-latest

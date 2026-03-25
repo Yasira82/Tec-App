@@ -93,41 +93,51 @@ export function useWallet(): UseWalletReturn {
     setError(null);
 
     try {
-      const params = new URLSearchParams({
-        userId,
-        page:  String(targetPage),
-        limit: String(PAGE_SIZE),
-        ...(filterType   !== 'all' && { type:   filterType }),
-        ...(filterStatus !== 'all' && { status: filterStatus }),
+      // ── Balance أولاً — الأهم ────────────────────────────
+      const balanceRes = await fetch(`/api/wallet/balance?userId=${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        signal:  ctrl.signal,
       });
 
-      const [balanceRes, txRes] = await Promise.all([
-        fetch(`/api/wallet/balance?userId=${userId}`, {
-          headers: { Authorization: `Bearer ${token}` },
-          signal:  ctrl.signal,
-        }),
-        fetch(`${GATEWAY}/api/payments/history?${params}`, { // ← أضفنا /api/
-          headers: { Authorization: `Bearer ${token}` },
-          signal:  ctrl.signal,
-        }),
-      ]);
-
       if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
-      if (!txRes.ok)      throw new Error(`Transactions error: ${txRes.status}`);
 
       const balanceData: { balance: number; currency: string; address?: string } =
         await balanceRes.json();
-      const txData: { transactions: Transaction[]; total: number } =
-        await txRes.json();
 
       setWallet({
         balance:  balanceData.balance,
         currency: balanceData.currency,
         address:  balanceData.address,
       });
-      setTransactions(txData.transactions);
-      setTotal(txData.total);
+
+      // ── Transactions — لو فشلت مش error كامل ────────────
+      try {
+        const params = new URLSearchParams({
+          userId,
+          page:  String(targetPage),
+          limit: String(PAGE_SIZE),
+          ...(filterType   !== 'all' && { type:   filterType }),
+          ...(filterStatus !== 'all' && { status: filterStatus }),
+        });
+
+        const txRes = await fetch(`${GATEWAY}/api/payments/history?${params}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal:  ctrl.signal,
+        });
+
+        if (txRes.ok) {
+          const txData: { transactions: Transaction[]; total: number } =
+            await txRes.json();
+          setTransactions(txData.transactions ?? []);
+          setTotal(txData.total ?? 0);
+        }
+        // لو 401 أو غيره — نسيبها فاضية بدون error
+      } catch {
+        // transactions مش إلزامية
+      }
+
       setPageState(targetPage);
+
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
       setError((err as Error).message ?? 'Unknown error');
@@ -160,4 +170,4 @@ export function useWallet(): UseWalletReturn {
     filterType, filterStatus, setFilterType, setFilterStatus,
     refetch, loadMore, setPage, updateBalance,
   };
-    }
+  }

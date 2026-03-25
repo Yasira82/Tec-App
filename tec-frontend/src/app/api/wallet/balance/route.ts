@@ -14,8 +14,9 @@ export async function GET(req: NextRequest) {
   }
 
   try {
+    // ← /api/wallets?userId= بدل /api/wallets/balance
     const res = await fetch(
-      `${GATEWAY}/api/wallets/balance?userId=${userId}`, // ← /api/wallets
+      `${GATEWAY}/api/wallets?userId=${userId}`,
       {
         headers: {
           Authorization:  authHeader,
@@ -33,7 +34,18 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+
+    // الـ wallet service بيرجع { success, data: { wallets: [] } }
+    // نجيب الـ primary wallet
+    const wallets = data?.data?.wallets ?? [];
+    const primary = wallets.find((w: any) => w.is_primary) ?? wallets[0];
+
+    return NextResponse.json({
+      balance:  primary ? Number(primary.balance) : 0,
+      currency: primary?.currency ?? 'PI',
+      address:  primary?.wallet_address ?? null,
+    });
+
   } catch {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
   }

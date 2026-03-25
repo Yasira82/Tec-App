@@ -29,17 +29,18 @@ jobs:
   test-frontend:
     name: Test Frontend
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./tec-frontend
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Install dependencies
+      - name: Install frontend dependencies
+        working-directory: ./tec-frontend
         run: npm install --legacy-peer-deps
+      - name: Install jsdom at root for vitest
+        run: npm install jsdom --no-save
       - name: Run tests
+        working-directory: ./tec-frontend
         run: npm test
 
   build-frontend:

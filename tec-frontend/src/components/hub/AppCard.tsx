@@ -1,12 +1,10 @@
 'use client';
 
-import styles from './AppsGrid.module.css';
-
 type Props = {
-  name:    string;
-  emoji:   string;
-  href:    string;
-  status:  'live' | 'soon';
+  name:   string;
+  emoji:  string;
+  href:   string;
+  status: 'live' | 'soon';
 };
 
 export default function AppCard({ name, emoji, href, status }: Props) {
@@ -20,12 +18,21 @@ export default function AppCard({ name, emoji, href, status }: Props) {
 
   return (
     <button
-      className={`${styles.card} ${status === 'live' ? styles.live : styles.soon}`}
-      onClick={handleOpen}
+      onClick={status === 'live' ? handleOpen : undefined}
+      className={`
+        relative flex flex-col items-center justify-center gap-2
+        p-5 rounded-2xl border transition-all duration-200
+        ${status === 'live'
+          ? 'border-[#d4af3730] bg-[#0d0d14] hover:border-[#d4af37] hover:bg-[#1a1208] cursor-pointer'
+          : 'border-white/10 bg-[#0d0d14] opacity-40 cursor-default'
+        }
+      `}
     >
-      <span className={styles.emoji}>{emoji}</span>
-      <span className={styles.name}>{name}</span>
-      {status === 'live' && <span className={styles.liveBadge}>●</span>}
+      <span className="text-3xl">{emoji}</span>
+      <span className="text-xs font-semibold text-white">{name}</span>
+      {status === 'live' && (
+        <span className="absolute top-2 right-2 text-[8px] text-emerald-400">●</span>
+      )}
     </button>
   );
 }

@@ -1,31 +1,24 @@
 'use client';
 
+import AppCard from './AppCard';
 import styles from './AppsGrid.module.css';
 
 const APPS = [
-  { name: 'Wallet',     emoji: '💳', href: '/dashboard/wallet',        status: 'live'   },
-  { name: 'Orders',     emoji: '📦', href: '/dashboard/orders',         status: 'live'   },
-  { name: 'KYC',        emoji: '🪪', href: '/dashboard/kyc',            status: 'live'   },
-  { name: 'Commerce',   emoji: '🛒', href: 'https://commerce.pi',       status: 'soon'   },
-  { name: 'Assets',     emoji: '💎', href: 'https://assets.pi',         status: 'soon'   },
-  { name: 'Fundx',      emoji: '📊', href: 'https://fundx.pi',          status: 'soon'   },
-  { name: 'Estate',     emoji: '🏠', href: 'https://estate.pi',         status: 'soon'   },
-  { name: 'Analytics',  emoji: '📈', href: 'https://analytics.pi',      status: 'soon'   },
-  { name: 'Connection', emoji: '🔗', href: 'https://connection.pi',     status: 'soon'   },
-  { name: 'Insure',     emoji: '🛡️', href: 'https://insure.pi',         status: 'soon'   },
-  { name: 'Nexus',      emoji: '🌐', href: 'https://nexus.pi',          status: 'soon'   },
-  { name: 'AI',         emoji: '🤖', href: '/ai',                       status: 'live'   },
+  { name: 'Wallet',     emoji: '💳', href: '/dashboard/wallet',    status: 'live' as const },
+  { name: 'Orders',     emoji: '📦', href: '/dashboard/orders',    status: 'live' as const },
+  { name: 'KYC',        emoji: '🪪', href: '/dashboard/kyc',       status: 'live' as const },
+  { name: 'AI',         emoji: '🤖', href: '/ai',                  status: 'live' as const },
+  { name: 'Commerce',   emoji: '🛒', href: 'https://commerce.pi',  status: 'soon' as const },
+  { name: 'Assets',     emoji: '💎', href: 'https://assets.pi',    status: 'soon' as const },
+  { name: 'Fundx',      emoji: '📊', href: 'https://fundx.pi',     status: 'soon' as const },
+  { name: 'Estate',     emoji: '🏠', href: 'https://estate.pi',    status: 'soon' as const },
+  { name: 'Analytics',  emoji: '📈', href: 'https://analytics.pi', status: 'soon' as const },
+  { name: 'Connection', emoji: '🔗', href: 'https://connection.pi',status: 'soon' as const },
+  { name: 'Insure',     emoji: '🛡️', href: 'https://insure.pi',    status: 'soon' as const },
+  { name: 'Nexus',      emoji: '🌐', href: 'https://nexus.pi',     status: 'soon' as const },
 ];
 
 export default function AppsGrid() {
-  const handleOpen = (href: string) => {
-    if (href.startsWith('http')) {
-      window.open(href, '_blank', 'noopener,noreferrer');
-    } else {
-      window.location.href = href;
-    }
-  };
-
   return (
     <section className={styles.section}>
       <div className={styles.header}>
@@ -36,17 +29,13 @@ export default function AppsGrid() {
       </div>
       <div className={styles.grid}>
         {APPS.map(app => (
-          <button
+          <AppCard
             key={app.name}
-            className={`${styles.card} ${app.status === 'live' ? styles.live : styles.soon}`}
-            onClick={() => handleOpen(app.href)}
-          >
-            <span className={styles.emoji}>{app.emoji}</span>
-            <span className={styles.name}>{app.name}</span>
-            {app.status === 'live' && (
-              <span className={styles.liveBadge}>●</span>
-            )}
-          </button>
+            name={app.name}
+            emoji={app.emoji}
+            href={app.href}
+            status={app.status}
+          />
         ))}
       </div>
     </section>

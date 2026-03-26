@@ -44,6 +44,7 @@
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
+  width: 100%;
 }
 
 .live {
@@ -58,6 +59,7 @@
 .soon {
   border-color: #ffffff10;
   opacity: 0.5;
+  cursor: default;
 }
 
 .emoji {

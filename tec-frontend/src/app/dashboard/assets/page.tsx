@@ -1,21 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 
 interface Asset {
-  id:            string;
-  slug:          string;
-  category:      'DOMAIN' | 'REAL_ESTATE' | 'DIGITAL_ASSET';
-  status:        'ACTIVE' | 'PENDING' | 'LOCKED' | 'ON_SALE';
-  metadata:      Record<string, unknown>;
-  createdAt:     string;
+  id:        string;
+  slug:      string;
+  category:  'DOMAIN' | 'REAL_ESTATE' | 'DIGITAL_ASSET';
+  status:    'ACTIVE' | 'PENDING' | 'LOCKED' | 'ON_SALE';
+  metadata:  Record<string, unknown>;
+  createdAt: string;
 }
 
 const CATEGORY_EMOJI: Record<string, string> = {
-  DOMAIN:       '🌐',
-  REAL_ESTATE:  '🏠',
-  DIGITAL_ASSET:'💎',
+  DOMAIN:        '🌐',
+  REAL_ESTATE:   '🏠',
+  DIGITAL_ASSET: '💎',
 };
 
 const STATUS_COLOR: Record<string, string> = {
@@ -27,22 +27,33 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function AssetsPage() {
   const { user, isAuthenticated } = usePiAuth();
-  const [assets,    setAssets]    = useState<Asset[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error,     setError]     = useState<string | null>(null);
+  const [assets,      setAssets]      = useState<Asset[]>([]);
+  const [isLoading,   setIsLoading]   = useState(true);
+  const [isRefreshing,setIsRefreshing]= useState(false);
+  const [error,       setError]       = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchAssets = useCallback(async (silent = false) => {
     if (!user?.id || !isAuthenticated) return;
     const token = localStorage.getItem('tec_access_token');
-
-    fetch(`/api/assets?userId=${user.id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    })
-      .then(r => r.ok ? r.json() : Promise.reject(r.status))
-      .then(d => setAssets(d?.data ?? []))
-      .catch(e => setError(`Failed to load assets: ${e}`))
-      .finally(() => setIsLoading(false));
+    if (silent) setIsRefreshing(true);
+    else        setIsLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/assets?userId=${user.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`${res.status}`);
+      const d = await res.json();
+      setAssets(d?.data ?? []);
+    } catch (e) {
+      setError(`Failed to load assets: ${e}`);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
   }, [user?.id, isAuthenticated]);
+
+  useEffect(() => { fetchAssets(); }, [fetchAssets]);
 
   if (isLoading) {
     return (
@@ -57,9 +68,33 @@ export default function AssetsPage() {
     <div style={{ padding: '24px 16px', maxWidth: 600, margin: '0 auto' }}>
 
       {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 28, fontWeight: 800, color: '#ffffff', margin: 0 }}>Assets</h1>
-        <p style={{ fontSize: 13, color: '#6b6b7a', marginTop: 4 }}>Your digital assets on Pi Network</p>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
+        <div>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#ffffff', margin: 0 }}>Assets</h1>
+          <p style={{ fontSize: 13, color: '#6b6b7a', marginTop: 4 }}>Your digital assets on Pi Network</p>
+        </div>
+        <button
+          onClick={() => fetchAssets(true)}
+          disabled={isRefreshing}
+          style={{ background: '#d4af3715', border: '1px solid #d4af3730', borderRadius: 10, padding: '8px 14px', color: '#d4af37', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+        >
+          {isRefreshing ? '⟳ ...' : '⟳ Refresh'}
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
+        {['DOMAIN', 'REAL_ESTATE', 'DIGITAL_ASSET'].map(cat => (
+          <div key={cat} style={{ padding: '12px', background: '#0d0d14', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
+            <div style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_EMOJI[cat]}</div>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#d4af37' }}>
+              {assets.filter(a => a.category === cat).length}
+            </div>
+            <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 0.5 }}>
+              {cat.replace('_', ' ')}
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Error */}
@@ -71,16 +106,19 @@ export default function AssetsPage() {
 
       {/* Empty */}
       {assets.length === 0 && !error && (
-        <div style={{ textAlign: 'center', padding: '60px 20px', color: '#4a4a5a' }}>
+        <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>💼</div>
           <p style={{ fontSize: 16, fontWeight: 600, color: '#6b6b7a' }}>No assets yet</p>
-          <p style={{ fontSize: 13, marginTop: 4 }}>Assets you purchase will appear here</p>
+          <p style={{ fontSize: 13, color: '#4a4a5a', marginTop: 4 }}>Assets you purchase will appear here</p>
         </div>
       )}
 
       {/* Assets List */}
       {assets.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+            {assets.length} Asset{assets.length !== 1 ? 's' : ''}
+          </div>
           {assets.map(asset => (
             <div key={asset.id}
               style={{ padding: '16px 20px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
@@ -92,7 +130,7 @@ export default function AssetsPage() {
                   {asset.slug}
                 </div>
                 <div style={{ fontSize: 11, color: '#6b6b7a' }}>
-                  {asset.category.replace('_', ' ')}
+                  {asset.category.replace(/_/g, ' ')}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>
@@ -107,7 +145,6 @@ export default function AssetsPage() {
           ))}
         </div>
       )}
-
     </div>
   );
-                      }
+}

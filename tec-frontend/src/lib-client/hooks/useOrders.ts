@@ -44,7 +44,6 @@ interface UseOrdersReturn {
   setPage:         (p: number) => void;
 }
 
-const GATEWAY   = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 const PAGE_SIZE = 10;
 
 export function useOrders(): UseOrdersReturn {
@@ -69,7 +68,7 @@ export function useOrders(): UseOrdersReturn {
       const raw = localStorage.getItem('tec_user');
       if (!raw) return null;
       const u = JSON.parse(raw);
-      return u?.id ?? u?.uid ?? null; // ← id أولاً ثم uid
+      return u?.id ?? u?.uid ?? null;
     } catch { return null; }
   };
 
@@ -94,7 +93,8 @@ export function useOrders(): UseOrdersReturn {
         ...(filterStatus !== 'all' && { status: filterStatus }),
       });
 
-      const res = await fetch(`${GATEWAY}/api/commerce/orders?${params}`, {
+      // ← Next.js route بدل Gateway مباشر
+      const res = await fetch(`/api/commerce/orders?${params}`, {
         headers: {
           Authorization: `Bearer ${token}`,
           'x-user-id':   userId,
@@ -106,8 +106,8 @@ export function useOrders(): UseOrdersReturn {
       const data: { success: boolean; data: { orders: Order[]; total: number } } =
         await res.json();
 
-      setOrders(data.data.orders);
-      setTotal(data.data.total);
+      setOrders(data.data.orders ?? []);
+      setTotal(data.data.total ?? 0);
       setPageState(targetPage);
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;

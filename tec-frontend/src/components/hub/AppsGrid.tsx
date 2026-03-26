@@ -1,42 +1,52 @@
 'use client';
 
-import AppCard from './AppCard';
-
 const APPS = [
-  { name: 'Wallet',     emoji: '💳', href: '/dashboard/wallet',     status: 'live' as const },
-  { name: 'Orders',     emoji: '📦', href: '/dashboard/orders',     status: 'live' as const },
-  { name: 'KYC',        emoji: '🪪', href: '/dashboard/kyc',        status: 'live' as const },
-  { name: 'AI',         emoji: '🤖', href: '/ai',                   status: 'live' as const },
-  { name: 'Commerce',   emoji: '🛒', href: 'https://commerce.pi',   status: 'soon' as const },
-  { name: 'Assets',     emoji: '💎', href: 'https://assets.pi',     status: 'soon' as const },
-  { name: 'Fundx',      emoji: '📊', href: 'https://fundx.pi',      status: 'soon' as const },
-  { name: 'Estate',     emoji: '🏠', href: 'https://estate.pi',     status: 'soon' as const },
-  { name: 'Analytics',  emoji: '📈', href: 'https://analytics.pi',  status: 'soon' as const },
-  { name: 'Connection', emoji: '🔗', href: 'https://connection.pi', status: 'soon' as const },
-  { name: 'Insure',     emoji: '🛡️', href: 'https://insure.pi',     status: 'soon' as const },
-  { name: 'Nexus',      emoji: '🌐', href: 'https://nexus.pi',      status: 'soon' as const },
+  { name: 'Wallet',     emoji: '💳', href: '/dashboard/wallet',     live: true  },
+  { name: 'Orders',     emoji: '📦', href: '/dashboard/orders',     live: true  },
+  { name: 'KYC',        emoji: '🪪', href: '/dashboard/kyc',        live: true  },
+  { name: 'AI',         emoji: '🤖', href: '/ai',                   live: true  },
+  { name: 'Commerce',   emoji: '🛒', href: 'https://commerce.pi',   live: false },
+  { name: 'Assets',     emoji: '💎', href: 'https://assets.pi',     live: false },
+  { name: 'Fundx',      emoji: '📊', href: 'https://fundx.pi',      live: false },
+  { name: 'Estate',     emoji: '🏠', href: 'https://estate.pi',     live: false },
+  { name: 'Analytics',  emoji: '📈', href: 'https://analytics.pi',  live: false },
+  { name: 'Connection', emoji: '🔗', href: 'https://connection.pi', live: false },
+  { name: 'Insure',     emoji: '🛡️', href: 'https://insure.pi',     live: false },
+  { name: 'Nexus',      emoji: '🌐', href: 'https://nexus.pi',      live: false },
 ];
 
 export default function AppsGrid() {
-  const liveCount = APPS.filter(a => a.status === 'live').length;
+  const open = (href: string) => {
+    if (href.startsWith('http')) window.open(href, '_blank', 'noopener,noreferrer');
+    else window.location.href = href;
+  };
 
   return (
     <section className="px-4 mt-2">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-bold text-white">Apps</h2>
         <span className="text-xs text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-3 py-1 rounded-full">
-          {liveCount} Live
+          {APPS.filter(a => a.live).length} Live
         </span>
       </div>
       <div className="grid grid-cols-3 gap-3">
         {APPS.map(app => (
-          <AppCard
+          <button
             key={app.name}
-            name={app.name}
-            emoji={app.emoji}
-            href={app.href}
-            status={app.status}
-          />
+            onClick={app.live ? () => open(app.href) : undefined}
+            className={[
+              'relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border transition-all duration-200 w-full',
+              app.live
+                ? 'border-[#d4af3730] bg-[#0d0d14] hover:border-[#d4af37] hover:bg-[#1a1208] cursor-pointer'
+                : 'border-white/10 bg-[#0d0d14] opacity-40 cursor-default',
+            ].join(' ')}
+          >
+            <span className="text-3xl">{app.emoji}</span>
+            <span className="text-xs font-semibold text-white">{app.name}</span>
+            {app.live && (
+              <span className="absolute top-2 right-2 text-[8px] text-emerald-400">●</span>
+            )}
+          </button>
         ))}
       </div>
     </section>

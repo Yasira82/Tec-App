@@ -1,17 +1,29 @@
-export default function HubHeader() {
+'use client';
+
+import Link from 'next/link';
+import { TecUser } from '@/types/pi.types';
+import styles from './HubHeader.module.css';
+
+interface Props { user: TecUser | null; }
+
+export default function HubHeader({ user }: Props) {
   return (
-    <div className="flex justify-between items-center">
-      <h1 className="text-2xl font-bold text-yellow-400">TEC</h1>
-
-      <div className="flex items-center gap-3">
-        <button className="bg-yellow-500 text-black px-3 py-1 rounded-lg">
-          Wallet
-        </button>
-
-        <button className="border border-gray-600 px-3 py-1 rounded-lg">
-          ☰
-        </button>
+    <header className={styles.header}>
+      <div className={styles.left}>
+        <span className={styles.logo}>TEC</span>
+        <span className={styles.tagline}>Super App</span>
       </div>
-    </div>
+      <div className={styles.right}>
+        <Link href="/dashboard/notifications" className={styles.bell}>
+          🔔
+        </Link>
+        <Link href="/dashboard" className={styles.user}>
+          <span className={styles.avatar}>
+            {user?.piUsername?.[0]?.toUpperCase() ?? 'U'}
+          </span>
+          <span className={styles.username}>@{user?.piUsername}</span>
+        </Link>
+      </div>
+    </header>
   );
 }

@@ -1,0 +1,40 @@
+.card {
+  display: block;
+  margin: 20px 16px;
+  padding: 24px;
+  background: linear-gradient(135deg, #1a1208, #2a1e0a);
+  border: 1px solid #d4af3740;
+  border-radius: 20px;
+  text-decoration: none;
+  transition: border-color 0.2s;
+}
+
+.card:hover { border-color: #d4af37; }
+
+.label {
+  font-size: 12px;
+  color: #6b6b7a;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 8px;
+}
+
+.balance {
+  font-size: 40px;
+  font-weight: 800;
+  color: #d4af37;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.currency {
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.action {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #d4af3780;
+}

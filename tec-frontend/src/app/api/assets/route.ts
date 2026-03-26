@@ -8,8 +8,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const search = req.nextUrl.search;
-    const res = await fetch(`${GATEWAY}/api/assets${search}`, {
+    const userId = req.nextUrl.searchParams.get('userId');
+    const url    = userId
+      ? `${GATEWAY}/api/assets/assets/user/${userId}`
+      : `${GATEWAY}/api/assets/assets`;
+
+    const res = await fetch(url, {
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
     });
     const data = await res.json();
@@ -26,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json();
-    const res = await fetch(`${GATEWAY}/api/assets/provision`, {
+    const res  = await fetch(`${GATEWAY}/api/assets/assets/provision`, {
       method:  'POST',
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
       body:    JSON.stringify(body),

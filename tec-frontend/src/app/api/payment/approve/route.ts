@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -8,12 +9,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   try {
-    const body = await req.json();
-    const res  = await fetch(`${GATEWAY}/api/payments/approve`, {
+    const body           = await req.json();
+    const idempotencyKey = randomUUID(); // ← المفتاح المفقود
+
+    const res = await fetch(`${GATEWAY}/api/payments/approve`, {
       method:  'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization:  authHeader,
+        'Content-Type':    'application/json',
+        Authorization:     authHeader,
+        'Idempotency-Key': idempotencyKey, // ← هنا كانت المشكلة
       },
       body: JSON.stringify(body),
     });

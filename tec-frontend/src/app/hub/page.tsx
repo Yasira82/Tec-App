@@ -1,18 +1,38 @@
-import HubHeader from "@/components/hub/HubHeader";
-import WalletCard from "@/components/hub/WalletCard";
-import QuickActions from "@/components/hub/QuickActions";
-import AppsGrid from "@/components/hub/AppsGrid";
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import HubHeader from '@/components/hub/HubHeader';
+import WalletCard from '@/components/hub/WalletCard';
+import AppsGrid from '@/components/hub/AppsGrid';
+import styles from './hub.module.css';
 
 export default function HubPage() {
-  return (
-    <main className="min-h-screen bg-[#0B0F1A] text-white px-4 py-6">
-      <HubHeader />
+  const { user, isAuthenticated, isLoading } = usePiAuth();
+  const router = useRouter();
 
-      <div className="mt-6 space-y-6">
-        <WalletCard />
-        <QuickActions />
-        <AppsGrid />
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading) {
+    return (
+      <div className={styles.loading}>
+        <div className={styles.spinner} />
       </div>
+    );
+  }
+
+  if (!isAuthenticated) return null;
+
+  return (
+    <main className={styles.main}>
+      <HubHeader user={user} />
+      <WalletCard userId={user?.id ?? ''} />
+      <AppsGrid />
     </main>
   );
 }

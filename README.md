@@ -1,4 +1,4 @@
-## TEC Ecosystem - 24 App Digital Platform
+# TEC Ecosystem - 24 App Digital Platform
 
 ![TEC Platform](https://img.shields.io/badge/TEC-Platform-gold)
 ![Next.js](https://img.shields.io/badge/Next.js-14-black)

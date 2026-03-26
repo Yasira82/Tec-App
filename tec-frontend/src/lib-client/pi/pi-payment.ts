@@ -104,7 +104,7 @@ export const createU2APayment = async (
     try {
       onDiagnostic?.('info', `Creating payment record`, { userId, amount });
       const token = getAccessToken();
-      const res = await fetch(`/api/payments/create`, { // ← Next.js route
+      const res = await fetch(`/api/payment/create`, { // ← بدون s
         method:  'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -183,7 +183,7 @@ export const createU2APayment = async (
 
           try {
             const token = getAccessToken();
-            const res = await fetch(`/api/payments/approve`, { // ← Next.js route
+            const res = await fetch(`/api/payment/approve`, { // ← بدون s
               method:  'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -229,7 +229,7 @@ export const createU2APayment = async (
 
           try {
             const token = getAccessToken();
-            const res = await fetch(`/api/payments/complete`, { // ← Next.js route
+            const res = await fetch(`/api/payment/complete`, { // ← بدون s
               method:  'POST',
               headers: {
                 'Content-Type': 'application/json',

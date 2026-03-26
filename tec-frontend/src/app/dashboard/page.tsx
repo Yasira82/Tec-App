@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { useTranslation } from '@/lib/i18n';
 import PiIntegration from '@/components/PiIntegration';
@@ -71,9 +70,14 @@ export default function DashboardPage() {
 
     // ── Balance ────────────────────────────────────────────────
     try {
-      const balRes = await fetch(
-        `/api/wallet/balance?userId=${user.id}`,
-      );
+      const token  = typeof window !== 'undefined'
+        ? localStorage.getItem('tec_access_token')
+        : null;
+
+      const balRes = await fetch(`/api/wallet/balance?userId=${user.id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+
       if (balRes.ok) {
         const balData = await balRes.json();
         setBalance(balData.balance ?? 0);
@@ -226,9 +230,7 @@ export default function DashboardPage() {
           {/* TEC — Active */}
           <div
             className={`${styles.appCard} ${styles.appCardActive}`}
-            onClick={() =>
-              window.open('https://tec.pi', '_blank', 'noopener,noreferrer')
-            }
+            onClick={() => window.open('https://tec.pi', '_blank', 'noopener,noreferrer')}
           >
             <span style={{ fontSize: '20px' }}>🔷</span>
             <div className={styles.appInfo}>
@@ -243,13 +245,7 @@ export default function DashboardPage() {
             <div
               key={app.name}
               className={styles.appCard}
-              onClick={() =>
-                window.open(
-                  `https://${app.domain}`,
-                  '_blank',
-                  'noopener,noreferrer',
-                )
-              }
+              onClick={() => window.open(`https://${app.domain}`, '_blank', 'noopener,noreferrer')}
             >
               <span style={{ fontSize: '20px' }}>{app.emoji}</span>
               <div className={styles.appInfo}>
@@ -264,4 +260,4 @@ export default function DashboardPage() {
       </section>
     </>
   );
-      }
+          }

@@ -3,12 +3,14 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { usePiPayment } from '@/lib-client/hooks/usePiPayment';
+import { resolvePendingPayment } from '@/lib-client/pi/pi-auth';
 
 const LIVE_APPS = [
-  { name: 'Wallet',       emoji: '💳', href: '/dashboard/wallet',  desc: 'Pi Balance'     },
-  { name: 'Orders',       emoji: '📦', href: '/dashboard/orders',  desc: 'Your Orders'    },
-  { name: 'KYC',          emoji: '🪪', href: '/dashboard/kyc',     desc: 'Verify ID'      },
-  { name: 'AI Assistant', emoji: '🤖', href: '/ai',                desc: 'Smart Assistant'},
+  { name: 'Wallet',       emoji: '💳', href: '/dashboard/wallet',  desc: 'Pi Balance'      },
+  { name: 'Orders',       emoji: '📦', href: '/dashboard/orders',  desc: 'Your Orders'     },
+  { name: 'KYC',          emoji: '🪪', href: '/dashboard/kyc',     desc: 'Verify ID'       },
+  { name: 'AI Assistant', emoji: '🤖', href: '/ai',                desc: 'Smart Assistant' },
 ];
 
 const SOON_APPS = [
@@ -28,9 +30,12 @@ const SOON_APPS = [
 
 export default function HubPage() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const router = useRouter();
-  const [balance, setBalance] = useState<string>('—');
-  const [time, setTime] = useState('');
+  const { isProcessing, lastPayment, error: paymentError, payDemoPi } = usePiPayment();
+  const router  = useRouter();
+  const [balance,      setBalance]      = useState<string>('—');
+  const [time,         setTime]         = useState('');
+  const [payMsg,       setPayMsg]       = useState<{ text: string; ok: boolean } | null>(null);
+  const [payState,     setPayState]     = useState<'idle' | 'processing' | 'success' | 'error' | 'cancelled'>('idle');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/');
@@ -54,6 +59,45 @@ export default function HubPage() {
       .catch(() => {});
   }, [user?.id]);
 
+  const handlePay = async () => {
+    setPayMsg(null);
+    setPayState('processing');
+    try {
+      const result = await payDemoPi();
+      if (!result) { setPayState('idle'); return; }
+      if (result.success && result.status === 'completed') {
+        setPayState('success');
+        setPayMsg({ text: `✅ Payment successful! txid: ${result.txid?.slice(0,16)}...`, ok: true });
+        // تحديث الـ balance
+        const token = localStorage.getItem('tec_access_token');
+        setTimeout(() => {
+          if (!user?.id) return;
+          fetch(`/api/wallet/balance?userId=${user.id}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+          }).then(r => r.ok ? r.json() : null).then(d => d && setBalance(`${Number(d.balance).toFixed(2)} π`)).catch(() => {});
+        }, 2000);
+      } else if (result.status === 'cancelled') {
+        setPayState('cancelled');
+        setPayMsg({ text: 'Payment cancelled.', ok: false });
+      } else {
+        setPayState('error');
+        setPayMsg({ text: result.message ?? 'Payment failed.', ok: false });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Payment failed';
+      const isPending = msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('already have');
+      if (isPending) {
+        setPayMsg({ text: '⏳ Resolving pending payment...', ok: true });
+        // نحاول نحل الـ pending
+        setPayState('idle');
+        setPayMsg({ text: 'Pending payment detected. Tap Pay again.', ok: false });
+      } else {
+        setPayState('error');
+        setPayMsg({ text: msg, ok: false });
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#050508' }}>
@@ -66,7 +110,7 @@ export default function HubPage() {
   if (!isAuthenticated) return null;
 
   return (
-    <div style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: '#050508', color: '#fff', fontFamily: 'system-ui, sans-serif', paddingBottom: 80 }}>
 
       {/* ── Header ── */}
       <header style={{ padding: '16px 20px', borderBottom: '1px solid #d4af3715', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: '#050508', zIndex: 100 }}>
@@ -76,14 +120,12 @@ export default function HubPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 12, color: '#4a4a5a' }}>{time}</span>
-          <button
-            onClick={() => router.push('/dashboard/notifications')}
-            style={{ background: 'none', border: '1px solid #d4af3720', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', fontSize: 16 }}
-          >🔔</button>
-          <button
-            onClick={() => router.push('/dashboard')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#d4af3715', border: '1px solid #d4af3730', borderRadius: 10, padding: '6px 12px', cursor: 'pointer' }}
-          >
+          <button onClick={() => router.push('/dashboard/notifications')}
+            style={{ background: 'none', border: '1px solid #d4af3720', borderRadius: 8, padding: '4px 8px', cursor: 'pointer', fontSize: 16 }}>
+            🔔
+          </button>
+          <button onClick={() => router.push('/dashboard')}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, background: '#d4af3715', border: '1px solid #d4af3730', borderRadius: 10, padding: '6px 12px', cursor: 'pointer' }}>
             <div style={{ width: 24, height: 24, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#0a0800' }}>
               {user?.piUsername?.[0]?.toUpperCase()}
             </div>
@@ -93,8 +135,9 @@ export default function HubPage() {
       </header>
 
       {/* ── Wallet Banner ── */}
-      <div style={{ margin: '16px', borderRadius: 20, background: 'linear-gradient(135deg, #1a1208 0%, #0d0d14 50%, #0a0f1a 100%)', border: '1px solid #d4af3730', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+      <div
         onClick={() => router.push('/dashboard/wallet')}
+        style={{ margin: '16px', borderRadius: 20, background: 'linear-gradient(135deg, #1a1208 0%, #0d0d14 50%, #0a0f1a 100%)', border: '1px solid #d4af3730', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}
       >
         <div>
           <div style={{ fontSize: 11, color: '#6b6b7a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>Pi Wallet</div>
@@ -103,6 +146,36 @@ export default function HubPage() {
         </div>
         <div style={{ fontSize: 40, opacity: 0.6 }}>💳</div>
       </div>
+
+      {/* ── Quick Actions ── */}
+      <div style={{ margin: '0 16px 16px', display: 'flex', gap: 10 }}>
+        <button
+          onClick={handlePay}
+          disabled={isProcessing || payState === 'processing'}
+          style={{ flex: 1, padding: '14px', background: 'linear-gradient(135deg, #0a1f0f, #0f2e16)', border: '1px solid #7ee7c040', borderRadius: 16, color: '#7ee7c0', fontWeight: 700, fontSize: 13, cursor: 'pointer', letterSpacing: 1, opacity: isProcessing ? 0.6 : 1 }}
+        >
+          {isProcessing || payState === 'processing' ? '⏳ Processing...' : '💎 Pay 1 π'}
+        </button>
+        <button
+          onClick={() => router.push('/dashboard')}
+          style={{ flex: 1, padding: '14px', background: 'linear-gradient(135deg, #0a0f1f, #0e1530)', border: '1px solid #7eb8f740', borderRadius: 16, color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', letterSpacing: 1 }}
+        >
+          <span style={{ fontFamily: 'serif', fontSize: 16 }}>π</span> A2U Test
+        </button>
+      </div>
+
+      {/* ── Payment Message ── */}
+      {payMsg && (
+        <div style={{ margin: '0 16px 12px', padding: '12px 16px', borderRadius: 12, background: payMsg.ok ? '#0a1f0f' : '#1f0a0a', border: `1px solid ${payMsg.ok ? '#7ee7c030' : '#e74c3c30'}`, fontSize: 12, color: payMsg.ok ? '#7ee7c0' : '#e74c3c' }}>
+          {payMsg.text}
+          {payState !== 'idle' && (
+            <button onClick={() => { setPayState('idle'); setPayMsg(null); }}
+              style={{ marginLeft: 12, background: 'none', border: 'none', color: '#6b6b7a', cursor: 'pointer', fontSize: 11 }}>
+              ✕ Close
+            </button>
+          )}
+        </div>
+      )}
 
       {/* ── Live Apps ── */}
       <div style={{ padding: '0 16px', marginTop: 8 }}>
@@ -114,11 +187,8 @@ export default function HubPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           {LIVE_APPS.map(app => (
-            <button
-              key={app.name}
-              onClick={() => router.push(app.href)}
-              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#0d0d14', border: '1px solid #d4af3730', borderRadius: 16, cursor: 'pointer', transition: 'all 0.2s', textAlign: 'left' }}
-            >
+            <button key={app.name} onClick={() => router.push(app.href)}
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#0d0d14', border: '1px solid #d4af3730', borderRadius: 16, cursor: 'pointer', textAlign: 'left' }}>
               <span style={{ fontSize: 24, minWidth: 32 }}>{app.emoji}</span>
               <div>
                 <div style={{ fontSize: 13, fontWeight: 700, color: '#ffffff', marginBottom: 2 }}>{app.name}</div>
@@ -131,17 +201,15 @@ export default function HubPage() {
       </div>
 
       {/* ── Coming Soon ── */}
-      <div style={{ padding: '0 16px', marginTop: 24, marginBottom: 32 }}>
+      <div style={{ padding: '0 16px', marginTop: 24, marginBottom: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h2 style={{ fontSize: 13, fontWeight: 700, color: '#4a4a5a', letterSpacing: 1, textTransform: 'uppercase', margin: 0 }}>Coming Soon</h2>
           <span style={{ fontSize: 11, color: '#4a4a5a' }}>24 Apps Total</span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
           {SOON_APPS.map(app => (
-            <div
-              key={app.name}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '16px 8px', background: '#0d0d14', border: '1px solid #ffffff08', borderRadius: 14, opacity: 0.5 }}
-            >
+            <div key={app.name}
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '16px 8px', background: '#0d0d14', border: '1px solid #ffffff08', borderRadius: 14, opacity: 0.5 }}>
               <span style={{ fontSize: 22 }}>{app.emoji}</span>
               <span style={{ fontSize: 11, fontWeight: 600, color: '#6b6b7a' }}>{app.name}</span>
             </div>
@@ -152,16 +220,13 @@ export default function HubPage() {
       {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#0d0d14', borderTop: '1px solid #d4af3715', display: 'flex', padding: '10px 0 20px' }}>
         {[
-          { icon: '⊞', label: 'Hub',     action: () => {}                                    },
-          { icon: '💳', label: 'Wallet',  action: () => router.push('/dashboard/wallet')      },
-          { icon: '📦', label: 'Orders',  action: () => router.push('/dashboard/orders')      },
-          { icon: '⚙️', label: 'Settings',action: () => router.push('/dashboard')             },
+          { icon: '⊞', label: 'Hub',      action: () => {}                                  },
+          { icon: '💳', label: 'Wallet',   action: () => router.push('/dashboard/wallet')    },
+          { icon: '📦', label: 'Orders',   action: () => router.push('/dashboard/orders')    },
+          { icon: '⚙️', label: 'Settings', action: () => router.push('/dashboard')           },
         ].map(item => (
-          <button
-            key={item.label}
-            onClick={item.action}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer' }}
-          >
+          <button key={item.label} onClick={item.action}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer' }}>
             <span style={{ fontSize: 18 }}>{item.icon}</span>
             <span style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, textTransform: 'uppercase' }}>{item.label}</span>
           </button>
@@ -170,4 +235,4 @@ export default function HubPage() {
 
     </div>
   );
-                      }
+        }

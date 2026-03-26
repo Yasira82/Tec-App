@@ -44,7 +44,6 @@ interface UseWalletReturn {
   updateBalance:   (b: number) => void;
 }
 
-const GATEWAY   = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 const PAGE_SIZE = 10;
 
 export function useWallet(): UseWalletReturn {
@@ -93,7 +92,7 @@ export function useWallet(): UseWalletReturn {
     setError(null);
 
     try {
-      // ── Balance أولاً — الأهم ────────────────────────────
+      // ── Balance ───────────────────────────────────────────
       const balanceRes = await fetch(`/api/wallet/balance?userId=${userId}`, {
         headers: { Authorization: `Bearer ${token}` },
         signal:  ctrl.signal,
@@ -110,7 +109,7 @@ export function useWallet(): UseWalletReturn {
         address:  balanceData.address,
       });
 
-      // ── Transactions — لو فشلت مش error كامل ────────────
+      // ── Transactions عبر Next.js route ───────────────────
       try {
         const params = new URLSearchParams({
           userId,
@@ -120,7 +119,7 @@ export function useWallet(): UseWalletReturn {
           ...(filterStatus !== 'all' && { status: filterStatus }),
         });
 
-        const txRes = await fetch(`${GATEWAY}/api/payments/history?${params}`, {
+        const txRes = await fetch(`/api/payments/history?${params}`, { // ← بدون GATEWAY
           headers: { Authorization: `Bearer ${token}` },
           signal:  ctrl.signal,
         });
@@ -131,7 +130,6 @@ export function useWallet(): UseWalletReturn {
           setTransactions(txData.transactions ?? []);
           setTotal(txData.total ?? 0);
         }
-        // لو 401 أو غيره — نسيبها فاضية بدون error
       } catch {
         // transactions مش إلزامية
       }
@@ -170,4 +168,4 @@ export function useWallet(): UseWalletReturn {
     filterType, filterStatus, setFilterType, setFilterStatus,
     refetch, loadMore, setPage, updateBalance,
   };
-  }
+        }

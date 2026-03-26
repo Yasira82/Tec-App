@@ -1,19 +1,33 @@
-export default function WalletCard() {
+'use client';
+
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import styles from './WalletCard.module.css';
+
+interface Props { userId: string; }
+
+export default function WalletCard({ userId }: Props) {
+  const [balance, setBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    const token = localStorage.getItem('tec_access_token');
+    fetch(`/api/wallet/balance?userId=${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setBalance(d.balance ?? 0))
+      .catch(() => {});
+  }, [userId]);
+
   return (
-    <div className="bg-[#111827] p-5 rounded-2xl border border-gray-700 shadow">
-      <p className="text-gray-400 text-sm">TEC Wallet</p>
-
-      <h2 className="text-3xl text-yellow-400 mt-2">0.000 π</h2>
-
-      <div className="flex gap-3 mt-5">
-        <button className="bg-yellow-500 text-black px-4 py-2 rounded-lg w-full">
-          Send
-        </button>
-
-        <button className="border border-gray-600 px-4 py-2 rounded-lg w-full">
-          Receive
-        </button>
+    <Link href="/dashboard/wallet" className={styles.card}>
+      <div className={styles.label}>Pi Wallet</div>
+      <div className={styles.balance}>
+        {balance !== null ? balance.toFixed(2) : '—'}
+        <span className={styles.currency}>π</span>
       </div>
-    </div>
+      <div className={styles.action}>View Transactions →</div>
+    </Link>
   );
 }

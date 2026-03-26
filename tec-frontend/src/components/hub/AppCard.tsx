@@ -1,13 +1,31 @@
+'use client';
+
+import styles from './AppsGrid.module.css';
+
 type Props = {
-  name: string;
-  icon: string;
+  name:    string;
+  emoji:   string;
+  href:    string;
+  status:  'live' | 'soon';
 };
 
-export default function AppCard({ name, icon }: Props) {
+export default function AppCard({ name, emoji, href, status }: Props) {
+  const handleOpen = () => {
+    if (href.startsWith('http')) {
+      window.open(href, '_blank', 'noopener,noreferrer');
+    } else {
+      window.location.href = href;
+    }
+  };
+
   return (
-    <div className="bg-[#111827] p-4 rounded-xl text-center border border-gray-700 hover:border-yellow-500 cursor-pointer transition">
-      <div className="text-2xl">{icon}</div>
-      <p className="mt-2 text-sm">{name}</p>
-    </div>
+    <button
+      className={`${styles.card} ${status === 'live' ? styles.live : styles.soon}`}
+      onClick={handleOpen}
+    >
+      <span className={styles.emoji}>{emoji}</span>
+      <span className={styles.name}>{name}</span>
+      {status === 'live' && <span className={styles.liveBadge}>●</span>}
+    </button>
   );
 }

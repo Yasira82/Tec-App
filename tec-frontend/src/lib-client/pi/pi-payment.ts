@@ -95,17 +95,16 @@ export const createU2APayment = async (
 
   await waitForPiSDK();
 
-  const GATEWAY    = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
   let internalId: string | null = null;
   const storedUser = getStoredUser();
   const userId     = storedUser?.id ?? null;
 
-  // ── إنشاء الـ payment record في الـ backend ───────────────
+  // ── إنشاء الـ payment record عبر Next.js API ──────────────
   if (userId) {
     try {
       onDiagnostic?.('info', `Creating payment record`, { userId, amount });
       const token = getAccessToken();
-      const res = await fetch(`${GATEWAY}/api/payments/create`, {
+      const res = await fetch(`/api/payments/create`, { // ← Next.js route
         method:  'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -184,8 +183,7 @@ export const createU2APayment = async (
 
           try {
             const token = getAccessToken();
-            // ← fetch مباشر بدل SDK
-            const res = await fetch(`${GATEWAY}/api/payments/approve`, {
+            const res = await fetch(`/api/payments/approve`, { // ← Next.js route
               method:  'POST',
               headers: {
                 'Content-Type': 'application/json',
@@ -231,8 +229,7 @@ export const createU2APayment = async (
 
           try {
             const token = getAccessToken();
-            // ← fetch مباشر بدل SDK
-            const res = await fetch(`${GATEWAY}/api/payments/complete`, {
+            const res = await fetch(`/api/payments/complete`, { // ← Next.js route
               method:  'POST',
               headers: {
                 'Content-Type': 'application/json',

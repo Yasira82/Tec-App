@@ -8,7 +8,7 @@ import { createU2APayment } from '@/lib-client/pi/pi-payment';
 const LIVE_APPS = [
   { name: 'Wallet',    emoji: '💳', href: '/dashboard/wallet',  desc: 'Pi Balance'     },
   { name: 'Orders',    emoji: '📦', href: '/dashboard/orders',  desc: 'Your Orders'    },
-  { name: 'Assets',    emoji: '💎', href: '/dashboard/assets',  desc: 'Digital Assets' }, // ← جديد
+  { name: 'Assets',    emoji: '💎', href: '/dashboard/assets',  desc: 'Digital Assets' },
   { name: 'KYC',       emoji: '🪪', href: '/dashboard/kyc',     desc: 'Verify ID'      },
   { name: 'Assistant', emoji: '🤖', href: '/ai',                desc: 'AI Assistant'   },
 ];
@@ -34,11 +34,12 @@ export default function HubPage() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const router = useRouter();
 
-  const [balance,  setBalance]  = useState('—');
-  const [time,     setTime]     = useState('');
-  const [payState, setPayState] = useState<PayState>('idle');
-  const [payMsg,   setPayMsg]   = useState('');
-  const [txid,     setTxid]     = useState('');
+  const [balance,    setBalance]    = useState('—');
+  const [assetCount, setAssetCount] = useState<number | null>(null);
+  const [time,       setTime]       = useState('');
+  const [payState,   setPayState]   = useState<PayState>('idle');
+  const [payMsg,     setPayMsg]     = useState('');
+  const [txid,       setTxid]       = useState('');
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/');
@@ -62,7 +63,21 @@ export default function HubPage() {
       .catch(() => {});
   }, [user?.id]);
 
-  useEffect(() => { refreshBalance(); }, [refreshBalance]);
+  const refreshAssets = useCallback(() => {
+    if (!user?.id) return;
+    const token = localStorage.getItem('tec_access_token');
+    fetch(`/api/assets?userId=${user.id}`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
+      .catch(() => {});
+  }, [user?.id]);
+
+  useEffect(() => {
+    refreshBalance();
+    refreshAssets();
+  }, [refreshBalance, refreshAssets]);
 
   const handlePay = useCallback(async () => {
     if (payState === 'processing') return;
@@ -163,6 +178,26 @@ export default function HubPage() {
         </button>
       </div>
 
+      {/* ── Assets Summary ── */}
+      <div style={{ padding: '10px 16px 0' }}>
+        <button className="hub-btn" onClick={() => router.push('/dashboard/assets')}
+          style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
+              <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
+              {assetCount === null ? '—' : assetCount}
+            </div>
+            <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
+          </div>
+        </button>
+      </div>
+
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
@@ -251,10 +286,10 @@ export default function HubPage() {
       {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
         {[
-          { icon: '⊞',  label: 'Hub',     active: true,  action: () => {}                                },
-          { icon: '💳', label: 'Wallet',  active: false, action: () => router.push('/dashboard/wallet') },
-          { icon: '💎', label: 'Assets',  active: false, action: () => router.push('/dashboard/assets') },
-          { icon: '⚙️', label: 'Settings',active: false, action: () => router.push('/dashboard')        },
+          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                },
+          { icon: '💳', label: 'Wallet',   active: false, action: () => router.push('/dashboard/wallet') },
+          { icon: '💎', label: 'Assets',   active: false, action: () => router.push('/dashboard/assets') },
+          { icon: '⚙️', label: 'Settings', active: false, action: () => router.push('/dashboard')        },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -266,4 +301,4 @@ export default function HubPage() {
       </nav>
     </div>
   );
-        }
+                                    }

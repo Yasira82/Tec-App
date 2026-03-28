@@ -9,9 +9,10 @@ export async function GET(req: NextRequest) {
   }
   try {
     const userId = req.nextUrl.searchParams.get('userId');
-    const url    = userId
-      ? `${GATEWAY}/api/assets/assets/user/${userId}`
-      : `${GATEWAY}/api/assets/assets`;
+    // ✅ الـ route الجديد بعد fix الـ global prefix
+    const url = userId
+      ? `${GATEWAY}/api/assets/user/${userId}`
+      : `${GATEWAY}/api/assets`;
 
     const res = await fetch(url, {
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
@@ -30,7 +31,8 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json();
-    const res  = await fetch(`${GATEWAY}/api/assets/assets/provision`, {
+    // ✅ الـ route الجديد
+    const res = await fetch(`${GATEWAY}/api/assets/provision`, {
       method:  'POST',
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
       body:    JSON.stringify(body),

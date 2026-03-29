@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { useRouter } from 'next/navigation';
+import { buyAsset } from '@/lib-client/pi/marketplace-payment';
 
 interface Listing {
   id:          string;
@@ -57,6 +58,29 @@ export default function MarketplacePage() {
   }, []);
 
   useEffect(() => { fetchListings(); }, [fetchListings]);
+
+  const handleBuy = useCallback(async (listing: Listing) => {
+    if (!user?.id) return;
+    setBuying(listing.id);
+    setError(null);
+    setSuccess(null);
+
+    const result = await buyAsset({
+      listingId: listing.id,
+      assetSlug: listing.asset.slug,
+      price:     listing.price,
+      buyerId:   user.id,
+    });
+
+    setBuying(null);
+
+    if (result.success) {
+      setSuccess(result.message ?? 'Asset purchased! 🎉');
+      fetchListings(true);
+    } else {
+      setError(result.message ?? 'Purchase failed');
+    }
+  }, [user?.id, fetchListings]);
 
   if (isLoading) {
     return (
@@ -145,29 +169,40 @@ export default function MarketplacePage() {
                   </div>
                 </div>
 
+                {/* ── Buy Button ── */}
                 {!isOwn && (
                   <button
                     disabled={!!buying}
-                    onClick={async () => {
-                      setBuying(listing.id);
-                      setSuccess(null);
-                      setError(null);
-                      setTimeout(() => {
-                        setBuying(null);
-                        setError('Pi payment integration required — coming soon');
-                      }, 1000);
-                    }}
+                    onClick={() => handleBuy(listing)}
                     style={s({
-                      width: '100%', marginTop: 12, padding: '10px',
-                      borderRadius: 10,
+                      width:      '100%',
+                      marginTop:  12,
+                      padding:    '12px',
+                      borderRadius: 12,
                       background: isBuying
                         ? '#7ee7c020'
                         : 'linear-gradient(135deg,#0d2e14,#0a1f0f)',
                       border: `1px solid ${isBuying ? '#7ee7c030' : '#7ee7c040'}`,
-                      color: '#7ee7c0', fontSize: 12, fontWeight: 700,
-                      cursor: buying ? 'not-allowed' : 'pointer',
+                      color:      '#7ee7c0',
+                      fontSize:   13,
+                      fontWeight: 700,
+                      cursor:     buying ? 'not-allowed' : 'pointer',
+                      display:    'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap:        8,
                     })}>
-                    {isBuying ? '⏳ Processing...' : `Buy for ${listing.price} π`}
+                    {isBuying ? (
+                      <>
+                        <div style={s({ width: 14, height: 14, border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', borderRadius: '50%', animation: 'spin 0.6s linear infinite' })} />
+                        <span>Processing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span style={s({ fontFamily: 'Georgia,serif' })}>π</span>
+                        <span>Buy for {listing.price} π</span>
+                      </>
+                    )}
                   </button>
                 )}
 
@@ -184,4 +219,4 @@ export default function MarketplacePage() {
 
     </div>
   );
-                      }
+    }

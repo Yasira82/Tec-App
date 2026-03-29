@@ -155,7 +155,8 @@ export default function SubscriptionPage() {
             <div style={s({ fontSize: 24, fontWeight: 900, color })}>
               {sub?.planDetails?.price === 0 ? 'Free' : `${sub?.planDetails?.price} π`}
             </div>
-            {sub?.planDetails?.duration > 0 && (
+            {/* ✅ Fix: use nullish coalescing to avoid undefined comparison */}
+            {(sub?.planDetails?.duration ?? 0) > 0 && (
               <div style={s({ fontSize: 10, color: '#4a4a5a', marginTop: 4 })}>per month</div>
             )}
           </div>
@@ -179,10 +180,10 @@ export default function SubscriptionPage() {
       </div>
       <div style={s({ display: 'flex', flexDirection: 'column', gap: 12 })}>
         {plans.map(plan => {
-          const planColor  = PLAN_COLORS[plan.id] ?? '#6b6b7a';
-          const isCurrent  = plan.id === currentPlan;
-          const isUpgrade  = plan.price > (sub?.planDetails?.price ?? 0);
-          const isLoading  = paying === plan.id;
+          const planColor = PLAN_COLORS[plan.id] ?? '#6b6b7a';
+          const isCurrent = plan.id === currentPlan;
+          const isUpgrade = plan.price > (sub?.planDetails?.price ?? 0);
+          const isLoading = paying === plan.id;
 
           return (
             <div key={plan.id}
@@ -214,13 +215,23 @@ export default function SubscriptionPage() {
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={!!paying}
                   style={s({
-                    width: '100%', padding: '12px', borderRadius: 12,
-                    background: isLoading ? planColor + '20' : `linear-gradient(135deg, ${planColor}30, ${planColor}10)`,
-                    border: `1px solid ${planColor}40`,
-                    color: planColor, fontSize: 13, fontWeight: 700,
-                    cursor: paying ? 'not-allowed' : 'pointer',
+                    width:      '100%',
+                    padding:    '12px',
+                    borderRadius: 12,
+                    background: isLoading
+                      ? planColor + '20'
+                      : `linear-gradient(135deg, ${planColor}30, ${planColor}10)`,
+                    border:     `1px solid ${planColor}40`,
+                    color:      planColor,
+                    fontSize:   13,
+                    fontWeight: 700,
+                    cursor:     paying ? 'not-allowed' : 'pointer',
                   })}>
-                  {isLoading ? '⏳ Processing...' : isUpgrade ? `Upgrade to ${plan.name}` : `Switch to ${plan.name}`}
+                  {isLoading
+                    ? '⏳ Processing...'
+                    : isUpgrade
+                      ? `Upgrade to ${plan.name}`
+                      : `Switch to ${plan.name}`}
                 </button>
               )}
             </div>
@@ -230,4 +241,4 @@ export default function SubscriptionPage() {
 
     </div>
   );
-}
+  }

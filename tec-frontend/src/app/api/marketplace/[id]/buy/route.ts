@@ -4,12 +4,13 @@ const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } },
+  context: { params: Promise<{ id: string }> },
 ) {
+  const { id }     = await context.params;
   const authHeader = req.headers.get('authorization');
   try {
     const body = await req.json();
-    const res  = await fetch(`${GATEWAY}/api/assets/marketplace/${params.id}/buy`, {
+    const res  = await fetch(`${GATEWAY}/api/assets/marketplace/${id}/buy`, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',

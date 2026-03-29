@@ -1,3 +1,5 @@
+import { NextRequest, NextResponse } from 'next/server';
+
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function GET(req: NextRequest) {

@@ -71,7 +71,8 @@ export default function HomePage() {
       );
     }
     return result;
-  }, [activeCategory, searchQuery, t.apps]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory, searchQuery, t]);
 
   const openApp = (domain: string) =>
     window.open(`https://${domain}`, '_blank', 'noopener,noreferrer');
@@ -309,4 +310,4 @@ export default function HomePage() {
 
     </main>
   );
-          }
+                                            }

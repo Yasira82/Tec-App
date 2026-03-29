@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
+import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
 
 const LIVE_APPS = [
   { name: 'Wallet',    emoji: '💳', href: '/dashboard/wallet',  desc: 'Pi Balance'     },
@@ -40,6 +41,11 @@ export default function HubPage() {
   const [payState,   setPayState]   = useState<PayState>('idle');
   const [payMsg,     setPayMsg]     = useState('');
   const [txid,       setTxid]       = useState('');
+  const [token,      setToken]      = useState<string | null>(null);
+
+  useEffect(() => {
+    setToken(localStorage.getItem('tec_access_token'));
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/');
@@ -54,9 +60,9 @@ export default function HubPage() {
 
   const refreshBalance = useCallback(() => {
     if (!user?.id) return;
-    const token = localStorage.getItem('tec_access_token');
+    const t = localStorage.getItem('tec_access_token');
     fetch(`/api/wallet/balance?userId=${user.id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
@@ -65,9 +71,9 @@ export default function HubPage() {
 
   const refreshAssets = useCallback(() => {
     if (!user?.id) return;
-    const token = localStorage.getItem('tec_access_token');
+    const t = localStorage.getItem('tec_access_token');
     fetch(`/api/assets?userId=${user.id}`, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: t ? { Authorization: `Bearer ${t}` } : {},
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
@@ -78,6 +84,13 @@ export default function HubPage() {
     refreshBalance();
     refreshAssets();
   }, [refreshBalance, refreshAssets]);
+
+  // ── WebSocket realtime notifications ──
+  const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
+    userId: user?.id,
+    token,
+    onWalletUpdate: () => setTimeout(refreshBalance, 500),
+  });
 
   const handlePay = useCallback(async () => {
     if (payState === 'processing') return;
@@ -145,10 +158,26 @@ export default function HubPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: '#4a4a5a', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
-          <button className="hub-btn" onClick={() => router.push('/dashboard/notifications')}
-            style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16 }}>
+
+          {/* ── Notification Bell + Badge ── */}
+          <button className="hub-btn"
+            onClick={() => { clearUnread(); router.push('/dashboard/notifications'); }}
+            style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
             🔔
+            {wsUnread > 0 && (
+              <span style={{
+                position: 'absolute', top: -4, right: -4,
+                width: 16, height: 16, borderRadius: '50%',
+                background: '#e74c3c', border: '2px solid #020205',
+                fontSize: 9, fontWeight: 800, color: '#fff',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                lineHeight: 1,
+              }}>
+                {wsUnread > 9 ? '9+' : wsUnread}
+              </span>
+            )}
           </button>
+
           <button className="hub-btn" onClick={() => router.push('/dashboard')}
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#d4af3710', border: '1px solid #d4af3725', borderRadius: 12, padding: '6px 10px', cursor: 'pointer' }}>
             <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#0a0800' }}>
@@ -301,4 +330,4 @@ export default function HubPage() {
       </nav>
     </div>
   );
-                                    }
+        }

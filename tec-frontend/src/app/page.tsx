@@ -54,7 +54,7 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function HomePage() {
   const { t, dir } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery,    setSearchQuery]    = useState('');
 
   const filteredApps = useMemo(() => {
     let result = APPS;
@@ -84,14 +84,14 @@ export default function HomePage() {
   };
 
   const createRipple = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card = e.currentTarget;
+    const card   = e.currentTarget;
     const ripple = document.createElement('span');
     ripple.className = 'ripple';
     const rect = card.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
-    ripple.style.width = ripple.style.height = `${size}px`;
-    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
-    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
+    ripple.style.width  = ripple.style.height = `${size}px`;
+    ripple.style.left   = `${e.clientX - rect.left - size / 2}px`;
+    ripple.style.top    = `${e.clientY - rect.top  - size / 2}px`;
     card.appendChild(ripple);
     ripple.addEventListener('animationend', () => ripple.remove());
   };
@@ -116,8 +116,8 @@ export default function HomePage() {
         </div>
         <div className={styles.navLinks}>
           <a href="#ecosystem" className={styles.navLink}>{t.home.ecosystem}</a>
-          <a href="#payment" className={styles.navLink}>{t.common.login}</a>
-          <Link href="/ai" className={styles.navAiLink}>
+          <a href="#payment"   className={styles.navLink}>{t.common.login}</a>
+          <Link href="/ai"     className={styles.navAiLink}>
             🤖 {dir === 'rtl' ? 'المساعد' : 'Assistant'}
           </Link>
         </div>
@@ -165,6 +165,14 @@ export default function HomePage() {
           <div className={styles.paymentCardInner}>
             <p className={styles.paymentLabel}>{t.common.login}</p>
             <PiPaymentButton />
+            <p style={{
+              fontSize:  11,
+              color:     '#4a4a5a',
+              marginTop: 12,
+              textAlign: 'center',
+            }}>
+              🌐 Best experience in Pi Browser
+            </p>
           </div>
         </div>
       </section>
@@ -289,7 +297,7 @@ export default function HomePage() {
         <p className={styles.footerText}>© 2026 {t.common.tagline} · Built on Pi Network</p>
         <div className={styles.footerLinks}>
           <a href="/privacy" className={styles.footerLink}>Privacy</a>
-          <a href="/terms" className={styles.footerLink}>Terms</a>
+          <a href="/terms"   className={styles.footerLink}>Terms</a>
         </div>
       </footer>
 
@@ -301,4 +309,4 @@ export default function HomePage() {
 
     </main>
   );
-}
+          }

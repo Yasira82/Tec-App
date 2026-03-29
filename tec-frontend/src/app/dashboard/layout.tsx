@@ -38,8 +38,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     { icon: '⊞',  label: t.dashboard.nav.dashboard,   href: '/dashboard'                },
     { icon: '◎',  label: t.dashboard.nav.wallet,       href: '/dashboard/wallet'         },
     { icon: '◫',  label: 'Orders',                     href: '/dashboard/orders'         },
-    { icon: '💎', label: 'Assets',                     href: '/dashboard/assets'         }, // ← جديد
+    { icon: '💎', label: 'Assets',                     href: '/dashboard/assets'         },
     { icon: '🔔', label: 'Notifications',               href: '/dashboard/notifications'  },
+    { icon: '📊', label: 'Analytics',                  href: '/dashboard/analytics'      },
     { icon: '◈',  label: t.dashboard.nav.subscription, href: '/dashboard/subscription'   },
     { icon: '◇',  label: t.dashboard.nav.security,     href: '/dashboard/security'       },
     { icon: '◉',  label: 'Profile',                    href: '/dashboard/profile'        },
@@ -89,4 +90,4 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <main className={styles.main}>{children}</main>
     </div>
   );
-                            }
+}

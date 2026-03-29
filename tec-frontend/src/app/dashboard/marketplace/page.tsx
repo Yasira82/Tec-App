@@ -1,4 +1,4 @@
-client';
+'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
@@ -30,13 +30,13 @@ const s = (style: React.CSSProperties) => style;
 export default function MarketplacePage() {
   const { user } = usePiAuth();
   const router   = useRouter();
-  const [listings,    setListings]    = useState<Listing[]>([]);
-  const [total,       setTotal]       = useState(0);
-  const [isLoading,   setIsLoading]   = useState(true);
-  const [isRefreshing,setIsRefreshing]= useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  const [buying,      setBuying]      = useState<string | null>(null);
-  const [success,     setSuccess]     = useState<string | null>(null);
+  const [listings,     setListings]     = useState<Listing[]>([]);
+  const [total,        setTotal]        = useState(0);
+  const [isLoading,    setIsLoading]    = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+  const [buying,       setBuying]       = useState<string | null>(null);
+  const [success,      setSuccess]      = useState<string | null>(null);
 
   const fetchListings = useCallback(async (silent = false) => {
     if (silent) setIsRefreshing(true);
@@ -94,7 +94,7 @@ export default function MarketplacePage() {
         </div>
       )}
 
-      {/* Sell Your Asset CTA */}
+      {/* Sell CTA */}
       <button onClick={() => router.push('/dashboard/assets')}
         style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', color: '#d4af37', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
         <span>💎</span>
@@ -152,7 +152,6 @@ export default function MarketplacePage() {
                       setBuying(listing.id);
                       setSuccess(null);
                       setError(null);
-                      // TODO: trigger Pi payment then call /buy
                       setTimeout(() => {
                         setBuying(null);
                         setError('Pi payment integration required — coming soon');
@@ -161,7 +160,9 @@ export default function MarketplacePage() {
                     style={s({
                       width: '100%', marginTop: 12, padding: '10px',
                       borderRadius: 10,
-                      background: isBuying ? '#7ee7c020' : 'linear-gradient(135deg,#0d2e14,#0a1f0f)',
+                      background: isBuying
+                        ? '#7ee7c020'
+                        : 'linear-gradient(135deg,#0d2e14,#0a1f0f)',
                       border: `1px solid ${isBuying ? '#7ee7c030' : '#7ee7c040'}`,
                       color: '#7ee7c0', fontSize: 12, fontWeight: 700,
                       cursor: buying ? 'not-allowed' : 'pointer',
@@ -183,4 +184,4 @@ export default function MarketplacePage() {
 
     </div>
   );
-      }
+                      }

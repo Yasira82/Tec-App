@@ -41,7 +41,7 @@ export const buyAsset = async (params: {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({
-        buyerId:   buyerId,
+        buyerId,
         paymentId: paymentResult.txid ?? paymentResult.paymentId,
       }),
     });
@@ -56,9 +56,9 @@ export const buyAsset = async (params: {
     };
   } catch (err) {
     return {
-      success:  false,
-      message:  `Payment done but transfer failed. txid: ${paymentResult.txid}`,
-      txid:     paymentResult.txid,
+      success: false,
+      message: `Payment done but transfer failed. txid: ${paymentResult.txid}`,
+      txid:    paymentResult.txid,
     };
   }
 };

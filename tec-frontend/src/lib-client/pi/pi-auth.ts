@@ -11,9 +11,9 @@ declare global {
       createPayment: (paymentData: PiPaymentData, callbacks: PiPaymentCallbacks) => void;
       init: (config: { version: string; sandbox: boolean; appId?: string }) => void;
     };
-    __PI_SANDBOX?:    boolean;
-    __TEC_PI_READY?:  boolean;
-    __TEC_PI_ERROR?:  boolean;
+    __PI_SANDBOX?:   boolean;
+    __TEC_PI_READY?: boolean;
+    __TEC_PI_ERROR?: boolean;
   }
 }
 
@@ -71,14 +71,12 @@ let refreshQueue: Array<(token: string | null) => void> = [];
 export const refreshAccessToken = async (): Promise<string | null> => {
   const refreshToken = getRefreshToken();
   if (!refreshToken) { logout(); return null; }
-
   if (isRefreshing) {
-    return new Promise((resolve) => { refreshQueue.push(resolve); });
+    return new Promise(resolve => { refreshQueue.push(resolve); });
   }
-
   isRefreshing = true;
   try {
-    const res           = await sdk.auth.refreshToken();
+    const res            = await sdk.auth.refreshToken();
     const newAccessToken = res.token;
     if (!newAccessToken) {
       logout();
@@ -135,27 +133,44 @@ export const resolvePendingPayment = async (
   }
 };
 
-// ✅ الحل الجذري — cancel الـ pending payment عبر الـ backend
+// ✅ resolve incomplete — backend endpoint أولاً
 const resolveIncompletePayment = async (payment: unknown) => {
-  const p          = payment as { identifier?: string; status?: string };
+  const p           = payment as { identifier?: string };
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
 
   console.log('[Pi Auth] Incomplete payment detected:', piPaymentId);
 
   const token = getAccessToken();
+  if (!token) return;
 
-  // ── أولاً: جرب SDK resolve ──────────────────────────────
+  // ── Step 1: Backend resolve-incomplete (Pi API) ──────────
+  try {
+    const res = await fetch('/api/payment/resolve-incomplete', {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:  `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pi_payment_id: piPaymentId }),
+    });
+    const data = await res.json();
+    console.log('[Pi Auth] resolve-incomplete result:', data);
+    if (res.ok) return;
+  } catch (err) {
+    console.warn('[Pi Auth] resolve-incomplete failed:', err);
+  }
+
+  // ── Step 2: SDK resolve fallback ─────────────────────────
   try {
     const result = await sdk.payment.resolveIncomplete(piPaymentId);
     console.log('[Pi Auth] SDK resolved:', result?.data?.action);
     return;
   } catch (sdkErr) {
-    console.warn('[Pi Auth] SDK resolve failed, trying backend cancel:', sdkErr);
+    console.warn('[Pi Auth] SDK resolve failed:', sdkErr);
   }
 
-  // ── ثانياً: cancel عبر الـ backend ────────────────────
-  if (!token) return;
+  // ── Step 3: Cancel via backend ───────────────────────────
   try {
     const res = await fetch('/api/payment/cancel', {
       method:  'POST',
@@ -171,7 +186,7 @@ const resolveIncompletePayment = async (payment: unknown) => {
       console.warn('[Pi Auth] Backend cancel status:', res.status);
     }
   } catch (err) {
-    console.error('[Pi Auth] Backend cancel failed:', err);
+    console.error('[Pi Auth] All resolve attempts failed:', err);
   }
 };
 
@@ -189,25 +204,21 @@ export const waitForPiSDK = (timeout = 15000): Promise<void> => {
       resolve();
       return;
     }
-
     const timer = setTimeout(() => {
       window.removeEventListener('tec-pi-ready', onReady);
       window.removeEventListener('tec-pi-error', onError);
       reject(new Error(ERRORS.SDK_LOAD_FAILED));
     }, timeout);
-
     const onReady = () => {
       clearTimeout(timer);
       window.removeEventListener('tec-pi-error', onError);
       resolve();
     };
-
     const onError = (_event: Event) => {
       clearTimeout(timer);
       window.removeEventListener('tec-pi-ready', onReady);
       reject(new Error(ERRORS.SDK_INIT_FAILED));
     };
-
     window.addEventListener('tec-pi-ready', onReady,  { once: true });
     window.addEventListener('tec-pi-error', onError, { once: true });
   });
@@ -223,12 +234,10 @@ const getAuthTimeout = (): number => {
 const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> => {
   const effectiveTimeout = timeout ?? getAuthTimeout();
   await waitForPiSDK();
-
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(isPiBrowser() ? ERRORS.AUTH_TIMEOUT : ERRORS.NOT_PI_BROWSER));
     }, effectiveTimeout);
-
     window.Pi.authenticate(['username', 'payments'], handleIncompletePayment)
       .then(result => { clearTimeout(timer); resolve(result); })
       .catch(err   => { clearTimeout(timer); reject(err);     });
@@ -239,10 +248,8 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
   if (!isPiBrowser()) {
     throw new Error(ERRORS.NOT_PI_BROWSER);
   }
-
   const piAuth   = await authenticateWithTimeout();
   const response = await sdk.auth.loginWithPi(piAuth.accessToken);
-
   try {
     localStorage.setItem('tec_access_token',  response.tokens.accessToken);
     localStorage.setItem('tec_refresh_token', response.tokens.refreshToken);
@@ -251,7 +258,6 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
   } catch {
     throw new Error(ERRORS.SAVE_FAILED);
   }
-
   return {
     success:   response.success,
     isNewUser: response.isNewUser,

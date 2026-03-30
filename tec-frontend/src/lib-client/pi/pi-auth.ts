@@ -11,9 +11,9 @@ declare global {
       createPayment: (paymentData: PiPaymentData, callbacks: PiPaymentCallbacks) => void;
       init: (config: { version: string; sandbox: boolean; appId?: string }) => void;
     };
-    __PI_SANDBOX?: boolean;
-    __TEC_PI_READY?: boolean;
-    __TEC_PI_ERROR?: boolean;
+    __PI_SANDBOX?:    boolean;
+    __TEC_PI_READY?:  boolean;
+    __TEC_PI_ERROR?:  boolean;
   }
 }
 
@@ -38,20 +38,12 @@ export const isPiBrowser = (): boolean => {
 
 export const getAccessToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  try {
-    return localStorage.getItem('tec_access_token');
-  } catch {
-    return null;
-  }
+  try { return localStorage.getItem('tec_access_token'); } catch { return null; }
 };
 
 export const getRefreshToken = (): string | null => {
   if (typeof window === 'undefined') return null;
-  try {
-    return localStorage.getItem('tec_refresh_token');
-  } catch {
-    return null;
-  }
+  try { return localStorage.getItem('tec_refresh_token'); } catch { return null; }
 };
 
 export const getStoredUser = () => {
@@ -59,9 +51,7 @@ export const getStoredUser = () => {
   try {
     const userData = localStorage.getItem('tec_user');
     return userData ? JSON.parse(userData) : null;
-  } catch {
-    return null;
-  }
+  } catch { return null; }
 };
 
 export const logout = () => {
@@ -80,42 +70,31 @@ let refreshQueue: Array<(token: string | null) => void> = [];
 
 export const refreshAccessToken = async (): Promise<string | null> => {
   const refreshToken = getRefreshToken();
-  if (!refreshToken) {
-    logout();
-    return null;
-  }
+  if (!refreshToken) { logout(); return null; }
 
   if (isRefreshing) {
-    return new Promise((resolve) => {
-      refreshQueue.push(resolve);
-    });
+    return new Promise((resolve) => { refreshQueue.push(resolve); });
   }
 
   isRefreshing = true;
-
   try {
-    // ✅ SDK بدل fetch مباشر
-    const res = await sdk.auth.refreshToken();
+    const res           = await sdk.auth.refreshToken();
     const newAccessToken = res.token;
-
     if (!newAccessToken) {
       logout();
-      refreshQueue.forEach((cb) => cb(null));
+      refreshQueue.forEach(cb => cb(null));
       refreshQueue = [];
       return null;
     }
-
     localStorage.setItem('tec_access_token', newAccessToken);
     sdk.setAuthToken(newAccessToken);
-
-    refreshQueue.forEach((cb) => cb(newAccessToken));
+    refreshQueue.forEach(cb => cb(newAccessToken));
     refreshQueue = [];
     return newAccessToken;
-
   } catch (err) {
     console.error('[Pi Auth] Refresh failed:', err);
     logout();
-    refreshQueue.forEach((cb) => cb(null));
+    refreshQueue.forEach(cb => cb(null));
     refreshQueue = [];
     return null;
   } finally {
@@ -133,19 +112,12 @@ export const fetchWithAuth = async (
     ...(options.headers as Record<string, string> ?? {}),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
-
   const res = await fetch(url, { ...options, headers });
-
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     if (!newToken) return res;
-
-    return fetch(url, {
-      ...options,
-      headers: { ...headers, Authorization: `Bearer ${newToken}` },
-    });
+    return fetch(url, { ...options, headers: { ...headers, Authorization: `Bearer ${newToken}` } });
   }
-
   return res;
 };
 
@@ -154,9 +126,7 @@ export const resolvePendingPayment = async (
 ): Promise<{ action: string } | null> => {
   const token = getAccessToken();
   if (!token) return null;
-
   try {
-    // ✅ SDK بدل fetch مباشر
     const result = await sdk.payment.resolveIncomplete(piPaymentId);
     return { action: result?.data?.action ?? 'resolved' };
   } catch (err) {
@@ -165,11 +135,44 @@ export const resolvePendingPayment = async (
   }
 };
 
+// ✅ الحل الجذري — cancel الـ pending payment عبر الـ backend
 const resolveIncompletePayment = async (payment: unknown) => {
-  const p = payment as { identifier?: string };
+  const p          = payment as { identifier?: string; status?: string };
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
-  await resolvePendingPayment(piPaymentId);
+
+  console.log('[Pi Auth] Incomplete payment detected:', piPaymentId);
+
+  const token = getAccessToken();
+
+  // ── أولاً: جرب SDK resolve ──────────────────────────────
+  try {
+    const result = await sdk.payment.resolveIncomplete(piPaymentId);
+    console.log('[Pi Auth] SDK resolved:', result?.data?.action);
+    return;
+  } catch (sdkErr) {
+    console.warn('[Pi Auth] SDK resolve failed, trying backend cancel:', sdkErr);
+  }
+
+  // ── ثانياً: cancel عبر الـ backend ────────────────────
+  if (!token) return;
+  try {
+    const res = await fetch('/api/payment/cancel', {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization:  `Bearer ${token}`,
+      },
+      body: JSON.stringify({ pi_payment_id: piPaymentId }),
+    });
+    if (res.ok) {
+      console.log('[Pi Auth] Backend cancelled pending payment:', piPaymentId);
+    } else {
+      console.warn('[Pi Auth] Backend cancel status:', res.status);
+    }
+  } catch (err) {
+    console.error('[Pi Auth] Backend cancel failed:', err);
+  }
 };
 
 const handleIncompletePayment = (payment: unknown) => {
@@ -182,7 +185,6 @@ export const waitForPiSDK = (timeout = 15000): Promise<void> => {
       reject(new Error(ERRORS.SDK_LOAD_FAILED));
       return;
     }
-
     if (typeof window !== 'undefined' && typeof window.Pi !== 'undefined' && window.__TEC_PI_READY) {
       resolve();
       return;
@@ -200,13 +202,13 @@ export const waitForPiSDK = (timeout = 15000): Promise<void> => {
       resolve();
     };
 
-    const onError = (event: Event) => {
+    const onError = (_event: Event) => {
       clearTimeout(timer);
       window.removeEventListener('tec-pi-ready', onReady);
       reject(new Error(ERRORS.SDK_INIT_FAILED));
     };
 
-    window.addEventListener('tec-pi-ready', onReady, { once: true });
+    window.addEventListener('tec-pi-ready', onReady,  { once: true });
     window.addEventListener('tec-pi-error', onError, { once: true });
   });
 };
@@ -228,53 +230,41 @@ const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> 
     }, effectiveTimeout);
 
     window.Pi.authenticate(['username', 'payments'], handleIncompletePayment)
-      .then((result) => {
-        clearTimeout(timer);
-        resolve(result);
-      })
-      .catch((err) => {
-        clearTimeout(timer);
-        reject(err);
-      });
+      .then(result => { clearTimeout(timer); resolve(result); })
+      .catch(err   => { clearTimeout(timer); reject(err);     });
   });
 };
 
-// ✅ loginWithPi — يستخدم SDK
 export const loginWithPi = async (): Promise<TecAuthResponse> => {
   if (!isPiBrowser()) {
     throw new Error(ERRORS.NOT_PI_BROWSER);
   }
 
-  const piAuth = await authenticateWithTimeout();
-
-  // ✅ SDK بدل fetch مباشر
+  const piAuth   = await authenticateWithTimeout();
   const response = await sdk.auth.loginWithPi(piAuth.accessToken);
 
-  // SDK بيعمل setToken تلقائي
-  // بس محتاجين نحفظ بالـ key القديم عشان الكود التاني
   try {
-    localStorage.setItem('tec_access_token', response.tokens.accessToken);
+    localStorage.setItem('tec_access_token',  response.tokens.accessToken);
     localStorage.setItem('tec_refresh_token', response.tokens.refreshToken);
-    localStorage.setItem('tec_user', JSON.stringify(response.user));
-    // ✅ set token في كل الـ SDK clients
+    localStorage.setItem('tec_user',          JSON.stringify(response.user));
     sdk.setAuthToken(response.tokens.accessToken);
-  } catch (err) {
+  } catch {
     throw new Error(ERRORS.SAVE_FAILED);
   }
 
   return {
-    success: response.success,
+    success:   response.success,
     isNewUser: response.isNewUser,
     user: {
-      id: response.user.id,
-      piId: response.user.piId,
-      piUsername: response.user.piUsername,
-      role: response.user.role,
+      id:               response.user.id,
+      piId:             response.user.piId,
+      piUsername:       response.user.piUsername,
+      role:             response.user.role,
       subscriptionPlan: response.user.subscriptionPlan,
-      createdAt: response.user.createdAt,
+      createdAt:        response.user.createdAt,
     },
     tokens: {
-      accessToken: response.tokens.accessToken,
+      accessToken:  response.tokens.accessToken,
       refreshToken: response.tokens.refreshToken,
     },
   };

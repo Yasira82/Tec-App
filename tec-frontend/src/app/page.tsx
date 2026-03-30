@@ -160,11 +160,10 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Payment */}
+      {/* ── Payment — زرار Sign in بدون label فوقه ── */}
       <section id="payment" className={styles.paymentSection}>
         <div className={styles.paymentCard}>
           <div className={styles.paymentCardInner}>
-            <p className={styles.paymentLabel}>{t.common.login}</p>
             <PiPaymentButton />
             <p style={{
               fontSize:  11,
@@ -310,4 +309,4 @@ export default function HomePage() {
 
     </main>
   );
-                                            }
+      }

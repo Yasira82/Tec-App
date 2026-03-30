@@ -1,13 +1,34 @@
 {
-  "name": "TEC Super App",
+  "name": "TEC — The Elite Consortium",
   "short_name": "TEC",
-  "description": "Web3 Super Platform on Pi Network",
+  "description": "Web3 Super Platform on Pi Network — 24 Apps, One Identity, One Wallet",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#020205",
   "theme_color": "#d4af37",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["finance", "utilities", "productivity"],
   "icons": [
+    {
+      "src": "/icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icons/icon-192.png",
       "sizes": "192x192",
@@ -21,6 +42,30 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["finance", "utilities"],
-  "lang": "en"
+  "shortcuts": [
+    {
+      "name": "Hub",
+      "url": "/hub",
+      "description": "TEC Super App Hub"
+    },
+    {
+      "name": "Wallet",
+      "url": "/dashboard/wallet",
+      "description": "Pi Wallet"
+    },
+    {
+      "name": "Marketplace",
+      "url": "/dashboard/marketplace",
+      "description": "Asset Marketplace"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "TEC Home"
+    }
+  ]
 }

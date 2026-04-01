@@ -43,7 +43,6 @@ jobs:
       - name: Run tests
         working-directory: ./tec-frontend
         run: npm test
-        continue-on-error: true
 
   build-frontend:
     name: Build Frontend
@@ -62,5 +61,5 @@ jobs:
         run: npm run build
         env:
           NEXT_PUBLIC_PI_SANDBOX:      'true'
-          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
+          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL }}
           NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}

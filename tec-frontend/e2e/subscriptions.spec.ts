@@ -9,9 +9,9 @@ const MOCK_USER = {
 test.describe('Subscription Flow', () => {
 
   test.beforeEach(async ({ page }) => {
-    await page.addInitScript((user) => {
-      localStorage.setItem('tec_access_token',  'mock-token');
-      localStorage.setItem('tec_user',          JSON.stringify(user));
+    await page.addInitScript((user: typeof MOCK_USER) => {
+      localStorage.setItem('tec_access_token', 'mock-token');
+      localStorage.setItem('tec_user',         JSON.stringify(user));
     }, MOCK_USER);
   });
 

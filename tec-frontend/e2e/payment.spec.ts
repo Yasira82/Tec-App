@@ -93,7 +93,7 @@ test.describe('Payment UI Flow', () => {
 
   test('hub page shows Pay button', async ({ page }) => {
     await page.goto('/hub');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const payBtn = page.locator('button').filter({ hasText: /Pay|π/i }).first();
     if (await payBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -103,7 +103,7 @@ test.describe('Payment UI Flow', () => {
 
   test('dashboard shows payment history section', async ({ page }) => {
     await page.goto('/dashboard');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const historySection = page.locator('text=/Transaction|History|Payment/i').first();
     if (await historySection.isVisible({ timeout: 5000 }).catch(() => false)) {
@@ -113,7 +113,8 @@ test.describe('Payment UI Flow', () => {
 
   test('wallet page loads balance section', async ({ page }) => {
     await page.goto('/dashboard/wallet');
-    await page.waitForLoadState('networkidle');
+    // ✅ domcontentloaded — WebSocket يمنع networkidle
+    await page.waitForLoadState('domcontentloaded');
 
     const url = page.url();
     if (url.includes('/dashboard/wallet')) {
@@ -124,7 +125,7 @@ test.describe('Payment UI Flow', () => {
 
   test('marketplace page loads listings', async ({ page }) => {
     await page.goto('/dashboard/marketplace');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     const url = page.url();
     if (url.includes('/marketplace')) {

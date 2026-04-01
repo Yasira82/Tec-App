@@ -5,9 +5,10 @@ import { resolve } from 'path';
 export default defineConfig({
   plugins: [react()],
   test: {
-    environment: 'happy-dom', // ← بدل jsdom — مش محتاج install منفصل
+    environment: 'happy-dom',
     setupFiles:  ['./vitest.setup.ts'],
     globals:     true,
+    exclude:     ['**/node_modules/**', '**/e2e/**', '**/*.spec.ts'],
   },
   resolve: {
     alias: {

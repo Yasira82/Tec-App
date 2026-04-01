@@ -125,8 +125,8 @@ export const resolvePendingPayment = async (
   const token = getAccessToken();
   if (!token) return null;
   try {
-    const result = await sdk.payment.resolveIncomplete(piPaymentId);
-    return { action: result?.data?.action ?? 'resolved' };
+    await sdk.payment.resolveIncomplete(piPaymentId);
+    return { action: 'resolved' };
   } catch (err) {
     console.error('[Pi Auth] Error resolving pending payment:', err);
     return null;
@@ -164,7 +164,7 @@ const resolveIncompletePayment = async (payment: unknown) => {
   // ── Step 2: SDK resolve fallback ─────────────────────────
   try {
     const result = await sdk.payment.resolveIncomplete(piPaymentId);
-    console.log('[Pi Auth] SDK resolved:', result?.data?.action);
+    console.log('[Pi Auth] SDK resolved:', result?.status);
     return;
   } catch (sdkErr) {
     console.warn('[Pi Auth] SDK resolve failed:', sdkErr);

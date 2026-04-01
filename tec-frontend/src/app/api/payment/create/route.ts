@@ -8,6 +8,10 @@ export async function POST(req: NextRequest) {
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  // ── requestId — propagate أو أنشئ جديد ──────────────────
+  const requestId = req.headers.get('x-request-id') ?? randomUUID();
+
   try {
     const body           = await req.json();
     const idempotencyKey = randomUUID();
@@ -18,12 +22,25 @@ export async function POST(req: NextRequest) {
         'Content-Type':    'application/json',
         Authorization:     authHeader,
         'Idempotency-Key': idempotencyKey,
+        'X-Request-ID':    requestId,
       },
       body: JSON.stringify(body),
     });
+
     const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
+
+    // ── Echo requestId في الـ response ──────────────────────
+    return NextResponse.json(data, {
+      status:  res.status,
+      headers: { 'X-Request-ID': requestId },
+    });
   } catch {
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+    return NextResponse.json(
+      { error: 'Service unavailable', requestId },
+      {
+        status:  503,
+        headers: { 'X-Request-ID': requestId },
+      }
+    );
   }
 }

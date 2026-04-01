@@ -75,12 +75,12 @@ describe('pi-payment', () => {
 
   describe('createU2APayment', () => {
     it('returns error when SDK fails', async () => {
-      vi.mocked(sdk.payment.create).mockRejectedValue(new Error('fail'));
-      const mock = setupWindow();
-      const result = await createU2APayment(1, 'Test');
-      expect(result.success).toBe(false);
-      expect(result.status).toBe('error');
-      expect(mock).not.toHaveBeenCalled();
+      // Pi SDK immediately fires onError — promise should reject
+      const mockCreatePayment = vi.fn((_data: unknown, callbacks: Record<string, (e: Error) => void>) => {
+        callbacks.onError(new Error('Pi SDK unavailable'));
+      });
+      setupWindow(mockCreatePayment);
+      await expect(createU2APayment(1, 'Test')).rejects.toThrow('Pi SDK error: Pi SDK unavailable');
     });
 
     it('calls Pi.createPayment after SDK create', async () => {
@@ -109,9 +109,18 @@ describe('pi-payment', () => {
     });
 
     it('passes transaction_id not txid', async () => {
-      vi.mocked(sdk.payment.create).mockResolvedValue({ id: 'internal-id' } as any);
-      vi.mocked(sdk.payment.approve).mockResolvedValue({ success: true } as any);
-      vi.mocked(sdk.payment.complete).mockResolvedValue({ success: true, status: 'completed', amount: 1, memo: 'Test' } as any);
+      // Mock fetch to set internalId so the complete fetch is actually called
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes('payment/create'))
+          return { ok: true, status: 200, json: async () => ({ data: { id: 'internal-id' } }) } as Response;
+        if (u.includes('payment/approve'))
+          return { ok: true, status: 200, json: async () => ({}) } as Response;
+        if (u.includes('payment/complete'))
+          return { ok: true, status: 200, json: async () => ({ success: true, status: 'completed', amount: 1, memo: 'Test' }) } as Response;
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      });
+
       const mock = setupWindow();
       const p = createU2APayment(1, 'Test');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
@@ -119,9 +128,12 @@ describe('pi-payment', () => {
       await cb.onReadyForServerApproval('pi-pay-1');
       await cb.onReadyForServerCompletion('pi-pay-1', 'txid-abc');
       await p;
-      const call = vi.mocked(sdk.payment.complete).mock.calls[0][0] as any;
-      expect(call).toHaveProperty('transaction_id', 'txid-abc');
-      expect(call).not.toHaveProperty('txid');
+
+      const completeCall = fetchSpy.mock.calls.find(([url]) => String(url).includes('payment/complete'));
+      expect(completeCall).toBeDefined();
+      const body = JSON.parse((completeCall![1] as RequestInit).body as string);
+      expect(body).toHaveProperty('transaction_id', 'txid-abc');
+      expect(body).not.toHaveProperty('txid');
     });
 
     it('cancelled by user', async () => {

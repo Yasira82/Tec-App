@@ -128,25 +128,68 @@ export const resolvePendingPayment = async (
     await sdk.payment.resolveIncomplete(piPaymentId);
     return { action: 'resolved' };
   } catch (err) {
-    console.error('[Pi Auth] Error resolving pending payment:', err);
+    _captureError('resolvePendingPayment failed', { piPaymentId, error: String(err) });
     return null;
   }
 };
 
-// ✅ resolve incomplete — backend endpoint أولاً
-const resolveIncompletePayment = async (payment: unknown) => {
+// ── Sentry Helpers ────────────────────────────────────────
+const _captureError = (message: string, data: Record<string, unknown>): void => {
+  try {
+    import('@sentry/nextjs').then(Sentry => {
+      Sentry.captureMessage(`[Pi Recovery] ${message}`, {
+        level: 'error',
+        extra: data,
+        tags:  { component: 'pi-auth', type: 'incomplete-payment' },
+      });
+    }).catch(() => { /* Sentry optional */ });
+  } catch { /* Sentry optional */ }
+};
+
+const _reportResolved = (piPaymentId: string, via: string, action?: unknown): void => {
+  try {
+    import('@sentry/nextjs').then(Sentry => {
+      Sentry.addBreadcrumb({
+        category: 'pi.payment',
+        message:  `Payment resolved via ${via}`,
+        level:    'info',
+        data:     { piPaymentId, via, action },
+      });
+    }).catch(() => { /* Sentry optional */ });
+  } catch { /* Sentry optional */ }
+};
+
+const _addBreadcrumb = (message: string, data: Record<string, unknown>): void => {
+  try {
+    import('@sentry/nextjs').then(Sentry => {
+      Sentry.addBreadcrumb({
+        category: 'pi.payment',
+        message,
+        level:    'warning',
+        data,
+      });
+    }).catch(() => { /* Sentry optional */ });
+  } catch { /* Sentry optional */ }
+};
+
+// ── Resolve Incomplete Payment ────────────────────────────
+const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
   const p           = payment as { identifier?: string };
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
 
-  console.log('[Pi Auth] Incomplete payment detected:', piPaymentId);
+  // ── Report detection to Sentry ───────────────────────────
+  _addBreadcrumb('Incomplete payment detected', { piPaymentId });
 
   const token = getAccessToken();
-  if (!token) return;
+  if (!token) {
+    _captureError('Incomplete payment — no auth token', { piPaymentId });
+    return;
+  }
 
-  // ── Step 1: Backend resolve-incomplete (Pi API) ──────────
+  // ── Step 1: Backend resolve-incomplete ───────────────────
   try {
-    const res = await fetch('/api/payment/resolve-incomplete', {
+    const res  = await fetch('/api/payment/resolve-incomplete', {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -155,19 +198,32 @@ const resolveIncompletePayment = async (payment: unknown) => {
       body: JSON.stringify({ pi_payment_id: piPaymentId }),
     });
     const data = await res.json();
-    console.log('[Pi Auth] resolve-incomplete result:', data);
-    if (res.ok) return;
+    if (res.ok) {
+      _reportResolved(piPaymentId, 'backend', data?.action);
+      return;
+    }
+    _captureError('resolve-incomplete backend failed', {
+      piPaymentId,
+      status: res.status,
+      data,
+    });
   } catch (err) {
-    console.warn('[Pi Auth] resolve-incomplete failed:', err);
+    _captureError('resolve-incomplete network error', {
+      piPaymentId,
+      error: String(err),
+    });
   }
 
   // ── Step 2: SDK resolve fallback ─────────────────────────
   try {
     const result = await sdk.payment.resolveIncomplete(piPaymentId);
-    console.log('[Pi Auth] SDK resolved:', result?.status);
+    _reportResolved(piPaymentId, 'sdk', result?.status);
     return;
   } catch (sdkErr) {
-    console.warn('[Pi Auth] SDK resolve failed:', sdkErr);
+    _captureError('SDK resolve failed', {
+      piPaymentId,
+      error: String(sdkErr),
+    });
   }
 
   // ── Step 3: Cancel via backend ───────────────────────────
@@ -181,19 +237,26 @@ const resolveIncompletePayment = async (payment: unknown) => {
       body: JSON.stringify({ pi_payment_id: piPaymentId }),
     });
     if (res.ok) {
-      console.log('[Pi Auth] Backend cancelled pending payment:', piPaymentId);
+      _reportResolved(piPaymentId, 'cancel');
     } else {
-      console.warn('[Pi Auth] Backend cancel status:', res.status);
+      _captureError('All recovery attempts failed', {
+        piPaymentId,
+        cancelStatus: res.status,
+      });
     }
   } catch (err) {
-    console.error('[Pi Auth] All resolve attempts failed:', err);
+    _captureError('Cancel network error — payment requires manual review', {
+      piPaymentId,
+      error: String(err),
+    });
   }
 };
 
-const handleIncompletePayment = (payment: unknown) => {
+const handleIncompletePayment = (payment: unknown): void => {
   void resolveIncompletePayment(payment);
 };
 
+// ── SDK Wait ──────────────────────────────────────────────
 export const waitForPiSDK = (timeout = 15000): Promise<void> => {
   return new Promise((resolve, reject) => {
     if (typeof window !== 'undefined' && window.__TEC_PI_ERROR) {
@@ -214,12 +277,12 @@ export const waitForPiSDK = (timeout = 15000): Promise<void> => {
       window.removeEventListener('tec-pi-error', onError);
       resolve();
     };
-    const onError = (_event: Event) => {
+    const onError = () => {
       clearTimeout(timer);
       window.removeEventListener('tec-pi-ready', onReady);
       reject(new Error(ERRORS.SDK_INIT_FAILED));
     };
-    window.addEventListener('tec-pi-ready', onReady,  { once: true });
+    window.addEventListener('tec-pi-ready', onReady, { once: true });
     window.addEventListener('tec-pi-error', onError, { once: true });
   });
 };
@@ -244,6 +307,7 @@ const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> 
   });
 };
 
+// ── Login with Pi ─────────────────────────────────────────
 export const loginWithPi = async (): Promise<TecAuthResponse> => {
   if (!isPiBrowser()) {
     throw new Error(ERRORS.NOT_PI_BROWSER);

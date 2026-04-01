@@ -18,10 +18,10 @@ vi.mock('@/lib-client/pi/payment-timeouts', () => ({
 vi.mock('@/lib/sdk', () => ({
   default: {
     payment: {
-      create:            vi.fn(),
-      approve:           vi.fn(),
-      complete:          vi.fn(),
-      getStatus:         vi.fn(),
+      createPayment:     vi.fn(),
+      approvePayment:    vi.fn(),
+      completePayment:   vi.fn(),
+      getPayment:        vi.fn(),
       resolveIncomplete: vi.fn(),
     },
     auth: {
@@ -84,7 +84,6 @@ describe('pi-payment', () => {
     });
 
     it('calls Pi.createPayment after SDK create', async () => {
-      vi.mocked(sdk.payment.create).mockResolvedValue({ id: 'internal-id' } as any);
       const mock = setupWindow();
       const p = createU2APayment(1, 'Test');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
@@ -94,9 +93,6 @@ describe('pi-payment', () => {
     });
 
     it('completes full flow', async () => {
-      vi.mocked(sdk.payment.create).mockResolvedValue({ id: 'internal-id' } as any);
-      vi.mocked(sdk.payment.approve).mockResolvedValue({ success: true } as any);
-      vi.mocked(sdk.payment.complete).mockResolvedValue({ success: true, status: 'completed', amount: 1, memo: 'Test' } as any);
       const mock = setupWindow();
       const p = createU2APayment(1, 'Test');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
@@ -137,7 +133,6 @@ describe('pi-payment', () => {
     });
 
     it('cancelled by user', async () => {
-      vi.mocked(sdk.payment.create).mockResolvedValue({ id: 'internal-id' } as any);
       const mock = setupWindow();
       const p = createU2APayment(1, 'Test');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());

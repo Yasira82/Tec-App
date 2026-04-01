@@ -282,7 +282,7 @@ export const createU2APayment = async (
 
 export const getPaymentStatus = async (paymentId: string): Promise<PaymentResult> => {
   try {
-    const result = await sdk.payment.getStatus(paymentId);
+    const result = await sdk.payment.getPayment(paymentId);
     return result as unknown as PaymentResult;
   } catch (err) {
     throw new Error(err instanceof Error ? err.message : 'Failed to fetch payment status');

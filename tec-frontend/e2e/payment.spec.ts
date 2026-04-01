@@ -16,7 +16,7 @@ const MOCK_TOKEN = 'mock-test-token-payment';
 
 // ── Setup auth state ──────────────────────────────────────
 const setupAuth = async (page: import('@playwright/test').Page) => {
-  await page.addInitScript((user) => {
+  await page.addInitScript((user: typeof MOCK_USER) => {
     localStorage.setItem('tec_access_token',  'mock-test-token-payment');
     localStorage.setItem('tec_refresh_token', 'mock-refresh-token');
     localStorage.setItem('tec_user',          JSON.stringify(user));
@@ -41,9 +41,8 @@ test.describe('Payment API Routes', () => {
   test('POST /api/payment/create — returns 400 for missing fields', async ({ request }) => {
     const res = await request.post('/api/payment/create', {
       headers: { Authorization: `Bearer ${MOCK_TOKEN}` },
-      data:    { amount: 1 }, // missing userId + payment_method
+      data:    { amount: 1 },
     });
-    // 400 or 401 from gateway — not 500
     expect([400, 401, 503]).toContain(res.status());
   });
 
@@ -81,7 +80,6 @@ test.describe('Wallet API Routes', () => {
     const res = await request.get(`/api/wallet/balance?userId=${MOCK_USER.id}`, {
       headers: { Authorization: `Bearer ${MOCK_TOKEN}` },
     });
-    // 200, 401 from gateway (invalid mock token), or 503 — not 500
     expect([200, 401, 404, 503]).toContain(res.status());
   });
 });
@@ -89,7 +87,9 @@ test.describe('Wallet API Routes', () => {
 // ═══════════════════════════════════════════════════════════
 test.describe('Payment UI Flow', () => {
 
-  test.beforeEach(setupAuth);
+  test.beforeEach(async ({ page }) => {
+    await setupAuth(page);
+  });
 
   test('hub page shows Pay button', async ({ page }) => {
     await page.goto('/hub');
@@ -128,7 +128,6 @@ test.describe('Payment UI Flow', () => {
 
     const url = page.url();
     if (url.includes('/marketplace')) {
-      // Either shows listings or empty state — not error
       const content = page.locator('text=/Asset|Listing|Market|No listings/i').first();
       await expect(content).toBeVisible({ timeout: 10000 });
     }
@@ -155,7 +154,8 @@ test.describe('Commerce API Routes', () => {
 test.describe('API Gateway Health', () => {
 
   test('Gateway health endpoint responds', async ({ request }) => {
-    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
+    const gatewayUrl =
+      process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
       'https://api-gateway-production-6a68.up.railway.app';
 
     const res = await request.get(`${gatewayUrl}/health`).catch(() => null);
@@ -168,20 +168,16 @@ test.describe('API Gateway Health', () => {
   });
 
   test('Auth service health responds', async ({ request }) => {
-    const res = await request.get(
-      'https://auth-service-pi.up.railway.app/health'
-    ).catch(() => null);
-    if (res) {
-      expect(res.status()).toBe(200);
-    }
+    const res = await request
+      .get('https://auth-service-pi.up.railway.app/health')
+      .catch(() => null);
+    if (res) expect(res.status()).toBe(200);
   });
 
   test('Payment service health responds', async ({ request }) => {
-    const res = await request.get(
-      'https://payment-service-production-90e5.up.railway.app/health'
-    ).catch(() => null);
-    if (res) {
-      expect(res.status()).toBe(200);
-    }
+    const res = await request
+      .get('https://payment-service-production-90e5.up.railway.app/health')
+      .catch(() => null);
+    if (res) expect(res.status()).toBe(200);
   });
 });

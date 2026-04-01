@@ -1,5 +1,15 @@
-// tec-frontend/src/lib/sdk.ts
-
+/**
+ * TEC SDK — الـ entry point الوحيد للـ Frontend
+ *
+ * يستخدم: @yasser172/tec-sdk (npm published)
+ * ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ * ⚠️  لا تستورد من packages/tec-core-sdk مباشرة
+ *     packages/tec-core-sdk = source code (monorepo)
+ *     @yasser172/tec-sdk    = compiled + published (npm)
+ *
+ * Workflow:
+ *   Edit packages/tec-core-sdk → npm publish → @yasser172/tec-sdk
+ */
 import { TecSdk } from '@yasser172/tec-sdk';
 
 const GATEWAY_URL =
@@ -8,7 +18,6 @@ const GATEWAY_URL =
 
 export const sdk = new TecSdk({ gatewayUrl: GATEWAY_URL });
 
-// ─── helpers ─────────────────────────────────────────────
 const getToken = () =>
   typeof window !== 'undefined'
     ? localStorage.getItem('tec_access_token')
@@ -19,7 +28,6 @@ const authHeaders = () => ({
   ...(getToken() ? { Authorization: `Bearer ${getToken()}` } : {}),
 });
 
-// ─── Identity Service ─────────────────────────────────────
 export const identitySdk = {
   getMe: async () => {
     const res = await fetch(`${GATEWAY_URL}/api/identity/me`, {
@@ -27,36 +35,32 @@ export const identitySdk = {
     });
     return res.json();
   },
-
   getProfile: async () => {
     const res = await fetch(`${GATEWAY_URL}/api/identity/profile`, {
       headers: authHeaders(),
     });
     return res.json();
   },
-
   updateProfile: async (data: {
     displayName?: string;
-    bio?: string;
-    country?: string;
-    language?: string;
-    avatarUrl?: string;
+    bio?:         string;
+    country?:     string;
+    language?:    string;
+    avatarUrl?:   string;
   }) => {
     const res = await fetch(`${GATEWAY_URL}/api/identity/profile`, {
-      method: 'PATCH',
+      method:  'PATCH',
       headers: authHeaders(),
-      body: JSON.stringify(data),
+      body:    JSON.stringify(data),
     });
     return res.json();
   },
-
   getKyc: async () => {
     const res = await fetch(`${GATEWAY_URL}/api/identity/kyc`, {
       headers: authHeaders(),
     });
     return res.json();
   },
-
   getRoles: async () => {
     const res = await fetch(`${GATEWAY_URL}/api/identity/roles`, {
       headers: authHeaders(),

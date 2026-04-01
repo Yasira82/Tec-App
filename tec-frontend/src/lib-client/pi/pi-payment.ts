@@ -1,5 +1,6 @@
 import { getAccessToken, getStoredUser, waitForPiSDK } from './pi-auth';
 import sdk from '@/lib/sdk';
+import { buildHeaders } from '@/lib/request-id';
 import {
   APPROVAL_TIMEOUT_MS,
   COMPLETION_TIMEOUT_MS,
@@ -54,15 +55,16 @@ const retryFetch = async (
 export const createA2UPayment = async (data: A2UPaymentRequest): Promise<PaymentResult> => {
   const token = getAccessToken();
   if (!token) throw new Error('Unauthorized - Please log in first');
+
   const idempotencyKey = crypto.randomUUID();
+
   try {
     const response = await retryFetch(
       `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/payments/a2u`,
       {
-        method: 'POST',
+        method:  'POST',
         headers: {
-          'Content-Type':    'application/json',
-          Authorization:     `Bearer ${token}`,
+          ...buildHeaders(token),
           'Idempotency-Key': idempotencyKey,
         },
         body: JSON.stringify(data),
@@ -105,10 +107,7 @@ export const createU2APayment = async (
       const token = getAccessToken();
       const res = await fetch(`/api/payment/create`, {
         method:  'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:  `Bearer ${token}`,
-        },
+        headers: buildHeaders(token),
         body: JSON.stringify({
           userId,
           amount,
@@ -120,12 +119,11 @@ export const createU2APayment = async (
       if (res.ok) {
         const data = await res.json();
         internalId = data?.data?.payment?.id ?? data?.data?.id ?? null;
-        onDiagnostic?.('info', `Backend record created (internalId: ${internalId})`, { internalId });
+        onDiagnostic?.('info', `Backend record created`, { internalId });
       } else {
         onDiagnostic?.('warn', `Backend create returned ${res.status} — proceeding`);
       }
     } catch (createErr) {
-      console.warn('[Pi Payment] Backend create error (non-blocking):', createErr);
       onDiagnostic?.('warn', 'Backend create failed — proceeding without internalId');
     }
   }
@@ -136,7 +134,7 @@ export const createU2APayment = async (
       return;
     }
 
-    let paymentTimedOut = false;
+    let paymentTimedOut  = false;
     let paymentTimer: NodeJS.Timeout | null = null;
 
     const startApprovalTimer = () => {
@@ -184,10 +182,7 @@ export const createU2APayment = async (
             const token = getAccessToken();
             const res = await fetch(`/api/payment/approve`, {
               method:  'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization:  `Bearer ${token}`,
-              },
+              headers: buildHeaders(token),
               body: JSON.stringify({
                 payment_id:    internalId,
                 pi_payment_id: piPaymentId,
@@ -211,7 +206,7 @@ export const createU2APayment = async (
 
         onReadyForServerCompletion: async (piPaymentId: string, txid: string) => {
           if (paymentTimedOut) return;
-          onDiagnostic?.('completion', `onReadyForServerCompletion: ${piPaymentId}`, { piPaymentId, txid, internalId });
+          onDiagnostic?.('completion', `onReadyForServerCompletion`, { piPaymentId, txid, internalId });
 
           if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
             clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
@@ -230,10 +225,7 @@ export const createU2APayment = async (
             const token = getAccessToken();
             const res = await fetch(`/api/payment/complete`, {
               method:  'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                Authorization:  `Bearer ${token}`,
-              },
+              headers: buildHeaders(token),
               body: JSON.stringify({
                 payment_id:     internalId,
                 transaction_id: txid,

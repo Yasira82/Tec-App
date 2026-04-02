@@ -11,6 +11,23 @@ function timestamp() {
 }
 
 export default function PiTestPage() {
+  // Gate: only allow when explicitly enabled
+  if (process.env.NEXT_PUBLIC_ENABLE_PI_TEST !== 'true') {
+    return (
+      <main style={{ fontFamily: 'monospace', maxWidth: 760, margin: '40px auto', padding: '0 20px', textAlign: 'center' }}>
+        <h1 style={{ fontSize: '1.4rem', marginBottom: 12 }}>🔒 Pi Test Page</h1>
+        <p style={{ color: '#888' }}>This page is disabled in production.</p>
+        <p style={{ marginTop: 16 }}>
+          <a href="/" style={{ color: '#d4af37' }}>← Back to Home</a>
+        </p>
+      </main>
+    );
+  }
+
+  return <PiTestContent />;
+}
+
+function PiTestContent() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
   const [payStatus, setPayStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'cancelled'>('idle');

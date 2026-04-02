@@ -8,6 +8,10 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
+vi.mock('@/lib/firebase', () => ({
+  getFCMToken: vi.fn().mockResolvedValue(null),
+}));
+
 vi.mock('@/lib/sdk', () => ({
   default: {
     auth: {

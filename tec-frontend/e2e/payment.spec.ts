@@ -6,10 +6,10 @@ import { test, expect } from '@playwright/test';
  */
 
 const MOCK_USER = {
-  id:         'afa10fec-aa5e-4455-b66e-24a3664ac983',
-  piId:       'e27efdd3-c891-4361-8fa5-5338ada467a9',
+  id: 'afa10fec-aa5e-4455-b66e-24a3664ac983',
+  piId: 'e27efdd3-c891-4361-8fa5-5338ada467a9',
   piUsername: 'yas55eR82',
-  role:       'user',
+  role: 'user',
 };
 
 const MOCK_TOKEN = 'mock-test-token-payment';
@@ -17,21 +17,20 @@ const MOCK_TOKEN = 'mock-test-token-payment';
 // ── Setup auth state ──────────────────────────────────────
 const setupAuth = async (page: import('@playwright/test').Page) => {
   await page.addInitScript((user: typeof MOCK_USER) => {
-    localStorage.setItem('tec_access_token',  'mock-test-token-payment');
+    localStorage.setItem('tec_access_token', 'mock-test-token-payment');
     localStorage.setItem('tec_refresh_token', 'mock-refresh-token');
-    localStorage.setItem('tec_user',          JSON.stringify(user));
+    localStorage.setItem('tec_user', JSON.stringify(user));
   }, MOCK_USER);
 };
 
 // ═══════════════════════════════════════════════════════════
 test.describe('Payment API Routes', () => {
-
   test('POST /api/payment/create — returns 401 without token', async ({ request }) => {
     const res = await request.post('/api/payment/create', {
       data: {
-        userId:         MOCK_USER.id,
-        amount:         1,
-        currency:       'PI',
+        userId: MOCK_USER.id,
+        amount: 1,
+        currency: 'PI',
         payment_method: 'pi',
       },
     });
@@ -41,7 +40,7 @@ test.describe('Payment API Routes', () => {
   test('POST /api/payment/create — returns 400 for missing fields', async ({ request }) => {
     const res = await request.post('/api/payment/create', {
       headers: { Authorization: `Bearer ${MOCK_TOKEN}` },
-      data:    { amount: 1 },
+      data: { amount: 1 },
     });
     expect([400, 401, 503]).toContain(res.status());
   });
@@ -70,7 +69,6 @@ test.describe('Payment API Routes', () => {
 
 // ═══════════════════════════════════════════════════════════
 test.describe('Wallet API Routes', () => {
-
   test('GET /api/wallet/balance — returns 401 without token', async ({ request }) => {
     const res = await request.get('/api/wallet/balance');
     expect(res.status()).toBe(401);
@@ -86,7 +84,6 @@ test.describe('Wallet API Routes', () => {
 
 // ═══════════════════════════════════════════════════════════
 test.describe('Payment UI Flow', () => {
-
   test.beforeEach(async ({ page }) => {
     await setupAuth(page);
   });
@@ -137,7 +134,6 @@ test.describe('Payment UI Flow', () => {
 
 // ═══════════════════════════════════════════════════════════
 test.describe('Commerce API Routes', () => {
-
   test('GET /api/commerce/orders — returns 401 without token', async ({ request }) => {
     const res = await request.get('/api/commerce/orders');
     expect([401, 404]).toContain(res.status());
@@ -153,12 +149,12 @@ test.describe('Commerce API Routes', () => {
 
 // ═══════════════════════════════════════════════════════════
 test.describe('API Gateway Health', () => {
-
   test('Gateway health endpoint responds', async ({ request }) => {
-    const gatewayUrl =
-      process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
-      'https://api-gateway-production-6a68.up.railway.app';
-
+    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+    if (!gatewayUrl) {
+      test.skip();
+      return;
+    }
     const res = await request.get(`${gatewayUrl}/health`).catch(() => null);
     if (res) {
       expect(res.status()).toBe(200);
@@ -169,16 +165,22 @@ test.describe('API Gateway Health', () => {
   });
 
   test('Auth service health responds', async ({ request }) => {
-    const res = await request
-      .get('https://auth-service-pi.up.railway.app/health')
-      .catch(() => null);
+    const authUrl = process.env.AUTH_SERVICE_URL;
+    if (!authUrl) {
+      test.skip();
+      return;
+    }
+    const res = await request.get(`${authUrl}/health`).catch(() => null);
     if (res) expect(res.status()).toBe(200);
   });
 
   test('Payment service health responds', async ({ request }) => {
-    const res = await request
-      .get('https://payment-service-production-90e5.up.railway.app/health')
-      .catch(() => null);
+    const paymentUrl = process.env.PAYMENT_SERVICE_URL;
+    if (!paymentUrl) {
+      test.skip();
+      return;
+    }
+    const res = await request.get(`${paymentUrl}/health`).catch(() => null);
     if (res) expect(res.status()).toBe(200);
   });
 });

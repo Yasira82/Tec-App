@@ -8,70 +8,78 @@ import PiPaymentButton from '@/components/payment/PiPaymentButton';
 import styles from './page.module.css';
 
 const APPS = [
-  { name: 'Life',       emoji: '🌱', domain: 'life.pi',        category: 'Personal'      },
-  { name: 'Insure',     emoji: '🛡️', domain: 'insure.pi',      category: 'Finance'       },
-  { name: 'Commerce',   emoji: '🛒', domain: 'commerce.pi',    category: 'Business'      },
-  { name: 'Ecommerce',  emoji: '📦', domain: 'ecommerce.pi',   category: 'Business'      },
-  { name: 'Assets',     emoji: '💼', domain: 'assets.pi',      category: 'Finance'       },
-  { name: 'Fundx',      emoji: '📊', domain: 'fundx.pi',       category: 'Finance'       },
-  { name: 'Dx',         emoji: '🏥', domain: 'dx.pi',          category: 'Health'        },
-  { name: 'Analytics',  emoji: '📈', domain: 'analytics.pi',   category: 'Business'      },
-  { name: 'Nbf',        emoji: '🏦', domain: 'nbf.pi',         category: 'Finance'       },
-  { name: 'Epic',       emoji: '🎮', domain: 'epic.pi',        category: 'Entertainment' },
-  { name: 'Legend',     emoji: '⭐', domain: 'legend.pi',      category: 'Premium'       },
-  { name: 'Connection', emoji: '🔗', domain: 'connection.pi',  category: 'Social'        },
-  { name: 'System',     emoji: '⚙️', domain: 'system.pi',      category: 'Tech'          },
-  { name: 'Alert',      emoji: '🔔', domain: 'alert.pi',       category: 'Tech'          },
-  { name: 'Tec',        emoji: '👑', domain: 'tec.pi',         category: 'Premium'       },
-  { name: 'Estate',     emoji: '🏠', domain: 'estate.pi',      category: 'Premium'       },
-  { name: 'Nx',         emoji: '🚀', domain: 'nx.pi',          category: 'Tech'          },
-  { name: 'Explorer',   emoji: '✈️', domain: 'explorer.pi',    category: 'Premium'       },
-  { name: 'Nexus',      emoji: '🌐', domain: 'nexus.pi',       category: 'Hub'           },
-  { name: 'Brookfield', emoji: '🏙️', domain: 'brookfield.pi',  category: 'Premium'       },
-  { name: 'Vip',        emoji: '💎', domain: 'vip.pi',         category: 'Premium'       },
-  { name: 'Titan',      emoji: '🦾', domain: 'titan.pi',       category: 'Business'      },
-  { name: 'Zone',       emoji: '🎯', domain: 'zone.pi',        category: 'Personal'      },
-  { name: 'Elite',      emoji: '🏆', domain: 'elite.pi',       category: 'Premium'       },
+  { name: 'Life', emoji: '🌱', domain: 'life.pi', category: 'Personal' },
+  { name: 'Insure', emoji: '🛡️', domain: 'insure.pi', category: 'Finance' },
+  { name: 'Commerce', emoji: '🛒', domain: 'commerce.pi', category: 'Business' },
+  { name: 'Ecommerce', emoji: '📦', domain: 'ecommerce.pi', category: 'Business' },
+  { name: 'Assets', emoji: '💼', domain: 'assets.pi', category: 'Finance' },
+  { name: 'Fundx', emoji: '📊', domain: 'fundx.pi', category: 'Finance' },
+  { name: 'Dx', emoji: '🏥', domain: 'dx.pi', category: 'Health' },
+  { name: 'Analytics', emoji: '📈', domain: 'analytics.pi', category: 'Business' },
+  { name: 'Nbf', emoji: '🏦', domain: 'nbf.pi', category: 'Finance' },
+  { name: 'Epic', emoji: '🎮', domain: 'epic.pi', category: 'Entertainment' },
+  { name: 'Legend', emoji: '⭐', domain: 'legend.pi', category: 'Premium' },
+  { name: 'Connection', emoji: '🔗', domain: 'connection.pi', category: 'Social' },
+  { name: 'System', emoji: '⚙️', domain: 'system.pi', category: 'Tech' },
+  { name: 'Alert', emoji: '🔔', domain: 'alert.pi', category: 'Tech' },
+  { name: 'Tec', emoji: '👑', domain: 'tec.pi', category: 'Premium' },
+  { name: 'Estate', emoji: '🏠', domain: 'estate.pi', category: 'Premium' },
+  { name: 'Nx', emoji: '🚀', domain: 'nx.pi', category: 'Tech' },
+  { name: 'Explorer', emoji: '✈️', domain: 'explorer.pi', category: 'Premium' },
+  { name: 'Nexus', emoji: '🌐', domain: 'nexus.pi', category: 'Hub' },
+  { name: 'Brookfield', emoji: '🏙️', domain: 'brookfield.pi', category: 'Premium' },
+  { name: 'Vip', emoji: '💎', domain: 'vip.pi', category: 'Premium' },
+  { name: 'Titan', emoji: '🦾', domain: 'titan.pi', category: 'Business' },
+  { name: 'Zone', emoji: '🎯', domain: 'zone.pi', category: 'Personal' },
+  { name: 'Elite', emoji: '🏆', domain: 'elite.pi', category: 'Premium' },
 ];
 
 const CATEGORIES = [
-  'All', 'Finance', 'Premium', 'Business', 'Tech',
-  'Personal', 'Health', 'Entertainment', 'Social', 'Hub',
+  'All',
+  'Finance',
+  'Premium',
+  'Business',
+  'Tech',
+  'Personal',
+  'Health',
+  'Entertainment',
+  'Social',
+  'Hub',
 ];
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Finance:       '#f0c040',
-  Premium:       '#d4af37',
-  Business:      '#7eb8f7',
-  Tech:          '#7ee7c0',
-  Personal:      '#f09898',
-  Health:        '#98e0a8',
+  Finance: '#f0c040',
+  Premium: '#d4af37',
+  Business: '#7eb8f7',
+  Tech: '#7ee7c0',
+  Personal: '#f09898',
+  Health: '#98e0a8',
   Entertainment: '#c898f0',
-  Social:        '#f0b878',
-  Hub:           '#ffffff',
+  Social: '#f0b878',
+  Hub: '#ffffff',
 };
 
 export default function HomePage() {
   const { t, dir } = useTranslation();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [searchQuery,    setSearchQuery]    = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const filteredApps = useMemo(() => {
     let result = APPS;
     if (activeCategory !== 'All') {
-      result = result.filter(app => app.category === activeCategory);
+      result = result.filter((app) => app.category === activeCategory);
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(app =>
-        app.name.toLowerCase().includes(q) ||
-        app.domain.toLowerCase().includes(q) ||
-        app.category.toLowerCase().includes(q) ||
-        (t.apps[app.name as keyof typeof t.apps] ?? '').toLowerCase().includes(q)
+      result = result.filter(
+        (app) =>
+          app.name.toLowerCase().includes(q) ||
+          app.domain.toLowerCase().includes(q) ||
+          app.category.toLowerCase().includes(q) ||
+          (t.apps[app.name as keyof typeof t.apps] ?? '').toLowerCase().includes(q)
       );
     }
     return result;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCategory, searchQuery, t]);
 
   const openApp = (domain: string) =>
@@ -85,21 +93,20 @@ export default function HomePage() {
   };
 
   const createRipple = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card   = e.currentTarget;
+    const card = e.currentTarget;
     const ripple = document.createElement('span');
     ripple.className = 'ripple';
     const rect = card.getBoundingClientRect();
     const size = Math.max(rect.width, rect.height);
-    ripple.style.width  = ripple.style.height = `${size}px`;
-    ripple.style.left   = `${e.clientX - rect.left - size / 2}px`;
-    ripple.style.top    = `${e.clientY - rect.top  - size / 2}px`;
+    ripple.style.width = ripple.style.height = `${size}px`;
+    ripple.style.left = `${e.clientX - rect.left - size / 2}px`;
+    ripple.style.top = `${e.clientY - rect.top - size / 2}px`;
     card.appendChild(ripple);
     ripple.addEventListener('animationend', () => ripple.remove());
   };
 
   return (
     <main className={styles.main} dir={dir}>
-
       {/* Background */}
       <div className={styles.bg} aria-hidden>
         <div className={styles.bgOrb1} />
@@ -116,9 +123,13 @@ export default function HomePage() {
           <span className={styles.navLogoText}>EC</span>
         </div>
         <div className={styles.navLinks}>
-          <a href="#ecosystem" className={styles.navLink}>{t.home.ecosystem}</a>
-          <a href="#payment"   className={styles.navLink}>{t.common.login}</a>
-          <Link href="/ai"     className={styles.navAiLink}>
+          <a href="#ecosystem" className={styles.navLink}>
+            {t.home.ecosystem}
+          </a>
+          <a href="#payment" className={styles.navLink}>
+            {t.common.login}
+          </a>
+          <Link href="/ai" className={styles.navAiLink}>
             🤖 {dir === 'rtl' ? 'المساعد' : 'Assistant'}
           </Link>
         </div>
@@ -165,12 +176,14 @@ export default function HomePage() {
         <div className={styles.paymentCard}>
           <div className={styles.paymentCardInner}>
             <PiPaymentButton />
-            <p style={{
-              fontSize:  11,
-              color:     '#4a4a5a',
-              marginTop: 12,
-              textAlign: 'center',
-            }}>
+            <p
+              style={{
+                fontSize: 11,
+                color: '#4a4a5a',
+                marginTop: 12,
+                textAlign: 'center',
+              }}
+            >
               🌐 Best experience in Pi Browser
             </p>
           </div>
@@ -207,7 +220,7 @@ export default function HomePage() {
             className={styles.searchInput}
             type="text"
             value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={dir === 'rtl' ? 'ابحث عن تطبيق...' : 'Search apps...'}
             aria-label="Search apps"
           />
@@ -224,7 +237,7 @@ export default function HomePage() {
 
         {/* Category Filter */}
         <div className={styles.filterBar}>
-          {CATEGORIES.map(cat => (
+          {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}
@@ -242,7 +255,10 @@ export default function HomePage() {
             <p>{dir === 'rtl' ? 'لا توجد نتائج' : 'No apps found'}</p>
             <button
               className={styles.noResultsBtn}
-              onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
+              onClick={() => {
+                setSearchQuery('');
+                setActiveCategory('All');
+              }}
             >
               {dir === 'rtl' ? 'مسح البحث' : 'Clear search'}
             </button>
@@ -253,11 +269,16 @@ export default function HomePage() {
               <div
                 key={app.name}
                 className={styles.appCard}
-                style={{
-                  animationDelay: `${i * 0.05}s`,
-                  '--cat-color': CATEGORY_COLORS[app.category] ?? '#d4af37',
-                } as React.CSSProperties}
-                onClick={(e) => { createRipple(e); openApp(app.domain); }}
+                style={
+                  {
+                    animationDelay: `${i * 0.05}s`,
+                    '--cat-color': CATEGORY_COLORS[app.category] ?? '#d4af37',
+                  } as React.CSSProperties
+                }
+                onClick={(e) => {
+                  createRipple(e);
+                  openApp(app.domain);
+                }}
                 onKeyDown={(e) => handleKey(e, app.domain)}
                 role="button"
                 tabIndex={0}
@@ -285,7 +306,9 @@ export default function HomePage() {
           </div>
         )}
 
-        <p className={styles.appCount}>{filteredApps.length} {t.home.stats.apps}</p>
+        <p className={styles.appCount}>
+          {filteredApps.length} {t.home.stats.apps}
+        </p>
       </section>
 
       {/* Footer */}
@@ -296,8 +319,12 @@ export default function HomePage() {
         </div>
         <p className={styles.footerText}>© 2026 {t.common.tagline} · Built on Pi Network</p>
         <div className={styles.footerLinks}>
-          <a href="/privacy" className={styles.footerLink}>Privacy</a>
-          <a href="/terms"   className={styles.footerLink}>Terms</a>
+          <a href="/privacy" className={styles.footerLink}>
+            Privacy
+          </a>
+          <a href="/terms" className={styles.footerLink}>
+            Terms
+          </a>
         </div>
       </footer>
 
@@ -306,7 +333,6 @@ export default function HomePage() {
         <span className={styles.floatingAiIcon}>🤖</span>
         <span className={styles.floatingAiPulse} />
       </Link>
-
     </main>
   );
-      }
+}

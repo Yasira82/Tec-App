@@ -14,6 +14,7 @@ async function handleIncompletePayment(
   payment: { identifier: string; transaction?: { txid?: string } },
 ): Promise<void> {
   const piPaymentId = payment.identifier;
+  if (!piPaymentId) return;
   const txid = payment.transaction?.txid;
 
   try {
@@ -68,7 +69,7 @@ export class TecAuthSDK {
     const piAuth = await window.Pi.authenticate(
       ['username', 'payments'],
       // ✅ Pi docs: this callback MUST be implemented — handle incomplete payments
-      (payment) => handleIncompletePayment(this.client, payment),
+      (payment) => handleIncompletePayment(this.client, payment as { identifier: string; transaction?: { txid?: string } }),
     );
 
     const result = await this.client.post<TecAuthResponse>('/api/auth/pi-login', {

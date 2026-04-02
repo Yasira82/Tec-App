@@ -1,7 +1,7 @@
 # TEC Ecosystem - 24 App Digital Platform
 
 ![TEC Platform](https://img.shields.io/badge/TEC-Platform-gold)
-![Next.js](https://img.shields.io/badge/Next.js-14-black)
+![Next.js](https://img.shields.io/badge/Next.js-15-black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.3-blue)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
@@ -14,7 +14,7 @@ TEC Platform follows a microservices architecture with the following components:
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Client Applications                       │
-│              (Next.js 14 App Router Frontend)                │
+│              (Next.js 15 App Router Frontend)                │
 └────────────────────┬────────────────────────────────────────┘
                      │
                      ▼
@@ -227,7 +227,7 @@ The payment service returns specific error codes for better debugging:
 ## 🛠️ Tech Stack
 
 ### Frontend
-- **Next.js 14** - React framework with App Router
+- **Next.js 15** - React framework with App Router
 - **TypeScript** - Type-safe development
 - **Pi SDK** - Pi Network integration
 - **i18n** - Multi-language support (EN/AR)
@@ -256,7 +256,7 @@ The payment service returns specific error codes for better debugging:
 
 ```
 Tec-App/
-├── tec-frontend/              # Next.js 14 frontend
+├── tec-frontend/              # Next.js 15 frontend
 │   ├── app/                   # App Router pages
 │   ├── components/            # React components
 │   ├── lib/                   # Utilities (i18n, Pi SDK)

@@ -3,17 +3,17 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 
 interface RealtimeNotification {
-  type:      string;
-  title:     string;
-  message:   string;
+  type: string;
+  title: string;
+  message: string;
   timestamp: string;
   paymentId?: string;
-  amount?:    number;
+  amount?: number;
 }
 
 interface UseRealtimeOptions {
-  userId:    string | undefined;
-  token:     string | null;
+  userId: string | undefined;
+  token: string | null;
   onNotification?: (n: RealtimeNotification) => void;
   onWalletUpdate?: (data: { amount: number; currency: string }) => void;
 }
@@ -24,55 +24,56 @@ export function useRealtimeNotifications({
   onNotification,
   onWalletUpdate,
 }: UseRealtimeOptions) {
-  const socketRef  = useRef<any>(null);
-  const [unread,   setUnread]   = useState(0);
-  const [connected,setConnected]= useState(false);
+  const socketRef = useRef<any>(null);
+  const [unread, setUnread] = useState(0);
+  const [connected, setConnected] = useState(false);
 
-  const REALTIME_URL = process.env.NEXT_PUBLIC_REALTIME_URL
-    ?? 'https://realtime-service-production-9630.up.railway.app';
+  const REALTIME_URL = process.env.NEXT_PUBLIC_REALTIME_URL!;
 
   const connect = useCallback(() => {
     if (!userId || !token || socketRef.current) return;
 
     // Dynamic import لتجنب SSR errors
-    import('socket.io-client').then(({ io }) => {
-      const socket = io(REALTIME_URL, {
-        auth:       { token },
-        transports: ['websocket', 'polling'],
-        reconnectionAttempts: 5,
-        reconnectionDelay:    2000,
-        timeout:              10000,
-      });
+    import('socket.io-client')
+      .then(({ io }) => {
+        const socket = io(REALTIME_URL, {
+          auth: { token },
+          transports: ['websocket', 'polling'],
+          reconnectionAttempts: 5,
+          reconnectionDelay: 2000,
+          timeout: 10000,
+        });
 
-      socket.on('connect', () => {
-        setConnected(true);
-        console.log('[WS] Connected to realtime service');
-      });
+        socket.on('connect', () => {
+          setConnected(true);
+          console.log('[WS] Connected to realtime service');
+        });
 
-      socket.on('disconnect', () => {
-        setConnected(false);
-        console.log('[WS] Disconnected');
-      });
+        socket.on('disconnect', () => {
+          setConnected(false);
+          console.log('[WS] Disconnected');
+        });
 
-      socket.on('notification.new', (data: RealtimeNotification) => {
-        setUnread(prev => prev + 1);
-        onNotification?.(data);
-        console.log('[WS] New notification:', data.title);
-      });
+        socket.on('notification.new', (data: RealtimeNotification) => {
+          setUnread((prev) => prev + 1);
+          onNotification?.(data);
+          console.log('[WS] New notification:', data.title);
+        });
 
-      socket.on('wallet.updated', (data: any) => {
-        onWalletUpdate?.(data);
-        console.log('[WS] Wallet updated:', data);
-      });
+        socket.on('wallet.updated', (data: any) => {
+          onWalletUpdate?.(data);
+          console.log('[WS] Wallet updated:', data);
+        });
 
-      socket.on('connect_error', (err: Error) => {
-        console.warn('[WS] Connection error:', err.message);
-      });
+        socket.on('connect_error', (err: Error) => {
+          console.warn('[WS] Connection error:', err.message);
+        });
 
-      socketRef.current = socket;
-    }).catch(err => {
-      console.warn('[WS] socket.io-client not available:', err.message);
-    });
+        socketRef.current = socket;
+      })
+      .catch((err) => {
+        console.warn('[WS] socket.io-client not available:', err.message);
+      });
   }, [userId, token, REALTIME_URL, onNotification, onWalletUpdate]);
 
   useEffect(() => {

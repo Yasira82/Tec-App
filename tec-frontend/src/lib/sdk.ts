@@ -12,16 +12,12 @@
  */
 import { TecSdk } from '@yasser172/tec-sdk';
 
-const GATEWAY_URL =
-  process.env.NEXT_PUBLIC_API_GATEWAY_URL ||
-  'https://api-gateway-production-6a68.up.railway.app';
+const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export const sdk = new TecSdk({ gatewayUrl: GATEWAY_URL });
 
 const getToken = () =>
-  typeof window !== 'undefined'
-    ? localStorage.getItem('tec_access_token')
-    : null;
+  typeof window !== 'undefined' ? localStorage.getItem('tec_access_token') : null;
 
 const authHeaders = () => ({
   'Content-Type': 'application/json',
@@ -43,15 +39,15 @@ export const identitySdk = {
   },
   updateProfile: async (data: {
     displayName?: string;
-    bio?:         string;
-    country?:     string;
-    language?:    string;
-    avatarUrl?:   string;
+    bio?: string;
+    country?: string;
+    language?: string;
+    avatarUrl?: string;
   }) => {
     const res = await fetch(`${GATEWAY_URL}/api/identity/profile`, {
-      method:  'PATCH',
+      method: 'PATCH',
       headers: authHeaders(),
-      body:    JSON.stringify(data),
+      body: JSON.stringify(data),
     });
     return res.json();
   },

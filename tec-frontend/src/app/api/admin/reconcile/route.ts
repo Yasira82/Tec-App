@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PAYMENT_SERVICE = 'https://payment-service-production-90e5.up.railway.app';
-const INTERNAL_KEY    = process.env.INTERNAL_SECRET ?? 'tec-int-sec-2026-xK9mP3qR';
+const PAYMENT_SERVICE = process.env.PAYMENT_SERVICE_URL!;
+const INTERNAL_KEY = process.env.INTERNAL_SECRET!;
 
 export async function POST(_req: NextRequest) {
   try {
-    const res  = await fetch(`${PAYMENT_SERVICE}/payments/reconcile`, {
-      method:  'POST',
+    const res = await fetch(`${PAYMENT_SERVICE}/payments/reconcile`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'x-internal-key': INTERNAL_KEY,

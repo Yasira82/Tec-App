@@ -118,7 +118,7 @@ describe('TecAuthSDK', () => {
       await new Promise(r => setTimeout(r, 0)); // flush fire-and-forget
 
       const calls = (mockClient.post as jest.Mock).mock.calls;
-      const recoveryCall = calls.find((c: unknown[]) => c[0] === '/api/payment/resolve-incomplete');
+      const recoveryCall = calls.find((c: unknown[]) => c[0] === '/api/payments/cancel');
       expect(recoveryCall).toBeDefined();
       expect(recoveryCall![1]).toEqual({ pi_payment_id: 'pi_pay_123' });
     });

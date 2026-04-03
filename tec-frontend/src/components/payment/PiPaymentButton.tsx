@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { loginWithPi } from '@/lib-client/pi/pi-auth';
+import { useState }      from 'react';
+import { useRouter }     from 'next/navigation';
+import { loginWithPi }   from '@/lib-client/pi/pi-auth';
 
 export default function PiPaymentButton() {
-  const router    = useRouter();
+  const router              = useRouter();
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
@@ -13,11 +13,15 @@ export default function PiPaymentButton() {
     setLoading(true);
     setError(null);
     try {
-      await loginWithPi();
-      router.push('/hub');
+      const result = await loginWithPi();
+
+      if (result?.success) {
+        // ✅ استخدم window.location بدل router.push
+        // عشان يعمل full page reload ويقرأ الـ cookies الجديدة
+        window.location.href = '/hub';
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
-    } finally {
       setLoading(false);
     }
   };

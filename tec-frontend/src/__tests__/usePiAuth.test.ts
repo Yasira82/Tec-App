@@ -11,14 +11,14 @@ vi.mock('next/navigation', () => ({
 
 // ---- mock Pi SDK modules ----
 vi.mock('@/lib-client/pi/pi-auth', () => ({
-  loginWithPi: vi.fn(),
+  loginWithPi:   vi.fn(),
   getStoredUser: vi.fn(),
-  logout: vi.fn(),
-  isPiBrowser: vi.fn(() => false),
+  logout:        vi.fn(),
+  isPiBrowser:   vi.fn(() => false),
 }));
 
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
-import * as piAuth from '@/lib-client/pi/pi-auth';
+import { usePiAuth }  from '@/lib-client/hooks/usePiAuth';
+import * as piAuth    from '@/lib-client/pi/pi-auth';
 
 describe('usePiAuth', () => {
   beforeEach(() => {
@@ -38,18 +38,16 @@ describe('usePiAuth', () => {
 
   it('restores stored user on mount', async () => {
     const mockUser = {
-      id: '1',
-      piId: 'uid-123',
-      piUsername: 'testuser',
-      role: 'user',
+      id:               '1',
+      piId:             'uid-123',
+      piUsername:       'testuser',
+      role:             'user',
       subscriptionPlan: null,
-      createdAt: new Date().toISOString(),
+      createdAt:        new Date().toISOString(),
     };
     vi.mocked(piAuth.getStoredUser).mockReturnValue(mockUser);
 
     const { result } = renderHook(() => usePiAuth());
-
-    // Wait for the useEffect to run
     await act(async () => {});
 
     expect(result.current.isAuthenticated).toBe(true);
@@ -60,19 +58,19 @@ describe('usePiAuth', () => {
     vi.mocked(piAuth.getStoredUser).mockReturnValue(null);
 
     const mockUser = {
-      id: '1',
-      piId: 'uid-123',
-      piUsername: 'testuser',
-      role: 'user',
+      id:               '1',
+      piId:             'uid-123',
+      piUsername:       'testuser',
+      role:             'user',
       subscriptionPlan: null,
-      createdAt: new Date().toISOString(),
+      createdAt:        new Date().toISOString(),
     };
 
     vi.mocked(piAuth.loginWithPi).mockResolvedValue({
-      success: true,
+      success:   true,
       isNewUser: false,
-      user: mockUser,
-      tokens: { accessToken: 'token', refreshToken: 'refresh' },
+      user:      mockUser,
+      tokens:    { accessToken: 'token', refreshToken: 'refresh' },
     });
 
     const { result } = renderHook(() => usePiAuth());
@@ -108,20 +106,23 @@ describe('usePiAuth', () => {
 
   it('calls logout and clears state', async () => {
     const mockUser = {
-      id: '1',
-      piId: 'uid-123',
-      piUsername: 'testuser',
-      role: 'user',
+      id:               '1',
+      piId:             'uid-123',
+      piUsername:       'testuser',
+      role:             'user',
       subscriptionPlan: null,
-      createdAt: new Date().toISOString(),
+      createdAt:        new Date().toISOString(),
     };
     vi.mocked(piAuth.getStoredUser).mockReturnValue(mockUser);
+    // ✅ logout الآن async
+    vi.mocked(piAuth.logout).mockResolvedValue(undefined as any);
 
     const { result } = renderHook(() => usePiAuth());
     await act(async () => {});
 
-    act(() => {
-      result.current.logout();
+    // ✅ await لأن logout أصبح async
+    await act(async () => {
+      await result.current.logout();
     });
 
     expect(result.current.isAuthenticated).toBe(false);

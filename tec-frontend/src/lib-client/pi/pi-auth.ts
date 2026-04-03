@@ -36,14 +36,9 @@ export const isPiBrowser = (): boolean => {
   return typeof window.Pi !== 'undefined' && typeof window.Pi.authenticate === 'function';
 };
 
-// ✅ Token في HttpOnly cookie — مش accessible من JS
-// الـ BFF routes بترسله تلقائياً مع كل request
 export const getAccessToken = (): string | null => null;
-
-// ✅ Refresh token في HttpOnly cookie — BFF يتعامل معاه
 export const getRefreshToken = (): string | null => null;
 
-// ✅ User info من cookie مش HttpOnly
 export const getStoredUser = () => {
   if (typeof window === 'undefined') return null;
   try {
@@ -55,7 +50,6 @@ export const getStoredUser = () => {
   } catch { return null; }
 };
 
-// ✅ Logout — BFF يمسح الـ cookies
 export const logout = async () => {
   try {
     await fetch('/api/auth/logout', { method: 'POST' });
@@ -68,7 +62,6 @@ export const logout = async () => {
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
 
-// ✅ Refresh — BFF يتولى قراءة الـ refresh cookie وإرجاع access token جديد
 export const refreshAccessToken = async (): Promise<string | null> => {
   if (isRefreshing) {
     return new Promise(resolve => { refreshQueue.push(resolve); });
@@ -77,7 +70,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
   try {
     const res = await fetch('/api/auth/refresh', {
       method:      'POST',
-      credentials: 'include', // يبعت الـ cookies تلقائياً
+      credentials: 'include',
     });
     if (!res.ok) {
       await logout();
@@ -100,7 +93,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
   }
 };
 
-// ✅ fetchWithAuth — الـ cookies بتتبعت تلقائياً مع credentials: 'include'
 export const fetchWithAuth = async (
   url: string,
   options: RequestInit = {}
@@ -142,8 +134,8 @@ const _captureError = (message: string, data: Record<string, unknown>): void => 
         extra: data,
         tags:  { component: 'pi-auth', type: 'incomplete-payment' },
       });
-    }).catch(() => { /* Sentry optional */ });
-  } catch { /* Sentry optional */ }
+    }).catch(() => {});
+  } catch {}
 };
 
 const _reportResolved = (piPaymentId: string, via: string, action?: unknown): void => {
@@ -155,8 +147,8 @@ const _reportResolved = (piPaymentId: string, via: string, action?: unknown): vo
         level:    'info',
         data:     { piPaymentId, via, action },
       });
-    }).catch(() => { /* Sentry optional */ });
-  } catch { /* Sentry optional */ }
+    }).catch(() => {});
+  } catch {}
 };
 
 const _addBreadcrumb = (message: string, data: Record<string, unknown>): void => {
@@ -168,19 +160,27 @@ const _addBreadcrumb = (message: string, data: Record<string, unknown>): void =>
         level:    'warning',
         data,
       });
-    }).catch(() => { /* Sentry optional */ });
-  } catch { /* Sentry optional */ }
+    }).catch(() => {});
+  } catch {}
 };
 
-// ── Resolve Incomplete Payment ────────────────────────────
-const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
+// ── Resolve Incomplete Payment — بعد الـ login ────────────
+// ✅ بنحفظ الـ pending payment ID ونعالجه بعد الـ login
+let _pendingPaymentId: string | null = null;
+
+const handleIncompletePayment = (payment: unknown): void => {
   const p           = payment as { identifier?: string };
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
 
-  _addBreadcrumb('Incomplete payment detected', { piPaymentId });
+  // ✅ نحفظ الـ ID بس — مش بنبعت request دلوقتي
+  _pendingPaymentId = piPaymentId;
+  _addBreadcrumb('Incomplete payment detected — will resolve after login', { piPaymentId });
+};
 
-  // ── Step 1: Backend resolve-incomplete ───────────────────
+// ✅ بيتكال بعد الـ login عشان يكون فيه cookie
+const resolveIncompleteAfterLogin = async (piPaymentId: string): Promise<void> => {
+  // ── Step 1: Backend ──────────────────────────────────────
   try {
     const res = await fetch('/api/payment/resolve-incomplete', {
       method:      'POST',
@@ -198,7 +198,7 @@ const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
     _captureError('resolve-incomplete network error', { piPaymentId, error: String(err) });
   }
 
-  // ── Step 2: SDK resolve fallback ─────────────────────────
+  // ── Step 2: SDK ───────────────────────────────────────────
   try {
     const result = await sdk.payment.resolveIncomplete(piPaymentId);
     _reportResolved(piPaymentId, 'sdk', result?.status);
@@ -207,7 +207,7 @@ const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
     _captureError('SDK resolve failed', { piPaymentId, error: String(sdkErr) });
   }
 
-  // ── Step 3: Cancel via backend ───────────────────────────
+  // ── Step 3: Cancel ────────────────────────────────────────
   try {
     const res = await fetch('/api/payment/cancel', {
       method:      'POST',
@@ -221,15 +221,8 @@ const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
       _captureError('All recovery attempts failed', { piPaymentId, cancelStatus: res.status });
     }
   } catch (err) {
-    _captureError('Cancel network error — payment requires manual review', {
-      piPaymentId,
-      error: String(err),
-    });
+    _captureError('Cancel network error', { piPaymentId, error: String(err) });
   }
-};
-
-const handleIncompletePayment = (payment: unknown): void => {
-  void resolveIncompletePayment(payment);
 };
 
 // ── SDK Wait ──────────────────────────────────────────────
@@ -289,9 +282,11 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
     throw new Error(ERRORS.NOT_PI_BROWSER);
   }
 
+  // ✅ reset pending payment
+  _pendingPaymentId = null;
+
   const piAuth = await authenticateWithTimeout();
 
-  // ✅ BFF route يضبط الـ HttpOnly cookies
   const res = await fetch('/api/auth/pi-login', {
     method:      'POST',
     credentials: 'include',
@@ -305,7 +300,13 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
 
   const data = await res.json();
 
-  _registerFCMToken(piAuth.accessToken).catch(() => { /* ignore */ });
+  // ✅ الآن فيه cookie — نعالج الـ incomplete payment
+  if (_pendingPaymentId) {
+    void resolveIncompleteAfterLogin(_pendingPaymentId);
+    _pendingPaymentId = null;
+  }
+
+  _registerFCMToken(piAuth.accessToken).catch(() => {});
 
   return {
     success:   data.success,
@@ -319,8 +320,8 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
       createdAt:        data.user.createdAt,
     },
     tokens: {
-      accessToken:  '', // مش بنكشفه للـ client — في HttpOnly cookie
-      refreshToken: '', // مش بنكشفه للـ client — في HttpOnly cookie
+      accessToken:  '',
+      refreshToken: '',
     },
   };
 };
@@ -338,5 +339,5 @@ const _registerFCMToken = async (accessToken: string): Promise<void> => {
       headers:     { 'Content-Type': 'application/json' },
       body:        JSON.stringify({ token: fcmToken, platform: 'web' }),
     });
-  } catch { /* non-blocking */ }
+  } catch {}
 };

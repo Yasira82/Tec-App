@@ -36,62 +36,62 @@ export const isPiBrowser = (): boolean => {
   return typeof window.Pi !== 'undefined' && typeof window.Pi.authenticate === 'function';
 };
 
-export const getAccessToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  try { return localStorage.getItem('tec_access_token'); } catch { return null; }
-};
+// ✅ Token في HttpOnly cookie — مش accessible من JS
+// الـ BFF routes بترسله تلقائياً مع كل request
+export const getAccessToken = (): string | null => null;
 
-export const getRefreshToken = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  try { return localStorage.getItem('tec_refresh_token'); } catch { return null; }
-};
+// ✅ Refresh token في HttpOnly cookie — BFF يتعامل معاه
+export const getRefreshToken = (): string | null => null;
 
+// ✅ User info من cookie مش HttpOnly
 export const getStoredUser = () => {
   if (typeof window === 'undefined') return null;
   try {
-    const userData = localStorage.getItem('tec_user');
-    return userData ? JSON.parse(userData) : null;
+    const match = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('tec_user='));
+    if (!match) return null;
+    return JSON.parse(decodeURIComponent(match.split('=')[1]));
   } catch { return null; }
 };
 
-export const logout = () => {
+// ✅ Logout — BFF يمسح الـ cookies
+export const logout = async () => {
   try {
-    localStorage.removeItem('tec_access_token');
-    localStorage.removeItem('tec_refresh_token');
-    localStorage.removeItem('tec_user');
+    await fetch('/api/auth/logout', { method: 'POST' });
     sdk.clearAuthToken();
   } catch (err) {
-    console.error('[Pi Auth] Failed to clear localStorage:', err);
+    console.error('[Pi Auth] Logout failed:', err);
   }
 };
 
 let isRefreshing = false;
 let refreshQueue: Array<(token: string | null) => void> = [];
 
+// ✅ Refresh — BFF يتولى قراءة الـ refresh cookie وإرجاع access token جديد
 export const refreshAccessToken = async (): Promise<string | null> => {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) { logout(); return null; }
   if (isRefreshing) {
     return new Promise(resolve => { refreshQueue.push(resolve); });
   }
   isRefreshing = true;
   try {
-    const res            = await sdk.auth.refreshToken();
-    const newAccessToken = res.token;
-    if (!newAccessToken) {
-      logout();
+    const res = await fetch('/api/auth/refresh', {
+      method:      'POST',
+      credentials: 'include', // يبعت الـ cookies تلقائياً
+    });
+    if (!res.ok) {
+      await logout();
       refreshQueue.forEach(cb => cb(null));
       refreshQueue = [];
       return null;
     }
-    localStorage.setItem('tec_access_token', newAccessToken);
-    sdk.setAuthToken(newAccessToken);
-    refreshQueue.forEach(cb => cb(newAccessToken));
+    const data = await res.json();
+    refreshQueue.forEach(cb => cb(data.token ?? null));
     refreshQueue = [];
-    return newAccessToken;
+    return data.token ?? null;
   } catch (err) {
     console.error('[Pi Auth] Refresh failed:', err);
-    logout();
+    await logout();
     refreshQueue.forEach(cb => cb(null));
     refreshQueue = [];
     return null;
@@ -100,21 +100,23 @@ export const refreshAccessToken = async (): Promise<string | null> => {
   }
 };
 
+// ✅ fetchWithAuth — الـ cookies بتتبعت تلقائياً مع credentials: 'include'
 export const fetchWithAuth = async (
   url: string,
   options: RequestInit = {}
 ): Promise<Response> => {
-  const token = getAccessToken();
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-    ...(options.headers as Record<string, string> ?? {}),
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-  const res = await fetch(url, { ...options, headers });
+  const res = await fetch(url, {
+    ...options,
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.headers as Record<string, string> ?? {}),
+    },
+  });
   if (res.status === 401) {
     const newToken = await refreshAccessToken();
     if (!newToken) return res;
-    return fetch(url, { ...options, headers: { ...headers, Authorization: `Bearer ${newToken}` } });
+    return fetch(url, { ...options, credentials: 'include' });
   }
   return res;
 };
@@ -122,8 +124,6 @@ export const fetchWithAuth = async (
 export const resolvePendingPayment = async (
   piPaymentId: string
 ): Promise<{ action: string } | null> => {
-  const token = getAccessToken();
-  if (!token) return null;
   try {
     await sdk.payment.resolveIncomplete(piPaymentId);
     return { action: 'resolved' };
@@ -178,40 +178,24 @@ const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
 
-  // ── Report detection to Sentry ───────────────────────────
   _addBreadcrumb('Incomplete payment detected', { piPaymentId });
-
-  const token = getAccessToken();
-  if (!token) {
-    _captureError('Incomplete payment — no auth token', { piPaymentId });
-    return;
-  }
 
   // ── Step 1: Backend resolve-incomplete ───────────────────
   try {
-    const res  = await fetch('/api/payment/resolve-incomplete', {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization:  `Bearer ${token}`,
-      },
-      body: JSON.stringify({ pi_payment_id: piPaymentId }),
+    const res = await fetch('/api/payment/resolve-incomplete', {
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body:        JSON.stringify({ pi_payment_id: piPaymentId }),
     });
     const data = await res.json();
     if (res.ok) {
       _reportResolved(piPaymentId, 'backend', data?.action);
       return;
     }
-    _captureError('resolve-incomplete backend failed', {
-      piPaymentId,
-      status: res.status,
-      data,
-    });
+    _captureError('resolve-incomplete backend failed', { piPaymentId, status: res.status, data });
   } catch (err) {
-    _captureError('resolve-incomplete network error', {
-      piPaymentId,
-      error: String(err),
-    });
+    _captureError('resolve-incomplete network error', { piPaymentId, error: String(err) });
   }
 
   // ── Step 2: SDK resolve fallback ─────────────────────────
@@ -220,29 +204,21 @@ const resolveIncompletePayment = async (payment: unknown): Promise<void> => {
     _reportResolved(piPaymentId, 'sdk', result?.status);
     return;
   } catch (sdkErr) {
-    _captureError('SDK resolve failed', {
-      piPaymentId,
-      error: String(sdkErr),
-    });
+    _captureError('SDK resolve failed', { piPaymentId, error: String(sdkErr) });
   }
 
   // ── Step 3: Cancel via backend ───────────────────────────
   try {
     const res = await fetch('/api/payment/cancel', {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization:  `Bearer ${token}`,
-      },
-      body: JSON.stringify({ pi_payment_id: piPaymentId }),
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body:        JSON.stringify({ pi_payment_id: piPaymentId }),
     });
     if (res.ok) {
       _reportResolved(piPaymentId, 'cancel');
     } else {
-      _captureError('All recovery attempts failed', {
-        piPaymentId,
-        cancelStatus: res.status,
-      });
+      _captureError('All recovery attempts failed', { piPaymentId, cancelStatus: res.status });
     }
   } catch (err) {
     _captureError('Cancel network error — payment requires manual review', {
@@ -312,33 +288,39 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
   if (!isPiBrowser()) {
     throw new Error(ERRORS.NOT_PI_BROWSER);
   }
-  const piAuth   = await authenticateWithTimeout();
-  const response = await sdk.auth.loginWithPi(piAuth.accessToken);
-  try {
-    localStorage.setItem('tec_access_token',  response.tokens.accessToken);
-    localStorage.setItem('tec_refresh_token', response.tokens.refreshToken);
-    localStorage.setItem('tec_user',          JSON.stringify(response.user));
-    sdk.setAuthToken(response.tokens.accessToken);
-  } catch {
+
+  const piAuth = await authenticateWithTimeout();
+
+  // ✅ BFF route يضبط الـ HttpOnly cookies
+  const res = await fetch('/api/auth/pi-login', {
+    method:      'POST',
+    credentials: 'include',
+    headers:     { 'Content-Type': 'application/json' },
+    body:        JSON.stringify({ accessToken: piAuth.accessToken }),
+  });
+
+  if (!res.ok) {
     throw new Error(ERRORS.SAVE_FAILED);
   }
 
-  _registerFCMToken(response.tokens.accessToken).catch(() => { /* ignore */ });
+  const data = await res.json();
+
+  _registerFCMToken(piAuth.accessToken).catch(() => { /* ignore */ });
 
   return {
-    success:   response.success,
-    isNewUser: response.isNewUser,
+    success:   data.success,
+    isNewUser: data.isNewUser,
     user: {
-      id:               response.user.id,
-      piId:             response.user.piId,
-      piUsername:       response.user.piUsername,
-      role:             response.user.role,
-      subscriptionPlan: response.user.subscriptionPlan,
-      createdAt:        response.user.createdAt,
+      id:               data.user.id,
+      piId:             data.user.piId,
+      piUsername:       data.user.piUsername,
+      role:             data.user.role,
+      subscriptionPlan: data.user.subscriptionPlan,
+      createdAt:        data.user.createdAt,
     },
     tokens: {
-      accessToken:  response.tokens.accessToken,
-      refreshToken: response.tokens.refreshToken,
+      accessToken:  '', // مش بنكشفه للـ client — في HttpOnly cookie
+      refreshToken: '', // مش بنكشفه للـ client — في HttpOnly cookie
     },
   };
 };
@@ -351,12 +333,10 @@ const _registerFCMToken = async (accessToken: string): Promise<void> => {
     if (!fcmToken) return;
 
     await fetch('/api/notifications/device-tokens', {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization:  `Bearer ${accessToken}`,
-      },
-      body: JSON.stringify({ token: fcmToken, platform: 'web' }),
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body:        JSON.stringify({ token: fcmToken, platform: 'web' }),
     });
   } catch { /* non-blocking */ }
 };

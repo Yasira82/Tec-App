@@ -16,7 +16,7 @@ interface AuthState {
 export const usePiAuth = () => {
   const [state, setState] = useState<AuthState>({
     user:            null,
-    isLoading:       true,   // ← كان false — ده كان السبب
+    isLoading:       true,
     isAuthenticated: false,
     isNewUser:       false,
     error:           null,
@@ -37,10 +37,14 @@ export const usePiAuth = () => {
     setState(prev => ({ ...prev, isLoading: true, error: null, errorType: null }));
     try {
       const result = await loginWithPi();
+
+      // ✅ بعد الـ cookie migration — الـ user بييجي من response مش من cookie
+      const user = result.user ?? getStoredUser();
+
       setState(prev => ({
         ...prev,
-        user:            result.user,
-        isAuthenticated: true,
+        user,
+        isAuthenticated: !!user,
         isNewUser:       result.isNewUser,
         isLoading:       false,
         error:           null,
@@ -67,8 +71,8 @@ export const usePiAuth = () => {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    piLogout();
+  const logout = useCallback(async () => {
+    await piLogout();
     setState(prev => ({
       ...prev,
       user:            null,

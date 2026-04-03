@@ -1,11 +1,3 @@
-/**
- * Tests for the 3-step incomplete payment recovery in pi-auth.ts
- *
- * Flow:
- *   Step 1 → POST /api/payment/resolve-incomplete  (backend + Pi API)
- *   Step 2 → sdk.payment.resolveIncomplete()        (SDK fallback)
- *   Step 3 → POST /api/payment/cancel              (last resort)
- */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('@/lib/firebase', () => ({
@@ -15,7 +7,7 @@ vi.mock('@/lib/firebase', () => ({
 vi.mock('@/lib/sdk', () => ({
   default: {
     auth: {
-      loginWithPi: vi.fn(),
+      loginWithPi:  vi.fn(),
       refreshToken: vi.fn(),
     },
     payment: {
@@ -33,18 +25,40 @@ vi.mock('@/lib/sdk', () => ({
 import sdk from '@/lib/sdk';
 import { loginWithPi } from '@/lib-client/pi/pi-auth';
 
-const MOCK_AUTH_RESPONSE = {
-  success: true,
+const MOCK_LOGIN_RESPONSE = {
+  success:   true,
   isNewUser: false,
-  tokens: { accessToken: 'access-tok', refreshToken: 'refresh-tok' },
   user: {
-    id: 'u1',
-    piId: 'pi-uid',
-    piUsername: 'tester',
-    role: 'user',
+    id:               'u1',
+    piId:             'pi-uid',
+    piUsername:       'tester',
+    role:             'user',
     subscriptionPlan: null,
-    createdAt: '2024-01-01',
+    createdAt:        '2024-01-01',
   },
+};
+
+// ✅ Helper — يعمل mock للـ /api/auth/pi-login دايماً
+const mockFetch = (overrides: Record<string, Response> = {}) => {
+  return vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+    const u = String(url);
+
+    // ✅ pi-login دايماً ينجح
+    if (u.includes('/api/auth/pi-login')) {
+      return {
+        ok:   true,
+        status: 200,
+        json: async () => MOCK_LOGIN_RESPONSE,
+      } as Response;
+    }
+
+    // Custom overrides
+    for (const [pattern, response] of Object.entries(overrides)) {
+      if (u.includes(pattern)) return response;
+    }
+
+    return { ok: false, status: 404, json: async () => ({}) } as Response;
+  });
 };
 
 const setupWindow = (incompletePayment?: unknown) => {
@@ -56,30 +70,27 @@ const setupWindow = (incompletePayment?: unknown) => {
         if (incompletePayment) onIncomplete(incompletePayment);
         return Promise.resolve({
           accessToken: 'pi-test-token',
-          user: { username: 'tester', uid: 'pi-uid' },
+          user:        { username: 'tester', uid: 'pi-uid' },
         });
       }
     ),
     createPayment: vi.fn(),
-    init: vi.fn(),
+    init:          vi.fn(),
   };
 };
 
 describe('pi-auth: incomplete payment recovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(sdk.auth.loginWithPi).mockResolvedValue(MOCK_AUTH_RESPONSE as any);
-    // Pre-set token so recovery flow doesn't short-circuit on missing token
-    localStorage.setItem('tec_access_token', 'test-token');
   });
 
   it('stops at Step 1 when backend resolves payment (200)', async () => {
     setupWindow({ identifier: 'pi_pay_123' });
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
-      if (String(url).includes('/api/payment/resolve-incomplete'))
-        return { ok: true, status: 200, json: async () => ({ action: 'resolved' }) } as Response;
-      return { ok: false, status: 404, json: async () => ({}) } as Response;
+    const fetchSpy = mockFetch({
+      '/api/payment/resolve-incomplete': {
+        ok: true, status: 200, json: async () => ({ action: 'resolved' }),
+      } as Response,
     });
 
     await loginWithPi();
@@ -98,10 +109,10 @@ describe('pi-auth: incomplete payment recovery', () => {
   it('falls to Step 2 (SDK) when backend returns non-ok', async () => {
     setupWindow({ identifier: 'pi_pay_456' });
 
-    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
-      if (String(url).includes('/api/payment/resolve-incomplete'))
-        return { ok: false, status: 500, json: async () => ({ error: 'Server error' }) } as Response;
-      return { ok: false, status: 404, json: async () => ({}) } as Response;
+    mockFetch({
+      '/api/payment/resolve-incomplete': {
+        ok: false, status: 500, json: async () => ({ error: 'Server error' }),
+      } as Response,
     });
     vi.mocked(sdk.payment.resolveIncomplete).mockResolvedValue(undefined as any);
 
@@ -116,7 +127,10 @@ describe('pi-auth: incomplete payment recovery', () => {
 
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
       const u = String(url);
-      if (u.includes('/api/payment/resolve-incomplete')) throw new Error('Network error');
+      if (u.includes('/api/auth/pi-login'))
+        return { ok: true, status: 200, json: async () => MOCK_LOGIN_RESPONSE } as Response;
+      if (u.includes('/api/payment/resolve-incomplete'))
+        throw new Error('Network error');
       if (u.includes('/api/payment/cancel'))
         return { ok: true, status: 200, json: async () => ({ action: 'cancelled' }) } as Response;
       return { ok: false, status: 404, json: async () => ({}) } as Response;
@@ -135,13 +149,11 @@ describe('pi-auth: incomplete payment recovery', () => {
     });
   });
 
-  it('skips recovery entirely when no access token is stored', async () => {
-    localStorage.clear(); // no token
-    setupWindow({ identifier: 'pi_pay_999' });
+  it('skips recovery entirely when no incomplete payment', async () => {
+    // مفيش incompletePayment — الـ callback مش بيتكال
+    setupWindow();
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true, status: 200, json: async () => ({}),
-    } as Response);
+    const fetchSpy = mockFetch();
 
     await loginWithPi();
     await new Promise(r => setTimeout(r, 10));

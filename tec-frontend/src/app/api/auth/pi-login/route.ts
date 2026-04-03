@@ -29,31 +29,31 @@ export async function POST(req: NextRequest) {
       user:      data.user,
     });
 
-    const isProd     = process.env.NODE_ENV === 'production';
     const maxAge     = 60 * 60 * 24;      // 24h
     const refreshAge = 60 * 60 * 24 * 7; // 7d
 
-    // ✅ sameSite: 'lax' — يسمح بقراءة الـ cookie بعد redirect
+    // ✅ تم التعديل: sameSite أصبحت 'none' و secure أصبحت 'true' دائماً 
+    // هذا ضروري جداً لكي يقبل متصفح Pi Network (Webview) حفظ وإرسال الكوكيز
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: true,
-      secure:   isProd,
-      sameSite: 'lax',
+      secure:   true, 
+      sameSite: 'none',
       maxAge,
       path:     '/',
     });
 
     res.cookies.set('tec_refresh_token', data.tokens.refreshToken, {
       httpOnly: true,
-      secure:   isProd,
-      sameSite: 'lax',
+      secure:   true,
+      sameSite: 'none',
       maxAge:   refreshAge,
       path:     '/',
     });
 
     res.cookies.set('tec_user', JSON.stringify(data.user), {
       httpOnly: false,
-      secure:   isProd,
-      sameSite: 'lax',
+      secure:   true,
+      sameSite: 'none',
       maxAge,
       path:     '/',
     });

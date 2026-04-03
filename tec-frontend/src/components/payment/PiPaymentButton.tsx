@@ -16,13 +16,13 @@ export default function PiPaymentButton() {
       const result = await loginWithPi();
 
       if (result?.success) {
-        // ✅ استخدم window.location بدل router.push
-        // عشان يعمل full page reload ويقرأ الـ cookies الجديدة
-        window.location.href = '/hub';
+        // ✅ تم التعديل: استخدام توجيه Next.js الأصلي مع تحديث البيانات
+        router.push('/hub');
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Authentication failed');
-      setLoading(false);
+      setLoading(false); // ✅ إيقاف الدائرة في حالة الخطأ
     }
   };
 

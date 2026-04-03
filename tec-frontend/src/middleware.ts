@@ -6,6 +6,7 @@ export function middleware(req: NextRequest) {
 
   const res = NextResponse.next();
   res.headers.set('x-pi-browser', isPiBrowser ? 'true' : 'false');
+
   return res;
 }
 

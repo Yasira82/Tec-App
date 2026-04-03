@@ -29,33 +29,31 @@ export async function POST(req: NextRequest) {
       user:      data.user,
     });
 
-    const isProd    = process.env.NODE_ENV === 'production';
-    const maxAge    = 60 * 60 * 24;        // 24h
-    const refreshAge = 60 * 60 * 24 * 7;  // 7d
+    const isProd     = process.env.NODE_ENV === 'production';
+    const maxAge     = 60 * 60 * 24;      // 24h
+    const refreshAge = 60 * 60 * 24 * 7; // 7d
 
-    // ✅ Access token → HttpOnly cookie
+    // ✅ sameSite: 'lax' — يسمح بقراءة الـ cookie بعد redirect
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: true,
       secure:   isProd,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge,
       path:     '/',
     });
 
-    // ✅ Refresh token → HttpOnly cookie
     res.cookies.set('tec_refresh_token', data.tokens.refreshToken, {
       httpOnly: true,
       secure:   isProd,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge:   refreshAge,
       path:     '/',
     });
 
-    // ✅ User info → readable cookie (not HttpOnly — UI needs it)
     res.cookies.set('tec_user', JSON.stringify(data.user), {
       httpOnly: false,
       secure:   isProd,
-      sameSite: 'strict',
+      sameSite: 'lax',
       maxAge,
       path:     '/',
     });

@@ -94,6 +94,50 @@ export function PiTestClient() {
     }
   }, [log]);
 
+  // NEW: Handle pending payment cancellation
+  const handleCancelPending = async () => {
+    log('info', 'Checking for pending payments...');
+    try {
+      if (!isPiBrowser()) {
+        throw new Error('Not inside Pi Browser');
+      }
+      
+      // Call authenticate specifically to trigger the onIncompletePaymentFound callback
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await window.Pi.authenticate(
+        ['username', 'payments'],
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        async (payment: any) => {
+          const paymentId = payment?.identifier;
+          if (!paymentId) return;
+          
+          log('warn', `Found pending payment: ${paymentId}. Cancelling...`);
+          
+          try {
+            const res = await fetch('/api/payment/cancel', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pi_payment_id: paymentId })
+            });
+            
+            if (res.ok) {
+              log('success', `✅ Payment ${paymentId} cancelled successfully!`);
+            } else {
+              const data = await res.json().catch(() => ({}));
+              log('error', `❌ Failed to cancel backend: ${data.error || res.status}`);
+            }
+          } catch (err) {
+            log('error', `❌ Network error cancelling payment: ${String(err)}`);
+          }
+        }
+      );
+      
+      log('info', 'Check complete. (If no warning appeared above, there are no pending payments)');
+    } catch (err) {
+      log('error', `Auth/Check failed: ${String(err)}`);
+    }
+  };
+
   const handlePayment = useCallback(async () => {
     if (authStatus !== 'done') {
       log('warn', 'Authenticate first before testing payment');
@@ -181,6 +225,27 @@ export function PiTestClient() {
         )}
       </section>
 
+      {/* Pending Payments Recovery */}
+      <section style={{ marginBottom: 24, padding: '16px', border: '1px solid #e67e22', borderRadius: '8px' }}>
+        <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Stuck / Pending Payments</h2>
+        <p style={{ fontSize: '0.85rem', marginBottom: '12px' }}>
+          If you have a "pending payment needs to be handled" error, click here to resolve it:
+        </p>
+        <button
+          onClick={handleCancelPending}
+          style={{
+            padding: '8px 18px',
+            backgroundColor: '#e67e22',
+            color: 'white',
+            border: 'none',
+            borderRadius: 6,
+            cursor: 'pointer',
+          }}
+        >
+          Check & Cancel Pending Payments
+        </button>
+      </section>
+
       {/* Payment section */}
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment (0.001 Pi)</h2>
@@ -240,4 +305,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-        }
+}

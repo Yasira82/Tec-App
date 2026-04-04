@@ -98,7 +98,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Fixes for ESLint & Idempotency)
+  // Handle pending payment cancellation (Uses resolve-incomplete, TS clean)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -113,14 +113,14 @@ export function PiTestClient() {
           const paymentId = piPayment?.identifier;
           if (!paymentId) return;
           
-          log('warn', `Found pending payment: ${paymentId}. Cancelling...`);
+          log('warn', `Found pending payment: ${paymentId}. Resolving...`);
           
           try {
             const token = localStorage.getItem('tec_access_token') || 
                           localStorage.getItem('TEC_ACCESS_TOKEN') || 
                           localStorage.getItem('tec-access-token');
             
-            // Generate Idempotency-Key
+            // احتياطياً هنضيف Idempotency-Key في حال إن الـ Gateway طلبته في بعض المسارات
             const idempotencyKey = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
               ? crypto.randomUUID() 
               : `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -134,20 +134,22 @@ export function PiTestClient() {
               headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const res = await fetch('/api/payment/cancel', {
+            // بنستخدم مسار resolve-incomplete المخصص لحل مشاكل باي المعلقة
+            const res = await fetch('/api/payment/resolve-incomplete', {
               method: 'POST',
               headers,
-              body: JSON.stringify({ pi_payment_id: paymentId, payment_id: paymentId })
+              body: JSON.stringify({ pi_payment_id: paymentId })
             });
             
             if (res.ok) {
-              log('success', `✅ Payment ${paymentId} cancelled successfully!`);
+              const data = await res.json().catch(() => ({}));
+              log('success', `✅ Payment ${paymentId} resolved successfully! Action: ${data.data?.action || 'cleared'}`);
             } else {
               const data = await res.json().catch(() => ({}));
-              log('error', `❌ Failed to cancel backend: ${JSON.stringify(data)} (Status: ${res.status})`);
+              log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);
             }
           } catch (err) {
-            log('error', `❌ Network error cancelling payment: ${String(err)}`);
+            log('error', `❌ Network error resolving payment: ${String(err)}`);
           }
         }
       );

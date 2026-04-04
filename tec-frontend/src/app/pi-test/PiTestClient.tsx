@@ -94,7 +94,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // NEW: Handle pending payment cancellation
+  // Handle pending payment cancellation (Updated to pass token & stringify error)
   const handleCancelPending = async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -102,7 +102,6 @@ export function PiTestClient() {
         throw new Error('Not inside Pi Browser');
       }
       
-      // Call authenticate specifically to trigger the onIncompletePaymentFound callback
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await window.Pi.authenticate(
         ['username', 'payments'],
@@ -114,17 +113,28 @@ export function PiTestClient() {
           log('warn', `Found pending payment: ${paymentId}. Cancelling...`);
           
           try {
+            // محاولة جلب التوكن من أي مفتاح محتمل
+            const token = localStorage.getItem('tec_access_token') || 
+                          localStorage.getItem('TEC_ACCESS_TOKEN') || 
+                          localStorage.getItem('tec-access-token');
+                          
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) {
+              headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const res = await fetch('/api/payment/cancel', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ pi_payment_id: paymentId })
+              headers,
+              // نرسل pi_payment_id و payment_id معاً لأن بعض الباك اند يتطلب أحدهما
+              body: JSON.stringify({ pi_payment_id: paymentId, payment_id: paymentId })
             });
             
             if (res.ok) {
               log('success', `✅ Payment ${paymentId} cancelled successfully!`);
             } else {
               const data = await res.json().catch(() => ({}));
-              log('error', `❌ Failed to cancel backend: ${data.error || res.status}`);
+              log('error', `❌ Failed to cancel backend: ${JSON.stringify(data)} (Status: ${res.status})`);
             }
           } catch (err) {
             log('error', `❌ Network error cancelling payment: ${String(err)}`);
@@ -305,4 +315,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-}
+        }

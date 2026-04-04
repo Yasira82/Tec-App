@@ -6,10 +6,6 @@ import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 type LogEntry = { ts: string; type: 'info' | 'success' | 'error' | 'warn'; msg: string };
 
-interface PiPaymentResponse {
-  identifier?: string;
-}
-
 function timestamp() {
   return new Date().toISOString().replace('T', ' ').slice(0, 23);
 }
@@ -22,7 +18,13 @@ export function PiTestClient() {
   const [sdkReady, setSdkReady] = useState<boolean | null>(null);
 
   const log = useCallback((type: LogEntry['type'], msg: string) => {
-    console[type === 'error' ? 'error' : type === 'warn' ? 'warn' : 'log'](`[Pi Test] ${msg}`);
+    if (type === 'error') {
+      console.error(`[Pi Test] ${msg}`);
+    } else if (type === 'warn') {
+      console.warn(`[Pi Test] ${msg}`);
+    } else {
+      console.log(`[Pi Test] ${msg}`);
+    }
     setLogs(prev => [...prev, { ts: timestamp(), type, msg }]);
   }, []);
 
@@ -98,7 +100,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Uses resolve-incomplete, TS clean)
+  // Handle pending payment cancellation (Uses resolve-incomplete, completely TS clean)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -109,8 +111,10 @@ export function PiTestClient() {
       await window.Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
-          const piPayment = payment as PiPaymentResponse;
-          const paymentId = piPayment?.identifier;
+          // Safe type casting for unknown object
+          const piPayment = payment as Record<string, unknown> | null;
+          const paymentId = piPayment?.identifier as string | undefined;
+          
           if (!paymentId) return;
           
           log('warn', `Found pending payment: ${paymentId}. Resolving...`);
@@ -120,7 +124,6 @@ export function PiTestClient() {
                           localStorage.getItem('TEC_ACCESS_TOKEN') || 
                           localStorage.getItem('tec-access-token');
             
-            // احتياطياً هنضيف Idempotency-Key في حال إن الـ Gateway طلبته في بعض المسارات
             const idempotencyKey = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
               ? crypto.randomUUID() 
               : `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -134,7 +137,6 @@ export function PiTestClient() {
               headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // بنستخدم مسار resolve-incomplete المخصص لحل مشاكل باي المعلقة
             const res = await fetch('/api/payment/resolve-incomplete', {
               method: 'POST',
               headers,
@@ -165,7 +167,7 @@ export function PiTestClient() {
       log('warn', 'Authenticate first before testing payment');
       return;
     }
-    log('info', 'Creating payment (amount: 0.001 Pi, memo: "TEC sandbox test")…');
+    log('info', 'Creating payment (amount: 1 Pi, memo: "TEC sandbox test")…');
     setPayStatus('loading');
 
     const onDiagnostic = (type: string, message: string, data?: unknown) => {
@@ -178,7 +180,7 @@ export function PiTestClient() {
 
     try {
       const result = await createU2APayment(
-        0.001,
+        1, // 🔥 تم التغيير لـ 1 Pi
         'TEC sandbox test',
         { source: 'pi-test-page' },
         onDiagnostic,
@@ -270,7 +272,7 @@ export function PiTestClient() {
 
       {/* Payment section */}
       <section style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment (0.001 Pi)</h2>
+        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment (1 Pi)</h2>
         <button
           onClick={handlePayment}
           disabled={authStatus !== 'done' || payStatus === 'loading'}
@@ -280,7 +282,7 @@ export function PiTestClient() {
             opacity: authStatus !== 'done' ? 0.5 : 1,
           }}
         >
-          {payStatus === 'loading' ? 'Processing…' : 'Pay 0.001 Pi (test)'}
+          {payStatus === 'loading' ? 'Processing…' : 'Pay 1 Pi (test)'}
         </button>
         {payStatus === 'done' && <span style={{ marginLeft: 12, color: '#2a9a4e' }}>✅ Payment complete!</span>}
         {payStatus === 'cancelled' && <span style={{ marginLeft: 12, color: '#e67e22' }}>⚠️ Cancelled</span>}

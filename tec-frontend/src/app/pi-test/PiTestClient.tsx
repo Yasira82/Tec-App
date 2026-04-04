@@ -6,6 +6,10 @@ import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 type LogEntry = { ts: string; type: 'info' | 'success' | 'error' | 'warn'; msg: string };
 
+interface PiPaymentResponse {
+  identifier?: string;
+}
+
 function timestamp() {
   return new Date().toISOString().replace('T', ' ').slice(0, 23);
 }
@@ -94,31 +98,38 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Updated to pass token & stringify error)
-  const handleCancelPending = async () => {
+  // Handle pending payment cancellation (Fixes for ESLint & Idempotency)
+  const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
-      if (!isPiBrowser()) {
+      if (!isPiBrowser() || !window.Pi) {
         throw new Error('Not inside Pi Browser');
       }
       
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       await window.Pi.authenticate(
         ['username', 'payments'],
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        async (payment: any) => {
-          const paymentId = payment?.identifier;
+        async (payment: unknown) => {
+          const piPayment = payment as PiPaymentResponse;
+          const paymentId = piPayment?.identifier;
           if (!paymentId) return;
           
           log('warn', `Found pending payment: ${paymentId}. Cancelling...`);
           
           try {
-            // محاولة جلب التوكن من أي مفتاح محتمل
             const token = localStorage.getItem('tec_access_token') || 
                           localStorage.getItem('TEC_ACCESS_TOKEN') || 
                           localStorage.getItem('tec-access-token');
-                          
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            
+            // Generate Idempotency-Key
+            const idempotencyKey = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+              ? crypto.randomUUID() 
+              : `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+              
+            const headers: Record<string, string> = { 
+              'Content-Type': 'application/json',
+              'Idempotency-Key': idempotencyKey
+            };
+            
             if (token) {
               headers['Authorization'] = `Bearer ${token}`;
             }
@@ -126,7 +137,6 @@ export function PiTestClient() {
             const res = await fetch('/api/payment/cancel', {
               method: 'POST',
               headers,
-              // نرسل pi_payment_id و payment_id معاً لأن بعض الباك اند يتطلب أحدهما
               body: JSON.stringify({ pi_payment_id: paymentId, payment_id: paymentId })
             });
             
@@ -146,7 +156,7 @@ export function PiTestClient() {
     } catch (err) {
       log('error', `Auth/Check failed: ${String(err)}`);
     }
-  };
+  }, [log]);
 
   const handlePayment = useCallback(async () => {
     if (authStatus !== 'done') {
@@ -315,4 +325,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-        }
+}

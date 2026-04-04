@@ -100,7 +100,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Uses resolve-incomplete, completely TS clean)
+  // Handle pending payment cancellation (Uses resolve-incomplete, TS clean + SDK native clear)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -111,13 +111,12 @@ export function PiTestClient() {
       await window.Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
-          // Safe type casting for unknown object
           const piPayment = payment as Record<string, unknown> | null;
           const paymentId = piPayment?.identifier as string | undefined;
           
           if (!paymentId) return;
           
-          log('warn', `Found pending payment: ${paymentId}. Resolving...`);
+          log('warn', `Found pending payment: ${paymentId}. Resolving on backend...`);
           
           try {
             const token = localStorage.getItem('tec_access_token') || 
@@ -145,7 +144,29 @@ export function PiTestClient() {
             
             if (res.ok) {
               const data = await res.json().catch(() => ({}));
-              log('success', `✅ Payment ${paymentId} resolved successfully! Action: ${data.data?.action || 'cleared'}`);
+              log('success', `✅ Backend resolved payment! Action: ${data.data?.action || 'cleared'}`);
+              
+              // Clear state directly on Pi SDK
+              try {
+                  log('info', 'Clearing payment state from Pi SDK...');
+                  window.Pi.createPayment({
+                    amount: 0.001,
+                    memo: "Clear pending state",
+                    metadata: { type: "clear_pending" }
+                  }, {
+                    onReadyForServerApproval: () => {},
+                    onReadyForServerCompletion: () => {},
+                    onCancel: () => {
+                      log('success', 'Pi SDK state cleared (cancelled).');
+                    },
+                    onError: (err) => {
+                      log('warn', `Pi SDK error during clear (expected if already cleared): ${err.message}`);
+                    }
+                  });
+              } catch (e) {
+                 log('warn', `Could not clear SDK natively: ${String(e)}`);
+              }
+
             } else {
               const data = await res.json().catch(() => ({}));
               log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);
@@ -180,7 +201,7 @@ export function PiTestClient() {
 
     try {
       const result = await createU2APayment(
-        1, // 🔥 تم التغيير لـ 1 Pi
+        1,
         'TEC sandbox test',
         { source: 'pi-test-page' },
         onDiagnostic,
@@ -253,7 +274,7 @@ export function PiTestClient() {
       <section style={{ marginBottom: 24, padding: '16px', border: '1px solid #e67e22', borderRadius: '8px' }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Stuck / Pending Payments</h2>
         <p style={{ fontSize: '0.85rem', marginBottom: '12px' }}>
-          If you have a "pending payment needs to be handled" error, click here to resolve it:
+          If you have a &quot;pending payment needs to be handled&quot; error, click here to resolve it:
         </p>
         <button
           onClick={handleCancelPending}
@@ -266,7 +287,7 @@ export function PiTestClient() {
             cursor: 'pointer',
           }}
         >
-          Check & Cancel Pending Payments
+          Check &amp; Cancel Pending Payments
         </button>
       </section>
 

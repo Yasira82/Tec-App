@@ -104,10 +104,10 @@ export const createU2APayment = async (
   if (userId) {
     try {
       onDiagnostic?.('info', `Creating payment record`, { userId, amount });
-      const token = getAccessToken();
       const res = await fetch(`/api/payment/create`, {
-        method:  'POST',
-        headers: buildHeaders(token),
+        method:      'POST',
+        credentials: 'include',
+        headers:     buildHeaders(),
         body: JSON.stringify({
           userId,
           amount,
@@ -179,10 +179,10 @@ export const createU2APayment = async (
           }
 
           try {
-            const token = getAccessToken();
             const res = await fetch(`/api/payment/approve`, {
-              method:  'POST',
-              headers: buildHeaders(token),
+              method:      'POST',
+              credentials: 'include',
+              headers:     buildHeaders(),
               body: JSON.stringify({
                 payment_id:    internalId,
                 pi_payment_id: piPaymentId,
@@ -222,10 +222,10 @@ export const createU2APayment = async (
           }
 
           try {
-            const token = getAccessToken();
             const res = await fetch(`/api/payment/complete`, {
-              method:  'POST',
-              headers: buildHeaders(token),
+              method:      'POST',
+              credentials: 'include',
+              headers:     buildHeaders(),
               body: JSON.stringify({
                 payment_id:     internalId,
                 transaction_id: txid,

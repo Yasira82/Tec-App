@@ -100,7 +100,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Uses resolve-incomplete, TS clean + SDK native clear)
+  // Handle pending payment cancellation safely (No loops, no dummy payments)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -145,28 +145,7 @@ export function PiTestClient() {
             if (res.ok) {
               const data = await res.json().catch(() => ({}));
               log('success', `✅ Backend resolved payment! Action: ${data.data?.action || 'cleared'}`);
-              
-              // Clear state directly on Pi SDK
-              try {
-                  log('info', 'Clearing payment state from Pi SDK...');
-                  window.Pi.createPayment({
-                    amount: 0.001,
-                    memo: "Clear pending state",
-                    metadata: { type: "clear_pending" }
-                  }, {
-                    onReadyForServerApproval: () => {},
-                    onReadyForServerCompletion: () => {},
-                    onCancel: () => {
-                      log('success', 'Pi SDK state cleared (cancelled).');
-                    },
-                    onError: (err) => {
-                      log('warn', `Pi SDK error during clear (expected if already cleared): ${err.message}`);
-                    }
-                  });
-              } catch (e) {
-                 log('warn', `Could not clear SDK natively: ${String(e)}`);
-              }
-
+              log('info', `⚠️ IMPORTANT: The payment is cancelled on our servers. To clear the Pi Browser cache, please completely close the Pi Browser app, reopen it, and try again.`);
             } else {
               const data = await res.json().catch(() => ({}));
               log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);
@@ -201,7 +180,7 @@ export function PiTestClient() {
 
     try {
       const result = await createU2APayment(
-        1,
+        1, 
         'TEC sandbox test',
         { source: 'pi-test-page' },
         onDiagnostic,

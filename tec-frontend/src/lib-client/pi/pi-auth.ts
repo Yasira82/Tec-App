@@ -46,7 +46,8 @@ export const getStoredUser = () => {
       .split('; ')
       .find(row => row.startsWith('tec_user='));
     if (!match) return null;
-    return JSON.parse(decodeURIComponent(match.split('=')[1]));
+    const value = match.substring(match.indexOf('=') + 1);
+    return JSON.parse(decodeURIComponent(value));
   } catch { return null; }
 };
 

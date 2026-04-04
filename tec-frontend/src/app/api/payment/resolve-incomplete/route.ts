@@ -6,7 +6,7 @@ export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
   try {
     const body = await req.json();
-    const res  = await fetch(`${GATEWAY}/api/payment/resolve-incomplete`, {
+    const res  = await fetch(`${GATEWAY}/api/v1/payment/resolve-incomplete`, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',

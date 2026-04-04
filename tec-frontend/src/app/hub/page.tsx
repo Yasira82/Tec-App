@@ -41,11 +41,6 @@ export default function HubPage() {
   const [payState,   setPayState]   = useState<PayState>('idle');
   const [payMsg,     setPayMsg]     = useState('');
   const [txid,       setTxid]       = useState('');
-  const [token,      setToken]      = useState<string | null>(null);
-
-  useEffect(() => {
-    setToken(localStorage.getItem('tec_access_token'));
-  }, []);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/');
@@ -60,9 +55,8 @@ export default function HubPage() {
 
   const refreshBalance = useCallback(() => {
     if (!user?.id) return;
-    const t = localStorage.getItem('tec_access_token');
     fetch(`/api/wallet/balance?userId=${user.id}`, {
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      credentials: 'include',
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
@@ -71,9 +65,8 @@ export default function HubPage() {
 
   const refreshAssets = useCallback(() => {
     if (!user?.id) return;
-    const t = localStorage.getItem('tec_access_token');
     fetch(`/api/assets?userId=${user.id}`, {
-      headers: t ? { Authorization: `Bearer ${t}` } : {},
+      credentials: 'include',
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
@@ -88,7 +81,7 @@ export default function HubPage() {
   // ── WebSocket realtime notifications ──
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
     userId: user?.id,
-    token,
+    token:  null,
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 

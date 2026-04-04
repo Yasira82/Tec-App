@@ -100,7 +100,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Uses /complete with dummy UUID to bypass validation)
+  // Handle pending payment cancellation (Uses the dedicated /resolve endpoint)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -125,46 +125,33 @@ export function PiTestClient() {
                           localStorage.getItem('TEC_ACCESS_TOKEN') || 
                           localStorage.getItem('tec-access-token');
             
-            const idempotencyKey = typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
-              ? crypto.randomUUID() 
-              : `idem-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-              
             const headers: Record<string, string> = { 
-              'Content-Type': 'application/json',
-              'Idempotency-Key': idempotencyKey
+              'Content-Type': 'application/json'
             };
             
             if (token) {
               headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // If there's a txid, Pi Network REQUIRES a /complete request, not a /cancel or resolve-incomplete
-            // We use a dummy UUID for 'payment_id' just to pass the backend validation
-            const endpoint = txid ? '/api/payment/complete' : '/api/payment/cancel';
-            const dummyUUID = "00000000-0000-0000-0000-000000000000";
-            
-            const bodyData = txid 
-              ? { pi_payment_id: piPaymentId, transaction_id: txid, payment_id: dummyUUID }
-              : { pi_payment_id: piPaymentId, payment_id: dummyUUID };
+            log('info', `Calling backend /api/payment/resolve ...`);
 
-            log('info', `Calling backend ${endpoint} ...`);
-
-            const res = await fetch(endpoint, {
+            // Use the dedicated resolve endpoint that directly targets the pi_payment_id
+            const res = await fetch('/api/payment/resolve', {
               method: 'POST',
               headers,
-              body: JSON.stringify(bodyData)
+              body: JSON.stringify({ pi_payment_id: piPaymentId })
             });
             
             if (res.ok) {
-              log('success', `✅ Backend resolved payment via ${endpoint}!`);
+              log('success', `✅ Backend successfully requested resolution from Pi servers!`);
               log('info', `⚠️ IMPORTANT: To fully clear the lock, close Pi Browser entirely and reopen it.`);
             } else {
               const data = await res.json().catch(() => ({}));
               log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);
               
-              // Fallback to resolve-incomplete if /complete fails due to our dummy UUID hack
+              // Fallback to resolve-incomplete if the dedicated /resolve fails
               if (res.status >= 400 && res.status < 500) {
-                 log('info', `Attempting fallback to /resolve-incomplete...`);
+                 log('info', `Attempting fallback to /api/payment/resolve-incomplete...`);
                  await fetch('/api/payment/resolve-incomplete', {
                     method: 'POST',
                     headers,

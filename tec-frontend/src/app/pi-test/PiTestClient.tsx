@@ -100,7 +100,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Uses Exact SDK Logic: Complete if txid exists, Cancel if not)
+  // Handle pending payment cancellation using the specialized resolve-incomplete endpoint
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -111,7 +111,6 @@ export function PiTestClient() {
       await window.Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
-          // Safe TS casting without 'any'
           const piPayment = payment as Record<string, unknown> | null;
           const piPaymentId = piPayment?.identifier as string | undefined;
           const transaction = piPayment?.transaction as Record<string, unknown> | undefined;
@@ -139,22 +138,23 @@ export function PiTestClient() {
               headers['Authorization'] = `Bearer ${token}`;
             }
 
-            // Decide whether to complete or cancel based on presence of txid (Exact SDK behavior)
-            const endpoint = txid ? '/api/payment/complete' : '/api/payment/cancel';
-            const bodyData = txid 
-              ? { pi_payment_id: piPaymentId, transaction_id: txid, payment_id: piPaymentId }
-              : { pi_payment_id: piPaymentId, payment_id: piPaymentId };
+            // Using resolve-incomplete since it doesn't strictly require an internal UUID
+            const bodyData = { 
+              pi_payment_id: piPaymentId,
+              transaction_id: txid 
+            };
 
-            log('info', `Calling backend ${endpoint} ...`);
+            log('info', `Calling backend /api/payment/resolve-incomplete ...`);
 
-            const res = await fetch(endpoint, {
+            const res = await fetch('/api/payment/resolve-incomplete', {
               method: 'POST',
               headers,
               body: JSON.stringify(bodyData)
             });
             
             if (res.ok) {
-              log('success', `✅ Backend resolved payment via ${endpoint}!`);
+              const data = await res.json().catch(() => ({}));
+              log('success', `✅ Backend resolved payment via resolve-incomplete! Action: ${data.data?.action || 'resolved'}`);
               log('info', `⚠️ IMPORTANT: To fully clear the lock, close Pi Browser entirely and reopen it.`);
             } else {
               const data = await res.json().catch(() => ({}));

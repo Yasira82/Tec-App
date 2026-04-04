@@ -100,7 +100,7 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation safely (No loops, no dummy payments)
+  // Handle pending payment cancellation (Uses Exact SDK Logic: Complete if txid exists, Cancel if not)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -111,12 +111,15 @@ export function PiTestClient() {
       await window.Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
+          // Safe TS casting without 'any'
           const piPayment = payment as Record<string, unknown> | null;
-          const paymentId = piPayment?.identifier as string | undefined;
+          const piPaymentId = piPayment?.identifier as string | undefined;
+          const transaction = piPayment?.transaction as Record<string, unknown> | undefined;
+          const txid = transaction?.txid as string | undefined;
           
-          if (!paymentId) return;
+          if (!piPaymentId) return;
           
-          log('warn', `Found pending payment: ${paymentId}. Resolving on backend...`);
+          log('warn', `Found pending payment: ${piPaymentId}. txid: ${txid ? txid : 'none'}. Resolving...`);
           
           try {
             const token = localStorage.getItem('tec_access_token') || 
@@ -136,16 +139,23 @@ export function PiTestClient() {
               headers['Authorization'] = `Bearer ${token}`;
             }
 
-            const res = await fetch('/api/payment/resolve-incomplete', {
+            // Decide whether to complete or cancel based on presence of txid (Exact SDK behavior)
+            const endpoint = txid ? '/api/payment/complete' : '/api/payment/cancel';
+            const bodyData = txid 
+              ? { pi_payment_id: piPaymentId, transaction_id: txid, payment_id: piPaymentId }
+              : { pi_payment_id: piPaymentId, payment_id: piPaymentId };
+
+            log('info', `Calling backend ${endpoint} ...`);
+
+            const res = await fetch(endpoint, {
               method: 'POST',
               headers,
-              body: JSON.stringify({ pi_payment_id: paymentId })
+              body: JSON.stringify(bodyData)
             });
             
             if (res.ok) {
-              const data = await res.json().catch(() => ({}));
-              log('success', `✅ Backend resolved payment! Action: ${data.data?.action || 'cleared'}`);
-              log('info', `⚠️ IMPORTANT: The payment is cancelled on our servers. To clear the Pi Browser cache, please completely close the Pi Browser app, reopen it, and try again.`);
+              log('success', `✅ Backend resolved payment via ${endpoint}!`);
+              log('info', `⚠️ IMPORTANT: To fully clear the lock, close Pi Browser entirely and reopen it.`);
             } else {
               const data = await res.json().catch(() => ({}));
               log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);

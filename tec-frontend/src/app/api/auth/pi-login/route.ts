@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID }                from 'crypto';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { accessToken } = body;
+    const { accessToken, csrfToken } = body;
 
     if (!accessToken) {
       return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
@@ -29,14 +30,13 @@ export async function POST(req: NextRequest) {
       user:      data.user,
     });
 
-    const maxAge     = 60 * 60 * 24;      // 24h
-    const refreshAge = 60 * 60 * 24 * 7; // 7d
+    const maxAge     = 60 * 60 * 24;
+    const refreshAge = 60 * 60 * 24 * 7;
 
-    // ✅ تم التعديل: sameSite أصبحت 'none' و secure أصبحت 'true' دائماً 
-    // هذا ضروري جداً لكي يقبل متصفح Pi Network (Webview) حفظ وإرسال الكوكيز
+    // ✅ sameSite: 'none' ضروري للـ Pi Browser WebView
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: true,
-      secure:   true, 
+      secure:   true,
       sameSite: 'none',
       maxAge,
       path:     '/',
@@ -52,6 +52,16 @@ export async function POST(req: NextRequest) {
 
     res.cookies.set('tec_user', JSON.stringify(data.user), {
       httpOnly: false,
+      secure:   true,
+      sameSite: 'none',
+      maxAge,
+      path:     '/',
+    });
+
+    // ✅ CSRF double-submit token — يعوّض عن sameSite: 'none'
+    const csrf = randomUUID();
+    res.cookies.set('tec_csrf', csrf, {
+      httpOnly: false, // readable من JS عشان نبعته في الـ header
       secure:   true,
       sameSite: 'none',
       maxAge,

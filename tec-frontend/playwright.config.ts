@@ -31,10 +31,13 @@ export default defineConfig({
     },
   ],
 
-  webServer: process.env.CI ? undefined : {
-    command: 'npm run dev',
+  // Start a local server only when no external base URL is provided.
+  // In CI the app is already built, so use `next start` (production server).
+  // Locally, use `next dev` for fast iteration.
+  webServer: process.env.PLAYWRIGHT_BASE_URL ? undefined : {
+    command: process.env.CI ? 'npm run start' : 'npm run dev',
     url:     'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 60000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
   },
 });

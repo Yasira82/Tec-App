@@ -92,17 +92,28 @@ describe('pi-payment', () => {
       expect(result.status).toBe('cancelled');
     });
 
-    it('completes full flow', async () => {
-      const mock = setupWindow();
-      const p = createU2APayment(1, 'Test');
-      await vi.waitFor(() => expect(mock).toHaveBeenCalled());
-      const cb = mock.mock.calls[0][1];
-      await cb.onReadyForServerApproval('pi-pay-1');
-      await cb.onReadyForServerCompletion('pi-pay-1', 'txid-abc');
-      const result = await p;
-      expect(result.success).toBe(true);
-      expect(result.status).toBe('completed');
-    });
+   it('completes full flow', async () => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+    const u = String(url);
+    if (u.includes('payment/create'))
+      return { ok: true, status: 200, json: async () => ({ data: { id: 'internal-id' } }) } as Response;
+    if (u.includes('payment/approve'))
+      return { ok: true, status: 200, json: async () => ({}) } as Response;
+    if (u.includes('payment/complete'))
+      return { ok: true, status: 200, json: async () => ({ success: true, status: 'completed', amount: 1, memo: 'Test' }) } as Response;
+    return { ok: false, status: 404, json: async () => ({}) } as Response;
+  });
+
+  const mock = setupWindow();
+  const p = createU2APayment(1, 'Test');
+  await vi.waitFor(() => expect(mock).toHaveBeenCalled());
+  const cb = mock.mock.calls[0][1];
+  await cb.onReadyForServerApproval('pi-pay-1');
+  await cb.onReadyForServerCompletion('pi-pay-1', 'txid-abc');
+  const result = await p;
+  expect(result.success).toBe(true);
+  expect(result.status).toBe('completed');
+}); 
 
     it('passes transaction_id not txid', async () => {
       // Mock fetch to set internalId so the complete fetch is actually called

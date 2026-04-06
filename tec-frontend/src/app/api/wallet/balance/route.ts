@@ -2,21 +2,36 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
+// دالة مساعدة لاستخراج الـ userId من الكوكي
+function getUserIdFromCookie(req: NextRequest): string | null {
+  try {
+    const raw = req.cookies.get('tec_user')?.value;
+    if (!raw) return null;
+    const decoded = decodeURIComponent(raw);
+    const user = JSON.parse(decoded);
+    return user?.id ?? user?.uid ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
+  
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const userId = req.nextUrl.searchParams.get('userId');
+  // ✅ الأولوية للكوكي، ثم الـ searchParams كاحتياطي
+  const userId = getUserIdFromCookie(req) || req.nextUrl.searchParams.get('userId');
+
   if (!userId) {
-    return NextResponse.json({ error: 'userId required' }, { status: 400 });
+    return NextResponse.json({ error: 'userId required (missing tec_user cookie)' }, { status: 400 });
   }
 
   try {
-    // ← /api/wallets?userId= بدل /api/wallets/balance
     const res = await fetch(
-      `${GATEWAY}/api/wallets?userId=${userId}`,
+      `${GATEWAY}/api/wallets?userId=${encodeURIComponent(userId)}`,
       {
         headers: {
           Authorization:  authHeader,
@@ -34,9 +49,6 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json();
-
-    // الـ wallet service بيرجع { success, data: { wallets: [] } }
-    // نجيب الـ primary wallet
     const wallets = data?.data?.wallets ?? [];
     const primary = wallets.find((w: any) => w.is_primary) ?? wallets[0];
 

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { isE2eMode, e2eStub } from '@/lib/server/e2e-mode';
+import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -9,6 +11,7 @@ export async function POST(request: Request) {
     if (!authHeader?.startsWith('Bearer ')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    if (isE2eMode()) return e2eStub(503, { route: '/api/payment/approve', method: 'POST' });
 
     const body = await request.json();
     const { payment_id, pi_payment_id } = body;
@@ -19,7 +22,7 @@ export async function POST(request: Request) {
 
     const idempotencyKey = randomUUID();
 
-    const res = await fetch(`${GATEWAY}/api/payments/approve`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/approve`, {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',
@@ -29,7 +32,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({ payment_id, pi_payment_id }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
     console.error('[Approve Route] Error:', error);

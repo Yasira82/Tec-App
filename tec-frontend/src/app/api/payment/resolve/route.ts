@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { isE2eMode, e2eStub } from '@/lib/server/e2e-mode';
+import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -8,9 +10,10 @@ export async function POST(request: Request) {
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (isE2eMode()) return e2eStub(503, { route: '/api/payment/resolve', method: 'POST' });
   try {
     const { pi_payment_id } = await request.json();
-    const res = await fetch(`${GATEWAY}/api/payments/resolve/${pi_payment_id}`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/resolve/${pi_payment_id}`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',

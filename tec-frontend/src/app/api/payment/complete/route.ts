@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { isE2eMode, e2eStub } from '@/lib/server/e2e-mode';
+import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -8,11 +10,12 @@ export async function POST(req: NextRequest) {
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (isE2eMode()) return e2eStub(503, { route: '/api/payment/complete', method: 'POST' });
   try {
     const body           = await req.json();
     const idempotencyKey = randomUUID();
 
-    const res = await fetch(`${GATEWAY}/api/payments/complete`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/complete`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',
@@ -21,7 +24,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });

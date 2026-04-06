@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isE2eMode, e2eStub } from '@/lib/server/e2e-mode';
+import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -21,6 +23,7 @@ export async function GET(req: NextRequest) {
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  if (isE2eMode()) return e2eStub(503, { route: '/api/wallet/balance', method: 'GET' });
 
   // ✅ الأولوية للكوكي، ثم الـ searchParams كاحتياطي
   const userId = getUserIdFromCookie(req) || req.nextUrl.searchParams.get('userId');
@@ -30,7 +33,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${GATEWAY}/api/wallets?userId=${encodeURIComponent(userId)}`,
       {
         headers: {
@@ -48,7 +51,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     const wallets = data?.data?.wallets ?? [];
     const primary = wallets.find((w: any) => w.is_primary) ?? wallets[0];
 

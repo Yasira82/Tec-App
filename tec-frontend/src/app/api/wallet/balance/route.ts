@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { isE2eMode } from '@/lib/server/e2e-mode';
+import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -17,9 +19,16 @@ function getUserIdFromCookie(req: NextRequest): string | null {
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
-  
+
   if (!authHeader?.startsWith('Bearer ')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  if (isE2eMode()) {
+    return NextResponse.json(
+      { balance: 0, currency: 'PI', address: null },
+      { status: 200 },
+    );
   }
 
   // ✅ الأولوية للكوكي، ثم الـ searchParams كاحتياطي
@@ -30,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await fetchWithTimeout(
       `${GATEWAY}/api/wallets?userId=${encodeURIComponent(userId)}`,
       {
         headers: {
@@ -48,9 +57,9 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     const wallets = data?.data?.wallets ?? [];
-    const primary = wallets.find((w: any) => w.is_primary) ?? wallets[0];
+    const primary = wallets.find((w: { is_primary?: boolean }) => w.is_primary) ?? wallets[0];
 
     return NextResponse.json({
       balance:  primary ? Number(primary.balance) : 0,

@@ -1,27 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID }                from 'crypto';
+import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { accessToken, csrfToken } = body;
+    const { accessToken } = body;
 
     if (!accessToken) {
       return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
     }
 
-    const backendRes = await fetch(`${GATEWAY}/api/v1/auth/pi-login`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ accessToken }),
-    });
+    // ✅ fetchWithTimeout — يمنع الـ 504 على Vercel
+    let backendRes: Response;
+    try {
+      backendRes = await fetchWithTimeout(
+        `${GATEWAY}/api/v1/auth/pi-login`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ accessToken }),
+        },
+        10000, // 10 ثانية — كافية للـ auth
+      );
+    } catch (timeoutErr) {
+      console.error('[pi-login] Gateway timeout:', timeoutErr);
+      return NextResponse.json(
+        { error: 'Auth service timeout — please try again' },
+        { status: 504 },
+      );
+    }
 
-    const data = await backendRes.json();
+    const data = await backendRes.json().catch(() => ({}));
 
     if (!backendRes.ok) {
       return NextResponse.json(data, { status: backendRes.status });
+    }
+
+    // ✅ Guard: لو tokens مش موجودين
+    if (!data.tokens?.accessToken || !data.tokens?.refreshToken) {
+      console.error('[pi-login] Missing tokens in backend response');
+      return NextResponse.json({ error: 'Invalid backend response' }, { status: 502 });
     }
 
     const res = NextResponse.json({
@@ -58,10 +79,10 @@ export async function POST(req: NextRequest) {
       path:     '/',
     });
 
-    // ✅ CSRF double-submit token — يعوّض عن sameSite: 'none'
+    // ✅ CSRF double-submit token
     const csrf = randomUUID();
     res.cookies.set('tec_csrf', csrf, {
-      httpOnly: false, // readable من JS عشان نبعته في الـ header
+      httpOnly: false,
       secure:   true,
       sameSite: 'none',
       maxAge,

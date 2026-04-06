@@ -31,10 +31,17 @@ export default defineConfig({
     },
   ],
 
-  webServer: process.env.CI ? undefined : {
-    command: 'npm run dev',
+  webServer: {
+    // 'npm run start' serves the pre-built app (.next/).
+    // The CI workflow builds the app before running this step.
+    // For local runs, build once with `npm run build` before `npm run test:e2e`.
+    command: 'npm run start',
     url:     'http://localhost:3000',
-    reuseExistingServer: true,
-    timeout: 60000,
+    reuseExistingServer: !process.env.CI,
+    timeout: 120000,
+    env: {
+      E2E_MODE:          'true',
+      E2E_ALLOW_NETWORK: 'false',
+    },
   },
 });

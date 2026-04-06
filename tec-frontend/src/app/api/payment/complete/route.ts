@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const body           = await req.json();
     const idempotencyKey = randomUUID();
 
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/complete`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/complete`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',

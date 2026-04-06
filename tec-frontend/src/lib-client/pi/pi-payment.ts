@@ -173,9 +173,10 @@ export const createU2APayment = async (
           }
 
           if (!internalId) {
-            onDiagnostic?.('warn', 'No internalId — skipping approve');
-            startCompletionTimer();
-            return;
+  onDiagnostic?.('error', 'No internalId — cannot approve payment');
+  clearPaymentTimer();
+  reject(new Error('Payment setup failed. Please try again.'));
+  return;
           }
 
           try {

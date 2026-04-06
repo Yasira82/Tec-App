@@ -28,7 +28,7 @@ export async function POST(request: Request) {
 
     const idempotencyKey = randomUUID();
 
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/approve`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',

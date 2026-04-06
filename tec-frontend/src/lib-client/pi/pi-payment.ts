@@ -118,7 +118,7 @@ export const createU2APayment = async (
       });
       if (res.ok) {
         const data = await res.json();
-        internalId = data?.data?.payment?.id ?? data?.data?.id ?? null;
+        internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? null;
         onDiagnostic?.('info', `Backend record created`, { internalId });
       } else {
         onDiagnostic?.('warn', `Backend create returned ${res.status} — proceeding`);

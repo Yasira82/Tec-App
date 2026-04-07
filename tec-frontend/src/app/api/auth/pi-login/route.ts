@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ accessToken }),
         },
-        10000, // 10 ثانية
+        25000, // 10 ثانية
       );
     } catch (timeoutErr) {
       console.error('[pi-login] Gateway timeout:', timeoutErr);

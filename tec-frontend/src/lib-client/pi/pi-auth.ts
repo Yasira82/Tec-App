@@ -36,7 +36,16 @@ export const isPiBrowser = (): boolean => {
   return typeof window.Pi !== 'undefined' && typeof window.Pi.authenticate === 'function';
 };
 
-export const getAccessToken = (): string | null => null;
+export const getAccessToken = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  try {
+    const match = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('tec_access_token='));
+    if (!match) return null;
+    return match.substring(match.indexOf('=') + 1);
+  } catch { return null; }
+};
 export const getRefreshToken = (): string | null => null;
 
 export const getStoredUser = () => {

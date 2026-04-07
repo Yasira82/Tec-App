@@ -1,31 +1,40 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
+import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const authHeader =
-  request.headers.get('Authorization') ??
-  request.headers.get('authorization') ??
-  (() => {
-    const req = request as unknown as import('next/server').NextRequest;
-    const raw = req.cookies?.get?.('tec_access_token')?.value;
-    return raw ? `Bearer ${raw}` : null;
-  })();
+    request.cookies.get('tec_access_token')?.value
+      ? `Bearer ${request.cookies.get('tec_access_token')!.value}`
+      : request.headers.get('Authorization') ??
+        request.headers.get('authorization');
 
-if (!authHeader?.startsWith('Bearer ')) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { pi_payment_id } = await request.json();
-    const res = await fetch(`${GATEWAY}/api/payments/resolve/${pi_payment_id}`, {
-      method:  'POST',
-      headers: {
-        'Content-Type':    'application/json',
-        Authorization:     authHeader,
-        'Idempotency-Key': randomUUID(),
+
+    if (!pi_payment_id) {
+      return NextResponse.json({ error: 'pi_payment_id required' }, { status: 400 });
+    }
+
+    const res = await fetchWithTimeout(
+      `${GATEWAY}/api/payments/resolve-incomplete`,
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type':    'application/json',
+          Authorization:     authHeader,
+          'Idempotency-Key': randomUUID(),
+        },
+        body: JSON.stringify({ pi_payment_id }),
       },
-    });
+    );
+
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {

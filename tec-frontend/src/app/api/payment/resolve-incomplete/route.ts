@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const res  = await fetchWithTimeout(`${GATEWAY}/api/v1/payment/resolve-incomplete`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/resolve-incomplete`, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',

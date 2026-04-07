@@ -47,7 +47,6 @@ export const getAccessToken = (): string | null => {
   } catch { return null; }
 };
 export const getRefreshToken = (): string | null => null;
-export const getRefreshToken = (): string | null => null;
 
 export const getStoredUser = () => {
   if (typeof window === 'undefined') return null;

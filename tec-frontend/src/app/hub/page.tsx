@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
 
@@ -56,8 +57,11 @@ export default function HubPage() {
   const refreshBalance = useCallback(() => {
     if (!user?.id) return;
     fetch(`/api/wallet/balance?userId=${user.id}`, {
-      credentials: 'include',
-    })
+  credentials: 'include',
+  headers: {
+    Authorization: `Bearer ${getAccessToken() ?? ''}`,
+  },
+})
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
       .catch(() => {});
@@ -66,8 +70,11 @@ export default function HubPage() {
   const refreshAssets = useCallback(() => {
     if (!user?.id) return;
     fetch(`/api/assets?userId=${user.id}`, {
-      credentials: 'include',
-    })
+  credentials: 'include',
+  headers: {
+    Authorization: `Bearer ${getAccessToken() ?? ''}`,
+  },
+})
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
       .catch(() => {});

@@ -99,7 +99,7 @@ export const createU2APayment = async (
 
   let internalId: string | null = null;
   const storedUser = getStoredUser();
-  const userId     = storedUser?.id ?? null;
+const userId     = storedUser?.id ?? storedUser?.piId ?? null;
 
   if (userId) {
     try {
@@ -109,7 +109,7 @@ export const createU2APayment = async (
         credentials: 'include',
         headers:     buildHeaders(),
         body: JSON.stringify({
-          userId,
+          userId: 'current',
           amount,
           currency:       'PI',
           payment_method: 'pi',

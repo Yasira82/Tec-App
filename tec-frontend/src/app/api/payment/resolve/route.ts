@@ -4,10 +4,18 @@ import { randomUUID } from 'crypto';
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(request: Request) {
-  const authHeader = request.headers.get('Authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authHeader =
+  request.headers.get('Authorization') ??
+  request.headers.get('authorization') ??
+  (() => {
+    const req = request as unknown as import('next/server').NextRequest;
+    const raw = req.cookies?.get?.('tec_access_token')?.value;
+    return raw ? `Bearer ${raw}` : null;
+  })();
+
+if (!authHeader?.startsWith('Bearer ')) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
   try {
     const { pi_payment_id } = await request.json();
     const res = await fetch(`${GATEWAY}/api/payments/resolve/${pi_payment_id}`, {

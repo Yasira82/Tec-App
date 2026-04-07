@@ -8,10 +8,17 @@ const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 const REQUIRED_FIELDS = ['userId', 'amount', 'currency', 'payment_method'] as const;
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  const authHeader =
+  req.headers.get('authorization') ??
+  req.headers.get('Authorization') ??
+  (() => {
+    const raw = req.cookies.get('tec_access_token')?.value;
+    return raw ? `Bearer ${raw}` : null;
+  })();
+
+if (!authHeader?.startsWith('Bearer ')) {
+  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+}
 
   // ── requestId — propagate أو أنشئ جديد ──────────────────
   const requestId = req.headers.get('x-request-id') ?? randomUUID();

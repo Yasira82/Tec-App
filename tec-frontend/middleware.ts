@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// ── Public pages — لا تحتاج login ──────────────────────
+const PUBLIC_PAGES = ['/', '/ai', '/opengraph-image'];
+
+// ── Protected pages — تحتاج tec_access_token ──────────
+const PROTECTED_PAGES = ['/hub', '/dashboard', '/dashboard/'];
+
+// ── Public API routes — لا تحتاج token ─────────────────
 const PUBLIC_PATHS = [
   '/api/auth/pi-login',
   '/api/auth/logout',
@@ -7,8 +14,7 @@ const PUBLIC_PATHS = [
   '/api/health',
 ];
 
-// CSRF protection for state-changing endpoints
-// Applies ONLY when tec_csrf cookie exists (browser session).
+// ── CSRF protected API routes ────────────────────────────
 const CSRF_PROTECTED = [
   '/api/payment/',
   '/api/wallet/',
@@ -16,11 +22,27 @@ const CSRF_PROTECTED = [
 ];
 
 export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
   const ua = req.headers.get('user-agent') ?? '';
   const isPiBrowser = ua.includes('PiBrowser') || ua.includes('Pi Network');
 
-  // ----- CSRF check (only for POST/PUT/PATCH/DELETE) -----
-  const needsCsrf = CSRF_PROTECTED.some((p) => req.nextUrl.pathname.startsWith(p));
+  // ── 1. Page protection — redirect بدون cookie ─────────
+  const isProtectedPage = PROTECTED_PAGES.some((p) =>
+    pathname === p || pathname.startsWith(p + '/') || (p.endsWith('/') && pathname.startsWith(p))
+  );
+
+  if (isProtectedPage) {
+    const token = req.cookies.get('tec_access_token')?.value;
+    if (!token) {
+      const loginUrl = req.nextUrl.clone();
+      loginUrl.pathname = '/';
+      loginUrl.search = '';
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  // ��─ 2. CSRF check (POST/PUT/PATCH/DELETE only) ─────────
+  const needsCsrf = CSRF_PROTECTED.some((p) => pathname.startsWith(p));
   const csrfCookie = req.cookies.get('tec_csrf')?.value;
 
   if (needsCsrf && csrfCookie && ['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)) {
@@ -33,34 +55,33 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // ----- Inject Authorization header into the *REQUEST* -----
+  // ── 3. Inject Authorization header into API requests ───
   const requestHeaders = new Headers(req.headers);
 
-  const isPublic = PUBLIC_PATHS.some((p) => req.nextUrl.pathname.startsWith(p));
-  if (!isPublic && req.nextUrl.pathname.startsWith('/api/')) {
+  const isPublicApi = PUBLIC_PATHS.some((p) => pathname.startsWith(p));
+  if (!isPublicApi && pathname.startsWith('/api/')) {
     const token = req.cookies.get('tec_access_token')?.value;
     if (token) {
-      // ✅ IMPORTANT: Inject into request headers, not response headers
       requestHeaders.set('Authorization', `Bearer ${token}`);
     }
   }
 
-  // Continue request with mutated headers
+  // ── 4. Continue ─────────────────────────────────────────
   const res = NextResponse.next({
-    request: {
-      headers: requestHeaders,
-    },
+    request: { headers: requestHeaders },
   });
 
-  // Add debug/info header on the response
   res.headers.set('x-pi-browser', isPiBrowser ? 'true' : 'false');
-
-  // Optional: useful for debugging cookie issues (can remove later)
-  // res.headers.set('x-has-tec-token', req.cookies.get('tec_access_token')?.value ? 'true' : 'false');
 
   return res;
 }
 
 export const config = {
-  matcher: ['/api/:path*'],
+  matcher: [
+    '/hub',
+    '/hub/:path*',
+    '/dashboard',
+    '/dashboard/:path*',
+    '/api/:path*',
+  ],
 };

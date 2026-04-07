@@ -46,6 +46,15 @@ export const getAccessToken = (): string | null => {
     return match.substring(match.indexOf('=') + 1);
   } catch { return null; }
 };
+  if (typeof window === 'undefined') return null;
+  try {
+    const match = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('tec_access_token='));
+    if (!match) return null;
+    return match.substring(match.indexOf('=') + 1);
+  } catch { return null; }
+};
 export const getRefreshToken = (): string | null => null;
 
 export const getStoredUser = () => {

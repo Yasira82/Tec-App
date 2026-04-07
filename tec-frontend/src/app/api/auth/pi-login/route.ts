@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
 
     // ✅ sameSite: 'none' ضروري للـ Pi Browser WebView
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
-      httpOnly: true,
+      httpOnly: false,
       secure:   true,
       sameSite: 'none',
       maxAge,

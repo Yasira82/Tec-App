@@ -22,10 +22,10 @@ export default function ProfilePage() {
   };
 
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      console.log('Delete account');
-    }
-  };
+  if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    // TODO: call DELETE /api/auth/profile
+  }
+};
 
   const copyId = () => {
     if (!user?.id) return;

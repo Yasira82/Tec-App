@@ -1,3 +1,5 @@
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
 vi.mock('@/lib/sdk', () => ({
   default: {
     clearAuthToken: vi.fn(),
@@ -9,15 +11,26 @@ vi.mock('@/lib/sdk', () => ({
 }));
 
 vi.mock('@/lib/request-id', () => ({
-  buildHeaders:    vi.fn(() => ({ 'Content-Type': 'application/json' })),
+  buildHeaders:      vi.fn(() => ({ 'Content-Type': 'application/json' })),
   generateRequestId: vi.fn(() => 'test-uuid'),
-  storeRequestId:  vi.fn(),
+  storeRequestId:    vi.fn(),
+}));
+
+vi.mock('../pi-auth', () => ({
+  isPiBrowser:    vi.fn(() => true),
+  getAccessToken: vi.fn(() => 'test-token'),
+  getStoredUser:  vi.fn(() => ({ id: 'user-1', piUsername: 'testuser' })),
+  getRefreshToken: vi.fn(() => null),
+  waitForPiSDK:   vi.fn(() => Promise.resolve()),
 }));
 
 import { testPiSDK } from '../pi-payment';
-import { vi }        from 'vitest';
 
 describe('pi-payment', () => {
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   describe('testPiSDK', () => {
     it('returns false when window.Pi is not defined', () => {

@@ -2,20 +2,22 @@
 
 import { useState, useCallback } from 'react';
 
+const isDev = process.env.NODE_ENV !== 'production';
+
 export interface DiagnosticEvent {
   timestamp: string;
-  type: 'sdk_init' | 'auth' | 'approval' | 'completion' | 'error' | 'cancel';
-  message: string;
-  data?: unknown;
+  type:      'sdk_init' | 'auth' | 'approval' | 'completion' | 'error' | 'cancel';
+  message:   string;
+  data?:     unknown;
 }
 
 export const useDiagnostics = () => {
   const [events, setEvents] = useState<DiagnosticEvent[]>([]);
 
   const addEvent = useCallback((
-    type: DiagnosticEvent['type'],
-    message: string,
-    data?: unknown
+    type:     DiagnosticEvent['type'],
+    message:  string,
+    data?:    unknown,
   ) => {
     const event: DiagnosticEvent = {
       timestamp: new Date().toISOString(),
@@ -24,15 +26,18 @@ export const useDiagnostics = () => {
       data,
     };
 
-    // Keep only last 100 events to prevent memory issues
     setEvents(prev => {
       const updated = [...prev, event];
       return updated.length > 100 ? updated.slice(-100) : updated;
     });
-    
-    // Also log to console for debugging
-    const icon = type === 'error' ? '❌' : type === 'approval' ? '✅' : type === 'completion' ? '✨' : '📋';
-    console.log(`[Diagnostics ${icon}] ${message}`, data || '');
+
+    if (isDev) {
+      const icon =
+        type === 'error'      ? '❌' :
+        type === 'approval'   ? '✅' :
+        type === 'completion' ? '✨' : '📋';
+      console.log(`[Diagnostics ${icon}] ${message}`, data ?? '');
+    }
   }, []);
 
   const clearEvents = useCallback(() => {

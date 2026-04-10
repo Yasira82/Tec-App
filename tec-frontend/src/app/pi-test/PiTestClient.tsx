@@ -17,16 +17,14 @@ export function PiTestClient() {
   const [username, setUsername] = useState<string | null>(null);
   const [sdkReady, setSdkReady] = useState<boolean | null>(null);
 
-  const log = useCallback((type: LogEntry['type'], msg: string) => {
-    if (type === 'error') {
-      console.error(`[Pi Test] ${msg}`);
-    } else if (type === 'warn') {
-      console.warn(`[Pi Test] ${msg}`);
-    } else {
-      console.log(`[Pi Test] ${msg}`);
+ const log = useCallback((type: LogEntry['type'], msg: string) => {
+    if (process.env.NODE_ENV !== 'production') {
+      if (type === 'error')     console.error(`[Pi Test] ${msg}`);
+      else if (type === 'warn') console.warn(`[Pi Test] ${msg}`);
+      else                      console.log(`[Pi Test] ${msg}`);
     }
     setLogs(prev => [...prev, { ts: timestamp(), type, msg }]);
-  }, []);
+  }, []); 
 
   // Detect SDK readiness
   useEffect(() => {

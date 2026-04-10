@@ -1,4 +1,15 @@
+// ✅ Mock sdk قبل أي import تاني
+vi.mock('@/lib/sdk', () => ({
+  default: {
+    clearAuthToken: vi.fn(),
+    payment: {
+      resolveIncomplete: vi.fn(),
+    },
+  },
+}));
+
 import { isPiBrowser, getAccessToken, getStoredUser, getRefreshToken } from '../pi-auth';
+import { vi } from 'vitest';
 
 describe('pi-auth', () => {
 
@@ -11,8 +22,8 @@ describe('pi-auth', () => {
 
     it('returns true when window.Pi.authenticate exists', () => {
       Object.defineProperty(window, 'Pi', {
-        value: { authenticate: jest.fn(), createPayment: jest.fn(), init: jest.fn() },
-        writable: true,
+        value:        { authenticate: vi.fn(), createPayment: vi.fn(), init: vi.fn() },
+        writable:     true,
         configurable: true,
       });
       expect(isPiBrowser()).toBe(true);
@@ -20,8 +31,8 @@ describe('pi-auth', () => {
 
     it('returns false when window.Pi.authenticate is not a function', () => {
       Object.defineProperty(window, 'Pi', {
-        value: { authenticate: 'not-a-function' },
-        writable: true,
+        value:        { authenticate: 'not-a-function' },
+        writable:     true,
         configurable: true,
       });
       expect(isPiBrowser()).toBe(false);
@@ -29,27 +40,23 @@ describe('pi-auth', () => {
   });
 
   describe('getRefreshToken', () => {
-    it('always returns null (refresh via httpOnly cookie)', () => {
+    it('always returns null', () => {
       expect(getRefreshToken()).toBeNull();
     });
   });
 
   describe('getAccessToken', () => {
-    beforeEach(() => {
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: '',
-      });
-    });
-
     it('returns null when cookie is not set', () => {
-      document.cookie = '';
+      Object.defineProperty(document, 'cookie', {
+        get:          () => '',
+        configurable: true,
+      });
       expect(getAccessToken()).toBeNull();
     });
 
     it('returns token when tec_access_token cookie exists', () => {
       Object.defineProperty(document, 'cookie', {
-        get: () => 'tec_access_token=my-access-token; other=value',
+        get:          () => 'tec_access_token=my-access-token; other=value',
         configurable: true,
       });
       expect(getAccessToken()).toBe('my-access-token');
@@ -57,7 +64,7 @@ describe('pi-auth', () => {
 
     it('returns null when only other cookies exist', () => {
       Object.defineProperty(document, 'cookie', {
-        get: () => 'other_cookie=some-value',
+        get:          () => 'other_cookie=some-value',
         configurable: true,
       });
       expect(getAccessToken()).toBeNull();
@@ -67,7 +74,7 @@ describe('pi-auth', () => {
   describe('getStoredUser', () => {
     it('returns null when tec_user cookie is not set', () => {
       Object.defineProperty(document, 'cookie', {
-        get: () => '',
+        get:          () => '',
         configurable: true,
       });
       expect(getStoredUser()).toBeNull();
@@ -76,7 +83,7 @@ describe('pi-auth', () => {
     it('returns parsed user when cookie exists', () => {
       const user = { id: 'user-1', piUsername: 'testuser' };
       Object.defineProperty(document, 'cookie', {
-        get: () => `tec_user=${encodeURIComponent(JSON.stringify(user))}`,
+        get:          () => `tec_user=${encodeURIComponent(JSON.stringify(user))}`,
         configurable: true,
       });
       expect(getStoredUser()).toEqual(user);
@@ -84,7 +91,7 @@ describe('pi-auth', () => {
 
     it('returns null when cookie value is invalid JSON', () => {
       Object.defineProperty(document, 'cookie', {
-        get: () => 'tec_user=invalid-json',
+        get:          () => 'tec_user=invalid-json',
         configurable: true,
       });
       expect(getStoredUser()).toBeNull();

@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 const PROTECTED_ROUTES = ['/hub', '/dashboard', '/profile', '/settings'];
 
@@ -12,10 +11,10 @@ export function middleware(req: NextRequest) {
 
   if (!isProtected) return NextResponse.next();
 
-  // ✅ P1-13: تحقق من الـ cookie
+  // ✅ تحقق من وجود الـ cookie فقط — الـ JWT validation في الـ backend
   const token = req.cookies.get('tec_access_token')?.value;
 
-  if (!token) {
+  if (!token || token.trim() === '') {
     const loginUrl = new URL('/', req.url);
     loginUrl.searchParams.set('redirect', pathname);
     return NextResponse.redirect(loginUrl);

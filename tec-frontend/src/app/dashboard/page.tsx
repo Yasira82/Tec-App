@@ -59,16 +59,15 @@ function formatDate(iso: string) {
 
 export default function DashboardPage() {
   const { user, isAuthenticated, isNewUser } = usePiAuth();
-  const { t } = useTranslation();
+  const { t }  = useTranslation();
+  const token  = getAccessToken(); // ✅ P1-2: من الـ cookie مش localStorage
+
   const [balance,        setBalance]        = useState<number | null>(null);
   const [payments,       setPayments]       = useState<Payment[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
-
-    // ✅ P1-2: من الـ cookie مش localStorage
-    const token = getAccessToken();
 
     // ── Balance — عبر BFF ────────────────────────────────────
     try {

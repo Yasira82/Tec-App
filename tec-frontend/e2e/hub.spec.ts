@@ -2,26 +2,39 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Hub Page (authenticated)', () => {
 
-  // موك الـ auth state
-  test.beforeEach(async ({ page }) => {
-    // Set mock auth tokens
-    await page.addInitScript(() => {
-      localStorage.setItem('tec_access_token', 'mock-test-token');
-      localStorage.setItem('tec_user', JSON.stringify({
-        id:         'afa10fec-aa5e-4455-b66e-24a3664ac983',
-        piId:       'e27efdd3-c891-4361-8fa5-5338ada467a9',
-        piUsername: 'yas55eR82',
-      }));
-    });
+  test.beforeEach(async ({ page, context }) => {
+    // ✅ Set mock auth cookie — middleware بيقرأ من cookie مش localStorage
+    await context.addCookies([
+      {
+        name:     'tec_access_token',
+        value:    'mock-test-token',
+        domain:   'localhost',
+        path:     '/',
+        secure:   false,
+        httpOnly: false,
+        sameSite: 'Lax',
+      },
+      {
+        name:     'tec_user',
+        value:    encodeURIComponent(JSON.stringify({
+          id:         'afa10fec-aa5e-4455-b66e-24a3664ac983',
+          piId:       'e27efdd3-c891-4361-8fa5-5338ada467a9',
+          piUsername: 'yas55eR82',
+        })),
+        domain:   'localhost',
+        path:     '/',
+        secure:   false,
+        httpOnly: false,
+        sameSite: 'Lax',
+      },
+    ]);
   });
 
   test('hub page has correct structure', async ({ page }) => {
     await page.goto('/hub');
     await page.waitForLoadState('networkidle');
 
-    // Either shows hub or redirects to login
     const url = page.url();
-    // Acceptable: hub loaded OR redirected to login
     expect(url).toMatch(/\/(hub|$)/);
   });
 

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
-import { useTranslation } from '@/lib/i18n';
-import PiIntegration from '@/components/PiIntegration';
-import { fetchWithAuth } from '@/lib-client/pi/pi-auth';
-import styles from './dashboard.module.css';
+import { usePiAuth }        from '@/lib-client/hooks/usePiAuth';
+import { useTranslation }   from '@/lib/i18n';
+import PiIntegration        from '@/components/PiIntegration';
+import { getAccessToken }   from '@/lib-client/pi/pi-auth';
+import { buildHeaders }     from '@/lib/request-id';
+import styles               from './dashboard.module.css';
 
 const TEC_APPS = [
   { name: 'Nexus',      domain: 'nexus.pi',      emoji: '🌐' },
@@ -63,45 +64,45 @@ export default function DashboardPage() {
   const [payments,       setPayments]       = useState<Payment[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
-  const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
-
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
 
-    // ── Balance ────────────────────────────────────────────────
-    try {
-      const token  = typeof window !== 'undefined'
-        ? localStorage.getItem('tec_access_token')
-        : null;
+    // ✅ P1-2: من الـ cookie مش localStorage
+    const token = getAccessToken();
 
+    // ── Balance — عبر BFF ────────────────────────────────────
+    try {
       const balRes = await fetch(`/api/wallet/balance?userId=${user.id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+        headers:     buildHeaders(token),
       });
 
       if (balRes.ok) {
         const balData = await balRes.json();
         setBalance(balData.balance ?? 0);
       }
-    } catch (err) {
-      console.error('Balance fetch error:', err);
+    } catch {
+      // silent
     }
 
-    // ── Payment history ────────────────────────────────────────
+    // ── Payment history — عبر BFF مش Gateway مباشرة ─────────
     try {
       setHistoryLoading(true);
-      const histRes = await fetchWithAuth(
-        `${gatewayUrl}/api/payments/history?limit=5&sort=desc`,
-      );
+      // ✅ P1-3: /api/... مش ${gatewayUrl}/api/...
+      const histRes = await fetch('/api/payments/history?limit=5&sort=desc', {
+        credentials: 'include',
+        headers:     buildHeaders(token),
+      });
       if (histRes.ok) {
         const histData = await histRes.json();
         setPayments(histData?.data?.payments ?? []);
       }
-    } catch (err) {
-      console.error('History fetch error:', err);
+    } catch {
+      // silent
     } finally {
       setHistoryLoading(false);
     }
-  }, [user?.id, isAuthenticated, gatewayUrl]);
+  }, [user?.id, isAuthenticated, token]);
 
   useEffect(() => {
     fetchData();
@@ -255,9 +256,8 @@ export default function DashboardPage() {
               <span className={styles.appSoon}>{t.common.comingSoon}</span>
             </div>
           ))}
-
         </div>
       </section>
     </>
   );
-          }
+}

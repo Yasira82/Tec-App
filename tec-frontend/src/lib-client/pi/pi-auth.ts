@@ -349,5 +349,10 @@ const _registerFCMToken = async (accessToken: string): Promise<void> => {
       headers:     { 'Content-Type': 'application/json' },
       body:        JSON.stringify({ token: fcmToken, platform: 'web' }),
     });
-  } catch {}
+  } catch (err: unknown) {
+    // ✅ P2-4: log بدل empty catch
+    if (process.env.NODE_ENV !== 'production') {
+      console.warn('[Pi Auth] FCM token registration failed:', (err as Error).message);
+    }
+  }
 };

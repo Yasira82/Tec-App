@@ -8,10 +8,38 @@ interface Message {
   content: string;
 }
 
+// ── Rate Limiter ──────────────────────────────────────────
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT   = 20;
+const RATE_WINDOW  = 60_000;
+
+function checkRateLimit(ip: string): boolean {
+  const now   = Date.now();
+  const entry = rateLimitMap.get(ip);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= RATE_LIMIT) return false;
+    entry.count++;
+  } else {
+    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+  }
+  return true;
+}
+
+// ── CORS ──────────────────────────────────────────────────
+function getCorsHeaders(req: NextRequest) {
+  const origin    = req.headers.get('origin') || '';
+  const isAllowed = origin.endsWith('.vercel.app') || origin.startsWith('http://localhost');
+  return {
+    'Access-Control-Allow-Origin':  isAllowed ? origin : '',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  };
+}
+
 const buildSystemPrompt = (userContext?: {
   username?: string;
-  balance?: number;
-  locale?: string;
+  balance?:  number;
+  locale?:   string;
 }) => `${TEC_SYSTEM_PROMPT}
 
 ## CURRENT USER CONTEXT
@@ -20,98 +48,83 @@ ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toF
 ${userContext?.locale ? `- Language preference: ${userContext.locale === 'ar' ? 'Arabic' : 'English'}` : ''}
 `;
 
-function getCorsHeaders(req: NextRequest) {
-  const origin = req.headers.get('origin') || '';
-  const isAllowed = origin.endsWith('.vercel.app') || origin.startsWith('http://localhost');
-  return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : '*',
-    'Access-Control-Allow-Methods': 'POST, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  };
-}
-
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
-    status: 204,
+    status:  204,
     headers: getCorsHeaders(req),
   });
 }
 
-// ── 1️⃣ Claude (Anthropic) ─────────────────────────────────────────────────────
+// ── 1️⃣ Claude ────────────────────────────────────────────
 const callClaude = async (
-  messages: Message[],
+  messages:     Message[],
   systemPrompt: string,
-  apiKey: string
+  apiKey:       string,
 ): Promise<Response> => {
   return fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
+    method:  'POST',
     headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
+      'Content-Type':      'application/json',
+      'x-api-key':         apiKey,
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-3-5-sonnet-20240620',
+      model:      'claude-3-5-sonnet-20240620',
       max_tokens: 1024,
-      system: systemPrompt,
+      system:     systemPrompt,
       messages,
-      stream: true,
+      stream:     true,
     }),
   });
 };
 
-// ── 2️⃣ Groq (Free) ────────────────────────────────────────────────────────────
+// ── 2️⃣ Groq ──────────────────────────────────────────────
 const callGroq = async (
-  messages: Message[],
+  messages:     Message[],
   systemPrompt: string,
-  apiKey: string
+  apiKey:       string,
 ): Promise<Response> => {
   return fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
+    method:  'POST',
     headers: {
-      'Content-Type': 'application/json',
+      'Content-Type':  'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: 'llama-3.3-70b-versatile',
+      model:      'llama-3.3-70b-versatile',
       max_tokens: 1024,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...messages,
-      ],
-      stream: true,
+      messages:   [{ role: 'system', content: systemPrompt }, ...messages],
+      stream:     true,
     }),
   });
 };
 
-// ── 3️⃣ Gemini (Free) ──────────────────────────────────────────────────────────
+// ── 3️⃣ Gemini ────────────────────────────────────────────
 const callGemini = async (
-  messages: Message[],
+  messages:     Message[],
   systemPrompt: string,
-  apiKey: string
+  apiKey:       string,
 ): Promise<Response> => {
-  // Convert messages to Gemini format
   const geminiMessages = messages.map(m => ({
-    role: m.role === 'assistant' ? 'model' : 'user',
+    role:  m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
   }));
 
-  // Using alt=sse ensures we get a stream of SSE events instead of a raw JSON array
   return fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
-      method: 'POST',
+      method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: geminiMessages,
-        generationConfig: { maxOutputTokens: 1024 },
+        contents:           geminiMessages,
+        generationConfig:   { maxOutputTokens: 1024 },
       }),
-    }
+    },
   );
 };
 
-// ── Transform Stream for Unified Output ────────────────────────────────────────
+// ── Unified Stream Transform ──────────────────────────────
 function createUnifiedStream(provider: string) {
   const decoder = new TextDecoder('utf-8');
   const encoder = new TextEncoder();
@@ -119,17 +132,14 @@ function createUnifiedStream(provider: string) {
 
   return new TransformStream({
     transform(chunk, controller) {
-      // Decode the chunk, stream: true prevents breaking multibyte characters (like Arabic)
       buffer += decoder.decode(chunk, { stream: true });
-
       const lines = buffer.split('\n');
-      // Keep the last potentially incomplete line in the buffer
       buffer = lines.pop() || '';
 
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed.startsWith('data:')) continue;
-        
+
         const dataStr = trimmed.slice(5).trim();
         if (dataStr === '[DONE]' || !dataStr) continue;
 
@@ -152,53 +162,56 @@ function createUnifiedStream(provider: string) {
           }
 
           if (text) {
-            // Encode the JSON safely and dispatch standardized SSE format
-            const payload = JSON.stringify({ text });
-            controller.enqueue(encoder.encode(`data: ${payload}\n\n`));
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ text })}\n\n`),
+            );
           }
-        } catch (e) {
-          // Ignore incomplete or unparseable JSON (expected in some SSE formats)
+        } catch {
+          // Ignore incomplete JSON — expected in SSE streams
         }
       }
     },
-    flush(controller) {
-      // Flush the remaining decoder buffer
+    flush() {
       buffer += decoder.decode(new Uint8Array(), { stream: false });
-    }
+    },
   });
 }
 
-// ── Main Route ─────────────────────────────────────────────────────────────────
+// ── Main POST Handler ─────────────────────────────────────
 export async function POST(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
 
+  // ✅ P0-3: Rate limiting — 20 req/min per IP
+  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
+  if (!checkRateLimit(ip)) {
+    return NextResponse.json(
+      { error: 'Rate limit exceeded. Try again in a minute.' },
+      { status: 429, headers: corsHeaders },
+    );
+  }
+
   try {
     const { messages, userContext } = await req.json() as {
-      messages: Message[];
-      userContext?: {
-        username?: string;
-        balance?: number;
-        locale?: string;
-      };
+      messages:     Message[];
+      userContext?: { username?: string; balance?: number; locale?: string };
     };
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(
         { error: 'messages array is required' },
-        { status: 400, headers: corsHeaders }
+        { status: 400, headers: corsHeaders },
       );
     }
 
     const systemPrompt = buildSystemPrompt(userContext);
-
-    const claudeKey = process.env.ANTHROPIC_API_KEY;
-    const groqKey   = process.env.GROQ_API_KEY;
-    const geminiKey = process.env.GEMINI_API_KEY;
+    const claudeKey    = process.env.ANTHROPIC_API_KEY;
+    const groqKey      = process.env.GROQ_API_KEY;
+    const geminiKey    = process.env.GEMINI_API_KEY;
 
     if (!claudeKey && !groqKey && !geminiKey) {
       return NextResponse.json(
         { error: 'AI service not configured' },
-        { status: 503, headers: corsHeaders }
+        { status: 503, headers: corsHeaders },
       );
     }
 
@@ -209,12 +222,8 @@ export async function POST(req: NextRequest) {
     if (claudeKey && !response) {
       try {
         const res = await callClaude(messages, systemPrompt, claudeKey);
-        if (res.ok) { 
-          response = res; 
-          provider = 'claude'; 
-        } else {
-          console.warn('Claude failed:', res.status, await res.text().catch(() => ''));
-        }
+        if (res.ok) { response = res; provider = 'claude'; }
+        else { console.warn('Claude failed:', res.status); }
       } catch (e) {
         console.warn('Claude error:', (e as Error).message);
       }
@@ -224,12 +233,8 @@ export async function POST(req: NextRequest) {
     if (groqKey && !response) {
       try {
         const res = await callGroq(messages, systemPrompt, groqKey);
-        if (res.ok) { 
-          response = res; 
-          provider = 'groq'; 
-        } else {
-          console.warn('Groq failed:', res.status, await res.text().catch(() => ''));
-        }
+        if (res.ok) { response = res; provider = 'groq'; }
+        else { console.warn('Groq failed:', res.status); }
       } catch (e) {
         console.warn('Groq error:', (e as Error).message);
       }
@@ -239,12 +244,8 @@ export async function POST(req: NextRequest) {
     if (geminiKey && !response) {
       try {
         const res = await callGemini(messages, systemPrompt, geminiKey);
-        if (res.ok) { 
-          response = res; 
-          provider = 'gemini'; 
-        } else {
-          console.warn('Gemini failed:', res.status, await res.text().catch(() => ''));
-        }
+        if (res.ok) { response = res; provider = 'gemini'; }
+        else { console.warn('Gemini failed:', res.status); }
       } catch (e) {
         console.warn('Gemini error:', (e as Error).message);
       }
@@ -253,19 +254,18 @@ export async function POST(req: NextRequest) {
     if (!response || !response.body) {
       return NextResponse.json(
         { error: 'All AI providers failed. Please try again.' },
-        { status: 502, headers: corsHeaders }
+        { status: 502, headers: corsHeaders },
       );
     }
 
-    // Transform the raw stream into the unified SSE format
     const stream = response.body.pipeThrough(createUnifiedStream(provider));
 
     return new NextResponse(stream, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'text/event-stream',
+        'Content-Type':  'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        'Connection':    'keep-alive',
         'X-AI-Provider': provider,
       },
     });
@@ -274,7 +274,7 @@ export async function POST(req: NextRequest) {
     console.error('AI chat route error:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
-      { status: 500, headers: corsHeaders }
+      { status: 500, headers: corsHeaders },
     );
   }
 }

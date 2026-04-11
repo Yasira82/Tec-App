@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getAccessToken, getStoredUser } from '@/lib-client/pi/pi-auth';
 
 export type TxType   = 'send' | 'receive' | 'payment';
 export type TxStatus = 'completed' | 'pending' | 'failed';
@@ -47,31 +48,23 @@ interface UseWalletReturn {
 const PAGE_SIZE = 10;
 
 export function useWallet(): UseWalletReturn {
-  const [wallet,        setWallet]        = useState<WalletInfo | null>(null);
-  const [transactions,  setTransactions]  = useState<Transaction[]>([]);
-  const [total,         setTotal]         = useState(0);
-  const [page,          setPageState]     = useState(1);
-  const [isLoading,     setIsLoading]     = useState(true);
-  const [isRefreshing,  setIsRefreshing]  = useState(false);
-  const [error,         setError]         = useState<string | null>(null);
-  const [filterType,    setFilterType]    = useState<TxType | 'all'>('all');
-  const [filterStatus,  setFilterStatus]  = useState<TxStatus | 'all'>('all');
+  const [wallet,       setWallet]       = useState<WalletInfo | null>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [total,        setTotal]        = useState(0);
+  const [page,         setPageState]    = useState(1);
+  const [isLoading,    setIsLoading]    = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+  const [filterType,   setFilterType]   = useState<TxType | 'all'>('all');
+  const [filterStatus, setFilterStatus] = useState<TxStatus | 'all'>('all');
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const getToken = (): string | null =>
-    typeof window !== 'undefined'
-      ? localStorage.getItem('tec_access_token')
-      : null;
-
+  // ✅ P1-2: من الـ cookie مش localStorage
+  const getToken  = (): string | null => getAccessToken();
   const getUserId = (): string | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem('tec_user');
-      if (!raw) return null;
-      const u = JSON.parse(raw);
-      return u?.id ?? u?.uid ?? null;
-    } catch { return null; }
+    const user = getStoredUser() as { id?: string; uid?: string } | null;
+    return user?.id ?? user?.uid ?? null;
   };
 
   const fetchAll = useCallback(async (targetPage: number, silent = false) => {
@@ -94,8 +87,9 @@ export function useWallet(): UseWalletReturn {
     try {
       // ── Balance ───────────────────────────────────────────
       const balanceRes = await fetch(`/api/wallet/balance?userId=${userId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal:  ctrl.signal,
+        credentials: 'include',
+        headers:     { Authorization: `Bearer ${token}` },
+        signal:      ctrl.signal,
       });
 
       if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
@@ -109,19 +103,20 @@ export function useWallet(): UseWalletReturn {
         address:  balanceData.address,
       });
 
-      // ── Transactions عبر Next.js route ───────────────────
+      // ── Transactions عبر BFF ──────────────────────────────
       try {
         const params = new URLSearchParams({
           userId,
           page:  String(targetPage),
           limit: String(PAGE_SIZE),
-          ...(filterType   !== 'all' && { type:   filterType }),
+          ...(filterType   !== 'all' && { type:   filterType   }),
           ...(filterStatus !== 'all' && { status: filterStatus }),
         });
 
-        const txRes = await fetch(`/api/payments/history?${params}`, { // ← بدون GATEWAY
-          headers: { Authorization: `Bearer ${token}` },
-          signal:  ctrl.signal,
+        const txRes = await fetch(`/api/payments/history?${params}`, {
+          credentials: 'include',
+          headers:     { Authorization: `Bearer ${token}` },
+          signal:      ctrl.signal,
         });
 
         if (txRes.ok) {
@@ -168,4 +163,4 @@ export function useWallet(): UseWalletReturn {
     filterType, filterStatus, setFilterType, setFilterStatus,
     refetch, loadMore, setPage, updateBalance,
   };
-        }
+      }

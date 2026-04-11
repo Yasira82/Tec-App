@@ -178,8 +178,12 @@ const _addBreadcrumb = (message: string, data: Record<string, unknown>): void =>
 // ✅ بنحفظ الـ pending payment ID ونعالجه بعد الـ login
 let _pendingPaymentId: string | null = null;
 
+interface IncompletePayment {
+  identifier?: string;
+}
+
 const handleIncompletePayment = (payment: unknown): void => {
-  const p           = payment as { identifier?: string };
+  const p           = payment as IncompletePayment;
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
 

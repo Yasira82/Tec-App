@@ -73,7 +73,6 @@ const nextConfig = {
           { key: 'Referrer-Policy',         value: 'strict-origin-when-cross-origin' },
           { key: 'X-DNS-Prefetch-Control',  value: 'on'                              },
           { key: 'Permissions-Policy',      value: 'camera=(), microphone=()'        },
-          { key: 'X-Frame-Options',         value: 'SAMEORIGIN'                      },
           {
             key:   'Content-Security-Policy',
             value: [
@@ -85,6 +84,7 @@ const nextConfig = {
               "font-src 'self' data:",
               "frame-src 'self' sdk.minepi.com *.minepi.com",
               "worker-src 'self' blob:",
+              "frame-ancestors 'self' *.minepi.com minepi.com",
             ].join('; '),
           },
         ],

@@ -2,16 +2,13 @@ const path = require('path');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // ✅ P1-5: ESLint يبلوك الـ build لو فيه errors
   eslint: {
     ignoreDuringBuilds: false,
   },
 
-  // ── Output ──────────────────────────────────────────────
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../'),
 
-  // ── Images ──────────────────────────────────────────────
   images: {
     formats:         ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
@@ -22,17 +19,14 @@ const nextConfig = {
     ],
   },
 
-  // ── Compression ──────────────────────────────────────────
   compress: true,
 
-  // ── Bundle Analyzer (npm run analyze) ────────────────────
   ...(process.env.ANALYZE === 'true' && {
     experimental: {
       bundlePagesExternals: true,
     },
   }),
 
-  // ── Webpack ──────────────────────────────────────────────
   webpack: (config, { isServer }) => {
     config.resolve.alias = {
       ...config.resolve.alias,
@@ -45,9 +39,9 @@ const nextConfig = {
         usedExports: true,
         sideEffects: true,
         splitChunks: {
-          chunks:   'all',
-          minSize:  20000,
-          maxSize:  200000,
+          chunks:  'all',
+          minSize: 20000,
+          maxSize: 200000,
           cacheGroups: {
             framework: {
               name:     'framework',
@@ -70,18 +64,16 @@ const nextConfig = {
     return config;
   },
 
-  // ── Headers ──────────────────────────────────────────────
   async headers() {
     return [
       {
         source: '/(.*)',
         headers: [
-          { key: 'X-Content-Type-Options',    value: 'nosniff'                         },
-          { key: 'Referrer-Policy',            value: 'strict-origin-when-cross-origin' },
-          { key: 'X-DNS-Prefetch-Control',     value: 'on'                              },
-          { key: 'Permissions-Policy',         value: 'camera=(), microphone=()'        },
-          { key: 'X-Frame-Options',            value: 'SAMEORIGIN' },                         },
-          // ✅ P1-6: CSP header
+          { key: 'X-Content-Type-Options', value: 'nosniff'                         },
+          { key: 'Referrer-Policy',         value: 'strict-origin-when-cross-origin' },
+          { key: 'X-DNS-Prefetch-Control',  value: 'on'                              },
+          { key: 'Permissions-Policy',      value: 'camera=(), microphone=()'        },
+          { key: 'X-Frame-Options',         value: 'SAMEORIGIN'                      },
           {
             key:   'Content-Security-Policy',
             value: [
@@ -125,7 +117,6 @@ const nextConfig = {
     ];
   },
 
-  // ── Redirects ────────────────────────────────────────────
   async redirects() {
     return [
       {

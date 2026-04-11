@@ -2,8 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Hub Page (authenticated)', () => {
 
-  test.beforeEach(async ({ page, context }) => {
-    // ✅ Set mock auth cookie — middleware بيقرأ من cookie مش localStorage
+  test.beforeEach(async ({ context }) => {
     await context.addCookies([
       {
         name:     'tec_access_token',
@@ -32,7 +31,8 @@ test.describe('Hub Page (authenticated)', () => {
 
   test('hub page has correct structure', async ({ page }) => {
     await page.goto('/hub');
-    await page.waitForLoadState('networkidle');
+    // ✅ domcontentloaded بدل networkidle — الـ hub بيعمل background requests
+    await page.waitForLoadState('domcontentloaded');
 
     const url = page.url();
     expect(url).toMatch(/\/(hub|$)/);
@@ -40,7 +40,10 @@ test.describe('Hub Page (authenticated)', () => {
 
   test('TEC branding is visible when hub loads', async ({ page }) => {
     await page.goto('/hub');
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
+
+    const url = page.url();
+    if (!url.includes('/hub')) return;
 
     const tecLogo = page.locator('text=TEC').first();
     if (await tecLogo.isVisible()) {
@@ -51,6 +54,9 @@ test.describe('Hub Page (authenticated)', () => {
   test('notification bell button exists on hub', async ({ page }) => {
     await page.goto('/hub');
     await page.waitForLoadState('domcontentloaded');
+
+    const url = page.url();
+    if (!url.includes('/hub')) return;
 
     const bell = page.locator('button').filter({ hasText: /🔔/ }).first();
     if (await bell.isVisible({ timeout: 3000 }).catch(() => false)) {

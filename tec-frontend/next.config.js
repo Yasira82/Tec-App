@@ -87,7 +87,7 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              "connect-src 'self' *.railway.app *.vercel.app api.minepi.com api.anthropic.com api.groq.com generativelanguage.googleapis.com wss://*.railway.app",
+              "connect-src 'self' *.railway.app *.vercel.app api.minepi.com api.anthropic.com api.groq.com generativelanguage.googleapis.com wss://*.railway.app http://localhost:3000 ws://localhost:3000",
               "img-src 'self' data: blob: *.railway.app *.vercel.app",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",

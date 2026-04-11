@@ -80,7 +80,7 @@ const nextConfig = {
           { key: 'Referrer-Policy',            value: 'strict-origin-when-cross-origin' },
           { key: 'X-DNS-Prefetch-Control',     value: 'on'                              },
           { key: 'Permissions-Policy',         value: 'camera=(), microphone=()'        },
-          { key: 'X-Frame-Options',            value: 'DENY'                            },
+          { key: 'X-Frame-Options',            value: 'SAMEORIGIN' },                         },
           // ✅ P1-6: CSP header
           {
             key:   'Content-Security-Policy',

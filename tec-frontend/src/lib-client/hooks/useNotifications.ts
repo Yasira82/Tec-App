@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 export type NotifType = 'PAYMENT' | 'WALLET' | 'KYC' | 'SECURITY' | 'SYSTEM';
 
@@ -26,8 +27,6 @@ interface UseNotificationsReturn {
   markAllAsRead: () => Promise<void>;
 }
 
-const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
-
 export function useNotifications(): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount,   setUnreadCount]   = useState(0);
@@ -37,13 +36,9 @@ export function useNotifications(): UseNotificationsReturn {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const getToken = (): string | null =>
-    typeof window !== 'undefined'
-      ? localStorage.getItem('tec_access_token')
-      : null;
-
   const fetchNotifications = useCallback(async (silent = false) => {
-    const token = getToken();
+    // ✅ P1-1: cookie بدل localStorage
+    const token = getAccessToken();
     if (!token) { setIsLoading(false); setError('Not authenticated'); return; }
 
     abortRef.current?.abort();
@@ -55,9 +50,11 @@ export function useNotifications(): UseNotificationsReturn {
     setError(null);
 
     try {
-      const res = await fetch(`${GATEWAY}/api/notification?limit=50`, {
-        headers: { Authorization: `Bearer ${token}` },
-        signal:  ctrl.signal,
+      // ✅ P1-3: BFF /api/* بدل Gateway مباشرة
+      const res = await fetch('/api/notifications?limit=50', {
+        credentials: 'include',
+        headers:     { Authorization: `Bearer ${token}` },
+        signal:      ctrl.signal,
       });
       if (!res.ok) throw new Error(`Notifications fetch failed: ${res.status}`);
       const data: { success: boolean; data: { notifications: Notification[]; unreadCount: number } } =
@@ -77,12 +74,13 @@ export function useNotifications(): UseNotificationsReturn {
   const refetch = useCallback(() => fetchNotifications(true), [fetchNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
-    const token = getToken();
+    const token = getAccessToken();
     if (!token) return;
     try {
-      await fetch(`${GATEWAY}/api/notification/${id}/read`, {
-        method:  'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+      await fetch(`/api/notifications/${id}/read`, {
+        method:      'PATCH',
+        credentials: 'include',
+        headers:     { Authorization: `Bearer ${token}` },
       });
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, read: true } : n)
@@ -92,12 +90,13 @@ export function useNotifications(): UseNotificationsReturn {
   }, []);
 
   const markAllAsRead = useCallback(async () => {
-    const token = getToken();
+    const token = getAccessToken();
     if (!token) return;
     try {
-      await fetch(`${GATEWAY}/api/notification/read-all`, {
-        method:  'PATCH',
-        headers: { Authorization: `Bearer ${token}` },
+      await fetch('/api/notifications/read-all', {
+        method:      'PATCH',
+        credentials: 'include',
+        headers:     { Authorization: `Bearer ${token}` },
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
@@ -114,4 +113,4 @@ export function useNotifications(): UseNotificationsReturn {
     isLoading, isRefreshing, error,
     refetch, markAsRead, markAllAsRead,
   };
-}
+    }

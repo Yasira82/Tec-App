@@ -6,15 +6,21 @@ export async function POST(
   req: NextRequest,
   context: { params: Promise<{ id: string }> },
 ) {
-  const { id }     = await context.params;
-  const authHeader = req.headers.get('authorization');
+  // ✅ P2-1: auth إلزامي — مش اختياري
+  const token = req.cookies.get('tec_access_token')?.value;
+  if (!token) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { id } = await context.params;
+
   try {
     const body = await req.json();
-    const res  = await fetch(`${GATEWAY}/api/assets/marketplace/${id}/buy`, {
+    const res  = await fetch(`${GATEWAY}/api/assets/marketplace/${encodeURIComponent(id)}/buy`, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...(authHeader ? { Authorization: authHeader } : {}),
+        Authorization:  `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });

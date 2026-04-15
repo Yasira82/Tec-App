@@ -4,7 +4,7 @@ const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = req.cookies.get('tec_access_token')?.value;
@@ -12,7 +12,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const res = await fetch(`${GATEWAY}/api/notification/${params.id}/read`, {
+    const { id } = await params;
+
+    const res = await fetch(`${GATEWAY}/api/notification/${id}/read`, {
       method:  'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     });

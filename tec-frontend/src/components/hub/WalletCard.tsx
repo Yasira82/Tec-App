@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 import styles from './WalletCard.module.css';
 
 interface Props { userId: string; }
@@ -11,9 +12,11 @@ export default function WalletCard({ userId }: Props) {
 
   useEffect(() => {
     if (!userId) return;
-    const token = localStorage.getItem('tec_access_token');
+    // ✅ P1-1: cookie بدل localStorage
+    const token = getAccessToken();
     fetch(`/api/wallet/balance?userId=${userId}`, {
-      headers: { Authorization: `Bearer ${token}` },
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setBalance(d.balance ?? 0))

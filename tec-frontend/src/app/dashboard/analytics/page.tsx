@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 interface Overview {
   totalEvents:   number;
@@ -49,20 +49,21 @@ function MetricBar({ label, value, max, color }: {
 }
 
 export default function AnalyticsPage() {
-  const { user } = usePiAuth();
-  const [overview,    setOverview]    = useState<Overview | null>(null);
-  const [isLoading,   setIsLoading]   = useState(true);
-  const [isRefreshing,setIsRefreshing]= useState(false);
-  const [error,       setError]       = useState<string | null>(null);
+  const [overview,     setOverview]     = useState<Overview | null>(null);
+  const [isLoading,    setIsLoading]    = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
   const fetchOverview = useCallback(async (silent = false) => {
-    const token = localStorage.getItem('tec_access_token');
+    // ✅ VM-004: cookie بدل localStorage
+    const token = getAccessToken();
     if (silent) setIsRefreshing(true);
     else        setIsLoading(true);
     setError(null);
     try {
       const res = await fetch('/api/analytics?endpoint=overview', {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+        headers:     token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const d = await res.json();
@@ -86,11 +87,11 @@ export default function AnalyticsPage() {
     );
   }
 
-  const metrics   = overview?.recentMetrics ?? [];
-  const maxPay    = Math.max(...metrics.map(m => m.total_payments), 1);
-  const maxVol    = Math.max(...metrics.map(m => m.total_volume),   1);
-  const maxUsers  = Math.max(...metrics.map(m => m.new_users),      1);
-  const totalVol  = metrics.reduce((s, m) => s + m.total_volume, 0);
+  const metrics  = overview?.recentMetrics ?? [];
+  const maxPay   = Math.max(...metrics.map(m => m.total_payments), 1);
+  const maxVol   = Math.max(...metrics.map(m => m.total_volume),   1);
+  const maxUsers = Math.max(...metrics.map(m => m.new_users),      1);
+  const totalVol = metrics.reduce((s, m) => s + m.total_volume, 0);
 
   return (
     <div style={s({ padding: '24px 16px', maxWidth: 600, margin: '0 auto' })}>
@@ -119,10 +120,10 @@ export default function AnalyticsPage() {
 
       {/* Stats Grid */}
       <div style={s({ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 })}>
-        <StatCard icon="💳" label="TOTAL PAYMENTS"  value={overview?.totalPayments ?? 0} color="#7ee7c0" />
-        <StatCard icon="👥" label="TOTAL USERS"     value={overview?.totalUsers    ?? 0} color="#7eb8f7" />
-        <StatCard icon="📊" label="TOTAL EVENTS"    value={overview?.totalEvents   ?? 0} color="#d4af37" />
-        <StatCard icon="💰" label="TOTAL VOLUME (π)" value={totalVol.toFixed(2)}         color="#e67e22" />
+        <StatCard icon="💳" label="TOTAL PAYMENTS"   value={overview?.totalPayments ?? 0} color="#7ee7c0" />
+        <StatCard icon="👥" label="TOTAL USERS"      value={overview?.totalUsers    ?? 0} color="#7eb8f7" />
+        <StatCard icon="📊" label="TOTAL EVENTS"     value={overview?.totalEvents   ?? 0} color="#d4af37" />
+        <StatCard icon="💰" label="TOTAL VOLUME (π)" value={totalVol.toFixed(2)}          color="#e67e22" />
       </div>
 
       {/* 7-Day Metrics */}
@@ -155,4 +156,4 @@ export default function AnalyticsPage() {
 
     </div>
   );
-      }
+}

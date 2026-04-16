@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
@@ -44,11 +44,25 @@ export default function HubPage() {
   const [txid,       setTxid]       = useState('');
   const [notifCount, setNotifCount] = useState(0);
   const [piPrice,    setPiPrice]    = useState<{
-    price: number;
-    change24h: number;
-    high24h: number;
-    low24h: number;
+    price: number; change24h: number; high24h: number; low24h: number;
   } | null>(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+
+  // ── Swipe ──────────────────────────────────────────────────
+  const touchStartX = useRef<number>(0);
+  const touchEndX   = useRef<number>(0);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) setCarouselIdx(1); // swipe left → Pi Price
+      else          setCarouselIdx(0); // swipe right → Assets
+    }
+  };
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/');
@@ -120,6 +134,15 @@ export default function HubPage() {
     return () => clearInterval(interval);
   }, [refreshPrice]);
 
+  // ── Auto-advance carousel ──────────────────────────────────
+  useEffect(() => {
+    if (!piPrice) return;
+    const id = setInterval(() => {
+      setCarouselIdx(prev => prev === 0 ? 1 : 0);
+    }, 5000);
+    return () => clearInterval(id);
+  }, [piPrice]);
+
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
     userId: user?.id,
     token:  getAccessToken(),
@@ -128,23 +151,16 @@ export default function HubPage() {
 
   const handlePay = useCallback(async () => {
     if (payState === 'processing') return;
-
     if (typeof window === 'undefined' || !window.Pi) {
       setPayState('error');
       setPayMsg('Open in Pi Browser to make payments');
       return;
     }
-
     setPayState('processing');
     setPayMsg('');
     setTxid('');
-
     try {
-      const result = await createU2APayment(
-        1,
-        'TEC Super App Payment',
-        { source: 'hub', version: '1.0' },
-      );
+      const result = await createU2APayment(1, 'TEC Super App Payment', { source: 'hub', version: '1.0' });
       if (result.success && result.status === 'completed') {
         setPayState('success');
         setTxid(result.txid ?? '');
@@ -204,7 +220,6 @@ export default function HubPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: '#4a4a5a', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
-
           <button className="hub-btn"
             onClick={() => { clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
             style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
@@ -215,7 +230,6 @@ export default function HubPage() {
               </span>
             )}
           </button>
-
           <button className="hub-btn" onClick={() => router.push('/dashboard')}
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#d4af3710', border: '1px solid #d4af3725', borderRadius: 12, padding: '6px 10px', cursor: 'pointer' }}>
             <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#0a0800' }}>
@@ -245,60 +259,92 @@ export default function HubPage() {
         </button>
       </div>
 
-      {/* ── Assets Summary ── */}
+      {/* ── Carousel: Assets + Pi Price ── */}
       <div style={{ padding: '10px 16px 0' }}>
-        <button className="hub-btn" onClick={() => router.push('/dashboard/assets')}
-          style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
-              <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
+        {/* Slides */}
+        <div
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          style={{ overflow: 'hidden', borderRadius: 18 }}
+        >
+          <div style={{
+            display: 'flex',
+            transition: 'transform 0.35s ease',
+            transform: `translateX(-${carouselIdx * 100}%)`,
+          }}>
+            {/* ── Slide 0: Digital Assets ── */}
+            <div style={{ minWidth: '100%' }}>
+              <button className="hub-btn" onClick={() => router.push('/dashboard/assets')}
+                style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
+                    <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
+                    {assetCount === null ? '—' : assetCount}
+                  </div>
+                  <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
+                </div>
+              </button>
             </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
-              {assetCount === null ? '—' : assetCount}
-            </div>
-            <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
-          </div>
-        </button>
-      </div>
 
-      {/* ── Pi Price ── */}
-      {piPrice && (
-        <div style={{ padding: '10px 16px 0' }}>
-          <div style={{ borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>π</div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Pi Network</div>
-                  <div style={{ fontSize: 10, color: '#4a4a5a' }}>PI/USDT · OKX</div>
+            {/* ── Slide 1: Pi Price ── */}
+            <div style={{ minWidth: '100%' }}>
+              <div style={{ borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>π</div>
+                    <div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Pi Network</div>
+                      <div style={{ fontSize: 10, color: '#4a4a5a' }}>PI/USDT · OKX</div>
+                    </div>
+                  </div>
+                  {piPrice && (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: 22, fontWeight: 900, color: '#d4af37' }}>
+                        ${piPrice.price.toFixed(4)}
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: piPrice.change24h >= 0 ? '#7ee7c0' : '#e74c3c' }}>
+                        {piPrice.change24h >= 0 ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: 22, fontWeight: 900, color: '#d4af37' }}>
-                  ${piPrice.price.toFixed(4)}
-                </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: piPrice.change24h >= 0 ? '#7ee7c0' : '#e74c3c' }}>
-                  {piPrice.change24h >= 0 ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
-                </div>
-              </div>
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-              <div style={{ padding: '8px 12px', background: '#ffffff05', borderRadius: 10 }}>
-                <div style={{ fontSize: 10, color: '#4a4a5a', marginBottom: 2 }}>24H HIGH</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#7ee7c0' }}>${piPrice.high24h.toFixed(4)}</div>
-              </div>
-              <div style={{ padding: '8px 12px', background: '#ffffff05', borderRadius: 10 }}>
-                <div style={{ fontSize: 10, color: '#4a4a5a', marginBottom: 2 }}>24H LOW</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>${piPrice.low24h.toFixed(4)}</div>
+                {piPrice && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <div style={{ padding: '8px 12px', background: '#ffffff05', borderRadius: 10 }}>
+                      <div style={{ fontSize: 10, color: '#4a4a5a', marginBottom: 2 }}>24H HIGH</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#7ee7c0' }}>${piPrice.high24h.toFixed(4)}</div>
+                    </div>
+                    <div style={{ padding: '8px 12px', background: '#ffffff05', borderRadius: 10 }}>
+                      <div style={{ fontSize: 10, color: '#4a4a5a', marginBottom: 2 }}>24H LOW</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>${piPrice.low24h.toFixed(4)}</div>
+                    </div>
+                  </div>
+                )}
+                {!piPrice && (
+                  <div style={{ fontSize: 12, color: '#4a4a5a', textAlign: 'center', padding: '8px 0' }}>
+                    Loading price...
+                  </div>
+                )}
               </div>
             </div>
           </div>
         </div>
-      )}
+
+        {/* ── Dots ── */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
+          {[0, 1].map(i => (
+            <button key={i} onClick={() => setCarouselIdx(i)}
+              style={{ width: carouselIdx === i ? 16 : 6, height: 6, borderRadius: 3, background: carouselIdx === i ? '#d4af37' : '#ffffff20', border: 'none', cursor: 'pointer', transition: 'all 0.3s ease', padding: 0 }}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }}>
@@ -314,7 +360,6 @@ export default function HubPage() {
               <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
             )}
           </button>
-
           <button className="hub-btn" onClick={() => router.push('/dashboard/wallet')}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <span style={{ fontFamily: 'Georgia,serif', fontSize: 18 }}>π</span>
@@ -333,11 +378,7 @@ export default function HubPage() {
                 {payState === 'processing' && '⏳ '}
                 {payMsg}
               </div>
-              {txid && (
-                <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace' }}>
-                  txid: {txid.slice(0, 20)}...
-                </div>
-              )}
+              {txid && <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace' }}>txid: {txid.slice(0, 20)}...</div>}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               {payState === 'pending' && (
@@ -347,9 +388,7 @@ export default function HubPage() {
                 </button>
               )}
               <button className="hub-btn" onClick={() => { setPayState('idle'); setPayMsg(''); setTxid(''); }}
-                style={{ fontSize: 11, color: '#4a4a5a', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>
-                ✕
-              </button>
+                style={{ fontSize: 11, color: '#4a4a5a', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
             </div>
           </div>
         )}
@@ -417,4 +456,4 @@ export default function HubPage() {
       </nav>
     </div>
   );
-            }
+    }

@@ -82,10 +82,10 @@ export default function HubPage() {
   }, [refreshBalance, refreshAssets]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
-    userId: user?.id,
-    token:  null,
-    onWalletUpdate: () => setTimeout(refreshBalance, 500),
-  });
+  userId: user?.id,
+  token:  getAccessToken(),
+  onWalletUpdate: () => setTimeout(refreshBalance, 500),
+});
 
   const handlePay = useCallback(async () => {
     if (payState === 'processing') return;

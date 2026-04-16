@@ -66,20 +66,41 @@ export default function HubPage() {
   }, [user?.id]);
 
   const refreshAssets = useCallback(() => {
-    if (!user?.id) return;
-    fetch(`/api/assets?userId=${user.id}`, {
-      credentials: 'include',
-      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
-      .catch(() => {});
-  }, [user?.id]);
+  if (!user?.id) return;
+  fetch(`/api/assets?userId=${user.id}`, {
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
+    .catch(() => {});
+}, [user?.id]);
 
-  useEffect(() => {
-    refreshBalance();
-    refreshAssets();
-  }, [refreshBalance, refreshAssets]);
+// ✅ أضيف هنا
+const [notifCount, setNotifCount] = useState(0);
+
+const refreshNotifCount = useCallback(() => {
+  if (!user?.id) return;
+  const token = getAccessToken();
+  fetch(`/api/notifications/unread-count?userId=${user.id}`, {
+    credentials: 'include',
+    headers: { Authorization: `Bearer ${token ?? ''}` },
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => d && setNotifCount(d.count ?? 0))
+    .catch(() => {});
+}, [user?.id]);
+
+useEffect(() => {
+  refreshBalance();
+  refreshAssets();
+}, [refreshBalance, refreshAssets]);
+
+useEffect(() => {
+  refreshNotifCount();
+  const interval = setInterval(refreshNotifCount, 30000);
+  return () => clearInterval(interval);
+}, [refreshNotifCount]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
   userId: user?.id,
@@ -171,11 +192,11 @@ export default function HubPage() {
             onClick={() => { clearUnread(); router.push('/dashboard/notifications'); }}
             style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
             🔔
-            {wsUnread > 0 && (
-              <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#e74c3c', border: '2px solid #020205', fontSize: 9, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-                {wsUnread > 9 ? '9+' : wsUnread}
-              </span>
-            )}
+            {(wsUnread > 0 || notifCount > 0) && (
+  <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#e74c3c', border: '2px solid #020205', fontSize: 9, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+    {wsUnread > 0 ? wsUnread : notifCount > 9 ? '9+' : notifCount}
+  </span>
+)}
           </button>
 
           <button className="hub-btn" onClick={() => router.push('/dashboard')}

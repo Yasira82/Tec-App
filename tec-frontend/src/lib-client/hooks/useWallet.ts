@@ -20,9 +20,10 @@ export interface Transaction {
 }
 
 export interface WalletInfo {
-  balance:  number;
-  currency: string;
-  address?: string;
+  balance:   number;
+  currency:  string;
+  address?:  string;
+  walletId?: string;  // ✅ UUID للـ internal transfer
 }
 
 interface UseWalletReturn {
@@ -60,7 +61,6 @@ export function useWallet(): UseWalletReturn {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  // ✅ P1-2: من الـ cookie مش localStorage
   const getToken  = (): string | null => getAccessToken();
   const getUserId = (): string | null => {
     const user = getStoredUser() as { id?: string; uid?: string } | null;
@@ -70,11 +70,7 @@ export function useWallet(): UseWalletReturn {
   const fetchAll = useCallback(async (targetPage: number, silent = false) => {
     const token  = getToken();
     const userId = getUserId();
-    if (!token || !userId) {
-      setIsLoading(false);
-      setError('Not authenticated');
-      return;
-    }
+    if (!token || !userId) { setIsLoading(false); setError('Not authenticated'); return; }
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -85,7 +81,7 @@ export function useWallet(): UseWalletReturn {
     setError(null);
 
     try {
-      // ── Balance ───────────────────────────────────────────
+      // ── Balance + walletId ──────────────────────────────
       const balanceRes = await fetch(`/api/wallet/balance?userId=${userId}`, {
         credentials: 'include',
         headers:     { Authorization: `Bearer ${token}` },
@@ -94,16 +90,17 @@ export function useWallet(): UseWalletReturn {
 
       if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
 
-      const balanceData: { balance: number; currency: string; address?: string } =
+      const balanceData: { balance: number; currency: string; address?: string; walletId?: string } =
         await balanceRes.json();
 
       setWallet({
         balance:  balanceData.balance,
         currency: balanceData.currency,
         address:  balanceData.address,
+        walletId: balanceData.walletId,  // ✅
       });
 
-      // ── Transactions عبر BFF ──────────────────────────────
+      // ── Transactions ────────────────────────────────────
       try {
         const params = new URLSearchParams({
           userId,
@@ -120,17 +117,13 @@ export function useWallet(): UseWalletReturn {
         });
 
         if (txRes.ok) {
-          const txData: { transactions: Transaction[]; total: number } =
-            await txRes.json();
+          const txData: { transactions: Transaction[]; total: number } = await txRes.json();
           setTransactions(txData.transactions ?? []);
           setTotal(txData.total ?? 0);
         }
-      } catch {
-        // transactions مش إلزامية
-      }
+      } catch { /* transactions مش إلزامية */ }
 
       setPageState(targetPage);
-
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return;
       setError((err as Error).message ?? 'Unknown error');
@@ -163,4 +156,4 @@ export function useWallet(): UseWalletReturn {
     filterType, filterStatus, setFilterType, setFilterStatus,
     refetch, loadMore, setPage, updateBalance,
   };
-      }
+    }

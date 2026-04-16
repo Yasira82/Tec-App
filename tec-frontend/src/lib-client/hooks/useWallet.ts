@@ -23,7 +23,7 @@ export interface WalletInfo {
   balance:   number;
   currency:  string;
   address?:  string;
-  walletId?: string;  // ✅ UUID للـ internal transfer
+  walletId?: string;
 }
 
 interface UseWalletReturn {
@@ -47,6 +47,36 @@ interface UseWalletReturn {
 }
 
 const PAGE_SIZE = 10;
+
+// ✅ map wallet service transaction → Transaction interface
+interface RawWalletTx {
+  id:          string;
+  type:        string;
+  status:      string;
+  amount:      number | string;
+  currency:    string;
+  created_at:  string;
+  description?: string;
+  metadata?:   { direction?: string; counterpartyWalletId?: string };
+}
+
+function mapWalletTx(tx: RawWalletTx): Transaction {
+  const dir = tx.metadata?.direction;
+  let type: TxType = 'payment';
+  if (dir === 'credit' || tx.type === 'deposit')    type = 'receive';
+  else if (dir === 'debit' || tx.type === 'withdrawal') type = 'send';
+  else if (tx.type === 'transfer') type = dir === 'credit' ? 'receive' : 'send';
+
+  return {
+    id:        tx.id,
+    type,
+    status:    (tx.status as TxStatus) ?? 'completed',
+    amount:    Number(tx.amount),
+    currency:  tx.currency,
+    createdAt: tx.created_at,
+    memo:      tx.description ?? undefined,
+  };
+}
 
 export function useWallet(): UseWalletReturn {
   const [wallet,       setWallet]       = useState<WalletInfo | null>(null);
@@ -90,18 +120,52 @@ export function useWallet(): UseWalletReturn {
 
       if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
 
-      const balanceData: { balance: number; currency: string; address?: string; walletId?: string } =
-        await balanceRes.json();
+      const balanceData: {
+        balance: number; currency: string; address?: string; walletId?: string;
+      } = await balanceRes.json();
 
       setWallet({
         balance:  balanceData.balance,
         currency: balanceData.currency,
         address:  balanceData.address,
-        walletId: balanceData.walletId,  // ✅
+        walletId: balanceData.walletId,
       });
 
-      // ── Transactions ────────────────────────────────────
+      // ── Wallet Transactions (internal transfers + deposits) ──
       try {
+        if (balanceData.walletId) {
+          const params = new URLSearchParams({
+            walletId: balanceData.walletId,
+            page:     String(targetPage),
+            limit:    String(PAGE_SIZE),
+            ...(filterStatus !== 'all' && { status: filterStatus }),
+          });
+
+          const txRes = await fetch(`/api/wallet/transactions?${params}`, {
+            credentials: 'include',
+            headers:     { Authorization: `Bearer ${token}` },
+            signal:      ctrl.signal,
+          });
+
+          if (txRes.ok) {
+            const txData = await txRes.json();
+            const rawTxs: RawWalletTx[] =
+              txData?.data?.transactions ?? txData?.transactions ?? [];
+
+            // ✅ filter by type if needed
+            let mapped = rawTxs.map(mapWalletTx);
+            if (filterType !== 'all') {
+              mapped = mapped.filter(tx => tx.type === filterType);
+            }
+
+            setTransactions(mapped);
+            setTotal(txData?.data?.pagination?.total ?? mapped.length);
+            setPageState(targetPage);
+            return;
+          }
+        }
+
+        // ── Fallback: payment history ───────────────────
         const params = new URLSearchParams({
           userId,
           page:  String(targetPage),

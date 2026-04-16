@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { usePiAuth }      from '@/lib-client/hooks/usePiAuth';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 interface Asset {
   id:        string;
@@ -27,20 +28,22 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function AssetsPage() {
   const { user, isAuthenticated } = usePiAuth();
-  const [assets,      setAssets]      = useState<Asset[]>([]);
-  const [isLoading,   setIsLoading]   = useState(true);
-  const [isRefreshing,setIsRefreshing]= useState(false);
-  const [error,       setError]       = useState<string | null>(null);
+  const [assets,       setAssets]       = useState<Asset[]>([]);
+  const [isLoading,    setIsLoading]    = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
 
   const fetchAssets = useCallback(async (silent = false) => {
     if (!user?.id || !isAuthenticated) return;
-    const token = localStorage.getItem('tec_access_token');
+    // ✅ VM-004: cookie بدل localStorage
+    const token = getAccessToken();
     if (silent) setIsRefreshing(true);
     else        setIsLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/assets?userId=${user.id}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        credentials: 'include',
+        headers:     token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (!res.ok) throw new Error(`${res.status}`);
       const d = await res.json();

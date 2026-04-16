@@ -57,11 +57,9 @@ export default function HubPage() {
   const refreshBalance = useCallback(() => {
     if (!user?.id) return;
     fetch(`/api/wallet/balance?userId=${user.id}`, {
-  credentials: 'include',
-  headers: {
-    Authorization: `Bearer ${getAccessToken() ?? ''}`,
-  },
-})
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+    })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
       .catch(() => {});
@@ -70,11 +68,9 @@ export default function HubPage() {
   const refreshAssets = useCallback(() => {
     if (!user?.id) return;
     fetch(`/api/assets?userId=${user.id}`, {
-  credentials: 'include',
-  headers: {
-    Authorization: `Bearer ${getAccessToken() ?? ''}`,
-  },
-})
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+    })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
       .catch(() => {});
@@ -85,7 +81,6 @@ export default function HubPage() {
     refreshAssets();
   }, [refreshBalance, refreshAssets]);
 
-  // ── WebSocket realtime notifications ──
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
     userId: user?.id,
     token:  null,
@@ -94,9 +89,18 @@ export default function HubPage() {
 
   const handlePay = useCallback(async () => {
     if (payState === 'processing') return;
+
+    // ✅ لازم Pi Browser
+    if (typeof window === 'undefined' || !window.Pi) {
+      setPayState('error');
+      setPayMsg('Open in Pi Browser to make payments');
+      return;
+    }
+
     setPayState('processing');
     setPayMsg('');
     setTxid('');
+
     try {
       const result = await createU2APayment(1, 'TEC Super App Payment');
       if (result.success && result.status === 'completed') {
@@ -140,8 +144,8 @@ export default function HubPage() {
   return (
     <div style={{ minHeight: '100vh', background: '#020205', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif', paddingBottom: 90 }}>
       <style>{`
-        @keyframes spin  { to { transform: rotate(360deg); } }
-        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+        @keyframes spin   { to { transform: rotate(360deg); } }
+        @keyframes pulse  { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
         .hub-btn:active { transform: scale(0.97); }
         .app-btn:active { transform: scale(0.95); }
@@ -159,20 +163,12 @@ export default function HubPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: '#4a4a5a', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
 
-          {/* ── Notification Bell + Badge ── */}
           <button className="hub-btn"
             onClick={() => { clearUnread(); router.push('/dashboard/notifications'); }}
             style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
             🔔
             {wsUnread > 0 && (
-              <span style={{
-                position: 'absolute', top: -4, right: -4,
-                width: 16, height: 16, borderRadius: '50%',
-                background: '#e74c3c', border: '2px solid #020205',
-                fontSize: 9, fontWeight: 800, color: '#fff',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                lineHeight: 1,
-              }}>
+              <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#e74c3c', border: '2px solid #020205', fontSize: 9, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
                 {wsUnread > 9 ? '9+' : wsUnread}
               </span>
             )}
@@ -193,7 +189,7 @@ export default function HubPage() {
         <button className="hub-btn" onClick={() => router.push('/dashboard/wallet')}
           style={{ width: '100%', borderRadius: 24, background: 'linear-gradient(135deg,#1a1208 0%,#0f0f1a 60%,#0a0f1f 100%)', border: '1px solid #d4af3725', padding: '22px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
           <div>
-            <div style={{ fontSize: 10, color: '#6b6b7a', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>Pi Wallet Balance</div>
+            <div style={{ fontSize: 10, color: '#6b6b7a', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>PI WALLET BALANCE</div>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
               <span style={{ fontSize: 36, fontWeight: 900, color: '#d4af37', letterSpacing: -1 }}>{balance}</span>
               <span style={{ fontSize: 20, color: '#d4af3780' }}>π</span>
@@ -230,29 +226,45 @@ export default function HubPage() {
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+
+          {/* Pay 1 π */}
           <button className="hub-btn" onClick={handlePay} disabled={payBusy}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0d2e14,#0a1f0f)', border: `1px solid ${payBusy ? '#7ee7c020' : '#7ee7c040'}`, color: '#7ee7c0', fontWeight: 700, fontSize: 13, cursor: payBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {payBusy ? (
-              <><div style={{ width: 14, height: 14, border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} /><span>Processing...</span></>
+              <>
+                <div style={{ width: 14, height: 14, border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+                <span>Processing...</span>
+              </>
             ) : (
-              <><span>💎</span><span>Pay 1 π</span></>
+              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
             )}
           </button>
-          <button className="hub-btn" onClick={() => router.push('/dashboard')}
+
+          {/* Receive π — يروح wallet page */}
+          <button className="hub-btn" onClick={() => router.push('/dashboard/wallet')}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <span style={{ fontFamily: 'Georgia,serif', fontSize: 18 }}>π</span>
-            <span>Receive A2U</span>
+            <span>Receive π</span>
           </button>
         </div>
 
+        {/* Payment Status */}
         {payState !== 'idle' && (
           <div style={{ padding: '12px 16px', borderRadius: 14, background: payState === 'success' ? '#051a0a' : payState === 'error' ? '#1a0505' : payState === 'pending' ? '#1a1505' : '#0a0a1a', border: `1px solid ${payState === 'success' ? '#7ee7c030' : payState === 'error' ? '#e74c3c30' : payState === 'pending' ? '#f0c04030' : '#ffffff10'}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, animation: 'fadeIn 0.2s ease' }}>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: payState === 'success' ? '#7ee7c0' : payState === 'error' ? '#e74c3c' : payState === 'pending' ? '#f0c040' : '#7eb8f7', marginBottom: txid ? 4 : 0 }}>
-                {payState === 'success' && '✅ '}{payState === 'error' && '❌ '}{payState === 'pending' && '⚠️ '}{payState === 'cancelled' && '↩️ '}{payState === 'processing' && '⏳ '}
+                {payState === 'success'    && '✅ '}
+                {payState === 'error'      && '❌ '}
+                {payState === 'pending'    && '⚠️ '}
+                {payState === 'cancelled'  && '↩️ '}
+                {payState === 'processing' && '⏳ '}
                 {payMsg}
               </div>
-              {txid && <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace' }}>txid: {txid.slice(0, 20)}...</div>}
+              {txid && (
+                <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace' }}>
+                  txid: {txid.slice(0, 20)}...
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', gap: 6 }}>
               {payState === 'pending' && (
@@ -262,7 +274,9 @@ export default function HubPage() {
                 </button>
               )}
               <button className="hub-btn" onClick={() => { setPayState('idle'); setPayMsg(''); setTxid(''); }}
-                style={{ fontSize: 11, color: '#4a4a5a', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
+                style={{ fontSize: 11, color: '#4a4a5a', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>
+                ✕
+              </button>
             </div>
           </div>
         )}
@@ -330,4 +344,4 @@ export default function HubPage() {
       </nav>
     </div>
   );
-        }
+                }

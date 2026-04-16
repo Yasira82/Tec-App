@@ -18,7 +18,8 @@ export async function GET(req: NextRequest) {
     if (!res.ok) return NextResponse.json({ count: 0 }, { status: 200 });
 
     const data = await res.json();
-    const count = data?.data?.unreadCount ?? 0;
+    const notifications = data?.data?.notifications ?? [];
+const count = notifications.filter((n: { read: boolean }) => !n.read).length;
     return NextResponse.json({ count });
   } catch {
     return NextResponse.json({ count: 0 }, { status: 200 });

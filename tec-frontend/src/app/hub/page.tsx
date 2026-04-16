@@ -189,7 +189,7 @@ useEffect(() => {
           <span style={{ fontSize: 11, color: '#4a4a5a', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
 
           <button className="hub-btn"
-            onClick={() => { clearUnread(); router.push('/dashboard/notifications'); }}
+            onClick={() => { clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
             style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
             🔔
             {(wsUnread > 0 || notifCount > 0) && (

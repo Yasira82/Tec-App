@@ -102,7 +102,11 @@ export default function HubPage() {
     setTxid('');
 
     try {
-      const result = await createU2APayment(1, 'TEC Super App Payment');
+      const result = await createU2APayment(
+  1,
+  'TEC Super App Payment',
+  { source: 'hub', version: '1.0' },
+);
       if (result.success && result.status === 'completed') {
         setPayState('success');
         setTxid(result.txid ?? '');

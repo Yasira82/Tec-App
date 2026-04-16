@@ -58,19 +58,21 @@ const btnOutline: React.CSSProperties = {
   borderRadius: 10, color: '#6b6b7a', fontSize: 13, cursor: 'pointer',
 };
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 // ─── Send Modal ────────────────────────────────────────────────
 function SendModal({ myWalletId, onClose, onSuccess }: {
   myWalletId: string;
   onClose:    () => void;
   onSuccess:  () => void;
 }) {
-  const [tab,      setTab]      = useState<'internal' | 'pi'>('internal');
-  const [toInput,  setToInput]  = useState('');
-  const [piUid,    setPiUid]    = useState('');
-  const [amount,   setAmount]   = useState('');
-  const [memo,     setMemo]     = useState('TEC Transfer');
-  const [loading,  setLoading]  = useState(false);
-  const [error,    setError]    = useState<string | null>(null);
+  const [tab,     setTab]     = useState<'internal' | 'pi'>('internal');
+  const [toInput, setToInput] = useState('');
+  const [piUid,   setPiUid]   = useState('');
+  const [amount,  setAmount]  = useState('');
+  const [memo,    setMemo]    = useState('TEC Transfer');
+  const [loading, setLoading] = useState(false);
+  const [error,   setError]   = useState<string | null>(null);
 
   const validate = (recipient: string): boolean => {
     if (!recipient || !amount) { setError('All fields required'); return false; }
@@ -83,20 +85,27 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
     if (!validate(toInput)) return;
     setLoading(true); setError(null);
     try {
-      const token = getAccessToken();
+      const token   = getAccessToken();
+      const trimmed = toInput.trim().replace('@', '');
+      const isUUID  = UUID_REGEX.test(trimmed);
 
-      // ✅ detect UUID vs Pi Username
-      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(toInput);
-      const params = isUUID
-        ? `userId=${encodeURIComponent(toInput)}`
-        : `piUsername=${encodeURIComponent(toInput.replace('@', ''))}`;
+      let toWalletId: string;
 
-      const lookupRes  = await fetch(`/api/wallet/lookup?${params}`, {
-        credentials: 'include',
-        headers:     token ? { Authorization: `Bearer ${token}` } : {},
-      });
-      const lookupData = await lookupRes.json();
-      if (!lookupRes.ok || !lookupData.walletId) throw new Error(lookupData.error ?? 'Recipient wallet not found');
+      if (isUUID) {
+        // ✅ Wallet ID مباشرة — مفيش lookup
+        toWalletId = trimmed;
+      } else {
+        // Pi Username → lookup
+        const lookupRes  = await fetch(`/api/wallet/lookup?piUsername=${encodeURIComponent(trimmed)}`, {
+          credentials: 'include',
+          headers:     token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const lookupData = await lookupRes.json();
+        if (!lookupRes.ok || !lookupData.walletId) throw new Error(lookupData.error ?? 'Recipient not found');
+        toWalletId = lookupData.walletId;
+      }
+
+      if (toWalletId === myWalletId) { setError('Cannot send to your own wallet'); return; }
 
       const res  = await fetch('/api/wallet/transfer', {
         method:      'POST',
@@ -104,7 +113,7 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
         headers:     buildHeaders(token),
         body: JSON.stringify({
           fromWalletId: myWalletId,
-          toWalletId:   lookupData.walletId,
+          toWalletId,
           amount:       parseFloat(amount),
           assetType:    'PI',
           description:  memo,
@@ -141,9 +150,12 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
       <div style={modalStyle}>
         <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↑ Send π</h2>
 
+        {/* Tabs */}
         <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid #ffffff10' }}>
-          <button style={tabBtn(tab === 'internal')} onClick={() => setTab('internal')}>🏦 Internal (TEC)</button>
-          <button style={{ ...tabBtn(tab === 'pi'), opacity: 0.45, cursor: 'not-allowed' }} disabled>
+          <button style={tabBtn(tab === 'internal')} onClick={() => setTab('internal')}>
+            🏦 Internal (TEC)
+          </button>
+          <button style={{ ...tabBtn(false), opacity: 0.4, cursor: 'not-allowed' }} disabled>
             π Pi Network (Soon)
           </button>
         </div>
@@ -152,21 +164,34 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
           <>
             <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 14 }}>
               <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
-                💡 Enter the recipient <strong>Pi Username</strong> (e.g. yasser1728) or <strong>User ID</strong>
+                💡 Enter recipient <strong>Wallet ID</strong> (from their Receive screen) or <strong>Pi Username</strong>
               </p>
             </div>
-            <label style={labelStyle}>Pi Username or User ID</label>
-            <input style={inputStyle}
-              placeholder="@piUsername or UUID..."
+
+            <label style={labelStyle}>Wallet ID or Pi Username</label>
+            <input
+              style={inputStyle}
+              placeholder="UUID or @piUsername..."
               value={toInput}
               onChange={e => setToInput(e.target.value)}
             />
+
             <label style={{ ...labelStyle, marginTop: 12 }}>Amount (π)</label>
-            <input style={inputStyle} type="number" placeholder="0.00" value={amount}
-              onChange={e => setAmount(e.target.value)} />
+            <input
+              style={inputStyle}
+              type="number"
+              placeholder="0.00"
+              value={amount}
+              onChange={e => setAmount(e.target.value)}
+            />
+
             <label style={{ ...labelStyle, marginTop: 12 }}>Description</label>
-            <input style={inputStyle} placeholder="TEC Transfer" value={memo}
-              onChange={e => setMemo(e.target.value)} />
+            <input
+              style={inputStyle}
+              placeholder="TEC Transfer"
+              value={memo}
+              onChange={e => setMemo(e.target.value)}
+            />
           </>
         )}
 
@@ -185,9 +210,11 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
 
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <button style={btnOutline} onClick={onClose}>Cancel</button>
-          <button style={btnPrimary}
+          <button
+            style={btnPrimary}
             onClick={tab === 'internal' ? handleInternalSend : handlePiSend}
-            disabled={loading}>
+            disabled={loading}
+          >
             {loading ? 'Sending...' : 'Send Internally'}
           </button>
         </div>
@@ -197,34 +224,18 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
 }
 
 // ─── Receive Modal ─────────────────────────────────────────────
-function ReceiveModal({ myUserId, walletId, balance, onClose }: {
-  myUserId:  string;
-  walletId:  string;
-  balance:   number;
-  onClose:   () => void;
+function ReceiveModal({ walletId, balance, onClose }: {
+  walletId: string;
+  balance:  number;
+  onClose:  () => void;
 }) {
-  const [copiedUser,   setCopiedUser]   = useState(false);
-  const [copiedWallet, setCopiedWallet] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const copy = (text: string, setCopied: (v: boolean) => void) => {
-    navigator.clipboard.writeText(text);
+  const copy = () => {
+    navigator.clipboard.writeText(walletId);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const InfoRow = ({ label, value, copied, onCopy }: {
-    label: string; value: string; copied: boolean; onCopy: () => void;
-  }) => (
-    <div style={{ marginBottom: 14 }}>
-      <label style={labelStyle}>{label}</label>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <input style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', fontSize: 11 }} value={value} readOnly />
-        <button style={{ ...btnPrimary, padding: '10px 14px', whiteSpace: 'nowrap' }} onClick={onCopy}>
-          {copied ? '✓' : 'Copy'}
-        </button>
-      </div>
-    </div>
-  );
 
   return (
     <div style={overlayStyle}>
@@ -233,25 +244,24 @@ function ReceiveModal({ myUserId, walletId, balance, onClose }: {
 
         <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 16 }}>
           <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
-            💡 Share your <strong>User ID</strong> so others can send you TEC balance internally.
+            💡 Share your <strong>Wallet ID</strong> so others can send you TEC balance.
           </p>
         </div>
 
-        <InfoRow
-          label="Your User ID"
-          value={myUserId}
-          copied={copiedUser}
-          onCopy={() => copy(myUserId, setCopiedUser)}
-        />
-
-        {walletId && (
-          <InfoRow
-            label="Your Wallet ID (UUID)"
+        <label style={labelStyle}>Your Wallet ID</label>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
+          <input
+            style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', fontSize: 11 }}
             value={walletId}
-            copied={copiedWallet}
-            onCopy={() => copy(walletId, setCopiedWallet)}
+            readOnly
           />
-        )}
+          <button
+            style={{ ...btnPrimary, padding: '10px 14px', whiteSpace: 'nowrap' }}
+            onClick={copy}
+          >
+            {copied ? '✓ Copied' : 'Copy'}
+          </button>
+        </div>
 
         <div style={{ padding: '12px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 10 }}>
           <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 4 }}>Current Balance</div>
@@ -285,15 +295,6 @@ export default function WalletPage() {
 
   const { isConnected } = useWalletRealtime({ onBalanceUpdate: handleBalanceUpdate });
 
-  const getMyUserId = (): string => {
-    try {
-      const raw  = document.cookie.match(/tec_user=([^;]+)/)?.[1];
-      if (!raw) return '';
-      const user = JSON.parse(decodeURIComponent(raw));
-      return user?.id ?? user?.uid ?? '';
-    } catch { return ''; }
-  };
-
   if (isLoading) return <div className={styles.container}><WalletSkeleton /></div>;
 
   if (error) return (
@@ -306,7 +307,6 @@ export default function WalletPage() {
   );
 
   const displayBalance = wallet?.balance ?? null;
-  const myUserId       = getMyUserId();
   const myWalletId     = wallet?.walletId ?? '';
 
   return (
@@ -321,13 +321,13 @@ export default function WalletPage() {
       )}
       {showReceive && (
         <ReceiveModal
-          myUserId={myUserId}
           walletId={myWalletId}
           balance={wallet?.balance ?? 0}
           onClose={() => setShowReceive(false)}
         />
       )}
 
+      {/* ── Header ── */}
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Wallet</h1>
@@ -342,6 +342,7 @@ export default function WalletPage() {
         </div>
       </header>
 
+      {/* ── Balance Card ── */}
       <section className={`${styles.balanceCard} fade-up`}>
         <div className={styles.balanceLabel}>Total Balance</div>
         <div className={`${styles.balanceAmount} gold-text ${liveFlash ? styles.balanceFlash : ''}`}>
@@ -353,6 +354,7 @@ export default function WalletPage() {
         </div>
       </section>
 
+      {/* ── Wallets ── */}
       <section className={`${styles.walletsSection} fade-up-1`}>
         <h2 className={styles.sectionTitle}>My Wallets</h2>
         <div className={styles.walletsGrid}>
@@ -382,6 +384,7 @@ export default function WalletPage() {
         </div>
       </section>
 
+      {/* ── Transactions ── */}
       <section className={`${styles.transactionsSection} fade-up-2`}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Transaction History</h2>
@@ -466,4 +469,4 @@ function WalletSkeleton() {
       <div className={styles.skeletonTable} />
     </div>
   );
-    }
+                    }

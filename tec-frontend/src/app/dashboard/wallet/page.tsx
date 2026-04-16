@@ -152,7 +152,7 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
           <>
             <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 14 }}>
               <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
-                💡 Enter the recipient's <strong>Pi Username</strong> (e.g. yasser1728) or <strong>User ID</strong>
+                💡 Enter the recipient <strong>Pi Username</strong> (e.g. yasser1728) or <strong>User ID</strong>
               </p>
             </div>
             <label style={labelStyle}>Pi Username or User ID</label>

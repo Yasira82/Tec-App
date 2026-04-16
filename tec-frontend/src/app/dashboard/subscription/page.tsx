@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 interface Plan {
   id:       string;
@@ -29,7 +29,6 @@ const PLAN_COLORS: Record<string, string> = {
 const s = (style: React.CSSProperties) => style;
 
 export default function SubscriptionPage() {
-  const { user } = usePiAuth();
   const [plans,   setPlans]   = useState<Plan[]>([]);
   const [sub,     setSub]     = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,16 +36,16 @@ export default function SubscriptionPage() {
   const [error,   setError]   = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const token = typeof window !== 'undefined'
-    ? localStorage.getItem('tec_access_token') : null;
-
   const fetchData = useCallback(async () => {
     setLoading(true);
+    // ✅ VM-004: cookie بدل localStorage
+    const token = getAccessToken();
     try {
       const [plansRes, subRes] = await Promise.all([
-        fetch('/api/subscriptions?endpoint=plans'),
+        fetch('/api/subscriptions?endpoint=plans', { credentials: 'include' }),
         fetch('/api/subscriptions?endpoint=status', {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: 'include',
+          headers:     token ? { Authorization: `Bearer ${token}` } : {},
         }),
       ]);
       const plansData = await plansRes.json();
@@ -58,18 +57,20 @@ export default function SubscriptionPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSubscribe = async (planId: string) => {
+    const token = getAccessToken();
     if (!token) return;
     setPaying(planId);
     setError(null);
     setSuccess(null);
     try {
       const res = await fetch('/api/subscriptions?endpoint=subscribe', {
-        method:  'POST',
+        method:      'POST',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Authorization:  `Bearer ${token}`,
@@ -80,19 +81,21 @@ export default function SubscriptionPage() {
       if (!res.ok) throw new Error(data.message ?? 'Failed to subscribe');
       setSub(data.data?.subscription);
       setSuccess(`Successfully subscribed to ${planId}!`);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError((e as Error).message);
     } finally {
       setPaying(null);
     }
   };
 
   const handleCancel = async () => {
+    const token = getAccessToken();
     if (!token) return;
     if (!confirm('Are you sure you want to cancel your subscription?')) return;
     try {
       const res = await fetch('/api/subscriptions', {
-        method:  'PATCH',
+        method:      'PATCH',
+        credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           Authorization:  `Bearer ${token}`,
@@ -103,8 +106,8 @@ export default function SubscriptionPage() {
       if (!res.ok) throw new Error(data.message ?? 'Failed to cancel');
       setSub(data.data?.subscription);
       setSuccess('Subscription cancelled');
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError((e as Error).message);
     }
   };
 
@@ -155,7 +158,6 @@ export default function SubscriptionPage() {
             <div style={s({ fontSize: 24, fontWeight: 900, color })}>
               {sub?.planDetails?.price === 0 ? 'Free' : `${sub?.planDetails?.price} π`}
             </div>
-            {/* ✅ Fix: use nullish coalescing to avoid undefined comparison */}
             {(sub?.planDetails?.duration ?? 0) > 0 && (
               <div style={s({ fontSize: 10, color: '#4a4a5a', marginTop: 4 })}>per month</div>
             )}
@@ -215,17 +217,15 @@ export default function SubscriptionPage() {
                   onClick={() => handleSubscribe(plan.id)}
                   disabled={!!paying}
                   style={s({
-                    width:      '100%',
-                    padding:    '12px',
+                    width:        '100%',
+                    padding:      '12px',
                     borderRadius: 12,
-                    background: isLoading
-                      ? planColor + '20'
-                      : `linear-gradient(135deg, ${planColor}30, ${planColor}10)`,
-                    border:     `1px solid ${planColor}40`,
-                    color:      planColor,
-                    fontSize:   13,
-                    fontWeight: 700,
-                    cursor:     paying ? 'not-allowed' : 'pointer',
+                    background:   isLoading ? planColor + '20' : `linear-gradient(135deg, ${planColor}30, ${planColor}10)`,
+                    border:       `1px solid ${planColor}40`,
+                    color:        planColor,
+                    fontSize:     13,
+                    fontWeight:   700,
+                    cursor:       paying ? 'not-allowed' : 'pointer',
                   })}>
                   {isLoading
                     ? '⏳ Processing...'
@@ -241,4 +241,4 @@ export default function SubscriptionPage() {
 
     </div>
   );
-  }
+        }

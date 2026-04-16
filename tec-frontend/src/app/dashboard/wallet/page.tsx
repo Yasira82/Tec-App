@@ -7,7 +7,6 @@ import { getAccessToken }                            from '@/lib-client/pi/pi-au
 import { buildHeaders }                              from '@/lib/request-id';
 import styles from './wallet.module.css';
 
-// ─── Helpers ──────────────────────────────────────────────────
 function getTypeIcon(type: string) {
   switch (type) {
     case 'receive': case 'credit':  return '↓';
@@ -33,7 +32,6 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`${styles.statusBadge} ${map[status] ?? ''}`}>{status}</span>;
 }
 
-// ─── Shared Modal Styles ───────────────────────────────────────
 const overlayStyle: React.CSSProperties = {
   position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
   display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -66,13 +64,13 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
   onClose:    () => void;
   onSuccess:  () => void;
 }) {
-  const [tab,       setTab]       = useState<'internal' | 'pi'>('internal');
-  const [toUserId,  setToUserId]  = useState('');
-  const [piUid,     setPiUid]     = useState('');
-  const [amount,    setAmount]    = useState('');
-  const [memo,      setMemo]      = useState('TEC Transfer');
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
+  const [tab,      setTab]      = useState<'internal' | 'pi'>('internal');
+  const [toInput,  setToInput]  = useState('');
+  const [piUid,    setPiUid]    = useState('');
+  const [amount,   setAmount]   = useState('');
+  const [memo,     setMemo]     = useState('TEC Transfer');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState<string | null>(null);
 
   const validate = (recipient: string): boolean => {
     if (!recipient || !amount) { setError('All fields required'); return false; }
@@ -82,19 +80,24 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
   };
 
   const handleInternalSend = async () => {
-    if (!validate(toUserId)) return;
+    if (!validate(toInput)) return;
     setLoading(true); setError(null);
     try {
-      const token     = getAccessToken();
-      // 1. Lookup recipient wallet UUID
-      const lookupRes = await fetch(`/api/wallet/lookup?userId=${encodeURIComponent(toUserId)}`, {
+      const token = getAccessToken();
+
+      // ✅ detect UUID vs Pi Username
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(toInput);
+      const params = isUUID
+        ? `userId=${encodeURIComponent(toInput)}`
+        : `piUsername=${encodeURIComponent(toInput.replace('@', ''))}`;
+
+      const lookupRes  = await fetch(`/api/wallet/lookup?${params}`, {
         credentials: 'include',
         headers:     token ? { Authorization: `Bearer ${token}` } : {},
       });
       const lookupData = await lookupRes.json();
-      if (!lookupRes.ok || !lookupData.walletId) throw new Error('Recipient wallet not found');
+      if (!lookupRes.ok || !lookupData.walletId) throw new Error(lookupData.error ?? 'Recipient wallet not found');
 
-      // 2. Transfer
       const res  = await fetch('/api/wallet/transfer', {
         method:      'POST',
         credentials: 'include',
@@ -108,7 +111,7 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error?.message ?? 'Transfer failed');
+      if (!res.ok) throw new Error(data?.error?.message ?? data?.message ?? 'Transfer failed');
       onSuccess(); onClose();
     } catch (e) { setError((e as Error).message); }
     finally     { setLoading(false); }
@@ -138,17 +141,26 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
       <div style={modalStyle}>
         <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↑ Send π</h2>
 
-        {/* Tabs */}
         <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid #ffffff10' }}>
           <button style={tabBtn(tab === 'internal')} onClick={() => setTab('internal')}>🏦 Internal (TEC)</button>
-          <button style={tabBtn(tab === 'pi')}       onClick={() => setTab('pi')}>π Pi Network</button>
+          <button style={{ ...tabBtn(tab === 'pi'), opacity: 0.45, cursor: 'not-allowed' }} disabled>
+            π Pi Network (Soon)
+          </button>
         </div>
 
         {tab === 'internal' && (
           <>
-            <label style={labelStyle}>Recipient User ID</label>
-            <input style={inputStyle} placeholder="Paste User ID..." value={toUserId}
-              onChange={e => setToUserId(e.target.value)} />
+            <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 14 }}>
+              <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
+                💡 Enter the recipient's <strong>Pi Username</strong> (e.g. yasser1728) or <strong>User ID</strong>
+              </p>
+            </div>
+            <label style={labelStyle}>Pi Username or User ID</label>
+            <input style={inputStyle}
+              placeholder="@piUsername or UUID..."
+              value={toInput}
+              onChange={e => setToInput(e.target.value)}
+            />
             <label style={{ ...labelStyle, marginTop: 12 }}>Amount (π)</label>
             <input style={inputStyle} type="number" placeholder="0.00" value={amount}
               onChange={e => setAmount(e.target.value)} />
@@ -160,20 +172,12 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
 
         {tab === 'pi' && (
           <>
-            <div style={{ padding: '10px 12px', background: '#1a1500', border: '1px solid #f0c04030', borderRadius: 8, marginBottom: 14 }}>
-              <p style={{ color: '#f0c040', fontSize: 12, margin: 0 }}>
-                ⚠️ Pi Network transfers use the Pi SDK — must be open in Pi Browser
-              </p>
-            </div>
             <label style={labelStyle}>Recipient Pi UID</label>
             <input style={inputStyle} placeholder="Pi UID..." value={piUid}
               onChange={e => setPiUid(e.target.value)} />
             <label style={{ ...labelStyle, marginTop: 12 }}>Amount (π)</label>
             <input style={inputStyle} type="number" placeholder="0.00" value={amount}
               onChange={e => setAmount(e.target.value)} />
-            <label style={{ ...labelStyle, marginTop: 12 }}>Memo</label>
-            <input style={inputStyle} placeholder="TEC Transfer" value={memo}
-              onChange={e => setMemo(e.target.value)} />
           </>
         )}
 
@@ -184,7 +188,7 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
           <button style={btnPrimary}
             onClick={tab === 'internal' ? handleInternalSend : handlePiSend}
             disabled={loading}>
-            {loading ? 'Sending...' : tab === 'internal' ? 'Send Internally' : 'Send via Pi'}
+            {loading ? 'Sending...' : 'Send Internally'}
           </button>
         </div>
       </div>
@@ -199,8 +203,8 @@ function ReceiveModal({ myUserId, walletId, balance, onClose }: {
   balance:   number;
   onClose:   () => void;
 }) {
-  const [copiedUserId,   setCopiedUserId]   = useState(false);
-  const [copiedWalletId, setCopiedWalletId] = useState(false);
+  const [copiedUser,   setCopiedUser]   = useState(false);
+  const [copiedWallet, setCopiedWallet] = useState(false);
 
   const copy = (text: string, setCopied: (v: boolean) => void) => {
     navigator.clipboard.writeText(text);
@@ -208,7 +212,9 @@ function ReceiveModal({ myUserId, walletId, balance, onClose }: {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const row = (label: string, value: string, copied: boolean, onCopy: () => void) => (
+  const InfoRow = ({ label, value, copied, onCopy }: {
+    label: string; value: string; copied: boolean; onCopy: () => void;
+  }) => (
     <div style={{ marginBottom: 14 }}>
       <label style={labelStyle}>{label}</label>
       <div style={{ display: 'flex', gap: 8 }}>
@@ -223,16 +229,31 @@ function ReceiveModal({ myUserId, walletId, balance, onClose }: {
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 20 }}>↓ Receive π</h2>
+        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↓ Receive π</h2>
 
-        <p style={{ color: '#6b6b7a', fontSize: 13, marginBottom: 16 }}>
-          Share your User ID to receive TEC balance from other users.
-        </p>
+        <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 16 }}>
+          <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
+            💡 Share your <strong>User ID</strong> so others can send you TEC balance internally.
+          </p>
+        </div>
 
-        {row('Your User ID (for internal transfers)', myUserId, copiedUserId, () => copy(myUserId, setCopiedUserId))}
-        {walletId && row('Your Wallet ID (UUID)', walletId, copiedWalletId, () => copy(walletId, setCopiedWalletId))}
+        <InfoRow
+          label="Your User ID"
+          value={myUserId}
+          copied={copiedUser}
+          onCopy={() => copy(myUserId, setCopiedUser)}
+        />
 
-        <div style={{ marginTop: 4, padding: '12px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 10 }}>
+        {walletId && (
+          <InfoRow
+            label="Your Wallet ID (UUID)"
+            value={walletId}
+            copied={copiedWallet}
+            onCopy={() => copy(walletId, setCopiedWallet)}
+          />
+        )}
+
+        <div style={{ padding: '12px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 10 }}>
           <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 4 }}>Current Balance</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#d4af37' }}>{balance.toFixed(2)} π</div>
         </div>
@@ -264,7 +285,6 @@ export default function WalletPage() {
 
   const { isConnected } = useWalletRealtime({ onBalanceUpdate: handleBalanceUpdate });
 
-  // ── استخراج myUserId ──────────────────────────────────────
   const getMyUserId = (): string => {
     try {
       const raw  = document.cookie.match(/tec_user=([^;]+)/)?.[1];
@@ -292,12 +312,11 @@ export default function WalletPage() {
   return (
     <div className={styles.container}>
 
-      {/* ── Modals ── */}
       {showSend && (
         <SendModal
           myWalletId={myWalletId}
           onClose={() => setShowSend(false)}
-          onSuccess={() => { refetch(); }}
+          onSuccess={refetch}
         />
       )}
       {showReceive && (
@@ -309,7 +328,6 @@ export default function WalletPage() {
         />
       )}
 
-      {/* ── Header ── */}
       <header className={styles.header}>
         <div>
           <h1 className={styles.title}>Wallet</h1>
@@ -324,7 +342,6 @@ export default function WalletPage() {
         </div>
       </header>
 
-      {/* ── Balance Card ── */}
       <section className={`${styles.balanceCard} fade-up`}>
         <div className={styles.balanceLabel}>Total Balance</div>
         <div className={`${styles.balanceAmount} gold-text ${liveFlash ? styles.balanceFlash : ''}`}>
@@ -336,7 +353,6 @@ export default function WalletPage() {
         </div>
       </section>
 
-      {/* ── Wallets ── */}
       <section className={`${styles.walletsSection} fade-up-1`}>
         <h2 className={styles.sectionTitle}>My Wallets</h2>
         <div className={styles.walletsGrid}>
@@ -366,7 +382,6 @@ export default function WalletPage() {
         </div>
       </section>
 
-      {/* ── Transactions ── */}
       <section className={`${styles.transactionsSection} fade-up-2`}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Transaction History</h2>
@@ -411,7 +426,6 @@ export default function WalletPage() {
           </button>
         </div>
       </section>
-
     </div>
   );
 }
@@ -452,4 +466,4 @@ function WalletSkeleton() {
       <div className={styles.skeletonTable} />
     </div>
   );
-        }
+    }

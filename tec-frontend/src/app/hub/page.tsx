@@ -42,6 +42,13 @@ export default function HubPage() {
   const [payState,   setPayState]   = useState<PayState>('idle');
   const [payMsg,     setPayMsg]     = useState('');
   const [txid,       setTxid]       = useState('');
+  const [notifCount, setNotifCount] = useState(0);
+  const [piPrice,    setPiPrice]    = useState<{
+    price: number;
+    change24h: number;
+    high24h: number;
+    low24h: number;
+  } | null>(null);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.replace('/');
@@ -66,52 +73,62 @@ export default function HubPage() {
   }, [user?.id]);
 
   const refreshAssets = useCallback(() => {
-  if (!user?.id) return;
-  fetch(`/api/assets?userId=${user.id}`, {
-    credentials: 'include',
-    headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-  })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
-    .catch(() => {});
-}, [user?.id]);
+    if (!user?.id) return;
+    fetch(`/api/assets?userId=${user.id}`, {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
+      .catch(() => {});
+  }, [user?.id]);
 
-// ✅ أضيف هنا
-const [notifCount, setNotifCount] = useState(0);
+  const refreshNotifCount = useCallback(() => {
+    if (!user?.id) return;
+    const token = getAccessToken();
+    fetch(`/api/notifications/unread-count?userId=${user.id}`, {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${token ?? ''}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setNotifCount(d.count ?? 0))
+      .catch(() => {});
+  }, [user?.id]);
 
-const refreshNotifCount = useCallback(() => {
-  if (!user?.id) return;
-  const token = getAccessToken();
-  fetch(`/api/notifications/unread-count?userId=${user.id}`, {
-    credentials: 'include',
-    headers: { Authorization: `Bearer ${token ?? ''}` },
-  })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => d && setNotifCount(d.count ?? 0))
-    .catch(() => {});
-}, [user?.id]);
+  const refreshPrice = useCallback(async () => {
+    try {
+      const res  = await fetch('/api/market/pi-price', { cache: 'no-store' });
+      const data = await res.json();
+      if (!data.error) setPiPrice(data);
+    } catch {}
+  }, []);
 
-useEffect(() => {
-  refreshBalance();
-  refreshAssets();
-}, [refreshBalance, refreshAssets]);
+  useEffect(() => {
+    refreshBalance();
+    refreshAssets();
+  }, [refreshBalance, refreshAssets]);
 
-useEffect(() => {
-  refreshNotifCount();
-  const interval = setInterval(refreshNotifCount, 10000);
-  return () => clearInterval(interval);
-}, [refreshNotifCount]);
+  useEffect(() => {
+    refreshNotifCount();
+    const interval = setInterval(refreshNotifCount, 10000);
+    return () => clearInterval(interval);
+  }, [refreshNotifCount]);
+
+  useEffect(() => {
+    refreshPrice();
+    const interval = setInterval(refreshPrice, 60000);
+    return () => clearInterval(interval);
+  }, [refreshPrice]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
-  userId: user?.id,
-  token:  getAccessToken(),
-  onWalletUpdate: () => setTimeout(refreshBalance, 500),
-});
+    userId: user?.id,
+    token:  getAccessToken(),
+    onWalletUpdate: () => setTimeout(refreshBalance, 500),
+  });
 
   const handlePay = useCallback(async () => {
     if (payState === 'processing') return;
 
-    // ✅ لازم Pi Browser
     if (typeof window === 'undefined' || !window.Pi) {
       setPayState('error');
       setPayMsg('Open in Pi Browser to make payments');
@@ -124,10 +141,10 @@ useEffect(() => {
 
     try {
       const result = await createU2APayment(
-  1,
-  'TEC Super App Payment',
-  { source: 'hub', version: '1.0' },
-);
+        1,
+        'TEC Super App Payment',
+        { source: 'hub', version: '1.0' },
+      );
       if (result.success && result.status === 'completed') {
         setPayState('success');
         setTxid(result.txid ?? '');
@@ -193,10 +210,10 @@ useEffect(() => {
             style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
             🔔
             {(wsUnread > 0 || notifCount > 0) && (
-  <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#e74c3c', border: '2px solid #020205', fontSize: 9, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
-    {wsUnread > 0 ? wsUnread : notifCount > 9 ? '9+' : notifCount}
-  </span>
-)}
+              <span style={{ position: 'absolute', top: -4, right: -4, width: 16, height: 16, borderRadius: '50%', background: '#e74c3c', border: '2px solid #020205', fontSize: 9, fontWeight: 800, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+                {wsUnread > 0 ? wsUnread : notifCount > 9 ? '9+' : notifCount}
+              </span>
+            )}
           </button>
 
           <button className="hub-btn" onClick={() => router.push('/dashboard')}
@@ -248,11 +265,44 @@ useEffect(() => {
         </button>
       </div>
 
+      {/* ── Pi Price ── */}
+      {piPrice && (
+        <div style={{ padding: '10px 16px 0' }}>
+          <div style={{ borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>π</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>Pi Network</div>
+                  <div style={{ fontSize: 10, color: '#4a4a5a' }}>PI/USDT · OKX</div>
+                </div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: '#d4af37' }}>
+                  ${piPrice.price.toFixed(4)}
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: piPrice.change24h >= 0 ? '#7ee7c0' : '#e74c3c' }}>
+                  {piPrice.change24h >= 0 ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
+                </div>
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ padding: '8px 12px', background: '#ffffff05', borderRadius: 10 }}>
+                <div style={{ fontSize: 10, color: '#4a4a5a', marginBottom: 2 }}>24H HIGH</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#7ee7c0' }}>${piPrice.high24h.toFixed(4)}</div>
+              </div>
+              <div style={{ padding: '8px 12px', background: '#ffffff05', borderRadius: 10 }}>
+                <div style={{ fontSize: 10, color: '#4a4a5a', marginBottom: 2 }}>24H LOW</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#e74c3c' }}>${piPrice.low24h.toFixed(4)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }}>
         <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-
-          {/* Pay 1 π */}
           <button className="hub-btn" onClick={handlePay} disabled={payBusy}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0d2e14,#0a1f0f)', border: `1px solid ${payBusy ? '#7ee7c020' : '#7ee7c040'}`, color: '#7ee7c0', fontWeight: 700, fontSize: 13, cursor: payBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {payBusy ? (
@@ -265,7 +315,6 @@ useEffect(() => {
             )}
           </button>
 
-          {/* Receive π — يروح wallet page */}
           <button className="hub-btn" onClick={() => router.push('/dashboard/wallet')}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <span style={{ fontFamily: 'Georgia,serif', fontSize: 18 }}>π</span>
@@ -273,7 +322,6 @@ useEffect(() => {
           </button>
         </div>
 
-        {/* Payment Status */}
         {payState !== 'idle' && (
           <div style={{ padding: '12px 16px', borderRadius: 14, background: payState === 'success' ? '#051a0a' : payState === 'error' ? '#1a0505' : payState === 'pending' ? '#1a1505' : '#0a0a1a', border: `1px solid ${payState === 'success' ? '#7ee7c030' : payState === 'error' ? '#e74c3c30' : payState === 'pending' ? '#f0c04030' : '#ffffff10'}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, animation: 'fadeIn 0.2s ease' }}>
             <div style={{ flex: 1 }}>
@@ -369,4 +417,4 @@ useEffect(() => {
       </nav>
     </div>
   );
-                }
+            }

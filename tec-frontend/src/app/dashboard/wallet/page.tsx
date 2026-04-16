@@ -2,31 +2,26 @@
 
 import { useState, useCallback } from 'react';
 import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/useWallet';
-import { useWalletRealtime, WalletUpdatedEvent } from '@/lib-client/hooks/useWalletRealtime';
-import { getAccessToken, getStoredUser } from '@/lib-client/pi/pi-auth';
-import { buildHeaders } from '@/lib/request-id';
+import { useWalletRealtime, WalletUpdatedEvent }     from '@/lib-client/hooks/useWalletRealtime';
+import { getAccessToken }                            from '@/lib-client/pi/pi-auth';
+import { buildHeaders }                              from '@/lib/request-id';
 import styles from './wallet.module.css';
 
+// ─── Helpers ──────────────────────────────────────────────────
 function getTypeIcon(type: string) {
   switch (type) {
-    case 'receive':
-    case 'credit':  return '↓';
-    case 'send':
-    case 'debit':   return '↑';
-    case 'payment': return '→';
-    default:        return '•';
+    case 'receive': case 'credit':  return '↓';
+    case 'send':    case 'debit':   return '↑';
+    case 'payment':                 return '→';
+    default:                        return '•';
   }
 }
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('en-US', {
-    month: 'short', day: 'numeric', year: 'numeric',
-  });
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function isPositive(type: string) {
-  return type === 'receive' || type === 'credit';
-}
+function isPositive(type: string) { return type === 'receive' || type === 'credit'; }
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, string> = {
@@ -35,83 +30,161 @@ function StatusBadge({ status }: { status: string }) {
     failed:    styles.statusFailed,
     cancelled: styles.statusFailed,
   };
-  return (
-    <span className={`${styles.statusBadge} ${map[status] ?? ''}`}>
-      {status}
-    </span>
-  );
+  return <span className={`${styles.statusBadge} ${map[status] ?? ''}`}>{status}</span>;
 }
 
+// ─── Shared Modal Styles ───────────────────────────────────────
+const overlayStyle: React.CSSProperties = {
+  position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  zIndex: 1000, padding: '20px',
+};
+const modalStyle: React.CSSProperties = {
+  background: '#0a0a0f', border: '1px solid #d4af3730',
+  borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 420,
+};
+const labelStyle: React.CSSProperties = {
+  display: 'block', fontSize: 12, color: '#6b6b7a', marginBottom: 6, letterSpacing: 0.5,
+};
+const inputStyle: React.CSSProperties = {
+  width: '100%', padding: '10px 14px', background: '#0d0d14',
+  border: '1px solid #ffffff15', borderRadius: 10, color: '#fff',
+  fontSize: 14, outline: 'none', boxSizing: 'border-box',
+};
+const btnPrimary: React.CSSProperties = {
+  padding: '10px 20px', background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+  border: 'none', borderRadius: 10, color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+};
+const btnOutline: React.CSSProperties = {
+  padding: '10px 20px', background: 'none', border: '1px solid #ffffff20',
+  borderRadius: 10, color: '#6b6b7a', fontSize: 13, cursor: 'pointer',
+};
+
 // ─── Send Modal ────────────────────────────────────────────────
-function SendModal({ walletId, onClose, onSuccess }: {
-  walletId: string;
-  onClose:  () => void;
-  onSuccess: () => void;
+function SendModal({ myWalletId, onClose, onSuccess }: {
+  myWalletId: string;
+  onClose:    () => void;
+  onSuccess:  () => void;
 }) {
-  const [toAddress, setToAddress] = useState('');
+  const [tab,       setTab]       = useState<'internal' | 'pi'>('internal');
+  const [toUserId,  setToUserId]  = useState('');
+  const [piUid,     setPiUid]     = useState('');
   const [amount,    setAmount]    = useState('');
+  const [memo,      setMemo]      = useState('TEC Transfer');
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState<string | null>(null);
 
-  const handleSend = async () => {
-    if (!toAddress || !amount) { setError('All fields required'); return; }
-    const parsedAmount = parseFloat(amount);
-    if (isNaN(parsedAmount) || parsedAmount <= 0) { setError('Invalid amount'); return; }
+  const validate = (recipient: string): boolean => {
+    if (!recipient || !amount) { setError('All fields required'); return false; }
+    const n = parseFloat(amount);
+    if (isNaN(n) || n <= 0) { setError('Invalid amount'); return false; }
+    return true;
+  };
 
-    setLoading(true);
-    setError(null);
+  const handleInternalSend = async () => {
+    if (!validate(toUserId)) return;
+    setLoading(true); setError(null);
     try {
-      const token = getAccessToken();
-      const res   = await fetch('/api/wallet/transfer', {
+      const token     = getAccessToken();
+      // 1. Lookup recipient wallet UUID
+      const lookupRes = await fetch(`/api/wallet/lookup?userId=${encodeURIComponent(toUserId)}`, {
+        credentials: 'include',
+        headers:     token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const lookupData = await lookupRes.json();
+      if (!lookupRes.ok || !lookupData.walletId) throw new Error('Recipient wallet not found');
+
+      // 2. Transfer
+      const res  = await fetch('/api/wallet/transfer', {
         method:      'POST',
         credentials: 'include',
         headers:     buildHeaders(token),
         body: JSON.stringify({
-          fromWalletId: walletId,
-          toWalletId:   toAddress,
-          amount:       parsedAmount,
+          fromWalletId: myWalletId,
+          toWalletId:   lookupData.walletId,
+          amount:       parseFloat(amount),
           assetType:    'PI',
+          description:  memo,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data?.error?.message ?? 'Transfer failed');
-      onSuccess();
-      onClose();
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setLoading(false);
-    }
+      onSuccess(); onClose();
+    } catch (e) { setError((e as Error).message); }
+    finally     { setLoading(false); }
   };
+
+  const handlePiSend = async () => {
+    if (!validate(piUid)) return;
+    setLoading(true); setError(null);
+    try {
+      const { createA2UPayment } = await import('@/lib-client/pi/pi-payment');
+      const result = await createA2UPayment({ recipientUid: piUid, amount: parseFloat(amount), memo });
+      if (result.success) { onSuccess(); onClose(); }
+      else throw new Error(result.message ?? 'Pi transfer failed');
+    } catch (e) { setError((e as Error).message); }
+    finally     { setLoading(false); }
+  };
+
+  const tabBtn = (active: boolean): React.CSSProperties => ({
+    flex: 1, padding: '10px', background: active ? '#d4af3715' : 'none',
+    border: 'none', borderBottom: active ? '2px solid #d4af37' : '2px solid transparent',
+    color: active ? '#d4af37' : '#6b6b7a', fontSize: 13,
+    fontWeight: active ? 700 : 400, cursor: 'pointer',
+  });
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 20 }}>↑ Send π</h2>
+        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↑ Send π</h2>
 
-        <label style={labelStyle}>Recipient Wallet ID</label>
-        <input
-          style={inputStyle}
-          placeholder="Wallet ID..."
-          value={toAddress}
-          onChange={e => setToAddress(e.target.value)}
-        />
+        {/* Tabs */}
+        <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid #ffffff10' }}>
+          <button style={tabBtn(tab === 'internal')} onClick={() => setTab('internal')}>🏦 Internal (TEC)</button>
+          <button style={tabBtn(tab === 'pi')}       onClick={() => setTab('pi')}>π Pi Network</button>
+        </div>
 
-        <label style={{ ...labelStyle, marginTop: 12 }}>Amount (π)</label>
-        <input
-          style={inputStyle}
-          type="number"
-          placeholder="0.00"
-          value={amount}
-          onChange={e => setAmount(e.target.value)}
-        />
+        {tab === 'internal' && (
+          <>
+            <label style={labelStyle}>Recipient User ID</label>
+            <input style={inputStyle} placeholder="Paste User ID..." value={toUserId}
+              onChange={e => setToUserId(e.target.value)} />
+            <label style={{ ...labelStyle, marginTop: 12 }}>Amount (π)</label>
+            <input style={inputStyle} type="number" placeholder="0.00" value={amount}
+              onChange={e => setAmount(e.target.value)} />
+            <label style={{ ...labelStyle, marginTop: 12 }}>Description</label>
+            <input style={inputStyle} placeholder="TEC Transfer" value={memo}
+              onChange={e => setMemo(e.target.value)} />
+          </>
+        )}
+
+        {tab === 'pi' && (
+          <>
+            <div style={{ padding: '10px 12px', background: '#1a1500', border: '1px solid #f0c04030', borderRadius: 8, marginBottom: 14 }}>
+              <p style={{ color: '#f0c040', fontSize: 12, margin: 0 }}>
+                ⚠️ Pi Network transfers use the Pi SDK — must be open in Pi Browser
+              </p>
+            </div>
+            <label style={labelStyle}>Recipient Pi UID</label>
+            <input style={inputStyle} placeholder="Pi UID..." value={piUid}
+              onChange={e => setPiUid(e.target.value)} />
+            <label style={{ ...labelStyle, marginTop: 12 }}>Amount (π)</label>
+            <input style={inputStyle} type="number" placeholder="0.00" value={amount}
+              onChange={e => setAmount(e.target.value)} />
+            <label style={{ ...labelStyle, marginTop: 12 }}>Memo</label>
+            <input style={inputStyle} placeholder="TEC Transfer" value={memo}
+              onChange={e => setMemo(e.target.value)} />
+          </>
+        )}
 
         {error && <p style={{ color: '#e74c3c', fontSize: 13, marginTop: 8 }}>⚠️ {error}</p>}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button style={btnOutlineStyle} onClick={onClose}>Cancel</button>
-          <button style={btnPrimaryStyle} onClick={handleSend} disabled={loading}>
-            {loading ? 'Sending...' : 'Send π'}
+          <button style={btnOutline} onClick={onClose}>Cancel</button>
+          <button style={btnPrimary}
+            onClick={tab === 'internal' ? handleInternalSend : handlePiSend}
+            disabled={loading}>
+            {loading ? 'Sending...' : tab === 'internal' ? 'Send Internally' : 'Send via Pi'}
           </button>
         </div>
       </div>
@@ -120,18 +193,32 @@ function SendModal({ walletId, onClose, onSuccess }: {
 }
 
 // ─── Receive Modal ─────────────────────────────────────────────
-function ReceiveModal({ walletId, balance, onClose }: {
-  walletId: string;
-  balance:  number;
-  onClose:  () => void;
+function ReceiveModal({ myUserId, walletId, balance, onClose }: {
+  myUserId:  string;
+  walletId:  string;
+  balance:   number;
+  onClose:   () => void;
 }) {
-  const [copied, setCopied] = useState(false);
+  const [copiedUserId,   setCopiedUserId]   = useState(false);
+  const [copiedWalletId, setCopiedWalletId] = useState(false);
 
-  const copy = () => {
-    navigator.clipboard.writeText(walletId);
+  const copy = (text: string, setCopied: (v: boolean) => void) => {
+    navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  const row = (label: string, value: string, copied: boolean, onCopy: () => void) => (
+    <div style={{ marginBottom: 14 }}>
+      <label style={labelStyle}>{label}</label>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <input style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', fontSize: 11 }} value={value} readOnly />
+        <button style={{ ...btnPrimary, padding: '10px 14px', whiteSpace: 'nowrap' }} onClick={onCopy}>
+          {copied ? '✓' : 'Copy'}
+        </button>
+      </div>
+    </div>
+  );
 
   return (
     <div style={overlayStyle}>
@@ -139,93 +226,22 @@ function ReceiveModal({ walletId, balance, onClose }: {
         <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 20 }}>↓ Receive π</h2>
 
         <p style={{ color: '#6b6b7a', fontSize: 13, marginBottom: 16 }}>
-          Share your Wallet ID to receive TEC balance from other users.
+          Share your User ID to receive TEC balance from other users.
         </p>
 
-        <label style={labelStyle}>Your Wallet ID</label>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <input
-            style={{ ...inputStyle, flex: 1, fontFamily: 'monospace', fontSize: 12 }}
-            value={walletId}
-            readOnly
-          />
-          <button style={btnPrimaryStyle} onClick={copy}>
-            {copied ? '✓' : 'Copy'}
-          </button>
-        </div>
+        {row('Your User ID (for internal transfers)', myUserId, copiedUserId, () => copy(myUserId, setCopiedUserId))}
+        {walletId && row('Your Wallet ID (UUID)', walletId, copiedWalletId, () => copy(walletId, setCopiedWalletId))}
 
-        <div style={{ marginTop: 16, padding: '12px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 10 }}>
+        <div style={{ marginTop: 4, padding: '12px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 10 }}>
           <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 4 }}>Current Balance</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: '#d4af37' }}>{balance.toFixed(2)} π</div>
         </div>
 
-        <button style={{ ...btnOutlineStyle, width: '100%', marginTop: 16 }} onClick={onClose}>Close</button>
+        <button style={{ ...btnOutline, width: '100%', marginTop: 16 }} onClick={onClose}>Close</button>
       </div>
     </div>
   );
 }
-
-// ─── Styles ────────────────────────────────────────────────────
-const overlayStyle: React.CSSProperties = {
-  position:        'fixed',
-  inset:           0,
-  background:      'rgba(0,0,0,0.7)',
-  display:         'flex',
-  alignItems:      'center',
-  justifyContent:  'center',
-  zIndex:          1000,
-  padding:         '20px',
-};
-
-const modalStyle: React.CSSProperties = {
-  background:   '#0a0a0f',
-  border:       '1px solid #d4af3730',
-  borderRadius: 20,
-  padding:      '28px 24px',
-  width:        '100%',
-  maxWidth:     400,
-};
-
-const labelStyle: React.CSSProperties = {
-  display:      'block',
-  fontSize:     12,
-  color:        '#6b6b7a',
-  marginBottom: 6,
-  letterSpacing: 0.5,
-};
-
-const inputStyle: React.CSSProperties = {
-  width:        '100%',
-  padding:      '10px 14px',
-  background:   '#0d0d14',
-  border:       '1px solid #ffffff15',
-  borderRadius: 10,
-  color:        '#fff',
-  fontSize:     14,
-  outline:      'none',
-  boxSizing:    'border-box',
-};
-
-const btnPrimaryStyle: React.CSSProperties = {
-  padding:      '10px 20px',
-  background:   'linear-gradient(135deg,#d4af37,#b8882a)',
-  border:       'none',
-  borderRadius: 10,
-  color:        '#0a0800',
-  fontSize:     13,
-  fontWeight:   700,
-  cursor:       'pointer',
-};
-
-const btnOutlineStyle: React.CSSProperties = {
-  padding:      '10px 20px',
-  background:   'none',
-  border:       '1px solid #ffffff20',
-  borderRadius: 10,
-  color:        '#6b6b7a',
-  fontSize:     13,
-  cursor:       'pointer',
-};
 
 // ─── Page ──────────────────────────────────────────────────────
 export default function WalletPage() {
@@ -235,14 +251,9 @@ export default function WalletPage() {
     refetch, setPage, setFilterType, setFilterStatus, updateBalance,
   } = useWallet();
 
-  const [liveFlash,    setLiveFlash]    = useState(false);
-  const [showSend,     setShowSend]     = useState(false);
-  const [showReceive,  setShowReceive]  = useState(false);
-
-  const getUserWalletId = (): string => {
-    const user = getStoredUser() as { id?: string } | null;
-    return wallet?.address ?? user?.id ?? '';
-  };
+  const [liveFlash,   setLiveFlash]   = useState(false);
+  const [showSend,    setShowSend]    = useState(false);
+  const [showReceive, setShowReceive] = useState(false);
 
   const handleBalanceUpdate = useCallback((event: WalletUpdatedEvent) => {
     updateBalance(event.balance);
@@ -252,6 +263,16 @@ export default function WalletPage() {
   }, [updateBalance, refetch]);
 
   const { isConnected } = useWalletRealtime({ onBalanceUpdate: handleBalanceUpdate });
+
+  // ── استخراج myUserId ──────────────────────────────────────
+  const getMyUserId = (): string => {
+    try {
+      const raw  = document.cookie.match(/tec_user=([^;]+)/)?.[1];
+      if (!raw) return '';
+      const user = JSON.parse(decodeURIComponent(raw));
+      return user?.id ?? user?.uid ?? '';
+    } catch { return ''; }
+  };
 
   if (isLoading) return <div className={styles.container}><WalletSkeleton /></div>;
 
@@ -265,7 +286,8 @@ export default function WalletPage() {
   );
 
   const displayBalance = wallet?.balance ?? null;
-  const walletId       = getUserWalletId();
+  const myUserId       = getMyUserId();
+  const myWalletId     = wallet?.walletId ?? '';
 
   return (
     <div className={styles.container}>
@@ -273,14 +295,15 @@ export default function WalletPage() {
       {/* ── Modals ── */}
       {showSend && (
         <SendModal
-          walletId={walletId}
+          myWalletId={myWalletId}
           onClose={() => setShowSend(false)}
           onSuccess={() => { refetch(); }}
         />
       )}
       {showReceive && (
         <ReceiveModal
-          walletId={walletId}
+          myUserId={myUserId}
+          walletId={myWalletId}
           balance={wallet?.balance ?? 0}
           onClose={() => setShowReceive(false)}
         />
@@ -325,7 +348,11 @@ export default function WalletPage() {
               </div>
               <div className={styles.walletName}>Pi Wallet</div>
               <div className={`${styles.walletBalance} gold-text`}>{wallet.balance.toFixed(2)} π</div>
-              {wallet.address && <div className={styles.walletAddress}>{wallet.address}</div>}
+              {myWalletId && (
+                <div className={styles.walletAddress} style={{ fontSize: 10 }}>
+                  ID: {myWalletId.slice(0, 16)}...
+                </div>
+              )}
             </div>
           ) : (
             <div className={styles.walletCard}>
@@ -425,4 +452,4 @@ function WalletSkeleton() {
       <div className={styles.skeletonTable} />
     </div>
   );
-                       }
+        }

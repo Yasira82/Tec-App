@@ -109,12 +109,12 @@ const userId     = storedUser?.id ?? storedUser?.piId ?? null;
         credentials: 'include',
         headers:     buildHeaders(),
         body: JSON.stringify({
-          userId: 'current',
-          amount,
-          currency:       'PI',
-          payment_method: 'pi',
-          metadata,
-        }),
+  userId,
+  amount,
+  currency:       'PI',
+  payment_method: 'pi',
+  metadata,
+}),
       });
       if (res.ok) {
         const data = await res.json();

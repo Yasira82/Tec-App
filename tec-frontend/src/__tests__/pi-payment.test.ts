@@ -68,7 +68,7 @@ describe('pi-payment', () => {
       await createA2UPayment({ recipientUid: 'uid-123', amount: 10, memo: 'test' });
       expect(fetchSpy).toHaveBeenCalledOnce();
       const [url, options] = fetchSpy.mock.calls[0];
-      expect(String(url)).toContain('/api/payments/a2u');
+      expect(String(url)).toContain('/api/payment/a2u');
       expect((options?.headers as Record<string, string>)['Idempotency-Key']).toBe(TEST_UUID);
     });
   });

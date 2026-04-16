@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { getAccessToken, getStoredUser } from '@/lib-client/pi/pi-auth';
 
 export type OrderStatus =
   | 'PENDING' | 'PAID' | 'PROCESSING'
@@ -57,19 +58,12 @@ export function useOrders(): UseOrdersReturn {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const getToken = (): string | null =>
-    typeof window !== 'undefined'
-      ? localStorage.getItem('tec_access_token')
-      : null;
+  // ✅ VM-004: cookie بدل localStorage
+  const getToken = (): string | null => getAccessToken();
 
   const getUserId = (): string | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-      const raw = localStorage.getItem('tec_user');
-      if (!raw) return null;
-      const u = JSON.parse(raw);
-      return u?.id ?? u?.uid ?? null;
-    } catch { return null; }
+    const user = getStoredUser() as { id?: string; uid?: string } | null;
+    return user?.id ?? user?.uid ?? null;
   };
 
   const fetchOrders = useCallback(async (targetPage: number, silent = false) => {
@@ -93,8 +87,8 @@ export function useOrders(): UseOrdersReturn {
         ...(filterStatus !== 'all' && { status: filterStatus }),
       });
 
-      // ← Next.js route بدل Gateway مباشر
       const res = await fetch(`/api/commerce/orders?${params}`, {
+        credentials: 'include',
         headers: {
           Authorization: `Bearer ${token}`,
           'x-user-id':   userId,

@@ -98,7 +98,7 @@ useEffect(() => {
 
 useEffect(() => {
   refreshNotifCount();
-  const interval = setInterval(refreshNotifCount, 30000);
+  const interval = setInterval(refreshNotifCount, 10000);
   return () => clearInterval(interval);
 }, [refreshNotifCount]);
 

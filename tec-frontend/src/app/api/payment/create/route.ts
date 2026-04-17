@@ -42,20 +42,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-    // ✅ استخرج userId من JWT أو cookie — مش من الـ body
+    // ✅ VM-NEW-003: userId من cookie أو JWT فقط — مش من body
     const userId =
       getUserIdFromCookie(req) ??
-      getUserIdFromToken(authHeader) ??
-      body.userId;
+      getUserIdFromToken(authHeader);
 
     if (!userId) {
       return NextResponse.json(
-        { error: 'Cannot resolve userId', requestId },
-        { status: 401 },
+        { error: 'Cannot resolve userId from session', requestId },
+        { status: 401, headers: { 'X-Request-ID': requestId } },
       );
     }
 
-    // Validate required fields
     const missing = REQUIRED_FIELDS.filter((f) => body[f] == null || body[f] === '');
     if (missing.length > 0) {
       return NextResponse.json(
@@ -93,7 +91,7 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         ...body,
-        userId, // ✅ دايماً الـ userId الصح
+        userId, // ✅ دايماً من cookie/JWT
       }),
     });
 
@@ -108,4 +106,4 @@ export async function POST(req: NextRequest) {
       { status: 503, headers: { 'X-Request-ID': requestId } },
     );
   }
-  }
+}

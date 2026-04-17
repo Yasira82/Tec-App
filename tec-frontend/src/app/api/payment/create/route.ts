@@ -5,28 +5,57 @@ import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
-const REQUIRED_FIELDS = ['userId', 'amount', 'currency', 'payment_method'] as const;
+const REQUIRED_FIELDS = ['amount', 'currency', 'payment_method'] as const;
+
+function getUserIdFromToken(authHeader: string): string | null {
+  try {
+    const token   = authHeader.replace('Bearer ', '');
+    const payload = JSON.parse(Buffer.from(token.split('.')[1], 'base64').toString());
+    return payload?.sub ?? payload?.id ?? null;
+  } catch { return null; }
+}
+
+function getUserIdFromCookie(req: NextRequest): string | null {
+  try {
+    const raw = req.cookies.get('tec_user')?.value;
+    if (!raw) return null;
+    const user = JSON.parse(decodeURIComponent(raw));
+    return user?.id ?? user?.uid ?? null;
+  } catch { return null; }
+}
 
 export async function POST(req: NextRequest) {
   const authHeader =
-  req.headers.get('authorization') ??
-  req.headers.get('Authorization') ??
-  (() => {
-    const raw = req.cookies.get('tec_access_token')?.value;
-    return raw ? `Bearer ${raw}` : null;
-  })();
+    req.headers.get('authorization') ??
+    req.headers.get('Authorization') ??
+    (() => {
+      const raw = req.cookies.get('tec_access_token')?.value;
+      return raw ? `Bearer ${raw}` : null;
+    })();
 
-if (!authHeader?.startsWith('Bearer ')) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
+  if (!authHeader?.startsWith('Bearer ')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-  // ── requestId — propagate أو أنشئ جديد ──────────────────
   const requestId = req.headers.get('x-request-id') ?? randomUUID();
 
   try {
     const body = await req.json();
 
-    // Validate required fields — applies in all modes
+    // ✅ استخرج userId من JWT أو cookie — مش من الـ body
+    const userId =
+      getUserIdFromCookie(req) ??
+      getUserIdFromToken(authHeader) ??
+      body.userId;
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Cannot resolve userId', requestId },
+        { status: 401 },
+      );
+    }
+
+    // Validate required fields
     const missing = REQUIRED_FIELDS.filter((f) => body[f] == null || body[f] === '');
     if (missing.length > 0) {
       return NextResponse.json(
@@ -38,7 +67,7 @@ if (!authHeader?.startsWith('Bearer ')) {
     if (isE2eMode()) {
       return NextResponse.json(
         {
-          success:    true,
+          success: true,
           data: {
             payment_id:     randomUUID(),
             status:         'pending',
@@ -62,12 +91,13 @@ if (!authHeader?.startsWith('Bearer ')) {
         'Idempotency-Key': idempotencyKey,
         'X-Request-ID':    requestId,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        ...body,
+        userId, // ✅ دايماً الـ userId الصح
+      }),
     });
 
     const data = await res.json().catch(() => ({}));
-
-    // ── Echo requestId في الـ response ──────────────────────
     return NextResponse.json(data, {
       status:  res.status,
       headers: { 'X-Request-ID': requestId },
@@ -75,10 +105,7 @@ if (!authHeader?.startsWith('Bearer ')) {
   } catch {
     return NextResponse.json(
       { error: 'Service unavailable', requestId },
-      {
-        status:  503,
-        headers: { 'X-Request-ID': requestId },
-      }
+      { status: 503, headers: { 'X-Request-ID': requestId } },
     );
   }
-}
+  }

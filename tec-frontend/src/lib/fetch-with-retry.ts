@@ -1,57 +1,37 @@
-'use client';
-
-import { Component, ErrorInfo, ReactNode } from 'react';
-
-interface Props {
-  children:  ReactNode;
-  fallback?: ReactNode;
+interface FetchWithRetryOptions extends RequestInit {
+  maxRetries?: number;
+  baseDelay?:  number;
+  onRetry?:    (attempt: number, error: Error) => void;
 }
 
-interface State {
-  hasError: boolean;
-  error?:   Error;
-}
+const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+export async function fetchWithRetry(
+  url:     string,
+  options: FetchWithRetryOptions = {},
+): Promise<Response> {
+  const { maxRetries = 3, baseDelay = 500, onRetry, ...fetchOptions } = options;
 
-  static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
-  }
+  let lastError: Error = new Error('Request failed');
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('[ErrorBoundary]', error, errorInfo);
-  }
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const res = await fetch(url, fetchOptions);
 
-  render(): ReactNode {
-    if (this.state.hasError) {
-      if (this.props.fallback) return this.props.fallback;
+      if (!RETRIABLE_STATUS.has(res.status) || attempt === maxRetries) return res;
 
-      return (
-        <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-          <div style={{ textAlign: 'center', maxWidth: 320 }}>
-            <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: '#fff', marginBottom: 8 }}>
-              Something went wrong
-            </div>
-            <div style={{ fontSize: 13, color: '#4a4a5a', marginBottom: 24 }}>
-              {this.state.error?.message ?? 'An unexpected error occurred'}
-            </div>
-            <button
-              onClick={() => { this.setState({ hasError: false, error: undefined }); window.location.reload(); }}
-              style={{ padding: '12px 24px', background: 'linear-gradient(135deg,#d4af37,#b8882a)', border: 'none', borderRadius: 12, color: '#0a0800', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
-              Try Again
-            </button>
-          </div>
-        </div>
-      );
+      const delay = baseDelay * 2 ** (attempt - 1);
+      onRetry?.(attempt, new Error(`HTTP ${res.status}`));
+      await new Promise(r => setTimeout(r, delay));
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error('Network error');
+      if (attempt === maxRetries) break;
+
+      const delay = baseDelay * 2 ** (attempt - 1);
+      onRetry?.(attempt, lastError);
+      await new Promise(r => setTimeout(r, delay));
     }
-
-    return this.props.children;
   }
-}
 
-export default ErrorBoundary;
+  throw lastError;
+}

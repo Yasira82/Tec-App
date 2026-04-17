@@ -13,9 +13,10 @@ const nextConfig = {
     formats:         ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
     remotePatterns:  [
-      { protocol: 'https', hostname: '**.vercel.app' },
-      { protocol: 'https', hostname: '**.railway.app' },
-      { protocol: 'https', hostname: 'api.minepi.com' },
+      { protocol: 'https', hostname: '**.vercel.app'   },
+      { protocol: 'https', hostname: '**.railway.app'  },
+      { protocol: 'https', hostname: 'api.minepi.com'  },
+      { protocol: 'https', hostname: 'www.okx.com'     },
     ],
   },
 
@@ -78,8 +79,19 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              // ✅ مؤقتاً — open connect-src لتشخيص مشكلة Pi Browser
-              "connect-src 'self' https: wss: http://localhost:3000 ws://localhost:3000",
+              // ✅ VM-017: أضيف OKX + Railway + Vercel + Pi Network explicitly
+              [
+                "connect-src 'self'",
+                'https://*.railway.app',
+                'https://*.vercel.app',
+                'https://api.minepi.com',
+                'https://sdk.minepi.com',
+                'https://www.okx.com',       // ✅ Pi price API
+                'wss://*.railway.app',
+                'wss://*.vercel.app',
+                'ws://localhost:3000',
+                'http://localhost:3000',
+              ].join(' '),
               "img-src 'self' data: blob: *.railway.app *.vercel.app",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
@@ -106,7 +118,7 @@ const nextConfig = {
         source: '/manifest.json',
         headers: [
           { key: 'Content-Type',  value: 'application/manifest+json' },
-          { key: 'Cache-Control', value: 'public, max-age=86400'      },
+          { key: 'Cache-Control', value: 'public, max-age=86400'     },
         ],
       },
       {

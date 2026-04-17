@@ -2,28 +2,30 @@
  * VM-001 — httpOnly consistency test
  * Verifies tec_access_token is set with httpOnly:false after refresh
  */
+import { vi, describe, it, expect, beforeEach } from 'vitest';
+
 describe('VM-001 — refresh route cookie consistency', () => {
 
-  it('tec_access_token has httpOnly:false (Pi Browser readable)', async () => {
-    const { POST } = await import('@/app/api/auth/refresh/route');
-    const { NextRequest } = await import('next/server');
+  beforeEach(() => {
+    vi.resetModules();
+  });
 
-    const mockFetch = jest.fn().mockResolvedValue({
+  it('tec_access_token has httpOnly:false (Pi Browser readable)', async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
       ok:   true,
       json: async () => ({ token: 'new-access-token', refreshToken: 'new-refresh-token' }),
     });
-    global.fetch = mockFetch;
+    vi.stubGlobal('fetch', mockFetch);
 
-    const req = new NextRequest('http://localhost/api/auth/refresh', {
-      method: 'POST',
-    });
+    const { POST } = await import('@/app/api/auth/refresh/route');
+    const { NextRequest } = await import('next/server');
+
+    const req = new NextRequest('http://localhost/api/auth/refresh', { method: 'POST' });
     Object.defineProperty(req, 'cookies', {
       value: { get: (name: string) => name === 'tec_refresh_token' ? { value: 'old-refresh' } : undefined },
     });
 
     const res = await POST(req);
-
-    // ✅ VM-001: tec_access_token must be httpOnly:false
     const cookies = res.cookies.getAll();
     const accessCookie = cookies.find(c => c.name === 'tec_access_token');
 
@@ -34,14 +36,14 @@ describe('VM-001 — refresh route cookie consistency', () => {
   });
 
   it('tec_refresh_token has httpOnly:true (server only)', async () => {
-    const { POST } = await import('@/app/api/auth/refresh/route');
-    const { NextRequest } = await import('next/server');
-
-    const mockFetch = jest.fn().mockResolvedValue({
+    const mockFetch = vi.fn().mockResolvedValue({
       ok:   true,
       json: async () => ({ token: 'new-access-token', refreshToken: 'new-refresh-token' }),
     });
-    global.fetch = mockFetch;
+    vi.stubGlobal('fetch', mockFetch);
+
+    const { POST } = await import('@/app/api/auth/refresh/route');
+    const { NextRequest } = await import('next/server');
 
     const req = new NextRequest('http://localhost/api/auth/refresh', { method: 'POST' });
     Object.defineProperty(req, 'cookies', {

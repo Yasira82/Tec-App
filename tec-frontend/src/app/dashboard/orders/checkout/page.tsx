@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { usePiAuth }     from '@/lib-client/hooks/usePiAuth';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 interface CartItem {
   product_id: string;
@@ -26,7 +27,6 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     if (!isAuthenticated) { router.replace('/'); return; }
-    // Demo item — في الـ production هتيجي من cart state
     const productId = searchParams.get('product_id');
     if (productId) {
       setItems([{
@@ -47,16 +47,17 @@ export default function CheckoutPage() {
     setStep('paying');
     setError('');
 
-    const token = localStorage.getItem('tec_access_token');
-    const headers = {
-      Authorization:  `Bearer ${token}`,
+    // ✅ VM-NEW-002: cookie بدل localStorage
+    const token = getAccessToken();
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
     try {
-      // 1. Create order
       const createRes = await fetch('/api/commerce/orders', {
-        method:  'POST',
+        method:      'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({
           buyer_id: user.id,
@@ -70,9 +71,9 @@ export default function CheckoutPage() {
       if (!newOrderId) throw new Error('No order ID returned');
       setOrderId(newOrderId);
 
-      // 2. Pi Payment via Next.js proxy
       const payRes = await fetch('/api/payment/create', {
-        method:  'POST',
+        method:      'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({
           userId:         user.id,
@@ -88,9 +89,9 @@ export default function CheckoutPage() {
       const paymentId = payData.data?.payment?.id;
       if (!paymentId) throw new Error('No payment ID');
 
-      // 3. Checkout order
       const checkoutRes = await fetch('/api/commerce/orders/checkout', {
-        method:  'POST',
+        method:      'POST',
+        credentials: 'include',
         headers,
         body: JSON.stringify({ order_id: newOrderId, payment_id: paymentId }),
       });
@@ -133,16 +134,11 @@ export default function CheckoutPage() {
     <div style={s({ minHeight: '100vh', background: '#020205', color: '#fff', padding: '24px 16px', fontFamily: 'system-ui, sans-serif' })}>
       <div style={s({ maxWidth: 480, margin: '0 auto' })}>
 
-        {/* Header */}
         <div style={s({ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 })}>
-          <button
-            onClick={() => router.back()}
-            style={s({ background: 'none', border: 'none', color: '#6b6b7a', fontSize: 20, cursor: 'pointer' })}
-          >←</button>
+          <button onClick={() => router.back()} style={s({ background: 'none', border: 'none', color: '#6b6b7a', fontSize: 20, cursor: 'pointer' })}>←</button>
           <h1 style={s({ fontSize: 22, fontWeight: 800, margin: 0 })}>Checkout</h1>
         </div>
 
-        {/* Items */}
         <div style={s({ background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 18, padding: 20, marginBottom: 16 })}>
           <div style={s({ fontSize: 11, color: '#6b6b7a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 })}>Order Summary</div>
           {items.length === 0 ? (
@@ -168,31 +164,22 @@ export default function CheckoutPage() {
           </div>
         </div>
 
-        {/* Error */}
         {step === 'error' && error && (
           <div style={s({ padding: '12px 16px', background: '#1a0505', border: '1px solid #e74c3c30', borderRadius: 12, color: '#e74c3c', fontSize: 13, marginBottom: 16 })}>
             ❌ {error}
           </div>
         )}
 
-        {/* Pay Button */}
         <button
           onClick={handleCheckout}
           disabled={step === 'paying' || items.length === 0}
           style={s({
-            width:         '100%',
-            padding:       '16px',
-            borderRadius:  18,
-            background:    step === 'paying' ? '#0a1f0f' : 'linear-gradient(135deg,#0d2e14,#0a1f0f)',
-            border:        '1px solid #7ee7c040',
-            color:         '#7ee7c0',
-            fontWeight:    700,
-            fontSize:      15,
-            cursor:        step === 'paying' ? 'not-allowed' : 'pointer',
-            display:       'flex',
-            alignItems:    'center',
-            justifyContent:'center',
-            gap:           10,
+            width: '100%', padding: '16px', borderRadius: 18,
+            background:     step === 'paying' ? '#0a1f0f' : 'linear-gradient(135deg,#0d2e14,#0a1f0f)',
+            border:         '1px solid #7ee7c040',
+            color:          '#7ee7c0', fontWeight: 700, fontSize: 15,
+            cursor:         step === 'paying' ? 'not-allowed' : 'pointer',
+            display:        'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
           })}
         >
           {step === 'paying' ? (
@@ -205,8 +192,7 @@ export default function CheckoutPage() {
           )}
         </button>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
       </div>
     </div>
   );
-        }
+}

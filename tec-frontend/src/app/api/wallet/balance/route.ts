@@ -37,7 +37,12 @@ export async function GET(req: NextRequest) {
       },
     );
 
-    if (!res.ok) return NextResponse.json({ error: `Balance error: ${res.status}` }, { status: res.status });
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      console.error('[wallet/balance] Gateway error:', res.status, JSON.stringify(errBody));
+      // ✅ fallback بدل error — مش هيكسر الـ UI
+      return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
+    }
 
     const data    = await res.json().catch(() => ({}));
     const wallets = data?.data?.wallets ?? [];
@@ -45,11 +50,12 @@ export async function GET(req: NextRequest) {
 
     return NextResponse.json({
       balance:  primary ? Number(primary.balance) : 0,
-      currency: primary?.currency      ?? 'PI',
+      currency: primary?.currency       ?? 'PI',
       address:  primary?.wallet_address ?? null,
-      walletId: primary?.id             ?? null,  // ✅ wallet UUID للـ internal transfer
+      walletId: primary?.id             ?? null,
     });
-  } catch {
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+  } catch (err) {
+    console.error('[wallet/balance] Exception:', (err as Error).message);
+    return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
   }
 }

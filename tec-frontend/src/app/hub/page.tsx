@@ -32,7 +32,76 @@ const SOON_APPS = [
 
 type PayState = 'idle' | 'processing' | 'success' | 'error' | 'cancelled' | 'pending';
 
-// ─── Skeleton Component ────────────────────────────────────────
+// ─── Haptic ───────────────────────────────────────────────────
+const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    const patterns = { light: 10, medium: 25, heavy: 50 };
+    navigator.vibrate(patterns[type]);
+  }
+};
+
+// ─── Toast ────────────────────────────────────────────────────
+type ToastType = 'success' | 'error' | 'info' | 'warning';
+
+interface Toast {
+  id:      string;
+  type:    ToastType;
+  message: string;
+  txid?:   string;
+}
+
+function ToastContainer({ toasts, onDismiss }: {
+  toasts:    Toast[];
+  onDismiss: (id: string) => void;
+}) {
+  const colors: Record<ToastType, { bg: string; border: string; color: string; icon: string }> = {
+    success: { bg: '#051a0a', border: '#7ee7c040', color: '#7ee7c0', icon: '✅' },
+    error:   { bg: '#1a0505', border: '#e74c3c40', color: '#e74c3c', icon: '❌' },
+    info:    { bg: '#0a0f1a', border: '#7eb8f740', color: '#7eb8f7', icon: 'ℹ️' },
+    warning: { bg: '#1a1505', border: '#f0c04040', color: '#f0c040', icon: '⚠️' },
+  };
+
+  return (
+    <div style={{ position: 'fixed', top: 70, left: 16, right: 16, zIndex: 999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
+      {toasts.map(toast => {
+        const c = colors[toast.type];
+        return (
+          <div key={toast.id}
+            style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10, animation: 'toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1)', pointerEvents: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
+            <span style={{ fontSize: 16 }}>{c.icon}</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 13, fontWeight: 600, color: c.color }}>{toast.message}</div>
+              {toast.txid && (
+                <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace', marginTop: 3 }}>
+                  txid: {toast.txid.slice(0, 20)}...
+                </div>
+              )}
+            </div>
+            <button onClick={() => onDismiss(toast.id)}
+              style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 14, padding: '0 2px' }}>✕</button>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ─── Pull to Refresh Indicator ────────────────────────────────
+function PullIndicator({ progress, refreshing }: { progress: number; refreshing: boolean }) {
+  if (progress === 0 && !refreshing) return null;
+  return (
+    <div style={{ position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 200, transition: 'opacity 0.2s', opacity: progress > 0 || refreshing ? 1 : 0 }}>
+      <div style={{ background: '#0d0d14', border: '1px solid #d4af3730', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        {refreshing
+          ? <div style={{ width: 16, height: 16, border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
+          : <span style={{ fontSize: 14, transform: `rotate(${progress * 180}deg)`, display: 'inline-block', transition: 'transform 0.1s' }}>↓</span>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────
 function HubSkeleton() {
   return (
     <div style={{ minHeight: '100vh', background: '#020205', padding: '0 0 90px' }}>
@@ -40,8 +109,6 @@ function HubSkeleton() {
         @keyframes shimmer { 0%,100% { opacity:0.4; } 50% { opacity:0.8; } }
         .sk { animation: shimmer 1.4s ease infinite; background: #0d0d14; border-radius: 18px; }
       `}</style>
-
-      {/* Header */}
       <div style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: '#d4af3730' }} />
@@ -52,46 +119,34 @@ function HubSkeleton() {
           <div style={{ width: 90, height: 36, borderRadius: 12, background: '#ffffff08' }} />
         </div>
       </div>
-
-      {/* Wallet Card */}
       <div style={{ padding: '16px 16px 0' }}>
         <div className="sk" style={{ height: 120, border: '1px solid #d4af3715' }} />
       </div>
-
-      {/* Carousel */}
       <div style={{ padding: '10px 16px 0' }}>
         <div className="sk" style={{ height: 80, border: '1px solid #ffffff08' }} />
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
           <div style={{ width: 16, height: 6, borderRadius: 3, background: '#d4af3740' }} />
-          <div style={{ width: 6,  height: 6, borderRadius: 3, background: '#ffffff15' }} />
+          <div style={{ width: 6, height: 6, borderRadius: 3, background: '#ffffff15' }} />
         </div>
       </div>
-
-      {/* Payment Buttons */}
       <div style={{ padding: '12px 16px 0', display: 'flex', gap: 10 }}>
         <div className="sk" style={{ flex: 1, height: 54, border: '1px solid #7ee7c020' }} />
         <div className="sk" style={{ flex: 1, height: 54, border: '1px solid #7eb8f720' }} />
       </div>
-
-      {/* Live Apps */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ width: 80, height: 14, borderRadius: 4, background: '#ffffff08' }} />
           <div style={{ width: 60, height: 14, borderRadius: 4, background: '#ffffff08' }} />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          {[1,2,3,4].map(i => (
-            <div key={i} className="sk" style={{ height: 68, border: '1px solid #d4af3710' }} />
-          ))}
+          {[1,2,3,4].map(i => <div key={i} className="sk" style={{ height: 68, border: '1px solid #d4af3710' }} />)}
         </div>
       </div>
-
-      {/* Bottom Nav */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
         {[1,2,3,4].map(i => (
           <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
             <div style={{ width: 24, height: 24, borderRadius: 6, background: '#ffffff08' }} />
-            <div style={{ width: 30, height: 8,  borderRadius: 4, background: '#ffffff08' }} />
+            <div style={{ width: 30, height: 8, borderRadius: 4, background: '#ffffff08' }} />
           </div>
         ))}
       </nav>
@@ -106,15 +161,62 @@ export default function HubPage() {
   const [balance,     setBalance]     = useState('—');
   const [assetCount,  setAssetCount]  = useState<number | null>(null);
   const [time,        setTime]        = useState('');
-  const [payState,    setPayState]    = useState<PayState>('idle');
-  const [payMsg,      setPayMsg]      = useState('');
-  const [txid,        setTxid]        = useState('');
   const [notifCount,  setNotifCount]  = useState(0);
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [piPrice,     setPiPrice]     = useState<{
     price: number; change24h: number; high24h: number; low24h: number;
   } | null>(null);
 
+  // ── Toast ──────────────────────────────────────────────────
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  const showToast = useCallback((type: ToastType, message: string, txid?: string) => {
+    const id = Math.random().toString(36).slice(2);
+    setToasts(prev => [...prev, { id, type, message, txid }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
+  }, []);
+
+  const dismissToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  // ── Pull to Refresh ────────────────────────────────────────
+  const [pullProgress,  setPullProgress]  = useState(0);
+  const [isRefreshing,  setIsRefreshing]  = useState(false);
+  const pullStartY  = useRef(0);
+  const isPulling   = useRef(false);
+  const PULL_THRESHOLD = 80;
+
+  const handlePullStart = (e: React.TouchEvent) => {
+    const scrollTop = (e.currentTarget as HTMLElement).scrollTop;
+    if (scrollTop === 0) {
+      pullStartY.current = e.touches[0].clientY;
+      isPulling.current  = true;
+    }
+  };
+
+  const handlePullMove = (e: React.TouchEvent) => {
+    if (!isPulling.current) return;
+    const diff = e.touches[0].clientY - pullStartY.current;
+    if (diff > 0) setPullProgress(Math.min(diff / PULL_THRESHOLD, 1));
+  };
+
+  const handlePullEnd = async () => {
+    if (!isPulling.current) return;
+    isPulling.current = false;
+    if (pullProgress >= 1) {
+      haptic('medium');
+      setIsRefreshing(true);
+      setPullProgress(0);
+      await Promise.all([refreshBalance(), refreshAssets(), refreshPrice(), refreshNotifCount()]);
+      setIsRefreshing(false);
+      showToast('info', 'Updated ✓');
+    } else {
+      setPullProgress(0);
+    }
+  };
+
+  // ── Carousel swipe ─────────────────────────────────────────
   const touchStartX = useRef<number>(0);
   const touchEndX   = useRef<number>(0);
 
@@ -124,7 +226,7 @@ export default function HubPage() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     touchEndX.current = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX.current;
-    if (Math.abs(diff) > 40) setCarouselIdx(diff > 0 ? 1 : 0);
+    if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? 1 : 0); }
   };
 
   useEffect(() => {
@@ -139,8 +241,8 @@ export default function HubPage() {
   }, []);
 
   const refreshBalance = useCallback(() => {
-    if (!user?.id) return;
-    fetch(`/api/wallet/balance?userId=${user.id}`, {
+    if (!user?.id) return Promise.resolve();
+    return fetch(`/api/wallet/balance?userId=${user.id}`, {
       credentials: 'include',
       headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
     })
@@ -150,8 +252,8 @@ export default function HubPage() {
   }, [user?.id]);
 
   const refreshAssets = useCallback(() => {
-    if (!user?.id) return;
-    fetch(`/api/assets?userId=${user.id}`, {
+    if (!user?.id) return Promise.resolve();
+    return fetch(`/api/assets?userId=${user.id}`, {
       credentials: 'include',
       headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
     })
@@ -161,9 +263,9 @@ export default function HubPage() {
   }, [user?.id]);
 
   const refreshNotifCount = useCallback(() => {
-    if (!user?.id) return;
+    if (!user?.id) return Promise.resolve();
     const token = getAccessToken();
-    fetch(`/api/notifications/unread-count?userId=${user.id}`, {
+    return fetch(`/api/notifications/unread-count?userId=${user.id}`, {
       credentials: 'include',
       headers: { Authorization: `Bearer ${token ?? ''}` },
     })
@@ -178,6 +280,7 @@ export default function HubPage() {
       const data = await res.json();
       if (!data.error) setPiPrice(data);
     } catch {}
+    return Promise.resolve();
   }, []);
 
   useEffect(() => { refreshBalance(); refreshAssets(); }, [refreshBalance, refreshAssets]);
@@ -207,19 +310,15 @@ export default function HubPage() {
   });
 
   const handlePay = useCallback(async () => {
-    if (payState === 'processing') return;
-
     if (typeof window === 'undefined' || !window.Pi) {
-      setPayState('error');
-      setPayMsg('Open in Pi Browser to make payments');
+      haptic('heavy');
+      showToast('error', 'Open in Pi Browser to make payments');
       return;
     }
 
-    setPayState('processing');
-    setPayMsg('');
-    setTxid('');
+    haptic('medium');
 
-    // ✅ Optimistic update — خصم فوري
+    // ✅ Optimistic update
     setBalance(prev => {
       const n = parseFloat(prev);
       return isNaN(n) ? prev : (n - 1).toFixed(2);
@@ -228,47 +327,55 @@ export default function HubPage() {
     try {
       const result = await createU2APayment(1, 'TEC Super App Payment', { source: 'hub', version: '1.0' });
       if (result.success && result.status === 'completed') {
-        setPayState('success');
-        setTxid(result.txid ?? '');
-        setPayMsg('Payment successful! 🎉');
-        setTimeout(refreshBalance, 2000); // ✅ confirm من الـ server
+        haptic('heavy');
+        showToast('success', 'Payment successful! 🎉', result.txid);
+        setTimeout(refreshBalance, 2000);
       } else if (result.status === 'cancelled') {
-        refreshBalance(); // ✅ Rollback
-        setPayState('cancelled');
-        setPayMsg('Payment cancelled');
+        haptic('light');
+        refreshBalance();
+        showToast('warning', 'Payment cancelled');
       } else {
-        refreshBalance(); // ✅ Rollback
-        setPayState('error');
-        setPayMsg(result.message ?? 'Payment failed');
+        haptic('heavy');
+        refreshBalance();
+        showToast('error', result.message ?? 'Payment failed');
       }
     } catch (err) {
-      refreshBalance(); // ✅ Rollback
+      haptic('heavy');
+      refreshBalance();
       const msg = err instanceof Error ? err.message : 'Payment failed';
       if (msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('already have')) {
-        setPayState('pending');
-        setPayMsg('Pending payment detected — tap Retry');
+        showToast('warning', 'Pending payment detected — try again');
       } else {
-        setPayState('error');
-        setPayMsg(msg);
+        showToast('error', msg);
       }
     }
-  }, [payState, refreshBalance]);
+  }, [refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
-  const payBusy = payState === 'processing';
-
   return (
-    <div style={{ minHeight: '100vh', background: '#020205', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif', paddingBottom: 90 }}>
+    <div
+      style={{ minHeight: '100vh', background: '#020205', color: '#fff', fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif', paddingBottom: 90, overflowY: 'auto' }}
+      onTouchStart={handlePullStart}
+      onTouchMove={handlePullMove}
+      onTouchEnd={handlePullEnd}
+    >
       <style>{`
-        @keyframes spin   { to { transform: rotate(360deg); } }
-        @keyframes pulse  { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+        @keyframes spin    { to { transform: rotate(360deg); } }
+        @keyframes pulse   { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
         @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
+        @keyframes toastIn { from { opacity:0; transform:translateY(-12px) scale(0.95); } to { opacity:1; transform:none; } }
+        @keyframes shimmer { 0%,100% { opacity:0.4; } 50% { opacity:0.8; } }
         .hub-btn:active { transform: scale(0.97); }
-        .app-btn:active { transform: scale(0.95); }
+        .app-btn:active  { transform: scale(0.95); }
         .fade-in { animation: slideUp 0.4s ease; }
       `}</style>
+
+      {/* ── Toast ── */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
+      {/* ── Pull Indicator ── */}
+      <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
 
       {/* ── Header ── */}
       <header style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(2,2,5,0.95)', backdropFilter: 'blur(20px)', zIndex: 100 }}>
@@ -282,7 +389,7 @@ export default function HubPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span style={{ fontSize: 11, color: '#4a4a5a', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
           <button className="hub-btn"
-            onClick={() => { clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
+            onClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
             style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08', border: '1px solid #ffffff10', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: 16, position: 'relative' }}>
             🔔
             {(wsUnread > 0 || notifCount > 0) && (
@@ -291,7 +398,7 @@ export default function HubPage() {
               </span>
             )}
           </button>
-          <button className="hub-btn" onClick={() => router.push('/dashboard')}
+          <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard'); }}
             style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#d4af3710', border: '1px solid #d4af3725', borderRadius: 12, padding: '6px 10px', cursor: 'pointer' }}>
             <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, color: '#0a0800' }}>
               {user?.piUsername?.[0]?.toUpperCase()}
@@ -303,7 +410,7 @@ export default function HubPage() {
 
       {/* ── Wallet Card ── */}
       <div style={{ padding: '16px 16px 0' }} className="fade-in">
-        <button className="hub-btn" onClick={() => router.push('/dashboard/wallet')}
+        <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
           style={{ width: '100%', borderRadius: 24, background: 'linear-gradient(135deg,#1a1208 0%,#0f0f1a 60%,#0a0f1f 100%)', border: '1px solid #d4af3725', padding: '22px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', transition: 'transform 0.2s ease' }}>
           <div>
             <div style={{ fontSize: 10, color: '#6b6b7a', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 8 }}>PI WALLET BALANCE</div>
@@ -320,14 +427,14 @@ export default function HubPage() {
         </button>
       </div>
 
-      {/* ── Carousel: Assets + Pi Price ── */}
+      {/* ── Carousel ── */}
       <div style={{ padding: '10px 16px 0' }} className="fade-in">
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ overflow: 'hidden', borderRadius: 18 }}>
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
 
-            {/* Slide 0: Digital Assets */}
+            {/* Slide 0: Assets */}
             <div style={{ minWidth: '100%' }}>
-              <button className="hub-btn" onClick={() => router.push('/dashboard/assets')}
+              <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/assets'); }}
                 style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
@@ -394,7 +501,7 @@ export default function HubPage() {
         {/* Dots */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
           {[0, 1].map(i => (
-            <button key={i} onClick={() => setCarouselIdx(i)}
+            <button key={i} onClick={() => { haptic('light'); setCarouselIdx(i); }}
               style={{ width: carouselIdx === i ? 16 : 6, height: 6, borderRadius: 3, background: carouselIdx === i ? '#d4af37' : '#ffffff20', border: 'none', cursor: 'pointer', transition: 'all 0.3s ease', padding: 0 }} />
           ))}
         </div>
@@ -402,50 +509,18 @@ export default function HubPage() {
 
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
-        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
-          <button className="hub-btn" onClick={handlePay} disabled={payBusy}
-            style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0d2e14,#0a1f0f)', border: `1px solid ${payBusy ? '#7ee7c020' : '#7ee7c040'}`, color: '#7ee7c0', fontWeight: 700, fontSize: 13, cursor: payBusy ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, transition: 'opacity 0.2s', opacity: payBusy ? 0.7 : 1 }}>
-            {payBusy ? (
-              <>
-                <div style={{ width: 14, height: 14, border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
-            )}
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="hub-btn" onClick={handlePay}
+            style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0d2e14,#0a1f0f)', border: '1px solid #7ee7c040', color: '#7ee7c0', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span>
+            <span>Pay 1 π</span>
           </button>
-          <button className="hub-btn" onClick={() => router.push('/dashboard/wallet')}
+          <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             <span style={{ fontFamily: 'Georgia,serif', fontSize: 18 }}>π</span>
             <span>Receive π</span>
           </button>
         </div>
-
-        {payState !== 'idle' && (
-          <div style={{ padding: '12px 16px', borderRadius: 14, background: payState === 'success' ? '#051a0a' : payState === 'error' ? '#1a0505' : payState === 'pending' ? '#1a1505' : '#0a0a1a', border: `1px solid ${payState === 'success' ? '#7ee7c030' : payState === 'error' ? '#e74c3c30' : payState === 'pending' ? '#f0c04030' : '#ffffff10'}`, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10, animation: 'fadeIn 0.3s ease' }}>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: payState === 'success' ? '#7ee7c0' : payState === 'error' ? '#e74c3c' : payState === 'pending' ? '#f0c040' : '#7eb8f7', marginBottom: txid ? 4 : 0 }}>
-                {payState === 'success'    && '✅ '}
-                {payState === 'error'      && '❌ '}
-                {payState === 'pending'    && '⚠️ '}
-                {payState === 'cancelled'  && '↩️ '}
-                {payState === 'processing' && '⏳ '}
-                {payMsg}
-              </div>
-              {txid && <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace' }}>txid: {txid.slice(0, 20)}...</div>}
-            </div>
-            <div style={{ display: 'flex', gap: 6 }}>
-              {payState === 'pending' && (
-                <button className="hub-btn" onClick={handlePay}
-                  style={{ fontSize: 11, color: '#f0c040', background: '#f0c04010', border: '1px solid #f0c04030', borderRadius: 8, padding: '4px 10px', cursor: 'pointer' }}>
-                  Retry
-                </button>
-              )}
-              <button className="hub-btn" onClick={() => { setPayState('idle'); setPayMsg(''); setTxid(''); }}
-                style={{ fontSize: 11, color: '#4a4a5a', background: 'none', border: 'none', cursor: 'pointer', padding: '4px 8px' }}>✕</button>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── Live Apps ── */}
@@ -461,7 +536,8 @@ export default function HubPage() {
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           {LIVE_APPS.map((app, idx) => (
-            <button key={app.name} className="app-btn" onClick={() => router.push(app.href)}
+            <button key={app.name} className="app-btn"
+              onClick={() => { haptic('light'); router.push(app.href); }}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 18, cursor: 'pointer', textAlign: 'left', animation: `slideUp ${0.3 + idx * 0.05}s ease` }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: '#d4af3710', border: '1px solid #d4af3720', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, minWidth: 40 }}>
                 {app.emoji}
@@ -495,10 +571,10 @@ export default function HubPage() {
       {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
         {[
-          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                },
-          { icon: '💳', label: 'Wallet',   active: false, action: () => router.push('/dashboard/wallet') },
-          { icon: '💎', label: 'Assets',   active: false, action: () => router.push('/dashboard/assets') },
-          { icon: '⚙️', label: 'Settings', active: false, action: () => router.push('/dashboard')        },
+          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                              },
+          { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
+          { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); router.push('/dashboard/assets'); } },
+          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard');         } },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -510,4 +586,4 @@ export default function HubPage() {
       </nav>
     </div>
   );
-      }
+                      }

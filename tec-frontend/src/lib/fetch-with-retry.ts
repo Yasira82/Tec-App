@@ -18,18 +18,21 @@ export async function fetchWithRetry(
     try {
       const res = await fetch(url, fetchOptions);
 
-      if (!RETRIABLE_STATUS.has(res.status) || attempt === maxRetries) return res;
+      if (!RETRIABLE_STATUS.has(res.status) || attempt === maxRetries) {
+        return res;
+      }
 
-      const delay = baseDelay * 2 ** (attempt - 1);
+      const delay = baseDelay * Math.pow(2, attempt - 1);
       onRetry?.(attempt, new Error(`HTTP ${res.status}`));
-      await new Promise(r => setTimeout(r, delay));
-    } catch (err) {
+      await new Promise<void>(resolve => setTimeout(resolve, delay));
+
+    } catch (err: unknown) {
       lastError = err instanceof Error ? err : new Error('Network error');
       if (attempt === maxRetries) break;
 
-      const delay = baseDelay * 2 ** (attempt - 1);
+      const delay = baseDelay * Math.pow(2, attempt - 1);
       onRetry?.(attempt, lastError);
-      await new Promise(r => setTimeout(r, delay));
+      await new Promise<void>(resolve => setTimeout(resolve, delay));
     }
   }
 

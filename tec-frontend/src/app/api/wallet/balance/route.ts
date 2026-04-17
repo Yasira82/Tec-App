@@ -44,12 +44,10 @@ export async function GET(req: NextRequest) {
     }
 
     const data = await res.json().catch(() => ({}));
-    console.log('[wallet/balance] userId:', userId, 'Gateway response:', JSON.stringify(data));
 
-    const wallets = data?.data?.wallets ?? [];
+    // ✅ NestJS بيرجع { wallets: [...] } بدل { data: { wallets: [...] } }
+    const wallets = data?.wallets ?? data?.data?.wallets ?? [];
     const primary = wallets.find((w: { is_primary?: boolean }) => w.is_primary) ?? wallets[0];
-
-    console.log('[wallet/balance] wallets count:', wallets.length, 'primary:', JSON.stringify(primary));
 
     return NextResponse.json({
       balance:  primary ? Number(primary.balance) : 0,

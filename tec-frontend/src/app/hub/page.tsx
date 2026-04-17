@@ -6,6 +6,7 @@ import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const LIVE_APPS = [
   { name: 'Wallet',    emoji: '💳', href: '/dashboard/wallet',  desc: 'Pi Balance'     },
@@ -29,8 +30,6 @@ const SOON_APPS = [
   { name: 'Epic',       emoji: '🔥' },
   { name: 'Legend',     emoji: '⭐' },
 ];
-
-type PayState = 'idle' | 'processing' | 'success' | 'error' | 'cancelled' | 'pending';
 
 // ─── Haptic ───────────────────────────────────────────────────
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
@@ -86,11 +85,11 @@ function ToastContainer({ toasts, onDismiss }: {
   );
 }
 
-// ─── Pull to Refresh Indicator ────────────────────────────────
+// ─── Pull Indicator ───────────────────────────────────────────
 function PullIndicator({ progress, refreshing }: { progress: number; refreshing: boolean }) {
   if (progress === 0 && !refreshing) return null;
   return (
-    <div style={{ position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 200, transition: 'opacity 0.2s', opacity: progress > 0 || refreshing ? 1 : 0 }}>
+    <div style={{ position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 200 }}>
       <div style={{ background: '#0d0d14', border: '1px solid #d4af3730', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {refreshing
           ? <div style={{ width: 16, height: 16, border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
@@ -154,7 +153,8 @@ function HubSkeleton() {
   );
 }
 
-export default function HubPage() {
+// ─── Hub Inner ────────────────────────────────────────────────
+function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const router = useRouter();
 
@@ -166,10 +166,17 @@ export default function HubPage() {
   const [piPrice,     setPiPrice]     = useState<{
     price: number; change24h: number; high24h: number; low24h: number;
   } | null>(null);
+  const [toasts,       setToasts]       = useState<Toast[]>([]);
+  const [pullProgress, setPullProgress] = useState(0);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ── Toast ──────────────────────────────────────────────────
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const pullStartY     = useRef(0);
+  const isPulling      = useRef(false);
+  const touchStartX    = useRef(0);
+  const touchEndX      = useRef(0);
+  const PULL_THRESHOLD = 80;
 
+  // ── Toast ────────────────────────────────────────────────────
   const showToast = useCallback((type: ToastType, message: string, txid?: string) => {
     const id = Math.random().toString(36).slice(2);
     setToasts(prev => [...prev, { id, type, message, txid }]);
@@ -180,66 +187,7 @@ export default function HubPage() {
     setToasts(prev => prev.filter(t => t.id !== id));
   }, []);
 
-  // ── Pull to Refresh ────────────────────────────────────────
-  const [pullProgress,  setPullProgress]  = useState(0);
-  const [isRefreshing,  setIsRefreshing]  = useState(false);
-  const pullStartY  = useRef(0);
-  const isPulling   = useRef(false);
-  const PULL_THRESHOLD = 80;
-
-  const handlePullStart = (e: React.TouchEvent) => {
-    const scrollTop = (e.currentTarget as HTMLElement).scrollTop;
-    if (scrollTop === 0) {
-      pullStartY.current = e.touches[0].clientY;
-      isPulling.current  = true;
-    }
-  };
-
-  const handlePullMove = (e: React.TouchEvent) => {
-    if (!isPulling.current) return;
-    const diff = e.touches[0].clientY - pullStartY.current;
-    if (diff > 0) setPullProgress(Math.min(diff / PULL_THRESHOLD, 1));
-  };
-
-  const handlePullEnd = async () => {
-    if (!isPulling.current) return;
-    isPulling.current = false;
-    if (pullProgress >= 1) {
-      haptic('medium');
-      setIsRefreshing(true);
-      setPullProgress(0);
-      await Promise.all([refreshBalance(), refreshAssets(), refreshPrice(), refreshNotifCount()]);
-      setIsRefreshing(false);
-      showToast('info', 'Updated ✓');
-    } else {
-      setPullProgress(0);
-    }
-  };
-
-  // ── Carousel swipe ─────────────────────────────────────────
-  const touchStartX = useRef<number>(0);
-  const touchEndX   = useRef<number>(0);
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    touchEndX.current = e.changedTouches[0].clientX;
-    const diff = touchStartX.current - touchEndX.current;
-    if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? 1 : 0); }
-  };
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) router.replace('/');
-  }, [isLoading, isAuthenticated, router]);
-
-  useEffect(() => {
-    const tick = () => setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
-    tick();
-    const id = setInterval(tick, 60000);
-    return () => clearInterval(id);
-  }, []);
-
+  // ── Data fetchers ─────────────────────────────────────────────
   const refreshBalance = useCallback(() => {
     if (!user?.id) return Promise.resolve();
     return fetch(`/api/wallet/balance?userId=${user.id}`, {
@@ -283,6 +231,58 @@ export default function HubPage() {
     return Promise.resolve();
   }, []);
 
+  // ── Pull to refresh ───────────────────────────────────────────
+  const handlePullStart = (e: React.TouchEvent) => {
+    const el = e.currentTarget as HTMLElement;
+    if (el.scrollTop === 0) {
+      pullStartY.current = e.touches[0].clientY;
+      isPulling.current  = true;
+    }
+  };
+
+  const handlePullMove = (e: React.TouchEvent) => {
+    if (!isPulling.current) return;
+    const diff = e.touches[0].clientY - pullStartY.current;
+    if (diff > 0) setPullProgress(Math.min(diff / PULL_THRESHOLD, 1));
+  };
+
+  const handlePullEnd = async () => {
+    if (!isPulling.current) return;
+    isPulling.current = false;
+    if (pullProgress >= 1) {
+      haptic('medium');
+      setIsRefreshing(true);
+      setPullProgress(0);
+      await Promise.all([refreshBalance(), refreshAssets(), refreshPrice(), refreshNotifCount()]);
+      setIsRefreshing(false);
+      showToast('info', 'Updated ✓');
+    } else {
+      setPullProgress(0);
+    }
+  };
+
+  // ── Carousel swipe ────────────────────────────────────────────
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    touchEndX.current = e.changedTouches[0].clientX;
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? 1 : 0); }
+  };
+
+  // ── Effects ───────────────────────────────────────────────────
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) router.replace('/');
+  }, [isLoading, isAuthenticated, router]);
+
+  useEffect(() => {
+    const tick = () => setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
+    tick();
+    const id = setInterval(tick, 60000);
+    return () => clearInterval(id);
+  }, []);
+
   useEffect(() => { refreshBalance(); refreshAssets(); }, [refreshBalance, refreshAssets]);
 
   useEffect(() => {
@@ -309,6 +309,7 @@ export default function HubPage() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
+  // ── Pay ───────────────────────────────────────────────────────
   const handlePay = useCallback(async () => {
     if (typeof window === 'undefined' || !window.Pi) {
       haptic('heavy');
@@ -371,10 +372,7 @@ export default function HubPage() {
         .fade-in { animation: slideUp 0.4s ease; }
       `}</style>
 
-      {/* ── Toast ── */}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
-
-      {/* ── Pull Indicator ── */}
       <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
 
       {/* ── Header ── */}
@@ -571,7 +569,7 @@ export default function HubPage() {
       {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
         {[
-          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                              },
+          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                                    },
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
           { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); router.push('/dashboard/assets'); } },
           { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard');         } },
@@ -586,4 +584,13 @@ export default function HubPage() {
       </nav>
     </div>
   );
-                      }
+}
+
+// ─── Export with ErrorBoundary ────────────────────────────────
+export default function HubPage() {
+  return (
+    <ErrorBoundary>
+      <HubPageInner />
+    </ErrorBoundary>
+  );
+        }

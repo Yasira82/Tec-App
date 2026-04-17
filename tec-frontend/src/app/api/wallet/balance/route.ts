@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (isE2eMode()) {
-    return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null }, { status: 200 });
+    return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
   }
 
   const userId = getUserIdFromCookie(req) || req.nextUrl.searchParams.get('userId');
@@ -40,13 +40,16 @@ export async function GET(req: NextRequest) {
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       console.error('[wallet/balance] Gateway error:', res.status, JSON.stringify(errBody));
-      // ✅ fallback بدل error — مش هيكسر الـ UI
       return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
     }
 
-    const data    = await res.json().catch(() => ({}));
+    const data = await res.json().catch(() => ({}));
+    console.log('[wallet/balance] userId:', userId, 'Gateway response:', JSON.stringify(data));
+
     const wallets = data?.data?.wallets ?? [];
     const primary = wallets.find((w: { is_primary?: boolean }) => w.is_primary) ?? wallets[0];
+
+    console.log('[wallet/balance] wallets count:', wallets.length, 'primary:', JSON.stringify(primary));
 
     return NextResponse.json({
       balance:  primary ? Number(primary.balance) : 0,

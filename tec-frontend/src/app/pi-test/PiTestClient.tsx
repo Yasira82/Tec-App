@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { isPiBrowser, loginWithPi, getStoredUser } from '@/lib-client/pi/pi-auth';
+import { isPiBrowser, loginWithPi, getStoredUser, getAccessToken } from '@/lib-client/pi/pi-auth';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 type LogEntry = { ts: string; type: 'info' | 'success' | 'error' | 'warn'; msg: string };
@@ -11,22 +11,21 @@ function timestamp() {
 }
 
 export function PiTestClient() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs,       setLogs]       = useState<LogEntry[]>([]);
   const [authStatus, setAuthStatus] = useState<'idle' | 'loading' | 'done' | 'error'>('idle');
-  const [payStatus, setPayStatus] = useState<'idle' | 'loading' | 'done' | 'error' | 'cancelled'>('idle');
-  const [username, setUsername] = useState<string | null>(null);
-  const [sdkReady, setSdkReady] = useState<boolean | null>(null);
+  const [payStatus,  setPayStatus]  = useState<'idle' | 'loading' | 'done' | 'error' | 'cancelled'>('idle');
+  const [username,   setUsername]   = useState<string | null>(null);
+  const [sdkReady,   setSdkReady]   = useState<boolean | null>(null);
 
- const log = useCallback((type: LogEntry['type'], msg: string) => {
+  const log = useCallback((type: LogEntry['type'], msg: string) => {
     if (process.env.NODE_ENV !== 'production') {
       if (type === 'error')     console.error(`[Pi Test] ${msg}`);
       else if (type === 'warn') console.warn(`[Pi Test] ${msg}`);
       else                      console.log(`[Pi Test] ${msg}`);
     }
     setLogs(prev => [...prev, { ts: timestamp(), type, msg }]);
-  }, []); 
+  }, []);
 
-  // Detect SDK readiness
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -71,7 +70,6 @@ export function PiTestClient() {
     };
   }, [log]);
 
-  // Restore stored user on mount
   useEffect(() => {
     const stored = getStoredUser();
     if (stored?.piUsername) {
@@ -98,72 +96,64 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // Handle pending payment cancellation (Uses the dedicated /resolve endpoint)
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
       if (!isPiBrowser() || !window.Pi) {
         throw new Error('Not inside Pi Browser');
       }
-      
+
       await window.Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
-          const piPayment = payment as Record<string, unknown> | null;
+          const piPayment   = payment as Record<string, unknown> | null;
           const piPaymentId = piPayment?.identifier as string | undefined;
           const transaction = piPayment?.transaction as Record<string, unknown> | undefined;
-          const txid = transaction?.txid as string | undefined;
-          
+          const txid        = transaction?.txid as string | undefined;
+
           if (!piPaymentId) return;
-          
-          log('warn', `Found pending payment: ${piPaymentId}. txid: ${txid ? txid : 'none'}. Resolving...`);
-          
+
+          log('warn', `Found pending payment: ${piPaymentId}. txid: ${txid ?? 'none'}. Resolving...`);
+
           try {
-            const token = localStorage.getItem('tec_access_token') || 
-                          localStorage.getItem('TEC_ACCESS_TOKEN') || 
-                          localStorage.getItem('tec-access-token');
-            
-            const headers: Record<string, string> = { 
-              'Content-Type': 'application/json'
-            };
-            
-            if (token) {
-              headers['Authorization'] = `Bearer ${token}`;
-            }
+            // ✅ VM-NEW-002: cookie بدل localStorage
+            const token = getAccessToken();
+            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+            if (token) headers['Authorization'] = `Bearer ${token}`;
 
-            log('info', `Calling backend /api/payment/resolve ...`);
+            log('info', 'Calling backend /api/payment/resolve ...');
 
-            // Use the dedicated resolve endpoint that directly targets the pi_payment_id
             const res = await fetch('/api/payment/resolve', {
-              method: 'POST',
+              method:      'POST',
+              credentials: 'include',
               headers,
-              body: JSON.stringify({ pi_payment_id: piPaymentId })
+              body: JSON.stringify({ pi_payment_id: piPaymentId }),
             });
-            
+
             if (res.ok) {
-              log('success', `✅ Backend successfully requested resolution from Pi servers!`);
-              log('info', `⚠️ IMPORTANT: To fully clear the lock, close Pi Browser entirely and reopen it.`);
+              log('success', '✅ Backend successfully requested resolution from Pi servers!');
+              log('info', '⚠️ IMPORTANT: To fully clear the lock, close Pi Browser entirely and reopen it.');
             } else {
               const data = await res.json().catch(() => ({}));
               log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);
-              
-              // Fallback to resolve-incomplete if the dedicated /resolve fails
+
               if (res.status >= 400 && res.status < 500) {
-                 log('info', `Attempting fallback to /api/payment/resolve-incomplete...`);
-                 await fetch('/api/payment/resolve-incomplete', {
-                    method: 'POST',
-                    headers,
-                    body: JSON.stringify({ pi_payment_id: piPaymentId, transaction_id: txid })
-                 });
-                 log('info', `Fallback request sent.`);
+                log('info', 'Attempting fallback to /api/payment/resolve-incomplete...');
+                await fetch('/api/payment/resolve-incomplete', {
+                  method:      'POST',
+                  credentials: 'include',
+                  headers,
+                  body: JSON.stringify({ pi_payment_id: piPaymentId, transaction_id: txid }),
+                });
+                log('info', 'Fallback request sent.');
               }
             }
           } catch (err) {
             log('error', `❌ Network error resolving payment: ${String(err)}`);
           }
-        }
+        },
       );
-      
+
       log('info', 'Check complete.');
     } catch (err) {
       log('error', `Auth/Check failed: ${String(err)}`);
@@ -188,7 +178,7 @@ export function PiTestClient() {
 
     try {
       const result = await createU2APayment(
-        1, 
+        1,
         'TEC sandbox test',
         { source: 'pi-test-page' },
         onDiagnostic,
@@ -217,16 +207,11 @@ export function PiTestClient() {
         <strong>Pi Browser</strong> to exercise the live SDK.
       </p>
 
-      {/* SDK status */}
-      <div
-        style={{
-          marginBottom: 20,
-          padding: '10px 14px',
-          borderRadius: 6,
-          background: sdkReady === null ? '#f5f5f5' : sdkReady ? '#e6f9ee' : '#fff0f0',
-          border: '1px solid ' + (sdkReady === null ? '#ddd' : sdkReady ? '#6dd68e' : '#f99'),
-        }}
-      >
+      <div style={{
+        marginBottom: 20, padding: '10px 14px', borderRadius: 6,
+        background: sdkReady === null ? '#f5f5f5' : sdkReady ? '#e6f9ee' : '#fff0f0',
+        border: '1px solid ' + (sdkReady === null ? '#ddd' : sdkReady ? '#6dd68e' : '#f99'),
+      }}>
         <strong>SDK status:</strong>{' '}
         {sdkReady === null ? '⏳ waiting…' : sdkReady ? '✅ ready' : '❌ unavailable'}
         <span style={{ marginLeft: 16, color: '#888', fontSize: '0.8rem' }}>
@@ -235,17 +220,12 @@ export function PiTestClient() {
         </span>
       </div>
 
-      {/* Auth section */}
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>1. Authentication</h2>
         <button
           onClick={handleAuth}
           disabled={authStatus === 'loading'}
-          style={{
-            padding: '8px 18px',
-            marginRight: 10,
-            cursor: authStatus === 'loading' ? 'not-allowed' : 'pointer',
-          }}
+          style={{ padding: '8px 18px', marginRight: 10, cursor: authStatus === 'loading' ? 'not-allowed' : 'pointer' }}
         >
           {authStatus === 'loading' ? 'Authenticating…' : 'Authenticate with Pi'}
         </button>
@@ -257,7 +237,6 @@ export function PiTestClient() {
         )}
       </section>
 
-      {/* Pending Payments Recovery */}
       <section style={{ marginBottom: 24, padding: '16px', border: '1px solid #e67e22', borderRadius: '8px' }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Stuck / Pending Payments</h2>
         <p style={{ fontSize: '0.85rem', marginBottom: '12px' }}>
@@ -265,70 +244,42 @@ export function PiTestClient() {
         </p>
         <button
           onClick={handleCancelPending}
-          style={{
-            padding: '8px 18px',
-            backgroundColor: '#e67e22',
-            color: 'white',
-            border: 'none',
-            borderRadius: 6,
-            cursor: 'pointer',
-          }}
+          style={{ padding: '8px 18px', backgroundColor: '#e67e22', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
         >
           Check &amp; Cancel Pending Payments
         </button>
       </section>
 
-      {/* Payment section */}
       <section style={{ marginBottom: 24 }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment (1 Pi)</h2>
         <button
           onClick={handlePayment}
           disabled={authStatus !== 'done' || payStatus === 'loading'}
-          style={{
-            padding: '8px 18px',
-            cursor: authStatus !== 'done' || payStatus === 'loading' ? 'not-allowed' : 'pointer',
-            opacity: authStatus !== 'done' ? 0.5 : 1,
-          }}
+          style={{ padding: '8px 18px', cursor: authStatus !== 'done' || payStatus === 'loading' ? 'not-allowed' : 'pointer', opacity: authStatus !== 'done' ? 0.5 : 1 }}
         >
           {payStatus === 'loading' ? 'Processing…' : 'Pay 1 Pi (test)'}
         </button>
-        {payStatus === 'done' && <span style={{ marginLeft: 12, color: '#2a9a4e' }}>✅ Payment complete!</span>}
+        {payStatus === 'done'      && <span style={{ marginLeft: 12, color: '#2a9a4e' }}>✅ Payment complete!</span>}
         {payStatus === 'cancelled' && <span style={{ marginLeft: 12, color: '#e67e22' }}>⚠️ Cancelled</span>}
-        {payStatus === 'error' && <span style={{ marginLeft: 12, color: '#c0392b' }}>❌ Error — see logs</span>}
+        {payStatus === 'error'     && <span style={{ marginLeft: 12, color: '#c0392b' }}>❌ Error — see logs</span>}
       </section>
 
-      {/* Logs */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 12 }}>
           <h2 style={{ fontSize: '1rem', margin: 0 }}>Logs</h2>
           <button onClick={clearLogs} style={{ fontSize: '0.75rem', padding: '2px 8px' }}>Clear</button>
         </div>
-        <div
-          style={{
-            background: '#1a1a1a',
-            color: '#eee',
-            padding: 14,
-            borderRadius: 6,
-            minHeight: 120,
-            maxHeight: 400,
-            overflowY: 'auto',
-            fontSize: '0.78rem',
-            lineHeight: 1.6,
-          }}
-        >
+        <div style={{
+          background: '#1a1a1a', color: '#eee', padding: 14, borderRadius: 6,
+          minHeight: 120, maxHeight: 400, overflowY: 'auto', fontSize: '0.78rem', lineHeight: 1.6,
+        }}>
           {logs.length === 0 ? (
             <span style={{ color: '#888' }}>— no events yet —</span>
           ) : (
             logs.map((e, i) => (
-              <div
-                key={i}
-                style={{
-                  color:
-                    e.type === 'error' ? '#ff6b6b' :
-                    e.type === 'warn'  ? '#ffd93d' :
-                    e.type === 'success' ? '#6bcb77' : '#ddd',
-                }}
-              >
+              <div key={i} style={{
+                color: e.type === 'error' ? '#ff6b6b' : e.type === 'warn' ? '#ffd93d' : e.type === 'success' ? '#6bcb77' : '#ddd',
+              }}>
                 <span style={{ color: '#888' }}>{e.ts}</span> {e.msg}
               </div>
             ))
@@ -337,4 +288,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-}
+            }

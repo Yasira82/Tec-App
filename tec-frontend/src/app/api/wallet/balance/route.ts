@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isE2eMode } from '@/lib/server/e2e-mode';
-import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
+import { isE2eMode }         from '@/lib/server/e2e-mode';
+import { fetchWithTimeout }  from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -11,6 +11,16 @@ function getUserIdFromCookie(req: NextRequest): string | null {
     const user = JSON.parse(decodeURIComponent(raw));
     return user?.id ?? user?.uid ?? null;
   } catch { return null; }
+}
+
+interface Wallet {
+  id:             string;
+  balance:        number;
+  currency:       string;
+  wallet_type:    string;
+  wallet_address: string | null;
+  is_primary:     boolean;
+  updated_at:     string;
 }
 
 export async function GET(req: NextRequest) {
@@ -33,7 +43,7 @@ export async function GET(req: NextRequest) {
       `${GATEWAY}/api/wallets?userId=${encodeURIComponent(userId)}`,
       {
         headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
-        cache: 'no-store',
+        cache:   'no-store',
       },
     );
 
@@ -43,11 +53,14 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
     }
 
-    const data = await res.json().catch(() => ({}));
+    const data    = await res.json().catch(() => ({}));
+    const wallets: Wallet[] = data?.wallets ?? data?.data?.wallets ?? [];
 
-    // ✅ NestJS بيرجع { wallets: [...] } بدل { data: { wallets: [...] } }
-    const wallets = data?.wallets ?? data?.data?.wallets ?? [];
-    const primary = wallets.find((w: { is_primary?: boolean }) => w.is_primary) ?? wallets[0];
+    // ✅ PI wallet الأحدث (is_primary + updated_at)
+    const piWallets = wallets.filter(w => w.currency === 'PI');
+    const primary   = piWallets
+      .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+      .find(w => w.is_primary) ?? piWallets[0] ?? wallets[0];
 
     return NextResponse.json({
       balance:  primary ? Number(primary.balance) : 0,

@@ -11,11 +11,11 @@ export async function GET(req: NextRequest) {
     const search = req.nextUrl.search;
     const res = await fetch(`${GATEWAY}/api/payments/history${search}`, {
       headers: {
-        Authorization:  authHeader,
+        Authorization: authHeader,
         'Content-Type': 'application/json',
       },
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });

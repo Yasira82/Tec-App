@@ -6,14 +6,11 @@ const ALLOWED_ENDPOINTS = new Set(['overview', 'payments', 'users', 'events', 'm
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('authorization');
-  const endpoint   = req.nextUrl.searchParams.get('endpoint') ?? 'overview';
+  const endpoint = req.nextUrl.searchParams.get('endpoint') ?? 'overview';
 
   // ✅ P0-2: whitelist validation — no path traversal
   if (!ALLOWED_ENDPOINTS.has(endpoint)) {
-    return NextResponse.json(
-      { error: 'Invalid endpoint' },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: 'Invalid endpoint' }, { status: 400 });
   }
 
   try {
@@ -23,7 +20,7 @@ export async function GET(req: NextRequest) {
         ...(authHeader ? { Authorization: authHeader } : {}),
       },
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });

@@ -14,12 +14,12 @@ export async function GET(req: NextRequest) {
 
     const res = await fetch(`${GATEWAY}/api/notification?limit=${limit}`, {
       headers: {
-        Authorization:  `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

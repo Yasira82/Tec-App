@@ -6,13 +6,21 @@ import { test, expect } from '@playwright/test';
  */
 
 const MOCK_USER = {
-  id:         'afa10fec-aa5e-4455-b66e-24a3664ac983',
-  piId:       'e27efdd3-c891-4361-8fa5-5338ada467a9',
+  id: 'afa10fec-aa5e-4455-b66e-24a3664ac983',
+  piId: 'e27efdd3-c891-4361-8fa5-5338ada467a9',
   piUsername: 'yas55eR82',
-  role:       'user',
+  role: 'user',
 };
 
 const MOCK_TOKEN = 'mock-test-token-payment';
+
+// ── CSRF helper — double-submit token for protected POST routes ──
+const CSRF_TOKEN = 'e2e-csrf-token';
+const csrfHeaders = (extra?: Record<string, string>) => ({
+  Cookie: `tec_csrf=${CSRF_TOKEN}`,
+  'x-csrf-token': CSRF_TOKEN,
+  ...extra,
+});
 
 // ── Setup auth state ──────────────────────────────────────
 const setupAuth = async (page: import('@playwright/test').Page) => {
@@ -27,10 +35,11 @@ const setupAuth = async (page: import('@playwright/test').Page) => {
 test.describe('Payment API Routes', () => {
   test('POST /api/payment/create — returns 401 without token', async ({ request }) => {
     const res = await request.post('/api/payment/create', {
+      headers: csrfHeaders(),
       data: {
-        userId:         MOCK_USER.id,
-        amount:         1,
-        currency:       'PI',
+        userId: MOCK_USER.id,
+        amount: 1,
+        currency: 'PI',
         payment_method: 'pi',
       },
     });
@@ -39,14 +48,15 @@ test.describe('Payment API Routes', () => {
 
   test('POST /api/payment/create — returns 400 for missing fields', async ({ request }) => {
     const res = await request.post('/api/payment/create', {
-      headers: { Authorization: `Bearer ${MOCK_TOKEN}` },
-      data:    { amount: 1 },
+      headers: csrfHeaders({ Authorization: `Bearer ${MOCK_TOKEN}` }),
+      data: { amount: 1 },
     });
     expect([400, 401, 503]).toContain(res.status());
   });
 
   test('POST /api/payment/approve — returns 401 without token', async ({ request }) => {
     const res = await request.post('/api/payment/approve', {
+      headers: csrfHeaders(),
       data: { payment_id: 'test-id', pi_payment_id: 'pi-test' },
     });
     expect(res.status()).toBe(401);
@@ -54,6 +64,7 @@ test.describe('Payment API Routes', () => {
 
   test('POST /api/payment/complete — returns 401 without token', async ({ request }) => {
     const res = await request.post('/api/payment/complete', {
+      headers: csrfHeaders(),
       data: { payment_id: 'test-id', transaction_id: 'tx-test' },
     });
     expect(res.status()).toBe(401);
@@ -61,6 +72,7 @@ test.describe('Payment API Routes', () => {
 
   test('POST /api/payment/resolve-incomplete — returns 401 without token', async ({ request }) => {
     const res = await request.post('/api/payment/resolve-incomplete', {
+      headers: csrfHeaders(),
       data: { pi_payment_id: 'pi-test-id' },
     });
     expect(res.status()).toBe(401);
@@ -147,6 +159,7 @@ test.describe('Commerce API Routes', () => {
 
   test('POST /api/commerce/orders — returns 401 without token', async ({ request }) => {
     const res = await request.post('/api/commerce/orders', {
+      headers: csrfHeaders(),
       data: { buyer_id: MOCK_USER.id, items: [] },
     });
     expect([401, 404]).toContain(res.status());
@@ -157,7 +170,10 @@ test.describe('Commerce API Routes', () => {
 test.describe('API Gateway Health', () => {
   test('Gateway health endpoint responds', async ({ request }) => {
     const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL;
-    if (!gatewayUrl) { test.skip(); return; }
+    if (!gatewayUrl) {
+      test.skip();
+      return;
+    }
     const res = await request.get(`${gatewayUrl}/health`).catch(() => null);
     if (res) {
       expect(res.status()).toBe(200);
@@ -169,14 +185,20 @@ test.describe('API Gateway Health', () => {
 
   test('Auth service health responds', async ({ request }) => {
     const authUrl = process.env.AUTH_SERVICE_URL;
-    if (!authUrl) { test.skip(); return; }
+    if (!authUrl) {
+      test.skip();
+      return;
+    }
     const res = await request.get(`${authUrl}/health`).catch(() => null);
     if (res) expect(res.status()).toBe(200);
   });
 
   test('Payment service health responds', async ({ request }) => {
     const paymentUrl = process.env.PAYMENT_SERVICE_URL;
-    if (!paymentUrl) { test.skip(); return; }
+    if (!paymentUrl) {
+      test.skip();
+      return;
+    }
     const res = await request.get(`${paymentUrl}/health`).catch(() => null);
     if (res) expect(res.status()).toBe(200);
   });

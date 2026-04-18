@@ -11,19 +11,21 @@ export async function POST(req: NextRequest) {
   }
 
   if (isE2eMode()) {
-    return NextResponse.json(
-      { success: true, data: { status: 'cancelled' } },
-      { status: 200 },
-    );
+    return NextResponse.json({ success: true, data: { status: 'cancelled' } }, { status: 200 });
   }
 
   try {
     const body = await req.json();
-    const res  = await fetchWithTimeout(`${GATEWAY}/api/payment/cancel`, {
-      method:  'POST',
+
+    if (!body.pi_payment_id || typeof body.pi_payment_id !== 'string') {
+      return NextResponse.json({ error: 'Missing or invalid pi_payment_id' }, { status: 400 });
+    }
+
+    const res = await fetchWithTimeout(`${GATEWAY}/api/payment/cancel`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization:  authHeader,
+        Authorization: authHeader,
       },
       body: JSON.stringify(body),
     });

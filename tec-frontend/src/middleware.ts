@@ -1,25 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_ROUTES  = ['/hub', '/dashboard', '/profile', '/settings'];
+const PROTECTED_ROUTES = ['/hub', '/dashboard', '/profile', '/settings'];
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 // BFF routes اللي محتاجة CSRF verification
-const CSRF_PROTECTED    = [
+const CSRF_PROTECTED = [
   '/api/auth/logout',
   '/api/auth/refresh',
   '/api/wallet',
+  '/api/payment',
   '/api/payments',
   '/api/kyc',
   '/api/notifications',
   '/api/assets',
   '/api/marketplace',
+  '/api/commerce',
+  '/api/subscriptions',
 ];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const method       = req.method.toUpperCase();
+  const method = req.method.toUpperCase();
 
   // ── Page protection ────────────────────────────────────────
-  const isProtected = PROTECTED_ROUTES.some(r => pathname.startsWith(r));
+  const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
   if (isProtected) {
     const token = req.cookies.get('tec_access_token')?.value;
     if (!token || token.trim() === '') {
@@ -31,15 +34,15 @@ export function middleware(req: NextRequest) {
 
   // ── CSRF verification — double-submit pattern ──────────────
   if (!CSRF_SAFE_METHODS.has(method)) {
-    const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
+    const isCsrfProtected = CSRF_PROTECTED.some((r) => pathname.startsWith(r));
     if (isCsrfProtected) {
-      const csrfCookie  = req.cookies.get('tec_csrf')?.value;
-      const csrfHeader  = req.headers.get('x-csrf-token');
+      const csrfCookie = req.cookies.get('tec_csrf')?.value;
+      const csrfHeader = req.headers.get('x-csrf-token');
 
       if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
-          { status: 403 },
+          { status: 403 }
         );
       }
     }
@@ -57,10 +60,13 @@ export const config = {
     '/api/auth/logout',
     '/api/auth/refresh',
     '/api/wallet/:path*',
+    '/api/payment/:path*',
     '/api/payments/:path*',
     '/api/kyc/:path*',
     '/api/notifications/:path*',
     '/api/assets/:path*',
     '/api/marketplace/:path*',
+    '/api/commerce/:path*',
+    '/api/subscriptions/:path*',
   ],
 };

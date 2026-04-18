@@ -2,10 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
-export async function POST(
-  req: NextRequest,
-  context: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   // ✅ P2-1: auth إلزامي — مش اختياري
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) {
@@ -16,15 +13,15 @@ export async function POST(
 
   try {
     const body = await req.json();
-    const res  = await fetch(`${GATEWAY}/api/assets/marketplace/${encodeURIComponent(id)}/buy`, {
-      method:  'POST',
+    const res = await fetch(`${GATEWAY}/api/assets/marketplace/${encodeURIComponent(id)}/buy`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization:  `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify(body),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });

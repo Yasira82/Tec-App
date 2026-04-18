@@ -6,26 +6,29 @@ import { describe, it, expect } from 'vitest';
 
 // ── Test the CSRF logic directly ──────────────────────────────
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-const CSRF_PROTECTED    = [
+const CSRF_PROTECTED = [
   '/api/auth/logout',
   '/api/auth/refresh',
   '/api/wallet',
+  '/api/payment',
   '/api/payments',
   '/api/kyc',
   '/api/notifications',
   '/api/assets',
   '/api/marketplace',
+  '/api/commerce',
+  '/api/subscriptions',
 ];
 
 function checkCsrf(
-  method:      string,
-  pathname:    string,
+  method: string,
+  pathname: string,
   csrfCookie?: string,
-  csrfHeader?: string,
+  csrfHeader?: string
 ): { blocked: boolean; code?: string } {
   if (CSRF_SAFE_METHODS.has(method.toUpperCase())) return { blocked: false };
 
-  const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
+  const isCsrfProtected = CSRF_PROTECTED.some((r) => pathname.startsWith(r));
   if (!isCsrfProtected) return { blocked: false };
 
   if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
@@ -36,7 +39,6 @@ function checkCsrf(
 }
 
 describe('VM-005 — CSRF double-submit pattern', () => {
-
   it('GET requests bypass CSRF check', () => {
     const result = checkCsrf('GET', '/api/wallet/transfer', undefined, undefined);
     expect(result.blocked).toBe(false);
@@ -89,5 +91,28 @@ describe('VM-005 — CSRF double-submit pattern', () => {
   it('empty CSRF values → blocked', () => {
     const result = checkCsrf('POST', '/api/wallet/transfer', '', '');
     expect(result.blocked).toBe(true);
+  });
+
+  it('POST on /api/payment/cancel without CSRF → blocked', () => {
+    const result = checkCsrf('POST', '/api/payment/cancel', undefined, undefined);
+    expect(result.blocked).toBe(true);
+    expect(result.code).toBe('CSRF_INVALID');
+  });
+
+  it('POST on /api/payment/complete with valid CSRF → passes', () => {
+    const result = checkCsrf('POST', '/api/payment/complete', 'tok', 'tok');
+    expect(result.blocked).toBe(false);
+  });
+
+  it('POST on /api/commerce/orders without CSRF → blocked', () => {
+    const result = checkCsrf('POST', '/api/commerce/orders', undefined, undefined);
+    expect(result.blocked).toBe(true);
+    expect(result.code).toBe('CSRF_INVALID');
+  });
+
+  it('POST on /api/subscriptions without CSRF → blocked', () => {
+    const result = checkCsrf('POST', '/api/subscriptions', undefined, undefined);
+    expect(result.blocked).toBe(true);
+    expect(result.code).toBe('CSRF_INVALID');
   });
 });

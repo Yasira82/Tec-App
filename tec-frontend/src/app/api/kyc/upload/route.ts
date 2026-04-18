@@ -12,15 +12,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
 
     const res = await fetch(`${GATEWAY}/api/kyc/upload`, {
-      method:  'POST',
+      method: 'POST',
       headers: {
-        Authorization:  `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(body),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

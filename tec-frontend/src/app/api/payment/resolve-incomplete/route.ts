@@ -12,25 +12,34 @@ export async function POST(req: NextRequest) {
 
   if (isE2eMode()) {
     return NextResponse.json(
-      {
-        success: true,
-        data: { action: 'no_action_needed', message: 'E2E stub response' },
-      },
+      { success: true, data: { action: 'no_action_needed', message: 'E2E stub response' } },
       { status: 200 },
     );
   }
 
   try {
-    const body = await req.json();
-    // ✅ singular /api/payment/ — matches Gateway routing
+    // ✅ قراءة الـ pi_payment_id من الـ URL أو الـ body
+    const url            = new URL(req.url);
+    const piFromQuery    = url.searchParams.get('pi_payment_id');
+    const body           = await req.json().catch(() => ({})) as Record<string, unknown>;
+    const pi_payment_id  = piFromQuery ?? body?.pi_payment_id as string | undefined;
+
+    if (!pi_payment_id) {
+      return NextResponse.json(
+        { error: 'pi_payment_id required' },
+        { status: 400 },
+      );
+    }
+
     const res = await fetchWithTimeout(`${GATEWAY}/api/payment/resolve-incomplete`, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization:  authHeader,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ pi_payment_id }),
     });
+
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {

@@ -22,7 +22,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/resolve-incomplete`, {
+    // ✅ singular /api/payment/ — matches Gateway routing
+    const res = await fetchWithTimeout(`${GATEWAY}/api/payment/resolve-incomplete`, {
       method:  'POST',
       headers: {
         'Content-Type': 'application/json',

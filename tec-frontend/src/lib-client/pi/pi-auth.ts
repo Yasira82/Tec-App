@@ -46,6 +46,7 @@ export const getAccessToken = (): string | null => {
     return match.substring(match.indexOf('=') + 1);
   } catch { return null; }
 };
+
 export const getRefreshToken = (): string | null => null;
 
 export const getStoredUser = () => {
@@ -174,8 +175,16 @@ const _addBreadcrumb = (message: string, data: Record<string, unknown>): void =>
   } catch {}
 };
 
+// ── Helper — قراءة CSRF token من الـ cookie ───────────────
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie
+    .split('; ')
+    .find(row => row.startsWith('tec_csrf='))
+    ?.split('=')?.[1] ?? '';
+};
+
 // ── Resolve Incomplete Payment — بعد الـ login ────────────
-// ✅ بنحفظ الـ pending payment ID ونعالجه بعد الـ login
 let _pendingPaymentId: string | null = null;
 
 interface IncompletePayment {
@@ -187,22 +196,26 @@ const handleIncompletePayment = (payment: unknown): void => {
   const piPaymentId = p?.identifier;
   if (!piPaymentId) return;
 
-  // ✅ نحفظ الـ ID بس — مش بنبعت request دلوقتي
   _pendingPaymentId = piPaymentId;
   _addBreadcrumb('Incomplete payment detected — will resolve after login', { piPaymentId });
 };
 
-// ✅ بيتكال بعد الـ login عشان يكون فيه cookie
 const resolveIncompleteAfterLogin = async (piPaymentId: string): Promise<void> => {
+  const csrfToken = getCsrfToken();
+
   // ── Step 1: Backend ──────────────────────────────────────
   try {
     const res = await fetch('/api/payment/resolve-incomplete', {
       method:      'POST',
       credentials: 'include',
-      headers:     { 'Content-Type': 'application/json' },
-      body:        JSON.stringify({ pi_payment_id: piPaymentId }),
+      headers: {
+        'Content-Type': 'application/json',
+        // ✅ CSRF token — بدونه الـ middleware بيرجع 403
+        'x-csrf-token': csrfToken,
+      },
+      body: JSON.stringify({ pi_payment_id: piPaymentId }),
     });
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     if (res.ok) {
       _reportResolved(piPaymentId, 'backend', data?.action);
       return;
@@ -226,8 +239,11 @@ const resolveIncompleteAfterLogin = async (piPaymentId: string): Promise<void> =
     const res = await fetch('/api/payment/cancel', {
       method:      'POST',
       credentials: 'include',
-      headers:     { 'Content-Type': 'application/json' },
-      body:        JSON.stringify({ pi_payment_id: piPaymentId }),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-csrf-token': csrfToken,
+      },
+      body: JSON.stringify({ pi_payment_id: piPaymentId }),
     });
     if (res.ok) {
       _reportResolved(piPaymentId, 'cancel');
@@ -296,7 +312,6 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
     throw new Error(ERRORS.NOT_PI_BROWSER);
   }
 
-  // ✅ reset pending payment
   _pendingPaymentId = null;
 
   const piAuth = await authenticateWithTimeout();
@@ -314,7 +329,7 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
 
   const data = await res.json();
 
-  // ✅ الآن فيه cookie — نعالج الـ incomplete payment
+  // ✅ الآن فيه cookie + CSRF — نعالج الـ incomplete payment
   if (_pendingPaymentId) {
     void resolveIncompleteAfterLogin(_pendingPaymentId);
     _pendingPaymentId = null;
@@ -354,7 +369,6 @@ const _registerFCMToken = async (accessToken: string): Promise<void> => {
       body:        JSON.stringify({ token: fcmToken, platform: 'web' }),
     });
   } catch (err: unknown) {
-    // ✅ P2-4: log بدل empty catch
     if (process.env.NODE_ENV !== 'production') {
       console.warn('[Pi Auth] FCM token registration failed:', (err as Error).message);
     }

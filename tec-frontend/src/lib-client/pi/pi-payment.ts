@@ -105,7 +105,11 @@ export const createU2APayment = async (
       const res = await fetch('/api/payment/create', {
         method:      'POST',
         credentials: 'include',
-        headers:     buildHeaders(),
+        // ✅ إضافة Authorization header — كان ناقص وبيرجع 401
+        headers: {
+          ...buildHeaders(),
+          Authorization: `Bearer ${getAccessToken()}`,
+        },
         body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata }),
       });
       if (res.ok) {
@@ -168,7 +172,11 @@ export const createU2APayment = async (
             const res = await fetch('/api/payment/approve', {
               method:      'POST',
               credentials: 'include',
-              headers:     buildHeaders(),
+              // ✅ إضافة Authorization header
+              headers: {
+                ...buildHeaders(),
+                Authorization: `Bearer ${getAccessToken()}`,
+              },
               body: JSON.stringify({ payment_id: internalId, pi_payment_id: piPaymentId }),
             });
             if (!res.ok) {
@@ -205,7 +213,11 @@ export const createU2APayment = async (
             const res = await fetch('/api/payment/complete', {
               method:      'POST',
               credentials: 'include',
-              headers:     buildHeaders(),
+              // ✅ إضافة Authorization header
+              headers: {
+                ...buildHeaders(),
+                Authorization: `Bearer ${getAccessToken()}`,
+              },
               body: JSON.stringify({ payment_id: internalId, transaction_id: txid }),
             });
             if (!res.ok) {

@@ -111,45 +111,51 @@ export function PiTestClient() {
           const transaction = piPayment?.transaction as Record<string, unknown> | undefined;
           const txid        = transaction?.txid as string | undefined;
 
-          if (!piPaymentId) return;
+          if (!piPaymentId) {
+            log('info', 'No pending payment found ✅');
+            return;
+          }
 
           log('warn', `Found pending payment: ${piPaymentId}. txid: ${txid ?? 'none'}. Resolving...`);
 
+          const token = getAccessToken();
+
+          // ✅ قراءة CSRF token من الـ cookie
+          const csrfToken = document.cookie
+            .split('; ')
+            .find(row => row.startsWith('tec_csrf='))
+            ?.split('=')?.[1];
+
+          const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+          };
+          if (token)     headers['Authorization'] = `Bearer ${token}`;
+          if (csrfToken) headers['x-csrf-token']  = csrfToken;
+
+          log('info', `CSRF token: ${csrfToken ? '✅ found' : '❌ missing'}`);
+          log('info', 'Calling /api/payment/resolve-incomplete...');
+
           try {
-            // ✅ VM-NEW-002: cookie بدل localStorage
-            const token = getAccessToken();
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-
-            log('info', 'Calling backend /api/payment/resolve ...');
-
-            const res = await fetch('/api/payment/resolve', {
+            const res = await fetch('/api/payment/resolve-incomplete', {
               method:      'POST',
               credentials: 'include',
               headers,
-              body: JSON.stringify({ pi_payment_id: piPaymentId }),
+              body: JSON.stringify({
+                pi_payment_id:  piPaymentId,
+                transaction_id: txid,
+              }),
             });
 
-            if (res.ok) {
-              log('success', '✅ Backend successfully requested resolution from Pi servers!');
-              log('info', '⚠️ IMPORTANT: To fully clear the lock, close Pi Browser entirely and reopen it.');
-            } else {
-              const data = await res.json().catch(() => ({}));
-              log('error', `❌ Failed to resolve backend: ${JSON.stringify(data)} (Status: ${res.status})`);
+            const data = await res.json().catch(() => ({}));
 
-              if (res.status >= 400 && res.status < 500) {
-                log('info', 'Attempting fallback to /api/payment/resolve-incomplete...');
-                await fetch('/api/payment/resolve-incomplete', {
-                  method:      'POST',
-                  credentials: 'include',
-                  headers,
-                  body: JSON.stringify({ pi_payment_id: piPaymentId, transaction_id: txid }),
-                });
-                log('info', 'Fallback request sent.');
-              }
+            if (res.ok) {
+              log('success', `✅ Resolved! Action: ${JSON.stringify(data?.data ?? data)}`);
+              log('info', 'Close Pi Browser and reopen to clear the lock.');
+            } else {
+              log('error', `❌ Failed: ${JSON.stringify(data)} (Status: ${res.status})`);
             }
           } catch (err) {
-            log('error', `❌ Network error resolving payment: ${String(err)}`);
+            log('error', `❌ Network error: ${String(err)}`);
           }
         },
       );

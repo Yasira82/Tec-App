@@ -18,13 +18,12 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // ✅ قراءة الـ pi_payment_id من الـ URL أو الـ body
-    const url            = new URL(req.url);
-    const piFromQuery    = url.searchParams.get('pi_payment_id');
-    const body           = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const pi_payment_id  = piFromQuery ?? body?.pi_payment_id as string | undefined;
+    // ✅ req.nextUrl بدل new URL(req.url) — يشتغل مع relative URLs
+    const piFromQuery   = req.nextUrl.searchParams.get('pi_payment_id');
+    const body          = await req.json().catch(() => ({})) as Record<string, unknown>;
+    const pi_payment_id = piFromQuery ?? body?.pi_payment_id as string | undefined;
 
-    if (!pi_payment_id) {
+    if (!pi_payment_id || typeof pi_payment_id !== 'string' || pi_payment_id.length < 5) {
       return NextResponse.json(
         { error: 'pi_payment_id required' },
         { status: 400 },

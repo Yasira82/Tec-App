@@ -23,7 +23,8 @@ export async function POST(request: NextRequest) {
     }
 
     const res = await fetchWithTimeout(
-      `${GATEWAY}/api/payments/resolve-incomplete`,
+      // ✅ singular /api/payment/ — matches Gateway routing
+      `${GATEWAY}/api/payment/resolve-incomplete`,
       {
         method:  'POST',
         headers: {

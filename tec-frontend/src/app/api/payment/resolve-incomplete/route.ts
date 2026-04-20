@@ -12,27 +12,33 @@ export async function POST(req: NextRequest) {
 
   if (isE2eMode()) {
     return NextResponse.json(
-      { success: true, data: { action: 'no_action_needed' } },
+      { success: true, data: { action: 'no_action_needed', message: 'E2E stub response' } },
       { status: 200 },
     );
   }
 
   try {
-    // ✅ من الـ URL — مش من الـ body
-    const pi_payment_id = req.nextUrl.searchParams.get('pi_payment_id');
+    // ✅ قراءة من URL أو body
+    const piFromQuery   = req.nextUrl.searchParams.get('pi_payment_id');
+    const body          = await req.json().catch(() => ({})) as Record<string, unknown>;
+    const pi_payment_id = (piFromQuery ?? body?.pi_payment_id) as string | undefined;
 
     if (!pi_payment_id) {
       return NextResponse.json({ error: 'pi_payment_id required' }, { status: 400 });
     }
 
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payment/resolve-incomplete`, {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization:  authHeader,
+    // ✅ بنبعت في الـ URL + الـ body للـ Gateway
+    const res = await fetchWithTimeout(
+      `${GATEWAY}/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pi_payment_id)}`,
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  authHeader,
+        },
+        body: JSON.stringify({ pi_payment_id }),
       },
-      body: JSON.stringify({ pi_payment_id }),
-    });
+    );
 
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });

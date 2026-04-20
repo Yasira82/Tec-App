@@ -11,8 +11,9 @@ function formatDate(iso: string) {
   });
 }
 
-function formatAmount(amount: number, currency: string) {
-  return `${amount.toFixed(2)} ${currency === 'PI' ? 'π' : currency}`;
+// ✅ Number() — يتعامل مع Decimal string من الـ DB
+function formatAmount(amount: number | string, currency: string) {
+  return `${Number(amount).toFixed(2)} ${currency === 'PI' ? 'π' : currency}`;
 }
 
 const STATUS_CONFIG: Record<OrderStatus, { label: string; css: string }> = {
@@ -198,7 +199,8 @@ function OrderCard({
                   <span className={styles.itemQty}>× {item.quantity}</span>
                 </div>
                 <span className={styles.itemPrice}>
-                  {formatAmount(item.price * item.quantity, item.currency)}
+                  {/* ✅ Number() — يتعامل مع Decimal */}
+                  {formatAmount(Number(item.price) * item.quantity, item.currency)}
                 </span>
               </div>
             ))}
@@ -257,4 +259,4 @@ function OrdersSkeleton() {
       ))}
     </div>
   );
-            }
+}

@@ -542,20 +542,90 @@ function HubPageInner() {
       </div>
 
       {/* ── Coming Soon ── */}
-      <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase' }}>Coming Soon</span>
-          <span style={{ fontSize: 10, color: '#4a4a5a', letterSpacing: 1 }}>24 APPS</span>
+<div style={{ padding: '20px 16px 0' }}>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+    <span style={{ fontSize: 11, fontWeight: 700, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase' }}>Coming Soon</span>
+    <span style={{ fontSize: 10, color: '#4a4a5a', letterSpacing: 1 }}>24 APPS</span>
+  </div>
+
+  {/* ── Finance ── */}
+  <div style={{ marginBottom: 16 }}>
+    <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>💰 Finance</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+      {COMING_SOON.filter(d => d.category === 'finance').map(app => (
+        <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
+          <span style={{ fontSize: 20 }}>{app.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name}</span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
-          {SOON_APPS.map(app => (
-            <div key={app.name} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
-              <span style={{ fontSize: 20 }}>{app.emoji}</span>
-              <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name}</span>
-            </div>
-          ))}
+      ))}
+    </div>
+  </div>
+
+  {/* ── Commerce ── */}
+  <div style={{ marginBottom: 16 }}>
+    <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🛒 Commerce</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+      {COMING_SOON.filter(d => d.category === 'commerce').map(app => (
+        <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
+          <span style={{ fontSize: 20 }}>{app.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name}</span>
         </div>
-      </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── Social ── */}
+  <div style={{ marginBottom: 16 }}>
+    <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🌍 Social</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+      {COMING_SOON.filter(d => d.category === 'social').map(app => (
+        <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
+          <span style={{ fontSize: 20 }}>{app.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── Tools ── */}
+  <div style={{ marginBottom: 16 }}>
+    <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>⚡ Tools</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+      {COMING_SOON.filter(d => d.category === 'tools').map(app => (
+        <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
+          <span style={{ fontSize: 20 }}>{app.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── Prestige ── */}
+  <div style={{ marginBottom: 16 }}>
+    <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🏆 Prestige</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+      {COMING_SOON.filter(d => d.category === 'prestige').map(app => (
+        <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #d4af3715', borderRadius: 14, opacity: 0.6 }}>
+          <span style={{ fontSize: 20 }}>{app.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#d4af3780', textAlign: 'center' }}>{app.name}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  {/* ── Premium ── */}
+  <div style={{ marginBottom: 16 }}>
+    <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🔥 Premium</span>
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+      {COMING_SOON.filter(d => d.category === 'premium').map(app => (
+        <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
+          <span style={{ fontSize: 20 }}>{app.emoji}</span>
+          <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name}</span>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
 
       {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>

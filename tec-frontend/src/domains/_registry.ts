@@ -79,6 +79,20 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     category:       'tools',
   },
 
+ orders: {
+  slug:           'orders',
+  name:           'Orders',
+  piDomain:       'orders.pi',
+  emoji:          '📦',
+  description:    'Your Orders',
+  status:         'live',
+  route:          '/dashboard/orders',
+  features:       { hasNotifications: true, hasAnalytics: false, requiresKYC: false, requiresPro: false },
+  backendService: 'tec-commerce-service',
+  order:          5,
+  category:       'commerce',
+}, 
+  
   // ── Commerce ──────────────────────────────────────────
   commerce: {
     slug:           'commerce',

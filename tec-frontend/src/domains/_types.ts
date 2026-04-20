@@ -1,5 +1,5 @@
 export type DomainStatus   = 'live' | 'beta' | 'coming_soon' | 'maintenance';
-export type DomainCategory = 'finance' | 'commerce' | 'social' | 'tools' | 'premium';
+export type DomainCategory = 'finance' | 'commerce' | 'social' | 'tools' | 'premium' | 'prestige';
 
 export interface DomainFeatures {
   hasNotifications: boolean;

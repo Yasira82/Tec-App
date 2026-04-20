@@ -92,7 +92,8 @@ export default function Error({
         )}
 
         {/* ✅ عرض الـ error message دايماً عشان نشوف المشكلة */}
-        {error.message && (
+        {/* Dev only — error message */}
+{process.env.NODE_ENV !== 'production' && error.message && (
           <div style={{
             margin: '0 0 24px',
             padding: '12px 16px',

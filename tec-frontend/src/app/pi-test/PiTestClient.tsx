@@ -108,8 +108,7 @@ export function PiTestClient() {
         async (payment: unknown) => {
           const piPayment   = payment as Record<string, unknown> | null;
           const piPaymentId = piPayment?.identifier as string | undefined;
-          const transaction = piPayment?.transaction as Record<string, unknown> | undefined;
-          const txid        = transaction?.txid as string | undefined;
+          const txid        = (piPayment?.transaction as Record<string, unknown> | undefined)?.txid as string | undefined;
 
           if (!piPaymentId) {
             log('info', 'No pending payment found ✅');
@@ -118,17 +117,13 @@ export function PiTestClient() {
 
           log('warn', `Found pending payment: ${piPaymentId}. txid: ${txid ?? 'none'}. Resolving...`);
 
-          const token = getAccessToken();
-
-          // ✅ قراءة CSRF token من الـ cookie
+          const token     = getAccessToken();
           const csrfToken = document.cookie
             .split('; ')
             .find(row => row.startsWith('tec_csrf='))
             ?.split('=')?.[1];
 
-          const headers: Record<string, string> = {
-            'Content-Type': 'application/json',
-          };
+          const headers: Record<string, string> = {};
           if (token)     headers['Authorization'] = `Bearer ${token}`;
           if (csrfToken) headers['x-csrf-token']  = csrfToken;
 
@@ -136,15 +131,16 @@ export function PiTestClient() {
           log('info', 'Calling /api/payment/resolve-incomplete...');
 
           try {
-            const res = await fetch('/api/payment/resolve-incomplete', {
-              method:      'POST',
-              credentials: 'include',
-              headers,
-              body: JSON.stringify({
-                pi_payment_id:  piPaymentId,
-                transaction_id: txid,
-              }),
-            });
+            // ✅ pi_payment_id في الـ URL — مش في الـ body
+            // عشان الـ middleware مش ياكل الـ body
+            const res = await fetch(
+              `/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(piPaymentId)}`,
+              {
+                method:      'POST',
+                credentials: 'include',
+                headers,
+              },
+            );
 
             const data = await res.json().catch(() => ({}));
 
@@ -294,4 +290,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-            }
+                }

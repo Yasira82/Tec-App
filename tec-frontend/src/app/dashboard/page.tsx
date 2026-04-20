@@ -8,31 +8,14 @@ import { getAccessToken }   from '@/lib-client/pi/pi-auth';
 import { buildHeaders }     from '@/lib/request-id';
 import styles               from './dashboard.module.css';
 
-const TEC_APPS = [
-  { name: 'Nexus',      domain: 'nexus.pi',      emoji: '🌐' },
-  { name: 'Commerce',   domain: 'commerce.pi',   emoji: '🛒' },
-  { name: 'Assets',     domain: 'assets.pi',     emoji: '💎' },
-  { name: 'Fundx',      domain: 'fundx.pi',      emoji: '🏦' },
-  { name: 'Estate',     domain: 'estate.pi',     emoji: '🏠' },
-  { name: 'Analytics',  domain: 'analytics.pi',  emoji: '📊' },
-  { name: 'Connection', domain: 'connection.pi', emoji: '🔗' },
-  { name: 'Life',       domain: 'life.pi',       emoji: '❤️' },
-  { name: 'Insure',     domain: 'insure.pi',     emoji: '🛡️' },
-  { name: 'Vip',        domain: 'vip.pi',        emoji: '👑' },
-  { name: 'Zone',       domain: 'zone.pi',       emoji: '🌎' },
-  { name: 'Explorer',   domain: 'explorer.pi',   emoji: '✈️' },
-  { name: 'Alert',      domain: 'alert.pi',      emoji: '🚨' },
-  { name: 'System',     domain: 'system.pi',     emoji: '⚙️' },
-  { name: 'Ecommerce',  domain: 'ecommerce.pi',  emoji: '🏬' },
-  { name: 'Dx',         domain: 'dx.pi',         emoji: '🧪' },
-  { name: 'Nx',         domain: 'nx.pi',         emoji: '🔧' },
-  { name: 'Nbf',        domain: 'nbf.pi',        emoji: '💳' },
-  { name: 'Epic',       domain: 'epic.pi',       emoji: '🔥' },
-  { name: 'Legend',     domain: 'legend.pi',     emoji: '🌟' },
-  { name: 'Titan',      domain: 'titan.pi',      emoji: '⚔️' },
-  { name: 'Elite',      domain: 'elite.pi',      emoji: '🥇' },
-  { name: 'Brookfield', domain: 'brookfield.pi', emoji: '🏢' },
-];
+import { COMING_SOON } from '@/domains/_registry';
+
+// ✅ من الـ Registry — Single Source of Truth
+const TEC_APPS = COMING_SOON.map(d => ({
+  name:   d.name,
+  domain: d.piDomain,
+  emoji:  d.emoji,
+}));
 
 interface Payment {
   id:             string;

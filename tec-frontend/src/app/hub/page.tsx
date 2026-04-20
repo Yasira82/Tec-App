@@ -9,8 +9,6 @@ import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-import { LIVE_DOMAINS, COMING_SOON } from '@/domains/_registry';
-
 // ✅ من الـ Registry — Single Source of Truth
 const LIVE_APPS = LIVE_DOMAINS.map(d => ({
   name:  d.name,

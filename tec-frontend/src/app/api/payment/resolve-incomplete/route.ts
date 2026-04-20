@@ -12,22 +12,17 @@ export async function POST(req: NextRequest) {
 
   if (isE2eMode()) {
     return NextResponse.json(
-      { success: true, data: { action: 'no_action_needed', message: 'E2E stub response' } },
+      { success: true, data: { action: 'no_action_needed' } },
       { status: 200 },
     );
   }
 
   try {
-    // ✅ req.nextUrl بدل new URL(req.url) — يشتغل مع relative URLs
-    const piFromQuery   = req.nextUrl.searchParams.get('pi_payment_id');
-    const body          = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const pi_payment_id = piFromQuery ?? body?.pi_payment_id as string | undefined;
+    // ✅ من الـ URL — مش من الـ body
+    const pi_payment_id = req.nextUrl.searchParams.get('pi_payment_id');
 
-    if (!pi_payment_id || typeof pi_payment_id !== 'string' || pi_payment_id.length < 5) {
-      return NextResponse.json(
-        { error: 'pi_payment_id required' },
-        { status: 400 },
-      );
+    if (!pi_payment_id) {
+      return NextResponse.json({ error: 'pi_payment_id required' }, { status: 400 });
     }
 
     const res = await fetchWithTimeout(`${GATEWAY}/api/payment/resolve-incomplete`, {

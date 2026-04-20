@@ -36,7 +36,7 @@ const TEC_APPS = [
 
 interface Payment {
   id:             string;
-  amount:         number;
+  amount:         number | string;
   currency:       string;
   status:         'created' | 'approved' | 'completed' | 'cancelled' | 'failed';
   payment_method: string;
@@ -60,7 +60,7 @@ function formatDate(iso: string) {
 export default function DashboardPage() {
   const { user, isAuthenticated, isNewUser } = usePiAuth();
   const { t }  = useTranslation();
-  const token  = getAccessToken(); // ✅ P1-2: من الـ cookie مش localStorage
+  const token  = getAccessToken();
 
   const [balance,        setBalance]        = useState<number | null>(null);
   const [payments,       setPayments]       = useState<Payment[]>([]);
@@ -69,25 +69,22 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
 
-    // ── Balance — عبر BFF ────────────────────────────────────
     try {
       const balRes = await fetch(`/api/wallet/balance?userId=${user.id}`, {
         credentials: 'include',
         headers:     buildHeaders(token),
       });
-
       if (balRes.ok) {
         const balData = await balRes.json();
-        setBalance(balData.balance ?? 0);
+        // ✅ Number() — يتعامل مع Decimal string من الـ DB
+        setBalance(Number(balData.balance ?? 0));
       }
     } catch {
       // silent
     }
 
-    // ── Payment history — عبر BFF مش Gateway مباشرة ─────────
     try {
       setHistoryLoading(true);
-      // ✅ P1-3: /api/... مش ${gatewayUrl}/api/...
       const histRes = await fetch('/api/payments/history?limit=5&sort=desc', {
         credentials: 'include',
         headers:     buildHeaders(token),
@@ -108,7 +105,11 @@ export default function DashboardPage() {
   }, [fetchData]);
 
   const completedPayments = payments.filter(p => p.status === 'completed');
-  const totalPiSpent      = completedPayments.reduce((sum, p) => sum + p.amount, 0);
+  // ✅ Number() — يتعامل مع Decimal string
+  const totalPiSpent = completedPayments.reduce(
+    (sum, p) => sum + Number(p.amount),
+    0,
+  );
 
   return (
     <>
@@ -138,12 +139,14 @@ export default function DashboardPage() {
         {[
           {
             label: t.dashboard.stats.piBalance,
-            value: balance !== null ? `${balance.toFixed(2)} TEC` : '— TEC',
+            // ✅ Number() — يضمن إن balance رقم
+            value: balance !== null ? `${Number(balance).toFixed(2)} TEC` : '— TEC',
             sub:   t.dashboard.stats.tecWallet,
           },
           {
             label: 'Pi Spent',
-            value: `${totalPiSpent.toFixed(3)} π`,
+            // ✅ Number() — يضمن إن totalPiSpent رقم
+            value: `${Number(totalPiSpent).toFixed(3)} π`,
             sub:   `${completedPayments.length} transactions`,
           },
           {
@@ -208,7 +211,8 @@ export default function DashboardPage() {
                       className={styles.historyAmount}
                       style={{ color: STATUS_COLORS[p.status] }}
                     >
-                      {p.amount} π
+                      {/* ✅ Number() — يتعامل مع Decimal string */}
+                      {Number(p.amount).toFixed(2)} π
                     </p>
                     <p className={styles.historyStatus}>{p.status}</p>
                   </div>
@@ -259,4 +263,4 @@ export default function DashboardPage() {
       </section>
     </>
   );
-}
+                  }

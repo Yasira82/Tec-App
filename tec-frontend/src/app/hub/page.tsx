@@ -1,5 +1,6 @@
 'use client';
 
+import { LIVE_DOMAINS, COMING_SOON } from '@/domains/_registry';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
@@ -8,28 +9,20 @@ import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-const LIVE_APPS = [
-  { name: 'Wallet',    emoji: '💳', href: '/dashboard/wallet',  desc: 'Pi Balance'     },
-  { name: 'Orders',    emoji: '📦', href: '/dashboard/orders',  desc: 'Your Orders'    },
-  { name: 'Assets',    emoji: '💎', href: '/dashboard/assets',  desc: 'Digital Assets' },
-  { name: 'KYC',       emoji: '🪪', href: '/dashboard/kyc',     desc: 'Verify ID'      },
-  { name: 'Assistant', emoji: '🤖', href: '/ai',                desc: 'AI Assistant'   },
-];
+import { LIVE_DOMAINS, COMING_SOON } from '@/domains/_registry';
 
-const SOON_APPS = [
-  { name: 'Commerce',   emoji: '🛒' },
-  { name: 'Fundx',      emoji: '📊' },
-  { name: 'Estate',     emoji: '🏠' },
-  { name: 'Analytics',  emoji: '📈' },
-  { name: 'Connection', emoji: '🔗' },
-  { name: 'Insure',     emoji: '🛡️' },
-  { name: 'Nexus',      emoji: '🌐' },
-  { name: 'Vip',        emoji: '👑' },
-  { name: 'Explorer',   emoji: '✈️' },
-  { name: 'Nbf',        emoji: '🏦' },
-  { name: 'Epic',       emoji: '🔥' },
-  { name: 'Legend',     emoji: '⭐' },
-];
+// ✅ من الـ Registry — Single Source of Truth
+const LIVE_APPS = LIVE_DOMAINS.map(d => ({
+  name:  d.name,
+  emoji: d.emoji,
+  href:  d.route ?? `/${d.slug}`,
+  desc:  d.description,
+}));
+
+const SOON_APPS = COMING_SOON.map(d => ({
+  name:  d.name,
+  emoji: d.emoji,
+}));
 
 // ─── Haptic ───────────────────────────────────────────────────
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {

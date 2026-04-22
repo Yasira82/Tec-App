@@ -1,24 +1,34 @@
-import type { Capability, DomainConfig, DomainGroup } from './_types';
+import type {
+  BillingInterval,
+  Capability,
+  DomainConfig,
+  DomainGroup,
+  DomainTier,
+} from './_types';
 
 // ══════════════════════════════════════════════════════════════
-//  TEC DOMAIN REGISTRY v4 — 24 Domains, Federated Platform
+//  TEC DOMAIN REGISTRY v5 — 25 Domains, PiRC-Aligned Platform
 //  Single Source of Truth
 //
-//  Changes vs v3:
-//    • i18n: All names & descriptions now bilingual (en + ar)
-//    • +3 new domains: ai (core), trust (core), governance (tech)
-//    • membership: now uses first-class `tiers[]` instead of children
-//    • All scopes follow `resource:action` convention
-//    • validateRegistry throws in CI/production builds
-//    • getDomainsByCapability uses strict Capability type (no `as any`)
-//    • Added helpers: getDependents, getTier
+//  Changes vs v4:
+//    • +1 new domain: launchpad (PiRC-1 alignment) → 25 total
+//    • membership: now declares paymentMode='pirc2' + billingInterval per tier
+//    • membership tiers: trialPeriodSecs + approvePeriods + lifetime constraints
+//    • launchpad: dependsOn fixed (no fundx — fundx consumes launchpad)
+//    • Validators: lifetime tier constraints, pirc2 currency rule, BFF naming
+//    • All payment-bearing domains declare paymentMode explicitly
 //
-//  Total: 24 domains across 5 layers
-//    • OS:        1  (tec)
-//    • Connector: 1  (nexus)
-//    • Core:      4  (assets, commerce, ai, trust)
-//    • Domain:   15
-//    • Meta:      3  (system, alert, analytics)
+//  Total: 25 domains across 5 layers
+//    • OS:        1   (tec)
+//    • Connector: 1   (nexus)
+//    • Core:      4   (assets, commerce, ai, trust)
+//    • Domain:   16   (added: launchpad)
+//    • Meta:      3   (system, alert, analytics)
+//
+//  References:
+//    • PiRC-1: Pi Launchpad (Token launches via stake + LP formation)
+//    • PiRC-2: Subscription Contract API (Soroban recurring payments)
+//    • ADR-007: TEC adopts PiRC as native protocol layer
 // ══════════════════════════════════════════════════════════════
 
 export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
@@ -41,7 +51,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:        'platform',
     route:        '/hub',
     features:     { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:          { bff: 'tec-os-bff' },
+    api:          { bff: 'tec-os-bff', paymentMode: 'none' },
     capabilities: ['auth', 'identity'],
     sdk:          { scopes: ['auth:manage', 'identity:read', 'feature-flags:read'] },
     order:        0,
@@ -67,7 +77,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'platform',
     route:            null,
     features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: true, requiresPro: false },
-    api:              { bff: 'nexus-bff' },
+    api:              { bff: 'nexus-bff', paymentMode: 'none' },
     capabilities:     ['identity', 'auth', 'realtime'],
     dependsOnDomains: ['tec'],
     sdk:              { scopes: ['identity:read', 'identity:write', 'routing:manage'] },
@@ -94,7 +104,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'platform',
     route:            '/dashboard/assets',
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: false },
-    api:              { bff: 'assets-bff' },
+    api:              { bff: 'assets-bff', paymentMode: 'pi-platform' },
     capabilities:     ['wallet', 'payments', 'identity'],
     dependsOnDomains: ['tec', 'nexus'],
     sdk:              { scopes: ['assets:read', 'assets:write', 'wallet:read'] },
@@ -117,7 +127,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'platform',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: false },
-    api:              { bff: 'commerce-bff' },
+    api:              { bff: 'commerce-bff', paymentMode: 'pi-platform' },
     capabilities:     ['payments', 'wallet', 'identity'],
     dependsOnDomains: ['tec', 'assets'],
     sdk:              { scopes: ['orders:manage', 'checkout:write', 'marketplace:read'] },
@@ -126,7 +136,6 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     ownership:        { team: 'platform' },
   },
 
-  // 🆕 AI — promoted from tec.children to a first-class core capability
   ai: {
     slug:             'ai',
     name:             { en: 'AI', ar: 'الذكاء الاصطناعي' },
@@ -141,7 +150,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'platform',
     route:            '/ai',
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'ai-bff' },
+    api:              { bff: 'ai-bff', paymentMode: 'none' },
     capabilities:     ['auth', 'identity', 'analytics'],
     dependsOnDomains: ['tec', 'nexus'],
     sdk:              { scopes: ['ai:read', 'ai:write', 'agents:manage'] },
@@ -150,7 +159,6 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     ownership:        { team: 'platform' },
   },
 
-  // 🆕 Trust — reputation + attestations engine (Pi mainnet critical)
   trust: {
     slug:             'trust',
     name:             { en: 'Trust', ar: 'الثقة' },
@@ -165,7 +173,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'platform',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: false },
-    api:              { bff: 'trust-bff' },
+    api:              { bff: 'trust-bff', paymentMode: 'none' },
     capabilities:     ['identity', 'kyc', 'auth'],
     dependsOnDomains: ['tec', 'nexus'],
     sdk:              { scopes: ['reputation:read', 'reputation:write', 'attestations:manage'] },
@@ -175,10 +183,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
   },
 
   // ════════════════════════════════════════════════════════════
-  // LAYER 3 — DOMAIN APPS                   [15 domains]
+  // LAYER 3 — DOMAIN APPS                   [16 domains]
   // ════════════════════════════════════════════════════════════
 
-  // ── Finance Group ────────────────────────────────────────── [3]
+  // ── Finance Group ────────────────────────────────────────── [4]
 
   fundx: {
     slug:             'fundx',
@@ -194,9 +202,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'finance',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'fundx-bff' },
+    api:              { bff: 'fundx-bff', paymentMode: 'pi-platform' },
     capabilities:     ['wallet', 'payments', 'kyc', 'reputation'],
-    dependsOnDomains: ['assets', 'commerce', 'trust'],
+    // fundx CONSUMES launchpad — it surfaces token launches in its UI.
+    dependsOnDomains: ['assets', 'commerce', 'trust', 'launchpad'],
     sdk:              { scopes: ['investments:manage', 'wallet:read', 'payments:write'] },
     order:            10,
     ownership:        { team: 'finance' },
@@ -216,7 +225,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'finance',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'nbf-bff' },
+    api:              { bff: 'nbf-bff', paymentMode: 'pi-platform' },
     capabilities:     ['wallet', 'payments', 'kyc', 'reputation'],
     dependsOnDomains: ['assets', 'trust'],
     sdk:              { scopes: ['banking:manage', 'wallet:write', 'transfers:write'] },
@@ -238,11 +247,42 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'finance',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'insure-bff' },
+    api:              { bff: 'insure-bff', paymentMode: 'pirc2' },
     capabilities:     ['wallet', 'payments', 'kyc', 'reputation'],
     dependsOnDomains: ['commerce', 'trust'],
-    sdk:              { scopes: ['policies:manage', 'claims:write', 'payments:read'] },
+    sdk:              { scopes: ['policies:manage', 'claims:write', 'subscriptions:manage'] },
     order:            12,
+    ownership:        { team: 'finance' },
+  },
+
+  // 🆕 Launchpad — PiRC-1 reference implementation
+  launchpad: {
+    slug:             'launchpad',
+    name:             { en: 'Launchpad', ar: 'منصة الإطلاق' },
+    piDomain:         'launchpad.pi',
+    emoji:            '🚀',
+    description:      {
+      en: 'Token Launches — Stake · Allocate · TGE (PiRC-1)',
+      ar: 'إطلاق العملات — تخزين · تخصيص · TGE (متوافق مع PiRC-1)',
+    },
+    status:           'coming_soon',
+    layer:            'domain',
+    group:            'finance',
+    route:            null,
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
+    api:              { bff: 'launchpad-bff', paymentMode: 'pirc1' },
+    capabilities:     ['wallet', 'payments', 'kyc', 'reputation', 'governance'],
+    // Pure orchestration layer — fundx consumes it, not the other way around.
+    dependsOnDomains: ['assets', 'trust', 'governance'],
+    sdk: {
+      scopes: [
+        'launches:read',
+        'launches:write',
+        'staking:manage',
+        'allocations:read',
+      ],
+    },
+    order:            13,
     ownership:        { team: 'finance' },
   },
 
@@ -262,7 +302,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'commerce',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'ecommerce-bff' },
+    api:              { bff: 'ecommerce-bff', paymentMode: 'pi-platform' },
     capabilities:     ['commerce', 'payments'],
     dependsOnDomains: ['commerce'],
     sdk:              { scopes: ['storefront:manage', 'orders:read', 'checkout:write'] },
@@ -286,7 +326,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'real_world',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'estate-bff' },
+    api:              { bff: 'estate-bff', paymentMode: 'pi-platform' },
     capabilities:     ['assets', 'payments', 'kyc'],
     dependsOnDomains: ['assets', 'commerce', 'trust'],
     sdk:              { scopes: ['listings:manage', 'assets:write', 'payments:write'] },
@@ -308,10 +348,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'real_world',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'brookfield-bff' },
+    api:              { bff: 'brookfield-bff', paymentMode: 'pirc2' },
     capabilities:     ['assets', 'payments', 'kyc'],
     dependsOnDomains: ['assets', 'commerce', 'estate'],
-    sdk:              { scopes: ['property:manage', 'leasing:write', 'assets:read'] },
+    sdk:              { scopes: ['property:manage', 'leasing:write', 'subscriptions:manage'] },
     order:            31,
     ownership:        { team: 'real-world' },
   },
@@ -330,7 +370,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'real_world',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'explorer-bff' },
+    api:              { bff: 'explorer-bff', paymentMode: 'pi-platform' },
     capabilities:     ['payments', 'identity'],
     dependsOnDomains: ['commerce'],
     sdk:              { scopes: ['booking:manage', 'payments:write'] },
@@ -354,7 +394,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'social',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'connection-bff' },
+    api:              { bff: 'connection-bff', paymentMode: 'none' },
     capabilities:     ['identity', 'realtime', 'notifications'],
     dependsOnDomains: ['nexus'],
     sdk:              { scopes: ['social:manage', 'messaging:write', 'realtime:read'] },
@@ -376,7 +416,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'social',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'zone-bff' },
+    api:              { bff: 'zone-bff', paymentMode: 'none' },
     capabilities:     ['identity', 'realtime'],
     dependsOnDomains: ['connection'],
     sdk:              { scopes: ['communities:manage', 'events:write'] },
@@ -398,7 +438,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'social',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'life-bff' },
+    api:              { bff: 'life-bff', paymentMode: 'none' },
     capabilities:     ['identity', 'notifications', 'ai'],
     dependsOnDomains: ['nexus', 'ai'],
     sdk:              { scopes: ['lifestyle:manage', 'wellness:read'] },
@@ -422,10 +462,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'tech',
     route:            null,
     features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: true },
-    api:              { bff: 'dx-bff' },
+    api:              { bff: 'dx-bff', paymentMode: 'pirc2' },
     capabilities:     ['auth', 'identity'],
     dependsOnDomains: ['tec'],
-    sdk:              { scopes: ['api-keys:manage', 'docs:read', 'sandbox:write'] },
+    sdk:              { scopes: ['api-keys:manage', 'docs:read', 'subscriptions:manage'] },
     order:            50,
     ownership:        { team: 'platform' },
   },
@@ -444,7 +484,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'tech',
     route:            null,
     features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: true },
-    api:              { bff: 'nx-bff' },
+    api:              { bff: 'nx-bff', paymentMode: 'none' },
     capabilities:     ['realtime', 'auth'],
     dependsOnDomains: ['nexus'],
     sdk:              { scopes: ['nodes:manage', 'routing:read'] },
@@ -452,7 +492,6 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     ownership:        { team: 'platform' },
   },
 
-  // 🆕 Governance — DAO mechanics, proposals, voting (Pi-aligned)
   governance: {
     slug:             'governance',
     name:             { en: 'Governance', ar: 'الحوكمة' },
@@ -467,7 +506,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'tech',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: false },
-    api:              { bff: 'governance-bff' },
+    api:              { bff: 'governance-bff', paymentMode: 'none' },
     capabilities:     ['identity', 'auth', 'realtime', 'reputation', 'governance'],
     dependsOnDomains: ['tec', 'nexus', 'trust'],
     sdk:              { scopes: ['proposals:write', 'voting:write', 'treasury:read'] },
@@ -478,10 +517,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
 
   // ── Monetization Group ───────────────────────────────────── [2]
   //
-  // 📌 NOTE: VIP / Elite / Titan / Legend collapsed into ONE domain
-  // with first-class `tiers[]`. They are TIERS of the same product,
-  // not separate products. Each tier preserves its identity, branding,
-  // and pricing while sharing implementation, BFF, and billing flow.
+  // 📌 membership = PiRC-2-native domain.
+  //    VIP / Elite / Titan / Legend = TIERS of one product, each preserving
+  //    its identity, branding, pricing, and PiRC-2 contract parameters.
+  //    Lifetime tier (Legend) has no trial, no approvePeriods, no scheduler.
 
   membership: {
     slug:             'membership',
@@ -497,31 +536,49 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'monetization',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'membership-bff' },
+    api:              { bff: 'membership-bff', paymentMode: 'pirc2' },
     capabilities:     ['auth', 'payments', 'identity'],
     dependsOnDomains: ['tec'],
-    sdk:              { scopes: ['subscriptions:manage', 'tiers:read', 'entitlements:read'] },
+    sdk: {
+      scopes: [
+        'subscriptions:manage',
+        'subscriptions:write',
+        'tiers:read',
+        'entitlements:read',
+      ],
+    },
     order:            60,
     tiers: [
       {
-        slug: 'vip',    rank: 1,
-        name: { en: 'VIP',    ar: 'في آي بي' },
-        price: { amount: 10,   currency: 'PI', interval: 'month'    },
+        slug: 'vip',   rank: 1,
+        name: { en: 'VIP',   ar: 'في آي بي' },
+        price: { amount: 10,  currency: 'PI' },
+        billingInterval: { kind: 'calendar-month' },
+        trialPeriodSecs: 7 * 24 * 3600,   // 7-day trial
+        approvePeriods:  6,
       },
       {
-        slug: 'elite',  rank: 2,
-        name: { en: 'Elite',  ar: 'النخبة' },
-        price: { amount: 50,   currency: 'PI', interval: 'month'    },
+        slug: 'elite', rank: 2,
+        name: { en: 'Elite', ar: 'النخبة' },
+        price: { amount: 50,  currency: 'PI' },
+        billingInterval: { kind: 'calendar-month' },
+        trialPeriodSecs: 7 * 24 * 3600,
+        approvePeriods:  12,
       },
       {
-        slug: 'titan',  rank: 3,
-        name: { en: 'Titan',  ar: 'تيتان' },
-        price: { amount: 200,  currency: 'PI', interval: 'month'    },
+        slug: 'titan', rank: 3,
+        name: { en: 'Titan', ar: 'تيتان' },
+        price: { amount: 200, currency: 'PI' },
+        billingInterval: { kind: 'calendar-month' },
+        trialPeriodSecs: 0,
+        approvePeriods:  12,
       },
       {
         slug: 'legend', rank: 4,
         name: { en: 'Legend', ar: 'أسطورة' },
-        price: { amount: 1000, currency: 'PI', interval: 'lifetime' },
+        price: { amount: 1000, currency: 'PI' },
+        billingInterval: { kind: 'lifetime' },
+        // Lifetime: no trial, no approvePeriods (enforced by validator).
       },
     ],
     ownership: { team: 'monetization' },
@@ -541,7 +598,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'monetization',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: true },
-    api:              { bff: 'epic-bff' },
+    api:              { bff: 'epic-bff', paymentMode: 'pi-platform' },
     capabilities:     ['payments', 'identity'],
     dependsOnDomains: ['commerce', 'membership'],
     sdk:              { scopes: ['events:manage', 'tickets:write'] },
@@ -552,9 +609,6 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
   // ════════════════════════════════════════════════════════════
   // LAYER 4 — META (Cross-cutting)          [3 domains]
   // ════════════════════════════════════════════════════════════
-  //
-  // 📌 NOTE: `system` and `alert` live here (not in 'domain' layer)
-  // because they are platform-wide concerns, not standalone products.
 
   system: {
     slug:         'system',
@@ -570,7 +624,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:        'platform',
     route:        null,
     features:     { hasNotifications: false, hasAnalytics: false, requiresKYC: false, requiresPro: false },
-    api:          { bff: 'system-bff' },
+    api:          { bff: 'system-bff', paymentMode: 'none' },
     capabilities: ['auth'],
     sdk:          { scopes: ['config:manage', 'preferences:write'] },
     order:        80,
@@ -591,7 +645,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:            'platform',
     route:            null,
     features:         { hasNotifications: true, hasAnalytics: false, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'alert-bff' },
+    api:              { bff: 'alert-bff', paymentMode: 'none' },
     capabilities:     ['notifications', 'realtime'],
     dependsOnDomains: ['nexus'],
     sdk:              { scopes: ['alerts:manage', 'rules:write', 'notifications:read'] },
@@ -613,7 +667,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     group:        'platform',
     route:        null,
     features:     { hasNotifications: false, hasAnalytics: false, requiresKYC: false, requiresPro: true },
-    api:          { bff: 'analytics-bff' },
+    api:          { bff: 'analytics-bff', paymentMode: 'none' },
     capabilities: ['analytics'],
     sdk:          { scopes: ['metrics:read', 'dashboards:manage', 'events:read'] },
     order:        82,
@@ -637,11 +691,16 @@ export const CORE_LAYER      = ALL_DOMAINS.filter(d => d.layer === 'core');
 export const DOMAIN_LAYER    = ALL_DOMAINS.filter(d => d.layer === 'domain');
 export const META_LAYER      = ALL_DOMAINS.filter(d => d.layer === 'meta');
 
-// By Group — type-safe with DomainGroup keys
+// By Group
 export const BY_GROUP = ALL_DOMAINS.reduce((acc, d) => {
   (acc[d.group] ??= []).push(d);
   return acc;
 }, {} as Record<DomainGroup, DomainConfig[]>);
+
+// By Payment Protocol (operational visibility)
+export const PIRC1_DOMAINS       = ALL_DOMAINS.filter(d => d.api.paymentMode === 'pirc1');
+export const PIRC2_DOMAINS       = ALL_DOMAINS.filter(d => d.api.paymentMode === 'pirc2');
+export const PI_PLATFORM_DOMAINS = ALL_DOMAINS.filter(d => d.api.paymentMode === 'pi-platform');
 
 // ══════════════════════════════════════════════════════════════
 //  Helpers
@@ -660,25 +719,68 @@ export const getVisibleDomains = (userKyc: boolean, userPro: boolean) =>
 export const getDomainsByGroup = (group: DomainGroup) =>
   ALL_DOMAINS.filter(d => d.group === group);
 
-/** Reverse index — find domains using a given BFF (debugging / ops). */
 export const getDomainsByBFF = (bff: string) =>
   ALL_DOMAINS.filter(d => d.api.bff === bff);
 
-/** Find all domains that consume a given capability (type-safe). */
 export const getDomainsByCapability = (cap: Capability) =>
   ALL_DOMAINS.filter(d => d.capabilities.includes(cap));
 
-/** Find domains that depend (directly) on a given domain. */
 export const getDependents = (slug: string) =>
   ALL_DOMAINS.filter(d => d.dependsOnDomains?.includes(slug));
 
-/** Get a tier object for a tiered domain by tier slug (e.g. 'vip'). */
-export const getTier = (domainSlug: string, tierSlug: string) =>
+export const getTier = (domainSlug: string, tierSlug: string): DomainTier | undefined =>
   getDomain(domainSlug)?.tiers?.find(tier => tier.slug === tierSlug);
 
 // ══════════════════════════════════════════════════════════════
-//  Validation (run in dev / CI to catch registry errors early)
+//  Validation
 // ══════════════════════════════════════════════════════════════
+
+/**
+ * Validate a single tier against PiRC-2 + lifetime constraints.
+ * Returns array of error messages (empty = valid).
+ */
+function validateTier(domainSlug: string, tier: DomainTier, paymentMode?: string): string[] {
+  const errs: string[] = [];
+  const interval = tier.billingInterval;
+
+  // Tiers with a price MUST declare a billingInterval
+  if (tier.price && !interval) {
+    errs.push(`[${domainSlug}.${tier.slug}] priced tier missing billingInterval`);
+  }
+
+  // PiRC-2 requires PI currency
+  if (paymentMode === 'pirc2' && tier.price && tier.price.currency !== 'PI') {
+    errs.push(
+      `[${domainSlug}.${tier.slug}] paymentMode=pirc2 requires currency='PI', got '${tier.price.currency}'`
+    );
+  }
+
+  // Lifetime constraints
+  if (interval?.kind === 'lifetime') {
+    if (tier.trialPeriodSecs && tier.trialPeriodSecs > 0) {
+      errs.push(`[${domainSlug}.${tier.slug}] lifetime tier cannot have trialPeriodSecs`);
+    }
+    if (tier.approvePeriods !== undefined) {
+      errs.push(`[${domainSlug}.${tier.slug}] lifetime tier cannot have approvePeriods`);
+    }
+  }
+
+  // Recurring tiers (non-lifetime) using pirc2 MUST declare approvePeriods
+  if (
+    paymentMode === 'pirc2' &&
+    interval && interval.kind !== 'lifetime' &&
+    tier.approvePeriods === undefined
+  ) {
+    errs.push(`[${domainSlug}.${tier.slug}] pirc2 recurring tier must declare approvePeriods`);
+  }
+
+  // Trial period sanity
+  if (tier.trialPeriodSecs !== undefined && tier.trialPeriodSecs < 0) {
+    errs.push(`[${domainSlug}.${tier.slug}] trialPeriodSecs must be >= 0`);
+  }
+
+  return errs;
+}
 
 export function validateRegistry(): string[] {
   const errors: string[] = [];
@@ -722,7 +824,12 @@ export function validateRegistry(): string[] {
       errors.push(`[${d.slug}] missing required description.en`);
     }
 
-    // 7. Tiers integrity (if present)
+    // 7. PiRC-2 domains MUST declare tiers
+    if (d.api.paymentMode === 'pirc2' && (!d.tiers || d.tiers.length === 0)) {
+      errors.push(`[${d.slug}] paymentMode=pirc2 requires at least one tier`);
+    }
+
+    // 8. Tier integrity + PiRC-2 constraints
     if (d.tiers) {
       const tierSlugs = new Set<string>();
       const tierRanks = new Set<number>();
@@ -735,11 +842,13 @@ export function validateRegistry(): string[] {
         }
         tierSlugs.add(tier.slug);
         tierRanks.add(tier.rank);
+
+        errors.push(...validateTier(d.slug, tier, d.api.paymentMode));
       }
     }
   }
 
-  // 8. Duplicate orders
+  // 9. Duplicate orders
   const orders = new Map<number, string[]>();
   for (const d of ALL_DOMAINS) {
     if (!orders.has(d.order)) orders.set(d.order, []);

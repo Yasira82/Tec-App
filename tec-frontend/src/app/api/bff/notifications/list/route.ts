@@ -1,3 +1,4 @@
+import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 
 export const GET = createHandler({

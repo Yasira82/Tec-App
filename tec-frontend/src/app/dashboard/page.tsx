@@ -127,9 +127,9 @@ export default function DashboardPage() {
     // ── Balance ──────────────────────────────────────────
     try {
       const res = await fetch('/api/bff/wallet/balance', {
-        credentials: 'include',
-        cache:       'no-store',
-      });
+  credentials: 'include', // ✅ لازم يكون موجود
+  cache:       'no-store',
+});
       if (res.ok) {
         const data = await res.json();
         setBalance(Number(data.balance ?? data.data?.balance ?? 0));

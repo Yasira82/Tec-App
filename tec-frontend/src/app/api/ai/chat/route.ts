@@ -191,10 +191,13 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { messages, userContext } = await req.json() as {
-      messages:     Message[];
-      userContext?: { username?: string; balance?: number; locale?: string };
-    };
+    const body = await req.json();
+
+const messages: Message[] = body.messages
+  ?? [{ role: 'user' as const, content: body.message ?? '' }];
+
+const userContext: { username?: string; balance?: number; locale?: string } | undefined
+  = body.userContext;
 
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
       return NextResponse.json(

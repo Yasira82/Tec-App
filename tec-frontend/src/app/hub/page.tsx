@@ -292,9 +292,9 @@ function HubPageInner() {
 
   const refreshBalance = useCallback(() => {
   if (!user?.id) return Promise.resolve();
-  return fetch('/api/bff/wallet/balance', {
+  return fetch(`/api/wallet/balance?userId=${user.id}`, {
     credentials: 'include',
-    cache:       'no-store',
+    headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
   })
     .then(r => r.ok ? r.json() : null)
     .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
@@ -314,9 +314,9 @@ function HubPageInner() {
 
   const refreshNotifCount = useCallback(() => {
   if (!user?.id) return Promise.resolve();
-  return fetch('/api/bff/notifications/unread', {
+  return fetch(`/api/notifications/unread-count?userId=${user.id}`, {
     credentials: 'include',
-    cache:       'no-store',
+    headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
   })
     .then(r => r.ok ? r.json() : null)
     .then(d => d && setNotifCount(d.count ?? 0))

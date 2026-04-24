@@ -1,21 +1,27 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { usePiAuth }        from '@/lib-client/hooks/usePiAuth';
-import { useTranslation }   from '@/lib/i18n';
-import PiIntegration        from '@/components/PiIntegration';
-import { getAccessToken }   from '@/lib-client/pi/pi-auth';
-import { buildHeaders }     from '@/lib/request-id';
-import styles               from './dashboard.module.css';
+import { usePiAuth }      from '@/lib-client/hooks/usePiAuth';
+import { useTranslation } from '@/lib/i18n';
+import PiIntegration      from '@/components/PiIntegration';
+import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { buildHeaders }   from '@/lib/request-id';
+import styles             from './dashboard.module.css';
 
-import { COMING_SOON } from '@/domains/_registry';
+import {
+  LIVE_DOMAINS,
+  COMING_SOON,
+  getDomainsByGroup,
+} from '@/domains/_registry';
 
-// ✅ من الـ Registry — Single Source of Truth
-const TEC_APPS = COMING_SOON.map(d => ({
-  name:   d.name.en,   // ✅ string بدل Localized
-  domain: d.piDomain,
-  emoji:  d.emoji,
-}));
+// ── Domain Groups from Registry ───────────────────────────
+const LIVE_APPS     = LIVE_DOMAINS.filter(d => d.layer !== 'os');
+const FINANCE       = getDomainsByGroup('finance');
+const COMMERCE_APPS = getDomainsByGroup('commerce');
+const REAL_WORLD    = getDomainsByGroup('real_world');
+const SOCIAL        = getDomainsByGroup('social');
+const TECH          = getDomainsByGroup('tech');
+const MONETIZATION  = getDomainsByGroup('monetization');
 
 interface Payment {
   id:             string;
@@ -40,6 +46,73 @@ function formatDate(iso: string) {
   });
 }
 
+// ── Domain Card ───────────────────────────────────────────
+function DomainCard({
+  emoji, name, domain, status, onClick,
+}: {
+  emoji:    string;
+  name:     string;
+  domain:   string;
+  status:   'live' | 'beta' | 'coming_soon' | 'maintenance';
+  onClick?: () => void;
+}) {
+  const isLive = status === 'live' || status === 'beta';
+  return (
+    <div
+      className={`${styles.appCard} ${isLive ? styles.appCardActive : ''}`}
+      onClick={onClick}
+      style={{ opacity: isLive ? 1 : 0.6, cursor: onClick ? 'pointer' : 'default' }}
+    >
+      <span style={{ fontSize: '20px' }}>{emoji}</span>
+      <div className={styles.appInfo}>
+        <span className={styles.appName}>{name}</span>
+        <span className={styles.appDomain}>{domain}</span>
+      </div>
+      {isLive
+        ? <span className={styles.appLive}>Live</span>
+        : <span className={styles.appSoon}>Soon</span>
+      }
+    </div>
+  );
+}
+
+// ── Domain Group Section ──────────────────────────────────
+function DomainGroup({
+  title, emoji, domains,
+}: {
+  title:   string;
+  emoji:   string;
+  domains: typeof FINANCE;
+}) {
+  if (!domains.length) return null;
+  return (
+    <div className={styles.domainGroup}>
+      <div className={styles.groupHeader}>
+        <span>{emoji}</span>
+        <span className={styles.groupTitle}>{title}</span>
+        <span className={styles.groupCount}>{domains.length}</span>
+      </div>
+      <div className={styles.appsGrid}>
+        {domains.map(d => (
+          <DomainCard
+            key={d.slug}
+            emoji={d.emoji}
+            name={d.name.en}
+            domain={d.piDomain}
+            status={d.status}
+            onClick={
+              d.route
+                ? () => window.open(`https://${d.piDomain}`, '_blank', 'noopener,noreferrer')
+                : undefined
+            }
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Dashboard Page ────────────────────────────────────────
 export default function DashboardPage() {
   const { user, isAuthenticated, isNewUser } = usePiAuth();
   const { t }  = useTranslation();
@@ -48,6 +121,7 @@ export default function DashboardPage() {
   const [balance,        setBalance]        = useState<number | null>(null);
   const [payments,       setPayments]       = useState<Payment[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [activeTab,      setActiveTab]      = useState<'overview' | 'domains' | 'activity'>('overview');
 
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
@@ -59,12 +133,9 @@ export default function DashboardPage() {
       });
       if (balRes.ok) {
         const balData = await balRes.json();
-        // ✅ Number() — يتعامل مع Decimal string من الـ DB
         setBalance(Number(balData.balance ?? 0));
       }
-    } catch {
-      // silent
-    }
+    } catch { /* silent */ }
 
     try {
       setHistoryLoading(true);
@@ -76,23 +147,16 @@ export default function DashboardPage() {
         const histData = await histRes.json();
         setPayments(histData?.data?.payments ?? []);
       }
-    } catch {
-      // silent
-    } finally {
-      setHistoryLoading(false);
-    }
+    } catch { /* silent */ }
+    finally { setHistoryLoading(false); }
   }, [user?.id, isAuthenticated, token]);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
 
   const completedPayments = payments.filter(p => p.status === 'completed');
-  // ✅ Number() — يتعامل مع Decimal string
-  const totalPiSpent = completedPayments.reduce(
-    (sum, p) => sum + Number(p.amount),
-    0,
-  );
+  const totalPiSpent      = completedPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+  const liveCount         = LIVE_APPS.length;
+  const totalCount        = LIVE_DOMAINS.length + COMING_SOON.length;
 
   return (
     <>
@@ -122,20 +186,18 @@ export default function DashboardPage() {
         {[
           {
             label: t.dashboard.stats.piBalance,
-            // ✅ Number() — يضمن إن balance رقم
-            value: balance !== null ? `${Number(balance).toFixed(2)} TEC` : '— TEC',
+            value: balance !== null ? `${Number(balance).toFixed(2)} π` : '— π',
             sub:   t.dashboard.stats.tecWallet,
           },
           {
             label: 'Pi Spent',
-            // ✅ Number() — يضمن إن totalPiSpent رقم
             value: `${Number(totalPiSpent).toFixed(3)} π`,
             sub:   `${completedPayments.length} transactions`,
           },
           {
-            label: t.dashboard.stats.availableApps,
-            value: '1 / 24',
-            sub:   t.dashboard.stats.activeApp,
+            label: 'Live Apps',
+            value: `${liveCount} / ${totalCount}`,
+            sub:   'domains active',
           },
           {
             label: t.dashboard.stats.subscription,
@@ -151,12 +213,103 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* ── Pi Integration ── */}
-      <PiIntegration />
+      {/* ── Tabs ── */}
+      <div className={`${styles.tabsBar} fade-up-1`}>
+        {(['overview', 'domains', 'activity'] as const).map(tab => (
+          <button
+            key={tab}
+            className={`${styles.tab} ${activeTab === tab ? styles.tabActive : ''}`}
+            onClick={() => setActiveTab(tab)}
+          >
+            {tab === 'overview' ? '⊞ Overview' : tab === 'domains' ? '🌐 Domains' : '📋 Activity'}
+          </button>
+        ))}
+      </div>
 
-      {/* ── Recent Transactions ── */}
-      {isAuthenticated && (
-        <section className={`${styles.historySection} fade-up-2`}>
+      {/* ── Overview Tab ── */}
+      {activeTab === 'overview' && (
+        <>
+          <PiIntegration />
+
+          {/* ── Live Apps ── */}
+          <section className={`${styles.appsSection} fade-up-2`}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>
+                <span style={{ color: '#7ee7c0' }}>●</span> Live Apps
+              </h2>
+              <span className={styles.sectionMeta}>{liveCount} active</span>
+            </div>
+            <div className={styles.appsGrid}>
+              {/* TEC OS */}
+              <DomainCard
+                emoji="🔷"
+                name="TEC"
+                domain="tec.pi"
+                status="live"
+                onClick={() => window.open('https://tec.pi', '_blank', 'noopener,noreferrer')}
+              />
+              {LIVE_APPS.map(d => (
+                <DomainCard
+                  key={d.slug}
+                  emoji={d.emoji}
+                  name={d.name.en}
+                  domain={d.piDomain}
+                  status={d.status}
+                  onClick={
+                    d.route
+                      ? () => window.location.href = d.route!
+                      : undefined
+                  }
+                />
+              ))}
+            </div>
+          </section>
+
+          {/* ── Coming Soon Preview ── */}
+          <section className={`${styles.appsSection} fade-up-2`}>
+            <div className={styles.sectionHeader}>
+              <h2 className={styles.sectionTitle}>Coming Soon</h2>
+              <span className={styles.sectionMeta}>{COMING_SOON.length} domains</span>
+            </div>
+            <div className={styles.appsGrid}>
+              {COMING_SOON.slice(0, 8).map(d => (
+                <DomainCard
+                  key={d.slug}
+                  emoji={d.emoji}
+                  name={d.name.en}
+                  domain={d.piDomain}
+                  status={d.status}
+                />
+              ))}
+            </div>
+            {COMING_SOON.length > 8 && (
+              <button
+                className={styles.btn}
+                onClick={() => setActiveTab('domains')}
+                style={{ marginTop: 12 }}
+              >
+                View all {COMING_SOON.length} domains →
+              </button>
+            )}
+          </section>
+        </>
+      )}
+
+      {/* ── Domains Tab ── */}
+      {activeTab === 'domains' && (
+        <section className={`${styles.appsSection} fade-up`}>
+          <DomainGroup title="Finance"     emoji="💰" domains={FINANCE}       />
+          <DomainGroup title="Commerce"    emoji="🛒" domains={COMMERCE_APPS} />
+          <DomainGroup title="Real World"  emoji="🏙️" domains={REAL_WORLD}    />
+          <DomainGroup title="Social"      emoji="🌍" domains={SOCIAL}        />
+          <DomainGroup title="Tech"        emoji="⚡" domains={TECH}          />
+          <DomainGroup title="Membership"  emoji="🏆" domains={MONETIZATION}  />
+        </section>
+      )}
+
+      {/* ── Activity Tab ── */}
+      {activeTab === 'activity' && (
+        <section className={`${styles.historySection} fade-up`}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Recent Transactions</h2>
             <span className={styles.sectionMeta}>{payments.length} records</span>
@@ -184,17 +337,11 @@ export default function DashboardPage() {
                       <p className={styles.historyMethod}>
                         {p.payment_method.toUpperCase()} Payment
                       </p>
-                      <p className={styles.historyDate}>
-                        {formatDate(p.created_at)}
-                      </p>
+                      <p className={styles.historyDate}>{formatDate(p.created_at)}</p>
                     </div>
                   </div>
                   <div className={styles.historyRight}>
-                    <p
-                      className={styles.historyAmount}
-                      style={{ color: STATUS_COLORS[p.status] }}
-                    >
-                      {/* ✅ Number() — يتعامل مع Decimal string */}
+                    <p className={styles.historyAmount} style={{ color: STATUS_COLORS[p.status] }}>
                       {Number(p.amount).toFixed(2)} π
                     </p>
                     <p className={styles.historyStatus}>{p.status}</p>
@@ -205,45 +352,6 @@ export default function DashboardPage() {
           )}
         </section>
       )}
-
-      {/* ── Apps ── */}
-      <section className={`${styles.appsSection} fade-up-2`}>
-        <div className={styles.sectionHeader}>
-          <h2 className={styles.sectionTitle}>{t.dashboard.appsTitle}</h2>
-          <span className={styles.sectionMeta}>{t.dashboard.appsCount}</span>
-        </div>
-        <div className={styles.appsGrid}>
-
-          {/* TEC — Active */}
-          <div
-            className={`${styles.appCard} ${styles.appCardActive}`}
-            onClick={() => window.open('https://tec.pi', '_blank', 'noopener,noreferrer')}
-          >
-            <span style={{ fontSize: '20px' }}>🔷</span>
-            <div className={styles.appInfo}>
-              <span className={styles.appName}>{t.common.appName}</span>
-              <span className={styles.appDomain}>tec.pi</span>
-            </div>
-            <span className={styles.appLive}>{t.common.live}</span>
-          </div>
-
-          {/* Other Apps */}
-          {TEC_APPS.map(app => (
-            <div
-              key={app.name}
-              className={styles.appCard}
-              onClick={() => window.open(`https://${app.domain}`, '_blank', 'noopener,noreferrer')}
-            >
-              <span style={{ fontSize: '20px' }}>{app.emoji}</span>
-              <div className={styles.appInfo}>
-                <span className={styles.appName}>{app.name}</span>
-                <span className={styles.appDomain}>{app.domain}</span>
-              </div>
-              <span className={styles.appSoon}>{t.common.comingSoon}</span>
-            </div>
-          ))}
-        </div>
-      </section>
     </>
   );
-                  }
+      }

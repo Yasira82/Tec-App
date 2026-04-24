@@ -9,7 +9,7 @@ const QuerySchema = z.object({
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
-    const token = req.cookies.get('tec_access_token')?.value ?? '';
+    const token            = req.cookies.get('tec_access_token')?.value ?? '';
     const { searchParams } = req.nextUrl;
     const { limit, sort }  = QuerySchema.parse({
       limit: searchParams.get('limit'),
@@ -17,7 +17,7 @@ export const GET = createHandler({
     });
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/payments/history?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
+      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/payment/history?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

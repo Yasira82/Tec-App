@@ -193,18 +193,23 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
 
-const messages: Message[] = body.messages
-  ?? [{ role: 'user' as const, content: body.message ?? '' }];
+const body = await req.json();
+
+const messages: Message[] = Array.isArray(body.messages) && body.messages.length > 0
+  ? body.messages
+  : body.message
+    ? [{ role: 'user' as const, content: body.message }]
+    : [];
 
 const userContext: { username?: string; balance?: number; locale?: string } | undefined
   = body.userContext;
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json(
-        { error: 'messages array is required' },
-        { status: 400, headers: corsHeaders },
-      );
-    }
+if (!messages.length) {
+  return NextResponse.json(
+    { error: 'messages array is required' },
+    { status: 400, headers: corsHeaders },
+  );
+}
 
     const systemPrompt = buildSystemPrompt(userContext);
     const claudeKey    = process.env.ANTHROPIC_API_KEY;

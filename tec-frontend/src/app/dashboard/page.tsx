@@ -124,32 +124,32 @@ export default function DashboardPage() {
   const [activeTab,      setActiveTab]      = useState<'overview' | 'domains' | 'activity'>('overview');
 
   const fetchData = useCallback(async () => {
-    if (!user?.id || !isAuthenticated) return;
+  if (!user?.id || !isAuthenticated) return;
 
-    try {
-      const balRes = await fetch(`/api/wallet/balance?userId=${user.id}`, {
-        credentials: 'include',
-        headers:     buildHeaders(token),
-      });
-      if (balRes.ok) {
-        const balData = await balRes.json();
-        setBalance(Number(balData.balance ?? 0));
-      }
-    } catch { /* silent */ }
+  try {
+    const balRes = await fetch('/api/bff/wallet/balance', {
+      credentials: 'include',
+      cache:       'no-store',
+    });
+    if (balRes.ok) {
+      const balData = await balRes.json();
+      setBalance(Number(balData.balance ?? 0));
+    }
+  } catch { /* silent */ }
 
-    try {
-      setHistoryLoading(true);
-      const histRes = await fetch('/api/payments/history?limit=5&sort=desc', {
-        credentials: 'include',
-        headers:     buildHeaders(token),
-      });
-      if (histRes.ok) {
-        const histData = await histRes.json();
-        setPayments(histData?.data?.payments ?? []);
-      }
-    } catch { /* silent */ }
-    finally { setHistoryLoading(false); }
-  }, [user?.id, isAuthenticated, token]);
+  try {
+    setHistoryLoading(true);
+    const histRes = await fetch('/api/bff/payments/history?limit=5&sort=desc', {
+      credentials: 'include',
+      cache:       'no-store',
+    });
+    if (histRes.ok) {
+      const histData = await histRes.json();
+      setPayments(histData?.data?.payments ?? []);
+    }
+  } catch { /* silent */ }
+  finally { setHistoryLoading(false); }
+}, [user?.id, isAuthenticated]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

@@ -1,22 +1,26 @@
 import { createHandler } from '@/lib/bff/createHandler';
-import { buildHeaders }  from '@/lib/request-id';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 export const GET = createHandler({
   requireAuth: true,
-  handler: async ({ ctx }) => {
+  handler: async ({ ctx, req }) => {
+    // ✅ مرّر الـ cookie للـ Gateway
+    const cookie = req.headers.get('cookie') ?? '';
+
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/wallet/balance?userId=${ctx.userId}`,
       {
         headers: {
-          ...buildHeaders(getAccessToken()),
-          'x-user-id': ctx.userId,
+          'cookie':       cookie,
+          'x-request-id': ctx.requestId,
         },
         cache: 'no-store',
       },
     );
 
-    if (!res.ok) throw new Error('Failed to fetch balance');
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`Gateway error ${res.status}: ${text}`);
+    }
     return res.json();
   },
 });

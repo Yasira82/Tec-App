@@ -79,8 +79,9 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ message: text }),
-      });
+        body: JSON.stringify({
+  messages: [{ role: 'user', content: text }],
+}),
       const data = await res.json();
       setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
     } catch {

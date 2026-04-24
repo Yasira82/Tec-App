@@ -69,28 +69,53 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [loading,  setLoading]  = useState(false);
 
   const send = useCallback(async () => {
-    if (!input.trim() || loading) return;
-    const text = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text }]);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method:      'POST',
-        headers:     { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body:        JSON.stringify({
-          messages: [{ role: 'user', content: text }],
-        }),
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
-    } finally {
-      setLoading(false);
+  if (!input.trim() || loading) return;
+  const text = input.trim();
+  setInput('');
+  setMessages(prev => [...prev, { role: 'user', text }]);
+  setLoading(true);
+  try {
+    const res = await fetch('/api/ai/chat', {
+      method:      'POST',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body:        JSON.stringify({
+        messages: [{ role: 'user', content: text }],
+      }),
+    });
+
+    // ✅ قرا الـ SSE stream
+    const reader  = res.body?.getReader();
+    const decoder = new TextDecoder();
+    let reply = '';
+
+    if (reader) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        for (const line of chunk.split('\n')) {
+          if (!line.startsWith('data: ')) continue;
+          const data = line.slice(6).trim();
+          if (!data || data === '[DONE]') continue;
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.text) reply += parsed.text;
+          } catch { /* skip */ }
+        }
+      }
     }
-  }, [input, loading]);
+
+    setMessages(prev => [...prev, {
+      role: 'ai',
+      text: reply || 'Sorry, no response.',
+    }]);
+  } catch {
+    setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
+  } finally {
+    setLoading(false);
+  }
+}, [input, loading]);
 
   if (!open) return null;
 

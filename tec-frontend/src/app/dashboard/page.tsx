@@ -132,7 +132,7 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         const data = await res.json();
-        setBalance(Number(data.balance ?? 0));
+        setBalance(Number(data.balance ?? data.data?.balance ?? 0));
       }
     } catch { /* silent */ }
 

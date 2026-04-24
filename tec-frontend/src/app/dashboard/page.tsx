@@ -4,8 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { usePiAuth }      from '@/lib-client/hooks/usePiAuth';
 import { useTranslation } from '@/lib/i18n';
 import PiIntegration      from '@/components/PiIntegration';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
-import { buildHeaders }   from '@/lib/request-id';
 import styles             from './dashboard.module.css';
 
 import {
@@ -115,41 +113,56 @@ function DomainGroup({
 // ── Dashboard Page ────────────────────────────────────────
 export default function DashboardPage() {
   const { user, isAuthenticated, isNewUser } = usePiAuth();
-  const { t }  = useTranslation();
-  const token  = getAccessToken();
+  const { t } = useTranslation();
 
   const [balance,        setBalance]        = useState<number | null>(null);
   const [payments,       setPayments]       = useState<Payment[]>([]);
+  const [kycVerified,    setKycVerified]    = useState<boolean | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [activeTab,      setActiveTab]      = useState<'overview' | 'domains' | 'activity'>('overview');
 
   const fetchData = useCallback(async () => {
-  if (!user?.id || !isAuthenticated) return;
+    if (!user?.id || !isAuthenticated) return;
 
-  try {
-    const balRes = await fetch('/api/bff/wallet/balance', {
-      credentials: 'include',
-      cache:       'no-store',
-    });
-    if (balRes.ok) {
-      const balData = await balRes.json();
-      setBalance(Number(balData.balance ?? 0));
-    }
-  } catch { /* silent */ }
+    // ── Balance ──────────────────────────────────────────
+    try {
+      const res = await fetch('/api/bff/wallet/balance', {
+        credentials: 'include',
+        cache:       'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(Number(data.balance ?? 0));
+      }
+    } catch { /* silent */ }
 
-  try {
-    setHistoryLoading(true);
-    const histRes = await fetch('/api/bff/payments/history?limit=5&sort=desc', {
-      credentials: 'include',
-      cache:       'no-store',
-    });
-    if (histRes.ok) {
-      const histData = await histRes.json();
-      setPayments(histData?.data?.payments ?? []);
-    }
-  } catch { /* silent */ }
-  finally { setHistoryLoading(false); }
-}, [user?.id, isAuthenticated]);
+    // ── Payment History ──────────────────────────────────
+    try {
+      setHistoryLoading(true);
+      const res = await fetch('/api/bff/payments/history?limit=5&sort=desc', {
+        credentials: 'include',
+        cache:       'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPayments(data?.data?.payments ?? []);
+      }
+    } catch { /* silent */ }
+    finally { setHistoryLoading(false); }
+
+    // ── KYC Status ───────────────────────────────────────
+    try {
+      const res = await fetch('/api/bff/kyc/status', {
+        credentials: 'include',
+        cache:       'no-store',
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setKycVerified(data.verified ?? data.kycVerified ?? false);
+      }
+    } catch { /* silent */ }
+
+  }, [user?.id, isAuthenticated]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -175,8 +188,20 @@ export default function DashboardPage() {
               <span className={styles.roleBadge}>{user?.role}</span>
             </h1>
           </div>
-          <div className={styles.planBadge}>
-            ◈ {user?.subscriptionPlan || 'Free'}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {kycVerified !== null && (
+              <span style={{
+                fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20,
+                background: kycVerified ? '#7ee7c010' : '#e74c3c10',
+                border:     kycVerified ? '1px solid #7ee7c040' : '1px solid #e74c3c40',
+                color:      kycVerified ? '#7ee7c0' : '#e74c3c',
+              }}>
+                {kycVerified ? '✓ KYC' : '! KYC'}
+              </span>
+            )}
+            <div className={styles.planBadge}>
+              ◈ {user?.subscriptionPlan || 'Free'}
+            </div>
           </div>
         </div>
       </header>
@@ -240,7 +265,6 @@ export default function DashboardPage() {
               <span className={styles.sectionMeta}>{liveCount} active</span>
             </div>
             <div className={styles.appsGrid}>
-              {/* TEC OS */}
               <DomainCard
                 emoji="🔷"
                 name="TEC"
@@ -255,11 +279,7 @@ export default function DashboardPage() {
                   name={d.name.en}
                   domain={d.piDomain}
                   status={d.status}
-                  onClick={
-                    d.route
-                      ? () => window.location.href = d.route!
-                      : undefined
-                  }
+                  onClick={d.route ? () => { window.location.href = d.route!; } : undefined}
                 />
               ))}
             </div>
@@ -298,12 +318,12 @@ export default function DashboardPage() {
       {/* ── Domains Tab ── */}
       {activeTab === 'domains' && (
         <section className={`${styles.appsSection} fade-up`}>
-          <DomainGroup title="Finance"     emoji="💰" domains={FINANCE}       />
-          <DomainGroup title="Commerce"    emoji="🛒" domains={COMMERCE_APPS} />
-          <DomainGroup title="Real World"  emoji="🏙️" domains={REAL_WORLD}    />
-          <DomainGroup title="Social"      emoji="🌍" domains={SOCIAL}        />
-          <DomainGroup title="Tech"        emoji="⚡" domains={TECH}          />
-          <DomainGroup title="Membership"  emoji="🏆" domains={MONETIZATION}  />
+          <DomainGroup title="Finance"    emoji="💰" domains={FINANCE}       />
+          <DomainGroup title="Commerce"   emoji="🛒" domains={COMMERCE_APPS} />
+          <DomainGroup title="Real World" emoji="🏙️" domains={REAL_WORLD}    />
+          <DomainGroup title="Social"     emoji="🌍" domains={SOCIAL}        />
+          <DomainGroup title="Tech"       emoji="⚡" domains={TECH}          />
+          <DomainGroup title="Membership" emoji="🏆" domains={MONETIZATION}  />
         </section>
       )}
 
@@ -354,4 +374,4 @@ export default function DashboardPage() {
       )}
     </>
   );
-      }
+}

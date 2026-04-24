@@ -70,47 +70,38 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   const send = useCallback(async () => {
     if (!input.trim() || loading) return;
-    const send = useCallback(async () => {
-  if (!input.trim() || loading) return;
-  const text = input.trim();
-  setInput('');
-  setMessages(prev => [...prev, { role: 'user', text }]);
-  setLoading(true);
-  try {
-    const res = await fetch('/api/ai/chat', {
-      method:      'POST',
-      headers:     { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body:        JSON.stringify({
-        messages: [{ role: 'user', content: text }],
-      }),
-    });
-    const data = await res.json();
-    setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
-  } catch {
-    setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
-  } finally {
-    setLoading(false);
-  }
-}, [input, loading]);
+    const text = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text }]);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({
+          messages: [{ role: 'user', content: text }],
+        }),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
+    } finally {
+      setLoading(false);
+    }
+  }, [input, loading]);
 
   if (!open) return null;
 
   return (
     <>
-      {/* Backdrop */}
       <div onClick={onClose}
         style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
-
-      {/* Drawer */}
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0a0a12', borderTop: '1px solid #d4af3720', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
-
-        {/* Handle */}
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
         </div>
-
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
@@ -121,8 +112,6 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
         </div>
-
-        {/* Messages */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {messages.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 0', color: '#4a4a5a', fontSize: 13 }}>
@@ -132,7 +121,8 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
           {messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
               <div style={{
-                maxWidth: '80%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                maxWidth: '80%', padding: '10px 14px',
+                borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                 background: m.role === 'user' ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#0d0d1a',
                 border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
                 fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
@@ -149,8 +139,6 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
             </div>
           )}
         </div>
-
-        {/* Input */}
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
           <input
             value={input}

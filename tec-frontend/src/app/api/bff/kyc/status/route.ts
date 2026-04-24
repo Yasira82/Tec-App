@@ -1,18 +1,22 @@
-import { createHandler }  from '@/lib/bff/createHandler';
-import { buildHeaders }   from '@/lib/request-id';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { createHandler } from '@/lib/bff/createHandler';
 
 export const GET = createHandler({
   requireAuth: true,
-  handler: async ({ ctx }) => {
+  handler: async ({ ctx, req }) => {
+    const token = req.cookies.get('tec_access_token')?.value ?? '';
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/kyc/status?userId=${ctx.userId}`,
+      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/kyc/status?userId=${ctx.userId}`,
       {
-        headers: buildHeaders(getAccessToken()),
-        cache:   'no-store',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-request-id':  ctx.requestId,
+        },
+        cache: 'no-store',
       },
     );
-    if (!res.ok) throw new Error('Failed to fetch KYC status');
+
+    if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();
   },
 });

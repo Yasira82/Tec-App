@@ -6,7 +6,7 @@ export const GET = createHandler({
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/wallet/balance?userId=${ctx.userId}`,
+      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/wallet/balance?userId=${ctx.userId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

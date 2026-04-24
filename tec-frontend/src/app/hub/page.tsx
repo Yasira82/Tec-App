@@ -70,26 +70,29 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
 
   const send = useCallback(async () => {
     if (!input.trim() || loading) return;
-    const text = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text }]);
-    setLoading(true);
-    try {
-      const res  = await fetch('/api/ai/chat', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({
-  messages: [{ role: 'user', content: text }],
-}),
-      const data = await res.json();
-      setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
-    } finally {
-      setLoading(false);
-    }
-  }, [input, loading]);
+    const send = useCallback(async () => {
+  if (!input.trim() || loading) return;
+  const text = input.trim();
+  setInput('');
+  setMessages(prev => [...prev, { role: 'user', text }]);
+  setLoading(true);
+  try {
+    const res = await fetch('/api/ai/chat', {
+      method:      'POST',
+      headers:     { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body:        JSON.stringify({
+        messages: [{ role: 'user', content: text }],
+      }),
+    });
+    const data = await res.json();
+    setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
+  } catch {
+    setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
+  } finally {
+    setLoading(false);
+  }
+}, [input, loading]);
 
   if (!open) return null;
 

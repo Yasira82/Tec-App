@@ -1,6 +1,6 @@
 'use client';
 
-import { LIVE_DOMAINS, COMING_SOON } from '@/domains/_registry';
+import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
@@ -8,14 +8,6 @@ import { getAccessToken } from '@/lib-client/pi/pi-auth';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-
-// ✅ من الـ Registry — Single Source of Truth
-const LIVE_APPS = LIVE_DOMAINS.map(d => ({
-  name:  d.name.en,
-  emoji: d.emoji,
-  href:  d.route ?? `/${d.slug}`,
-  desc:  d.description.en,
-}));
 
 // ─── Haptic ───────────────────────────────────────────────────
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
@@ -45,7 +37,6 @@ function ToastContainer({ toasts, onDismiss }: {
     info:    { bg: '#0a0f1a', border: '#7eb8f740', color: '#7eb8f7', icon: 'ℹ️' },
     warning: { bg: '#1a1505', border: '#f0c04040', color: '#f0c040', icon: '⚠️' },
   };
-
   return (
     <div style={{ position: 'fixed', top: 70, left: 16, right: 16, zIndex: 999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
       {toasts.map(toast => {
@@ -68,6 +59,109 @@ function ToastContainer({ toasts, onDismiss }: {
         );
       })}
     </div>
+  );
+}
+
+// ─── AI Drawer ────────────────────────────────────────────────
+function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [input,    setInput]    = useState('');
+  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
+  const [loading,  setLoading]  = useState(false);
+
+  const send = useCallback(async () => {
+    if (!input.trim() || loading) return;
+    const text = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text }]);
+    setLoading(true);
+    try {
+      const res  = await fetch('/api/ai/chat', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ message: text }),
+      });
+      const data = await res.json();
+      setMessages(prev => [...prev, { role: 'ai', text: data.reply ?? 'Sorry, no response.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
+    } finally {
+      setLoading(false);
+    }
+  }, [input, loading]);
+
+  if (!open) return null;
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div onClick={onClose}
+        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
+
+      {/* Drawer */}
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0a0a12', borderTop: '1px solid #d4af3720', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
+
+        {/* Handle */}
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
+        </div>
+
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
+            <div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>TEC AI</div>
+              <div style={{ fontSize: 10, color: '#4a4a5a' }}>Powered by tec.pi</div>
+            </div>
+          </div>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
+        </div>
+
+        {/* Messages */}
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {messages.length === 0 && (
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#4a4a5a', fontSize: 13 }}>
+              مرحباً! أنا مساعدك الذكي على TEC 🤖
+            </div>
+          )}
+          {messages.map((m, i) => (
+            <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              <div style={{
+                maxWidth: '80%', padding: '10px 14px', borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
+                background: m.role === 'user' ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#0d0d1a',
+                border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
+                fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
+              }}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          {loading && (
+            <div style={{ display: 'flex', gap: 4, padding: '8px 0' }}>
+              {[0,1,2].map(i => (
+                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#d4af37', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Input */}
+        <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && send()}
+            placeholder="اسأل TEC AI..."
+            style={{ flex: 1, background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }}
+          />
+          <button onClick={send} disabled={loading || !input.trim()}
+            style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>
+            ↑
+          </button>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -109,20 +203,12 @@ function HubSkeleton() {
       </div>
       <div style={{ padding: '10px 16px 0' }}>
         <div className="sk" style={{ height: 80, border: '1px solid #ffffff08' }} />
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-          <div style={{ width: 16, height: 6, borderRadius: 3, background: '#d4af3740' }} />
-          <div style={{ width: 6, height: 6, borderRadius: 3, background: '#ffffff15' }} />
-        </div>
       </div>
       <div style={{ padding: '12px 16px 0', display: 'flex', gap: 10 }}>
         <div className="sk" style={{ flex: 1, height: 54, border: '1px solid #7ee7c020' }} />
         <div className="sk" style={{ flex: 1, height: 54, border: '1px solid #7eb8f720' }} />
       </div>
       <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div style={{ width: 80, height: 14, borderRadius: 4, background: '#ffffff08' }} />
-          <div style={{ width: 60, height: 14, borderRadius: 4, background: '#ffffff08' }} />
-        </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
           {[1,2,3,4].map(i => <div key={i} className="sk" style={{ height: 68, border: '1px solid #d4af3710' }} />)}
         </div>
@@ -144,11 +230,26 @@ function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const router = useRouter();
 
+  // ✅ Smart Orchestration — user-aware domain visibility
+  const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
+  const userKyc = (user as { kycVerified?: boolean } | null)?.kycVerified ?? false;
+
+  const visibleLive = getVisibleDomains(userKyc, userPro)
+    .filter(d => d.status === 'live' && d.layer !== 'os')
+    .map(d => ({
+      name:  d.name.en,
+      emoji: d.emoji,
+      href:  d.route ?? `/${d.slug}`,
+      desc:  d.description.en,
+      slug:  d.slug,
+    }));
+
   const [balance,     setBalance]     = useState('—');
   const [assetCount,  setAssetCount]  = useState<number | null>(null);
   const [time,        setTime]        = useState('');
   const [notifCount,  setNotifCount]  = useState(0);
   const [carouselIdx, setCarouselIdx] = useState(0);
+  const [aiOpen,      setAiOpen]      = useState(false);
   const [piPrice,     setPiPrice]     = useState<{
     price: number; change24h: number; high24h: number; low24h: number;
   } | null>(null);
@@ -196,10 +297,9 @@ function HubPageInner() {
 
   const refreshNotifCount = useCallback(() => {
     if (!user?.id) return Promise.resolve();
-    const token = getAccessToken();
     return fetch(`/api/notifications/unread-count?userId=${user.id}`, {
       credentials: 'include',
-      headers: { Authorization: `Bearer ${token ?? ''}` },
+      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setNotifCount(d.count ?? 0))
@@ -217,37 +317,25 @@ function HubPageInner() {
 
   const handlePullStart = (e: React.TouchEvent) => {
     const el = e.currentTarget as HTMLElement;
-    if (el.scrollTop === 0) {
-      pullStartY.current = e.touches[0].clientY;
-      isPulling.current  = true;
-    }
+    if (el.scrollTop === 0) { pullStartY.current = e.touches[0].clientY; isPulling.current = true; }
   };
-
   const handlePullMove = (e: React.TouchEvent) => {
     if (!isPulling.current) return;
     const diff = e.touches[0].clientY - pullStartY.current;
     if (diff > 0) setPullProgress(Math.min(diff / PULL_THRESHOLD, 1));
   };
-
   const handlePullEnd = async () => {
     if (!isPulling.current) return;
     isPulling.current = false;
     if (pullProgress >= 1) {
-      haptic('medium');
-      setIsRefreshing(true);
-      setPullProgress(0);
+      haptic('medium'); setIsRefreshing(true); setPullProgress(0);
       await Promise.all([refreshBalance(), refreshAssets(), refreshPrice(), refreshNotifCount()]);
-      setIsRefreshing(false);
-      showToast('info', 'Updated ✓');
-    } else {
-      setPullProgress(0);
-    }
+      setIsRefreshing(false); showToast('info', 'Updated ✓');
+    } else { setPullProgress(0); }
   };
 
-  const handleTouchStart = (e: React.TouchEvent) => {
-    touchStartX.current = e.targetTouches[0].clientX;
-  };
-  const handleTouchEnd = (e: React.TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => { touchStartX.current = e.targetTouches[0].clientX; };
+  const handleTouchEnd   = (e: React.TouchEvent) => {
     touchEndX.current = e.changedTouches[0].clientX;
     const diff = touchStartX.current - touchEndX.current;
     if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? 1 : 0); }
@@ -292,39 +380,26 @@ function HubPageInner() {
 
   const handlePay = useCallback(async () => {
     if (typeof window === 'undefined' || !window.Pi) {
-      haptic('heavy');
-      showToast('error', 'Open in Pi Browser to make payments');
-      return;
+      haptic('heavy'); showToast('error', 'Open in Pi Browser to make payments'); return;
     }
     haptic('medium');
-    setBalance(prev => {
-      const n = parseFloat(prev);
-      return isNaN(n) ? prev : (n - 1).toFixed(2);
-    });
+    setBalance(prev => { const n = parseFloat(prev); return isNaN(n) ? prev : (n - 1).toFixed(2); });
     try {
       const result = await createU2APayment(1, 'TEC Super App Payment', { source: 'hub', version: '1.0' });
       if (result.success && result.status === 'completed') {
-        haptic('heavy');
-        showToast('success', 'Payment successful! 🎉', result.txid);
+        haptic('heavy'); showToast('success', 'Payment successful! 🎉', result.txid);
         setTimeout(refreshBalance, 2000);
       } else if (result.status === 'cancelled') {
-        haptic('light');
-        refreshBalance();
-        showToast('warning', 'Payment cancelled');
+        haptic('light'); refreshBalance(); showToast('warning', 'Payment cancelled');
       } else {
-        haptic('heavy');
-        refreshBalance();
-        showToast('error', result.message ?? 'Payment failed');
+        haptic('heavy'); refreshBalance(); showToast('error', result.message ?? 'Payment failed');
       }
     } catch (err) {
-      haptic('heavy');
-      refreshBalance();
+      haptic('heavy'); refreshBalance();
       const msg = err instanceof Error ? err.message : 'Payment failed';
       if (msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('already have')) {
         showToast('warning', 'Pending payment detected — try again');
-      } else {
-        showToast('error', msg);
-      }
+      } else { showToast('error', msg); }
     }
   }, [refreshBalance, showToast]);
 
@@ -343,6 +418,7 @@ function HubPageInner() {
         @keyframes slideUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:none; } }
         @keyframes toastIn { from { opacity:0; transform:translateY(-12px) scale(0.95); } to { opacity:1; transform:none; } }
         @keyframes shimmer { 0%,100% { opacity:0.4; } 50% { opacity:0.8; } }
+        @keyframes aiPop   { from { opacity:0; transform:scale(0.8); } to { opacity:1; transform:scale(1); } }
         .hub-btn:active { transform: scale(0.97); }
         .app-btn:active  { transform: scale(0.95); }
         .fade-in { animation: slideUp 0.4s ease; }
@@ -350,6 +426,27 @@ function HubPageInner() {
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
+
+      {/* ── AI Drawer ── */}
+      <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
+
+      {/* ── AI Floating Button ── */}
+      {!aiOpen && (
+        <button
+          onClick={() => { haptic('medium'); setAiOpen(true); }}
+          style={{
+            position: 'fixed', bottom: 90, right: 16, zIndex: 200,
+            width: 52, height: 52, borderRadius: '50%',
+            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+            border: '2px solid #d4af3740',
+            boxShadow: '0 4px 20px rgba(212,175,55,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 22, cursor: 'pointer',
+            animation: 'aiPop 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+          }}>
+          🤖
+        </button>
+      )}
 
       {/* ── Header ── */}
       <header style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(2,2,5,0.95)', backdropFilter: 'blur(20px)', zIndex: 100 }}>
@@ -471,8 +568,6 @@ function HubPageInner() {
             </div>
           </div>
         </div>
-
-        {/* Dots */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
           {[0, 1].map(i => (
             <button key={i} onClick={() => { haptic('light'); setCarouselIdx(i); }}
@@ -497,7 +592,7 @@ function HubPageInner() {
         </div>
       </div>
 
-      {/* ── Live Apps ── */}
+      {/* ── Live Apps — Smart Orchestration ── */}
       <div style={{ padding: '20px 16px 0' }} className="fade-in">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -505,12 +600,12 @@ function HubPageInner() {
             <span style={{ fontSize: 11, fontWeight: 700, color: '#fff', letterSpacing: 2, textTransform: 'uppercase' }}>Live Now</span>
           </div>
           <span style={{ fontSize: 10, color: '#7ee7c0', background: '#7ee7c008', border: '1px solid #7ee7c020', padding: '3px 10px', borderRadius: 20, letterSpacing: 1 }}>
-            {LIVE_APPS.length} ACTIVE
+            {visibleLive.length} ACTIVE
           </span>
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          {LIVE_APPS.map((app, idx) => (
-            <button key={app.name} className="app-btn"
+          {visibleLive.map((app, idx) => (
+            <button key={app.slug} className="app-btn"
               onClick={() => { haptic('light'); router.push(app.href); }}
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 18, cursor: 'pointer', textAlign: 'left', animation: `slideUp ${0.3 + idx * 0.05}s ease` }}>
               <div style={{ width: 40, height: 40, borderRadius: 12, background: '#d4af3710', border: '1px solid #d4af3720', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, minWidth: 40 }}>
@@ -533,83 +628,30 @@ function HubPageInner() {
           <span style={{ fontSize: 10, color: '#4a4a5a', letterSpacing: 1 }}>24 APPS</span>
         </div>
 
-        {/* ── Finance ── */}
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>💰 Finance</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-            {COMING_SOON.filter(d => d.group === 'finance').map(app => (
-              <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
-                <span style={{ fontSize: 20 }}>{app.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name.en}</span>
+        {([
+          { group: 'finance',      label: '💰 Finance',    style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
+          { group: 'commerce',     label: '🛒 Commerce',   style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
+          { group: 'real_world',   label: '🏙️ Real World', style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
+          { group: 'social',       label: '🌍 Social',     style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
+          { group: 'tech',         label: '⚡ Tech',       style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
+          { group: 'monetization', label: '🏆 Membership', style: { border: '1px solid #d4af3715', opacity: 0.6,  color: '#d4af3780' } },
+        ] as const).map(({ group, label, style }) => {
+          const apps = COMING_SOON.filter(d => d.group === group);
+          if (!apps.length) return null;
+          return (
+            <div key={group} style={{ marginBottom: 16 }}>
+              <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>{label}</span>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+                {apps.map(app => (
+                  <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', borderRadius: 14, opacity: style.opacity, border: style.border }}>
+                    <span style={{ fontSize: 20 }}>{app.emoji}</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: style.color, textAlign: 'center' }}>{app.name.en}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Commerce ── */}
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🛒 Commerce</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-            {COMING_SOON.filter(d => d.group === 'commerce').map(app => (
-              <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
-                <span style={{ fontSize: 20 }}>{app.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name.en}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Real World ── */}
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🏙️ Real World</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-            {COMING_SOON.filter(d => d.group === 'real_world').map(app => (
-              <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
-                <span style={{ fontSize: 20 }}>{app.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name.en}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Social ── */}
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🌍 Social</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-            {COMING_SOON.filter(d => d.group === 'social').map(app => (
-              <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
-                <span style={{ fontSize: 20 }}>{app.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name.en}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Tech ── */}
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>⚡ Tech</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-            {COMING_SOON.filter(d => d.group === 'tech').map(app => (
-              <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #ffffff06', borderRadius: 14, opacity: 0.45 }}>
-                <span style={{ fontSize: 20 }}>{app.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#6b6b7a', textAlign: 'center' }}>{app.name.en}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* ── Monetization (Prestige + Epic) ── */}
-        <div style={{ marginBottom: 16 }}>
-          <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>🏆 Membership</span>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
-            {COMING_SOON.filter(d => d.group === 'monetization').map(app => (
-              <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', border: '1px solid #d4af3715', borderRadius: 14, opacity: 0.6 }}>
-                <span style={{ fontSize: 20 }}>{app.emoji}</span>
-                <span style={{ fontSize: 9, fontWeight: 600, color: '#d4af3780', textAlign: 'center' }}>{app.name.en}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+            </div>
+          );
+        })}
       </div>
 
       {/* ── Bottom Nav ── */}
@@ -632,11 +674,10 @@ function HubPageInner() {
   );
 }
 
-// ─── Export with ErrorBoundary ────────────────────────────────
 export default function HubPage() {
   return (
     <ErrorBoundary>
       <HubPageInner />
     </ErrorBoundary>
   );
-        }
+}

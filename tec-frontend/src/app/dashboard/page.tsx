@@ -12,7 +12,7 @@ import { COMING_SOON } from '@/domains/_registry';
 
 // ✅ من الـ Registry — Single Source of Truth
 const TEC_APPS = COMING_SOON.map(d => ({
-  name:   d.name,
+  name:   d.name.en,   // ✅ string بدل Localized
   domain: d.piDomain,
   emoji:  d.emoji,
 }));

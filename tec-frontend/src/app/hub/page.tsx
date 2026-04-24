@@ -291,37 +291,37 @@ function HubPageInner() {
   }, []);
 
   const refreshBalance = useCallback(() => {
-    if (!user?.id) return Promise.resolve();
-    return fetch(`/api/wallet/balance?userId=${user.id}`, {
-      credentials: 'include',
-      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
-      .catch(() => {});
-  }, [user?.id]);
+  if (!user?.id) return Promise.resolve();
+  return fetch('/api/bff/wallet/balance', {
+    credentials: 'include',
+    cache:       'no-store',
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
+    .catch(() => {});
+}, [user?.id]);
 
   const refreshAssets = useCallback(() => {
-    if (!user?.id) return Promise.resolve();
-    return fetch(`/api/assets?userId=${user.id}`, {
-      credentials: 'include',
-      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
-      .catch(() => {});
-  }, [user?.id]);
+  if (!user?.id) return Promise.resolve();
+  return fetch('/api/bff/assets/list', {
+    credentials: 'include',
+    cache:       'no-store',
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
+    .catch(() => {});
+}, [user?.id]);
 
   const refreshNotifCount = useCallback(() => {
-    if (!user?.id) return Promise.resolve();
-    return fetch(`/api/notifications/unread-count?userId=${user.id}`, {
-      credentials: 'include',
-      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(d => d && setNotifCount(d.count ?? 0))
-      .catch(() => {});
-  }, [user?.id]);
+  if (!user?.id) return Promise.resolve();
+  return fetch('/api/bff/notifications/unread', {
+    credentials: 'include',
+    cache:       'no-store',
+  })
+    .then(r => r.ok ? r.json() : null)
+    .then(d => d && setNotifCount(d.count ?? 0))
+    .catch(() => {});
+}, [user?.id]);
 
   const refreshPrice = useCallback(async () => {
     try {

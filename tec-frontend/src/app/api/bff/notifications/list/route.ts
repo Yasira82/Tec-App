@@ -1,23 +1,25 @@
-import { z }              from 'zod';
-import { createHandler }  from '@/lib/bff/createHandler';
-import { buildHeaders }   from '@/lib/request-id';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { createHandler } from '@/lib/bff/createHandler';
 
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
+    const token            = req.cookies.get('tec_access_token')?.value ?? '';
     const { searchParams } = req.nextUrl;
     const limit = Math.min(Number(searchParams.get('limit') ?? 20), 50);
     const page  = Math.max(Number(searchParams.get('page')  ?? 1),  1);
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/notifications?userId=${ctx.userId}&limit=${limit}&page=${page}`,
+      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/notification?userId=${ctx.userId}&limit=${limit}&page=${page}`,
       {
-        headers: buildHeaders(getAccessToken()),
-        cache:   'no-store',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-request-id':  ctx.requestId,
+        },
+        cache: 'no-store',
       },
     );
-    if (!res.ok) throw new Error('Failed to fetch notifications');
+
+    if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();
   },
 });
@@ -28,16 +30,23 @@ export const PATCH = createHandler({
     notificationId: z.string().optional(),
     markAll:        z.boolean().optional(),
   }),
-  handler: async ({ input, ctx }) => {
+  handler: async ({ input, ctx, req }) => {
+    const token = req.cookies.get('tec_access_token')?.value ?? '';
+
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/notifications/read`,
+      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/notification/read`,
       {
         method:  'PATCH',
-        headers: { ...buildHeaders(getAccessToken()), 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ ...input, userId: ctx.userId }),
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type':  'application/json',
+          'x-request-id':  ctx.requestId,
+        },
+        body: JSON.stringify({ ...input, userId: ctx.userId }),
       },
     );
-    if (!res.ok) throw new Error('Failed to mark notifications');
+
+    if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();
   },
 });

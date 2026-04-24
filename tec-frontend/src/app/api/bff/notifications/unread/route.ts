@@ -1,22 +1,22 @@
 import { createHandler } from '@/lib/bff/createHandler';
-import { buildHeaders }  from '@/lib/request-id';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 export const GET = createHandler({
   requireAuth: true,
-  handler: async ({ ctx }) => {
+  handler: async ({ ctx, req }) => {
+    const token = req.cookies.get('tec_access_token')?.value ?? '';
+
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/notifications/unread-count?userId=${ctx.userId}`,
       {
         headers: {
-          ...buildHeaders(getAccessToken()),
-          'x-user-id': ctx.userId,
+          'Authorization': `Bearer ${token}`,
+          'x-request-id':  ctx.requestId,
         },
         cache: 'no-store',
       },
     );
 
-    if (!res.ok) throw new Error('Failed to fetch notifications');
+    if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();
   },
 });

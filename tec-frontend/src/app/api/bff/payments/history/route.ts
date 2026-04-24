@@ -1,7 +1,5 @@
-import { z }              from 'zod';
-import { createHandler }  from '@/lib/bff/createHandler';
-import { buildHeaders }   from '@/lib/request-id';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { z }             from 'zod';
+import { createHandler } from '@/lib/bff/createHandler';
 
 const QuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),
@@ -11,6 +9,7 @@ const QuerySchema = z.object({
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
+    const token = req.cookies.get('tec_access_token')?.value ?? '';
     const { searchParams } = req.nextUrl;
     const { limit, sort }  = QuerySchema.parse({
       limit: searchParams.get('limit'),
@@ -20,11 +19,15 @@ export const GET = createHandler({
     const res = await fetch(
       `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/payments/history?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
       {
-        headers: buildHeaders(getAccessToken()),
-        cache:   'no-store',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'x-request-id':  ctx.requestId,
+        },
+        cache: 'no-store',
       },
     );
-    if (!res.ok) throw new Error('Failed to fetch payment history');
+
+    if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();
   },
 });

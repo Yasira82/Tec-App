@@ -11,14 +11,14 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 // ✅ من الـ Registry — Single Source of Truth
 const LIVE_APPS = LIVE_DOMAINS.map(d => ({
-  name:  d.name,
+  name:  d.name.en,         // ✅ string
   emoji: d.emoji,
   href:  d.route ?? `/${d.slug}`,
-  desc:  d.description,
+  desc:  d.description.en,  // ✅ string
 }));
 
 const SOON_APPS = COMING_SOON.map(d => ({
-  name:  d.name,
+  name:  d.name.en,  // ✅
   emoji: d.emoji,
 }));
 

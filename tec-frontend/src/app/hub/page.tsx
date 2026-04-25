@@ -521,26 +521,31 @@ function HubPageInner() {
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
 
             {/* Slide 0: Assets */}
-            <div style={{ minWidth: '100%' }}>
-              <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/assets'); }}
-                style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
-                    <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
-                    {assetCount === null
-                      ? <span style={{ display: 'inline-block', width: 32, height: 28, borderRadius: 6, background: '#ffffff10', animation: 'shimmer 1.4s infinite' }} />
-                      : assetCount}
-                  </div>
-                  <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
-                </div>
-              </button>
-            </div>
+<div style={{ minWidth: '100%' }}>
+  <button className="hub-btn" onClick={() => {
+    haptic('light');
+    window.location.href =
+      '/api/auth/sso?target=' +
+      encodeURIComponent('https://tec-assets.vercel.app');
+  }}
+    style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
+      <div>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
+        <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
+      </div>
+    </div>
+    <div style={{ textAlign: 'right' }}>
+      <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
+        {assetCount === null
+          ? <span style={{ display: 'inline-block', width: 32, height: 28, borderRadius: 6, background: '#ffffff10', animation: 'shimmer 1.4s infinite' }} />
+          : assetCount}
+      </div>
+      <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
+    </div>
+  </button>
+</div>
 
             {/* Slide 1: Pi Price */}
             <div style={{ minWidth: '100%' }}>
@@ -676,7 +681,12 @@ function HubPageInner() {
         {[
           { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                                    },
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); router.push('/dashboard/assets'); } },
+          { icon: '💎', label: 'Assets',   active: false, action: () => {
+  haptic('light');
+  window.location.href =
+    '/api/auth/sso?target=' +
+    encodeURIComponent('https://tec-assets.vercel.app');
+}},
           { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard');         } },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}

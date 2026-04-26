@@ -1,11 +1,9 @@
 'use client';
 
-import { useState }      from 'react';
-import { useRouter }     from 'next/navigation';
-import { loginWithPi }   from '@/lib-client/pi/pi-auth';
+import { useState }    from 'react';
+import { loginWithPi } from '@/lib-client/pi/pi-auth';
 
 export default function PiPaymentButton() {
-  const router              = useRouter();
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
@@ -14,20 +12,24 @@ export default function PiPaymentButton() {
     setError(null);
     try {
       const result = await loginWithPi();
-
       if (result?.success) {
-        // ✅ تم التعديل: استخدام توجيه Next.js الأصلي مع تحديث البيانات
-        router.push('/hub');
-        router.refresh();
+        // ✅ full reload عشان الـ cookies تتطبق
+        window.location.href = '/hub';
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Authentication failed');
-      setLoading(false); // ✅ إيقاف الدائرة في حالة الخطأ
+      const message = err instanceof Error ? err.message : 'Authentication failed';
+      // ✅ لو Pi SDK مش موجود — وضّح للـ user
+      if (message.includes('not initialized') || message.includes('Pi Browser')) {
+        setError('Please open in Pi Browser');
+      } else {
+        setError(message);
+      }
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full flex flex-col items-center gap-3">
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <button
         onClick={handleAuth}
         disabled={loading}
@@ -43,8 +45,7 @@ export default function PiPaymentButton() {
           opacity:       loading ? 0.6 : 1,
           textTransform: 'uppercase',
           fontFamily:    'inherit',
-        }}
-      >
+        }}>
         {loading ? 'Connecting...' : 'Sign in with Pi'}
       </button>
       {error && (

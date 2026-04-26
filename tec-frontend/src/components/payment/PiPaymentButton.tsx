@@ -1,32 +1,59 @@
-'use client';
+        'use client';
 
-import { useState }    from 'react';
-import { loginWithPi } from '@/lib-client/pi/pi-auth';
+import { useState, useEffect } from 'react';
+import { loginWithPi, isPiBrowser } from '@/lib-client/pi/pi-auth';
 
 export default function PiPaymentButton() {
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState<string | null>(null);
+  const [loading,       setLoading]       = useState(false);
+  const [error,         setError]         = useState<string | null>(null);
+  const [inPiBrowser,   setInPiBrowser]   = useState(false);
+  const [checked,       setChecked]       = useState(false);
+
+  // ✅ تحقق client-side بس
+  useEffect(() => {
+    setInPiBrowser(isPiBrowser());
+    setChecked(true);
+  }, []);
 
   const handleAuth = async () => {
+    if (!inPiBrowser) return;
     setLoading(true);
     setError(null);
     try {
       const result = await loginWithPi();
       if (result?.success) {
-        // ✅ full reload عشان الـ cookies تتطبق
         window.location.href = '/hub';
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
-      // ✅ لو Pi SDK مش موجود — وضّح للـ user
-      if (message.includes('not initialized') || message.includes('Pi Browser')) {
-        setError('Please open in Pi Browser');
-      } else {
-        setError(message);
-      }
+      setError(message);
       setLoading(false);
     }
   };
+
+  // لو لسه بيتحقق
+  if (!checked) return null;
+
+  // ✅ لو مش Pi Browser — عرض رسالة واضحة بدون زرار
+  if (!inPiBrowser) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <div style={{
+          fontSize: 11, color: '#4a4a5a', textAlign: 'center',
+          letterSpacing: '0.15em', textTransform: 'uppercase',
+        }}>
+          Open in Pi Browser to sign in
+        </div>
+        <a href="pi://tec-app.vercel.app"
+          style={{
+            fontSize: 11, color: '#d4af37', textDecoration: 'none',
+            letterSpacing: '0.25em', textTransform: 'uppercase',
+          }}>
+          Open Pi Browser →
+        </a>
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>

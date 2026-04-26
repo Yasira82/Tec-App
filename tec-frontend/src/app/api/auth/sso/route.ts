@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SignJWT } from 'jose';
+import { SignJWT, jwtVerify }        from 'jose';
 
 const ALLOWED_TARGETS = [
   'https://tec-assets.vercel.app',
@@ -19,17 +19,45 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
   }
 
-  const secret = process.env.SSO_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'sso_not_configured' }, { status: 503 });
+  const ssoSecret = process.env.SSO_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!ssoSecret || !jwtSecret) {
+    return NextResponse.json({ error: 'not_configured' }, { status: 503 });
   }
 
   try {
-    const user    = JSON.parse(decodeURIComponent(userCookie));
-    const jti     = crypto.randomUUID();
-    const encoded = new TextEncoder().encode(secret);
+    const user = JSON.parse(decodeURIComponent(userCookie));
 
-    const token = await new SignJWT({ accessToken, user })
+    // ✅ تحقق من الـ token — لو expired ابعت الـ userId بس
+    let validToken = accessToken;
+    try {
+      const encoded = new TextEncoder().encode(jwtSecret);
+      await jwtVerify(accessToken, encoded, { algorithms: ['HS256'] });
+    } catch {
+      // ✅ Token expired — اعمل fresh token للـ SSO
+      console.log('[SSO] access token expired — generating fresh token');
+      const encoded   = new TextEncoder().encode(jwtSecret);
+      validToken = await new SignJWT({
+        sub:         user.id,
+        role:        user.role,
+        piUsername:  user.piUsername,
+        kycVerified: user.kycVerified ?? false,
+      })
+        .setProtectedHeader({ alg: 'HS256' })
+        .setSubject(user.id)
+        .setIssuedAt()
+        .setExpirationTime('24h')
+        .sign(encoded);
+    }
+
+    // ✅ ابني الـ SSO token بالـ valid access token
+    const jti     = crypto.randomUUID();
+    const encoded = new TextEncoder().encode(ssoSecret);
+
+    const token = await new SignJWT({
+      accessToken: validToken,
+      user,
+    })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(user.id)
       .setIssuer('tec.pi')
@@ -42,7 +70,8 @@ export async function GET(req: NextRequest) {
     const redirectUrl = `${target}/api/auth/sso-callback?token=${encodeURIComponent(token)}`;
     return NextResponse.redirect(redirectUrl);
 
-  } catch {
+  } catch (err) {
+    console.error('[SSO] error:', (err as Error).message);
     return NextResponse.json({ error: 'sso_failed' }, { status: 500 });
   }
 }

@@ -1,22 +1,36 @@
-        'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
-import { loginWithPi, isPiBrowser } from '@/lib-client/pi/pi-auth';
+import { loginWithPi }         from '@/lib-client/pi/pi-auth';
 
 export default function PiPaymentButton() {
-  const [loading,       setLoading]       = useState(false);
-  const [error,         setError]         = useState<string | null>(null);
-  const [inPiBrowser,   setInPiBrowser]   = useState(false);
-  const [checked,       setChecked]       = useState(false);
+  const [loading,     setLoading]     = useState(false);
+  const [error,       setError]       = useState<string | null>(null);
+  const [sdkReady,    setSdkReady]    = useState(false);
 
-  // ✅ تحقق client-side بس
+  // ✅ انتظر Pi SDK يكون ready
   useEffect(() => {
-    setInPiBrowser(isPiBrowser());
-    setChecked(true);
+    const check = () => {
+      if (window.__TEC_PI_READY) { setSdkReady(true); return; }
+      if (window.__TEC_PI_ERROR) { setSdkReady(false); return; }
+    };
+
+    check();
+
+    window.addEventListener('tec-pi-ready', () => setSdkReady(true));
+    window.addEventListener('tec-pi-error', () => setSdkReady(false));
+
+    return () => {
+      window.removeEventListener('tec-pi-ready', () => setSdkReady(true));
+      window.removeEventListener('tec-pi-error', () => setSdkReady(false));
+    };
   }, []);
 
   const handleAuth = async () => {
-    if (!inPiBrowser) return;
+    if (!sdkReady) {
+      setError('Please open in Pi Browser');
+      return;
+    }
     setLoading(true);
     setError(null);
     try {
@@ -26,54 +40,30 @@ export default function PiPaymentButton() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
-      setError(message);
+      setError(message.includes('Pi Browser') ? 'Please open in Pi Browser' : message);
       setLoading(false);
     }
   };
-
-  // لو لسه بيتحقق
-  if (!checked) return null;
-
-  // ✅ لو مش Pi Browser — عرض رسالة واضحة بدون زرار
-  if (!inPiBrowser) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
-        <div style={{
-          fontSize: 11, color: '#4a4a5a', textAlign: 'center',
-          letterSpacing: '0.15em', textTransform: 'uppercase',
-        }}>
-          Open in Pi Browser to sign in
-        </div>
-        <a href="pi://tec-app.vercel.app"
-          style={{
-            fontSize: 11, color: '#d4af37', textDecoration: 'none',
-            letterSpacing: '0.25em', textTransform: 'uppercase',
-          }}>
-          Open Pi Browser →
-        </a>
-      </div>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <button
         onClick={handleAuth}
-        disabled={loading}
+        disabled={loading || !sdkReady}
         style={{
           background:    'transparent',
           border:        'none',
           letterSpacing: '0.25em',
-          color:         '#d4af37',
+          color:         sdkReady ? '#d4af37' : '#4a4a5a',
           fontSize:      '11px',
           fontWeight:    400,
-          cursor:        loading ? 'not-allowed' : 'pointer',
+          cursor:        (loading || !sdkReady) ? 'not-allowed' : 'pointer',
           padding:       '4px 8px',
-          opacity:       loading ? 0.6 : 1,
+          opacity:       (loading || !sdkReady) ? 0.6 : 1,
           textTransform: 'uppercase',
           fontFamily:    'inherit',
         }}>
-        {loading ? 'Connecting...' : 'Sign in with Pi'}
+        {loading ? 'Connecting...' : sdkReady ? 'Sign in with Pi' : 'Loading...'}
       </button>
       {error && (
         <p style={{ fontSize: 11, color: '#e74c3c', textAlign: 'center' }}>{error}</p>

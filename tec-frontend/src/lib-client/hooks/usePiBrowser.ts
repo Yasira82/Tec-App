@@ -42,7 +42,7 @@ export function usePiBrowser(): PiBrowserInfo {
       // ✅ fallback بعد 5 ثواني
       const timeout = setTimeout(() => {
         // ✅ check تاني بعد الـ timeout
-        const isPi = typeof window.Pi !== 'undefined' || window.__TEC_PI_READY;
+        const isPi = typeof window.Pi !== 'undefined' || !!window.__TEC_PI_READY;
         setInfo({ isPiBrowser: isPi, isMobile, isReady: true });
       }, 5000);
 

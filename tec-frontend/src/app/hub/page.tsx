@@ -171,6 +171,110 @@ function PullIndicator({ progress, refreshing }: { progress: number; refreshing:
   );
 }
 
+// ─── Amount Selector ──────────────────────────────────────────
+const PRESETS = [1, 5, 10, 50];
+
+function AmountSelector({ value, onChange, disabled }: {
+  value:    number;
+  onChange: (v: number) => void;
+  disabled: boolean;
+}) {
+  const [showCustom, setShowCustom] = useState(false);
+  const [customRaw,  setCustomRaw]  = useState('');
+  const isPreset = PRESETS.includes(value) && !showCustom;
+
+  const handlePreset = (v: number) => {
+    haptic('light');
+    onChange(v);
+    setShowCustom(false);
+    setCustomRaw('');
+  };
+
+  const handleCustomChange = (raw: string) => {
+    setCustomRaw(raw);
+    const n = parseFloat(raw);
+    if (!isNaN(n) && n > 0) onChange(n);
+  };
+
+  const toggleCustom = () => {
+    haptic('light');
+    setShowCustom(p => {
+      if (!p) setCustomRaw('');
+      return !p;
+    });
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      {/* ── Presets row ── */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        {PRESETS.map(p => {
+          const active = value === p && isPreset;
+          return (
+            <button key={p} onClick={() => handlePreset(p)} disabled={disabled}
+              style={{
+                flex: 1, padding: '11px 0', borderRadius: 14,
+                background: active ? '#d4af3718' : '#0d0d14',
+                border: `1px solid ${active ? '#d4af3760' : '#ffffff10'}`,
+                color: active ? '#d4af37' : '#6b6b7a',
+                fontWeight: 700, fontSize: 13,
+                cursor: disabled ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+              }}>
+              {p}π
+            </button>
+          );
+        })}
+
+        {/* Custom toggle */}
+        <button onClick={toggleCustom} disabled={disabled}
+          style={{
+            flex: 1, padding: '11px 0', borderRadius: 14,
+            background: showCustom ? '#d4af3718' : '#0d0d14',
+            border: `1px solid ${showCustom ? '#d4af3760' : '#ffffff10'}`,
+            color: showCustom ? '#d4af37' : '#6b6b7a',
+            fontWeight: 700, fontSize: 13,
+            cursor: disabled ? 'not-allowed' : 'pointer',
+            transition: 'all 0.2s',
+          }}>
+          ✏️
+        </button>
+      </div>
+
+      {/* ── Custom input ── */}
+      {showCustom && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 10,
+          background: '#0d0d14', border: '1px solid #d4af3740',
+          borderRadius: 14, padding: '12px 16px',
+        }}>
+          <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#d4af37' }}>π</span>
+          <input
+            type="number"
+            min="0.01"
+            step="0.01"
+            value={customRaw}
+            onChange={e => handleCustomChange(e.target.value)}
+            placeholder="Enter amount"
+            autoFocus
+            style={{
+              flex: 1, background: 'none', border: 'none', outline: 'none',
+              color: '#fff', fontSize: 18, fontWeight: 700,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          />
+          {customRaw && (
+            <button onClick={() => { setCustomRaw(''); onChange(1); }}
+              style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 16 }}>
+              ✕
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Skeleton ─────────────────────────────────────────────────
 function HubSkeleton() {
   return (
@@ -188,7 +292,8 @@ function HubSkeleton() {
       </div>
       <div style={{ padding: '16px 16px 0' }}><div className="sk" style={{ height: 120 }} /></div>
       <div style={{ padding: '10px 16px 0' }}><div className="sk" style={{ height: 80 }} /></div>
-      <div style={{ padding: '12px 16px 0', display: 'flex', gap: 10 }}>
+      <div style={{ padding: '12px 16px 0' }}><div className="sk" style={{ height: 100 }} /></div>
+      <div style={{ padding: '10px 16px 0', display: 'flex', gap: 10 }}>
         <div className="sk" style={{ flex: 1, height: 54 }} />
         <div className="sk" style={{ flex: 1, height: 54 }} />
       </div>
@@ -204,8 +309,6 @@ function HubSkeleton() {
 // ─── Hub Inner ────────────────────────────────────────────────
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-
-  // ✅ 3-state: piReady (SDK) + authReady (scope)
   const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
   const router = useRouter();
 
@@ -226,6 +329,9 @@ function HubPageInner() {
   const [toasts,       setToasts]       = useState<Toast[]>([]);
   const [pullProgress, setPullProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ✅ Amount state
+  const [payAmount, setPayAmount] = useState(1);
 
   const pullStartY     = useRef(0);
   const isPulling      = useRef(false);
@@ -344,7 +450,7 @@ function HubPageInner() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
-  // ✅ handlePay — 3-state model
+  // ✅ handlePay — user-defined amount
   const handlePay = useCallback(async () => {
     if (!window.Pi) {
       haptic('heavy');
@@ -358,7 +464,12 @@ function HubPageInner() {
       return;
     }
 
-    // ✅ Payment lock — منع double payment
+    if (!payAmount || payAmount <= 0) {
+      haptic('heavy');
+      showToast('warning', 'Enter a valid amount');
+      return;
+    }
+
     const locked = await piSession.acquirePaymentLock();
     if (!locked) {
       showToast('warning', 'Payment already in progress');
@@ -368,22 +479,18 @@ function HubPageInner() {
     haptic('medium');
 
     try {
-      // ✅ 3-state: استخدم authReady أو اعمل auth جديد
-      const authOk = authReady || await ensurePiAuth();
-      if (!authOk) {
-        showToast('error', 'Pi authentication failed. Try again.');
-        return;
-      }
+      // ✅ حاول auth — بس مش بوقف لو فشل
+      if (!authReady) await ensurePiAuth();
 
       const result = await createU2APayment(
-        1,
-        'TEC Super App Payment',
-        { source: 'hub', version: '1.0' },
+        payAmount,
+        `TEC Payment — ${payAmount}π`,
+        { source: 'hub', amount: payAmount, version: '1.0' },
       );
 
       if (result.success && result.status === 'completed') {
         haptic('heavy');
-        showToast('success', 'Payment successful! 🎉', result.txid);
+        showToast('success', `Payment of ${payAmount}π successful! 🎉`, result.txid);
         setTimeout(refreshBalance, 2000);
       } else if (result.status === 'cancelled') {
         haptic('light');
@@ -413,7 +520,7 @@ function HubPageInner() {
       piSession.releasePaymentLock();
       refreshBalance();
     }
-  }, [piReady, authReady, ensurePiAuth, refreshBalance, showToast]);
+  }, [piReady, authReady, ensurePiAuth, payAmount, refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
@@ -434,6 +541,9 @@ function HubPageInner() {
         .hub-btn:active { transform: scale(0.97); }
         .app-btn:active  { transform: scale(0.95); }
         .fade-in { animation: slideUp 0.4s ease; }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+        input[type=number] { -moz-appearance: textfield; }
       `}</style>
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
@@ -572,10 +682,18 @@ function HubPageInner() {
         </div>
       </div>
 
-      {/* ── Payment Buttons ── */}
+      {/* ── Amount Selector + Pay ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
-        <div style={{ display: 'flex', gap: 10 }}>
-          {/* ✅ 3-state Pay button */}
+
+        {/* ✅ Amount selector */}
+        <AmountSelector
+          value={payAmount}
+          onChange={setPayAmount}
+          disabled={!piReady}
+        />
+
+        {/* ✅ Pay + Receive */}
+        <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
           <button className="hub-btn" onClick={handlePay} disabled={!piReady}
             style={{
               flex: 1, padding: '16px 12px', borderRadius: 18,
@@ -592,7 +710,7 @@ function HubPageInner() {
             ) : !authReady ? (
               <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', animation: 'spin 0.8s linear infinite' }} /><span>Connecting to Pi...</span></>
             ) : (
-              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
+              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay {payAmount}π</span></>
             )}
           </button>
           <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
@@ -690,4 +808,4 @@ export default function HubPage() {
       <HubPageInner />
     </ErrorBoundary>
   );
-        }
+                }

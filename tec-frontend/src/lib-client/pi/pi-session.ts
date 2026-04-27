@@ -37,7 +37,7 @@ const retryFetch = async (
   attempts = 3,
 ): Promise<Response> => {
   for (let i = 0; i < attempts; i++) {
-    try { return await fn(); } catch {
+    try { return await fn(); } catch (_e) {
       if (i === attempts - 1) throw;
       await new Promise(r => setTimeout(r, 500 * (i + 1)));
     }

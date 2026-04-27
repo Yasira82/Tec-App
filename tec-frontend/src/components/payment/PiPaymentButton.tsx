@@ -10,33 +10,30 @@ export default function PiPaymentButton() {
 
   useEffect(() => {
   if (window.__TEC_PI_READY) { setSdkReady(true); return; }
-  if (window.__TEC_PI_ERROR) { setSdkReady(false); return; }
 
   const onReady = () => setSdkReady(true);
-  const onError = () => setSdkReady(false);
-
   window.addEventListener('tec-pi-ready', onReady);
-  window.addEventListener('tec-pi-error', onError);
 
-  // ✅ polling كل 500ms لمدة 10 ثواني
+  // ✅ polling كل 300ms لمدة 30 ثانية
   const poll = setInterval(() => {
     if (window.__TEC_PI_READY) {
       setSdkReady(true);
       clearInterval(poll);
-    } else if (window.__TEC_PI_ERROR) {
-      setSdkReady(false);
-      clearInterval(poll);
+    } else if (typeof window.Pi !== 'undefined' && !window.__TEC_PI_READY) {
+      // Pi موجود بس مش initialized بعد — استنى
     }
-  }, 500);
+  }, 300);
 
   const timeout = setTimeout(() => {
     clearInterval(poll);
-    if (!window.__TEC_PI_READY) setSdkReady(false);
-  }, 10000);
+    // ✅ لو Pi موجود بس __TEC_PI_READY مش set — جرب init
+    if (typeof window.Pi !== 'undefined' && !window.__TEC_PI_READY) {
+      setSdkReady(true); // optimistic
+    }
+  }, 30000);
 
   return () => {
     window.removeEventListener('tec-pi-ready', onReady);
-    window.removeEventListener('tec-pi-error', onError);
     clearInterval(poll);
     clearTimeout(timeout);
   };

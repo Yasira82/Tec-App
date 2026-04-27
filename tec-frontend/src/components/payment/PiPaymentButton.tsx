@@ -1,32 +1,38 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { loginWithPi }         from '@/lib-client/pi/pi-auth';
+import { useState, useEffect, useCallback } from 'react';
+import { loginWithPi } from '@/lib-client/pi/pi-auth';
 
 export default function PiPaymentButton() {
-  const [loading,     setLoading]     = useState(false);
-  const [error,       setError]       = useState<string | null>(null);
-  const [sdkReady,    setSdkReady]    = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState<string | null>(null);
+  const [sdkReady, setSdkReady] = useState(false);
 
-  // ✅ انتظر Pi SDK يكون ready
   useEffect(() => {
-    const check = () => {
-      if (window.__TEC_PI_READY) { setSdkReady(true); return; }
-      if (window.__TEC_PI_ERROR) { setSdkReady(false); return; }
-    };
+    // ✅ لو جاهز بالفعل
+    if (window.__TEC_PI_READY) { setSdkReady(true); return; }
+    if (window.__TEC_PI_ERROR) { setSdkReady(false); return; }
 
-    check();
+    const onReady = () => setSdkReady(true);
+    const onError = () => setSdkReady(false);
 
-    window.addEventListener('tec-pi-ready', () => setSdkReady(true));
-    window.addEventListener('tec-pi-error', () => setSdkReady(false));
+    window.addEventListener('tec-pi-ready', onReady);
+    window.addEventListener('tec-pi-error', onError);
+
+    // ✅ fallback بعد 3 ثواني
+    const timeout = setTimeout(() => {
+      if (window.__TEC_PI_READY) setSdkReady(true);
+      else setSdkReady(false);
+    }, 3000);
 
     return () => {
-      window.removeEventListener('tec-pi-ready', () => setSdkReady(true));
-      window.removeEventListener('tec-pi-error', () => setSdkReady(false));
+      window.removeEventListener('tec-pi-ready', onReady);
+      window.removeEventListener('tec-pi-error', onError);
+      clearTimeout(timeout);
     };
   }, []);
 
-  const handleAuth = async () => {
+  const handleAuth = useCallback(async () => {
     if (!sdkReady) {
       setError('Please open in Pi Browser');
       return;
@@ -40,10 +46,14 @@ export default function PiPaymentButton() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
-      setError(message.includes('Pi Browser') ? 'Please open in Pi Browser' : message);
+      setError(
+        message.includes('Pi Browser') || message.includes('not initialized')
+          ? 'Please open in Pi Browser'
+          : message
+      );
       setLoading(false);
     }
-  };
+  }, [sdkReady]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
@@ -63,7 +73,11 @@ export default function PiPaymentButton() {
           textTransform: 'uppercase',
           fontFamily:    'inherit',
         }}>
-        {loading ? 'Connecting...' : sdkReady ? 'Sign in with Pi' : 'Loading...'}
+        {loading
+          ? 'Connecting...'
+          : sdkReady
+            ? 'Sign in with Pi'
+            : 'Loading...'}
       </button>
       {error && (
         <p style={{ fontSize: 11, color: '#e74c3c', textAlign: 'center' }}>{error}</p>

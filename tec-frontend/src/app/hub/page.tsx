@@ -4,7 +4,9 @@ import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registr
 import { useEffect, useState, useCallback, useRef }      from 'react';
 import { useRouter }                                      from 'next/navigation';
 import { usePiAuth }                                      from '@/lib-client/hooks/usePiAuth';
+import { usePiSdkReady }                                  from '@/lib-client/hooks/usePiSdkReady';
 import { getAccessToken }                                 from '@/lib-client/pi/pi-auth';
+import { piSession }                                      from '@/lib-client/pi/pi-session';
 import { createU2APayment }                               from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications }                       from '@/lib-client/hooks/useRealtimeNotifications';
 import { ErrorBoundary }                                  from '@/components/ErrorBoundary';
@@ -202,6 +204,7 @@ function HubSkeleton() {
 // ─── Hub Inner ────────────────────────────────────────────────
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
+  const { piReady, ensurePiAuth }            = usePiSdkReady();
   const router = useRouter();
 
   const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
@@ -222,60 +225,11 @@ function HubPageInner() {
   const [pullProgress, setPullProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ✅ Pi SDK readiness state
-  const [piReady, setPiReady] = useState(false);
-
   const pullStartY     = useRef(0);
   const isPulling      = useRef(false);
   const touchStartX    = useRef(0);
   const touchEndX      = useRef(0);
   const PULL_THRESHOLD = 80;
-
-  // ✅ Pi SDK ready + auto re-authenticate للـ payments scope
-  useEffect(() => {
-    const initPiAuth = async () => {
-      // انتظر SDK
-      if (!window.__TEC_PI_READY) {
-        await new Promise<void>((resolve) => {
-          if (window.__TEC_PI_READY) { resolve(); return; }
-          const onReady = () => resolve();
-          window.addEventListener('tec-pi-ready', onReady, { once: true });
-          const poll = setInterval(() => {
-            if (window.__TEC_PI_READY) { clearInterval(poll); resolve(); }
-          }, 300);
-          setTimeout(() => { clearInterval(poll); resolve(); }, 15000);
-        });
-      }
-
-      if (!window.Pi) return;
-
-      // ✅ Re-authenticate عشان نجدد الـ payments scope بعد الـ redirect
-      try {
-        const result = window.Pi.authenticate(
-          ['username', 'payments'],
-          async (payment: unknown) => {
-            const p = payment as { identifier?: string } | null;
-            if (!p?.identifier) return;
-            try {
-              await fetch('/api/payment/resolve-incomplete', {
-                method:      'POST',
-                credentials: 'include',
-                headers:     { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-                body:        JSON.stringify({ pi_payment_id: p.identifier }),
-              });
-            } catch { /* ignore */ }
-          },
-        );
-        if (result && typeof (result as Promise<unknown>).then === 'function') {
-          await result;
-        }
-      } catch { /* ignore */ }
-
-      setPiReady(true);
-    };
-
-    initPiAuth();
-  }, []);
 
   const showToast = useCallback((type: ToastType, message: string, txid?: string) => {
     const id = Math.random().toString(36).slice(2);
@@ -388,33 +342,77 @@ function HubPageInner() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
-  // ✅ handlePay — بيتحقق من piReady أولاً
+  // ✅ handlePay — PiSessionManager integration
   const handlePay = useCallback(async () => {
-    if (!piReady || !window.Pi) {
+    if (!window.Pi) {
       haptic('heavy');
-      showToast('warning', piReady ? 'Open in Pi Browser' : 'Connecting to Pi... try again');
+      showToast('error', 'Open in Pi Browser to make payments');
       return;
     }
+
+    if (!piReady) {
+      haptic('heavy');
+      showToast('warning', 'Connecting to Pi... try again');
+      return;
+    }
+
+    // ✅ Payment lock — منع double payment
+    const locked = await piSession.acquirePaymentLock();
+    if (!locked) {
+      showToast('warning', 'Payment already in progress');
+      return;
+    }
+
     haptic('medium');
-    setBalance(prev => { const n = parseFloat(prev); return isNaN(n) ? prev : (n - 1).toFixed(2); });
+
     try {
-      const result = await createU2APayment(1, 'TEC Super App Payment', { source: 'hub', version: '1.0' });
+      const authOk = await ensurePiAuth();
+      if (!authOk) {
+        showToast('error', 'Pi authentication failed. Try again.');
+        return;
+      }
+
+      const result = await createU2APayment(
+        1,
+        'TEC Super App Payment',
+        { source: 'hub', version: '1.0' },
+      );
+
       if (result.success && result.status === 'completed') {
-        haptic('heavy'); showToast('success', 'Payment successful! 🎉', result.txid);
+        haptic('heavy');
+        showToast('success', 'Payment successful! 🎉', result.txid);
         setTimeout(refreshBalance, 2000);
       } else if (result.status === 'cancelled') {
-        haptic('light'); refreshBalance(); showToast('warning', 'Payment cancelled');
+        haptic('light');
+        showToast('warning', 'Payment cancelled');
       } else {
-        haptic('heavy'); refreshBalance(); showToast('error', result.message ?? 'Payment failed');
+        haptic('heavy');
+        showToast('error', result.message ?? 'Payment failed');
       }
     } catch (err) {
-      haptic('heavy'); refreshBalance();
+      haptic('heavy');
       const msg = err instanceof Error ? err.message : 'Payment failed';
-      if (msg.toLowerCase().includes('pending') || msg.toLowerCase().includes('already have')) {
+
+      if (msg.includes('not initialized') || msg.includes('init')) {
+        window.location.reload();
+        return;
+      }
+
+      if (/scope|permission|payments/i.test(msg)) {
+        showToast('warning', 'Reconnecting to Pi payments... tap again');
+        return;
+      }
+
+      if (/pending|already have/i.test(msg)) {
         showToast('warning', 'Pending payment detected — try again');
-      } else { showToast('error', msg); }
+      } else {
+        showToast('error', msg);
+      }
+    } finally {
+      piSession.releasePaymentLock();
+      refreshBalance();
     }
-  }, [piReady, refreshBalance, showToast]);
+  }, [piReady, ensurePiAuth, refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
@@ -576,7 +574,6 @@ function HubPageInner() {
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
         <div style={{ display: 'flex', gap: 10 }}>
-          {/* ✅ Pay button — disabled لو piReady مش true */}
           <button className="hub-btn" onClick={handlePay} disabled={!piReady}
             style={{
               flex: 1, padding: '16px 12px', borderRadius: 18,
@@ -688,4 +685,4 @@ export default function HubPage() {
       <HubPageInner />
     </ErrorBoundary>
   );
-          }
+        }

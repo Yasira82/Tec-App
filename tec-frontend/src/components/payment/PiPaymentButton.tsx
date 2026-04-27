@@ -9,28 +9,38 @@ export default function PiPaymentButton() {
   const [sdkReady, setSdkReady] = useState(false);
 
   useEffect(() => {
-    // ✅ لو جاهز بالفعل
-    if (window.__TEC_PI_READY) { setSdkReady(true); return; }
-    if (window.__TEC_PI_ERROR) { setSdkReady(false); return; }
+  if (window.__TEC_PI_READY) { setSdkReady(true); return; }
+  if (window.__TEC_PI_ERROR) { setSdkReady(false); return; }
 
-    const onReady = () => setSdkReady(true);
-    const onError = () => setSdkReady(false);
+  const onReady = () => setSdkReady(true);
+  const onError = () => setSdkReady(false);
 
-    window.addEventListener('tec-pi-ready', onReady);
-    window.addEventListener('tec-pi-error', onError);
+  window.addEventListener('tec-pi-ready', onReady);
+  window.addEventListener('tec-pi-error', onError);
 
-    // ✅ fallback بعد 3 ثواني
-    const timeout = setTimeout(() => {
-      if (window.__TEC_PI_READY) setSdkReady(true);
-      else setSdkReady(false);
-    }, 3000);
+  // ✅ polling كل 500ms لمدة 10 ثواني
+  const poll = setInterval(() => {
+    if (window.__TEC_PI_READY) {
+      setSdkReady(true);
+      clearInterval(poll);
+    } else if (window.__TEC_PI_ERROR) {
+      setSdkReady(false);
+      clearInterval(poll);
+    }
+  }, 500);
 
-    return () => {
-      window.removeEventListener('tec-pi-ready', onReady);
-      window.removeEventListener('tec-pi-error', onError);
-      clearTimeout(timeout);
-    };
-  }, []);
+  const timeout = setTimeout(() => {
+    clearInterval(poll);
+    if (!window.__TEC_PI_READY) setSdkReady(false);
+  }, 10000);
+
+  return () => {
+    window.removeEventListener('tec-pi-ready', onReady);
+    window.removeEventListener('tec-pi-error', onError);
+    clearInterval(poll);
+    clearTimeout(timeout);
+  };
+}, []);
 
   const handleAuth = useCallback(async () => {
     if (!sdkReady) {

@@ -101,8 +101,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" className={`${cormorantGaramond.variable} ${dmSans.variable}`}>
       <body>
-        {/* ✅ afterInteractive — يـ load بعد الـ page بدل beforeInteractive */}
-        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="afterInteractive" />
+        {/* ✅ beforeInteractive — Pi SDK يـ load قبل الـ page */}
+        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
         <PiSdkLoader sandbox={piSandbox} timeout={sdkTimeout} />
         <BackendOfflineBanner />
         <ClientProviders>

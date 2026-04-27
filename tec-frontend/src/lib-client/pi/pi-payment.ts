@@ -1,4 +1,5 @@
 import { getAccessToken, getStoredUser, waitForPiSDK } from './pi-auth';
+import { piSession } from '@/lib-client/pi/pi-session';
 import sdk from '@/lib/sdk';
 import { buildHeaders } from '@/lib/request-id';
 import {
@@ -87,12 +88,10 @@ const PI_TXID_REGEX       = /^[a-zA-Z0-9_-]{8,128}$/;
 // ✅ انتظر Pi SDK يكون initialized فعلاً
 const waitForPiInit = (): Promise<void> =>
   new Promise<void>((resolve) => {
-    // ✅ لو جاهز — رجع فوراً
     if (window.__TEC_PI_READY && typeof window.Pi !== 'undefined') {
       resolve();
       return;
     }
-
     const poll = setInterval(() => {
       if (window.__TEC_PI_READY && typeof window.Pi !== 'undefined') {
         clearInterval(poll);
@@ -100,11 +99,9 @@ const waitForPiInit = (): Promise<void> =>
         resolve();
       }
     }, 200);
-
-    // ✅ fallback بعد 15 ثانية
     const timeout = setTimeout(() => {
       clearInterval(poll);
-      resolve(); // نكمل حتى لو مش ready
+      resolve();
     }, 15000);
   });
 
@@ -123,33 +120,12 @@ export const createU2APayment = async (
   // ✅ الخطوة 2: انتظر الـ init يكتمل
   await waitForPiInit();
 
-  // ✅ الخطوة 3: تأكد إن الـ payments scope موجود
-  try {
-    const authResult = window.Pi.authenticate(
-      ['username', 'payments'],
-      async (payment: unknown) => {
-        const p           = payment as { identifier?: string } | null;
-        const piPaymentId = p?.identifier;
-        if (!piPaymentId) return;
-        try {
-          await fetch('/api/payment/resolve-incomplete', {
-            method:      'POST',
-            credentials: 'include',
-            headers:     {
-              'Content-Type': 'application/json',
-              Authorization:  `Bearer ${getAccessToken()}`,
-            },
-            body: JSON.stringify({ pi_payment_id: piPaymentId }),
-          });
-        } catch { /* ignore */ }
-      },
-    );
-    if (authResult && typeof (authResult as Promise<unknown>).then === 'function') {
-      await authResult;
-    }
-  } catch { /* ignore — proceed anyway */ }
+  // ✅ P4 Payment context guard
+  if (!piSession.isAuthenticated) {
+    throw new Error('PI_NOT_AUTHENTICATED');
+  }
 
-  // ✅ الخطوة 4: عمل الـ payment record في الـ backend
+  // ✅ الخطوة 3: عمل الـ payment record في الـ backend
   let internalId: string | null = null;
   const storedUser = getStoredUser();
   const userId     = storedUser?.id ?? storedUser?.piId ?? null;
@@ -178,7 +154,7 @@ export const createU2APayment = async (
     }
   }
 
-  // ✅ الخطوة 5: createPayment
+  // ✅ الخطوة 4: createPayment
   return new Promise((resolve, reject) => {
     if (!window.Pi) { reject(new Error('Pi SDK not available - Open in Pi Browser')); return; }
 
@@ -295,7 +271,15 @@ export const createU2APayment = async (
 
         onError: (error: Error) => {
           onDiagnostic?.('error', `Pi SDK error: ${error.message}`);
-          clearPaymentTimer(); reject(new Error(`Pi SDK error: ${error.message}`));
+
+          // ✅ scope failure — reset عشان يعمل re-auth
+          if (/scope|permission|payments/i.test(error.message)) {
+            piSession.reset();
+            window.dispatchEvent(new CustomEvent('tec:pi:scope:lost'));
+          }
+
+          clearPaymentTimer();
+          reject(new Error(`Pi SDK error: ${error.message}`));
         },
       },
     );

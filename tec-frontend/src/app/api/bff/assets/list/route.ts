@@ -9,7 +9,6 @@ interface RawAsset {
   createdAt: string;
 }
 
-// ✅ server-side env أولاً
 const GATEWAY =
   process.env.API_GATEWAY_URL ??
   process.env.NEXT_PUBLIC_API_GATEWAY_URL ??
@@ -24,8 +23,9 @@ export const GET = createHandler({
 
     const res = await fetch(url, {
       headers: {
-        'Authorization': `Bearer ${token}`,
-        'x-request-id':  ctx.requestId,
+        'Authorization':  `Bearer ${token}`,
+        'x-request-id':   ctx.requestId,
+        'x-internal-key': process.env.INTERNAL_SECRET ?? '', // ✅
       },
       cache: 'no-store',
     });

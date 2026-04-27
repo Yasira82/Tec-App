@@ -1,13 +1,13 @@
 'use client';
 
 import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
-import { createU2APayment } from '@/lib-client/pi/pi-payment';
-import { useRealtimeNotifications } from '@/lib-client/hooks/useRealtimeNotifications';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { useEffect, useState, useCallback, useRef }      from 'react';
+import { useRouter }                                      from 'next/navigation';
+import { usePiAuth }                                      from '@/lib-client/hooks/usePiAuth';
+import { getAccessToken }                                 from '@/lib-client/pi/pi-auth';
+import { createU2APayment }                               from '@/lib-client/pi/pi-payment';
+import { useRealtimeNotifications }                       from '@/lib-client/hooks/useRealtimeNotifications';
+import { ErrorBoundary }                                  from '@/components/ErrorBoundary';
 
 // ─── Haptic ───────────────────────────────────────────────────
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
@@ -69,60 +69,45 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [loading,  setLoading]  = useState(false);
 
   const send = useCallback(async () => {
-  if (!input.trim() || loading) return;
-  const text = input.trim();
-  setInput('');
-  setMessages(prev => [...prev, { role: 'user', text }]);
-  setLoading(true);
-  try {
-    const res = await fetch('/api/ai/chat', {
-      method:      'POST',
-      headers:     { 'Content-Type': 'application/json' },
-      credentials: 'include',
-      body:        JSON.stringify({
-        messages: [{ role: 'user', content: text }],
-      }),
-    });
-
-    // ✅ قرا الـ SSE stream
-    const reader  = res.body?.getReader();
-    const decoder = new TextDecoder();
-    let reply = '';
-
-    if (reader) {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        const chunk = decoder.decode(value, { stream: true });
-        for (const line of chunk.split('\n')) {
-          if (!line.startsWith('data: ')) continue;
-          const data = line.slice(6).trim();
-          if (!data || data === '[DONE]') continue;
-          try {
-            const parsed = JSON.parse(data);
-            if (parsed.text) reply += parsed.text;
-          } catch { /* skip */ }
+    if (!input.trim() || loading) return;
+    const text = input.trim();
+    setInput('');
+    setMessages(prev => [...prev, { role: 'user', text }]);
+    setLoading(true);
+    try {
+      const res = await fetch('/api/ai/chat', {
+        method:      'POST',
+        headers:     { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body:        JSON.stringify({ messages: [{ role: 'user', content: text }] }),
+      });
+      const reader  = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let reply = '';
+      if (reader) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const chunk = decoder.decode(value, { stream: true });
+          for (const line of chunk.split('\n')) {
+            if (!line.startsWith('data: ')) continue;
+            const data = line.slice(6).trim();
+            if (!data || data === '[DONE]') continue;
+            try { const parsed = JSON.parse(data); if (parsed.text) reply += parsed.text; } catch { /* skip */ }
+          }
         }
       }
-    }
-
-    setMessages(prev => [...prev, {
-      role: 'ai',
-      text: reply || 'Sorry, no response.',
-    }]);
-  } catch {
-    setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
-  } finally {
-    setLoading(false);
-  }
-}, [input, loading]);
+      setMessages(prev => [...prev, { role: 'ai', text: reply || 'Sorry, no response.' }]);
+    } catch {
+      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
+    } finally { setLoading(false); }
+  }, [input, loading]);
 
   if (!open) return null;
 
   return (
     <>
-      <div onClick={onClose}
-        style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
       <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0a0a12', borderTop: '1px solid #d4af3720', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
@@ -139,9 +124,7 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#4a4a5a', fontSize: 13 }}>
-              مرحباً! أنا مساعدك الذكي على TEC 🤖
-            </div>
+            <div style={{ textAlign: 'center', padding: '32px 0', color: '#4a4a5a', fontSize: 13 }}>مرحباً! أنا مساعدك الذكي على TEC 🤖</div>
           )}
           {messages.map((m, i) => (
             <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
@@ -151,31 +134,21 @@ function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
                 background: m.role === 'user' ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#0d0d1a',
                 border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
                 fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
-              }}>
-                {m.text}
-              </div>
+              }}>{m.text}</div>
             </div>
           ))}
           {loading && (
             <div style={{ display: 'flex', gap: 4, padding: '8px 0' }}>
-              {[0,1,2].map(i => (
-                <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#d4af37', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />
-              ))}
+              {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#d4af37', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />)}
             </div>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
-          <input
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && send()}
+          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
             placeholder="اسأل TEC AI..."
-            style={{ flex: 1, background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }}
-          />
+            style={{ flex: 1, background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }} />
           <button onClick={send} disabled={loading || !input.trim()}
-            style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>
-            ↑
-          </button>
+            style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
         </div>
       </div>
     </>
@@ -190,8 +163,7 @@ function PullIndicator({ progress, refreshing }: { progress: number; refreshing:
       <div style={{ background: '#0d0d14', border: '1px solid #d4af3730', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {refreshing
           ? <div style={{ width: 16, height: 16, border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
-          : <span style={{ fontSize: 14, transform: `rotate(${progress * 180}deg)`, display: 'inline-block', transition: 'transform 0.1s' }}>↓</span>
-        }
+          : <span style={{ fontSize: 14, transform: `rotate(${progress * 180}deg)`, display: 'inline-block', transition: 'transform 0.1s' }}>↓</span>}
       </div>
     </div>
   );
@@ -201,10 +173,7 @@ function PullIndicator({ progress, refreshing }: { progress: number; refreshing:
 function HubSkeleton() {
   return (
     <div style={{ minHeight: '100vh', background: '#020205', padding: '0 0 90px' }}>
-      <style>{`
-        @keyframes shimmer { 0%,100% { opacity:0.4; } 50% { opacity:0.8; } }
-        .sk { animation: shimmer 1.4s ease infinite; background: #0d0d14; border-radius: 18px; }
-      `}</style>
+      <style>{`@keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.8}}.sk{animation:shimmer 1.4s ease infinite;background:#0d0d14;border-radius:18px}`}</style>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: '#d4af3730' }} />
@@ -215,29 +184,17 @@ function HubSkeleton() {
           <div style={{ width: 90, height: 36, borderRadius: 12, background: '#ffffff08' }} />
         </div>
       </div>
-      <div style={{ padding: '16px 16px 0' }}>
-        <div className="sk" style={{ height: 120, border: '1px solid #d4af3715' }} />
-      </div>
-      <div style={{ padding: '10px 16px 0' }}>
-        <div className="sk" style={{ height: 80, border: '1px solid #ffffff08' }} />
-      </div>
+      <div style={{ padding: '16px 16px 0' }}><div className="sk" style={{ height: 120 }} /></div>
+      <div style={{ padding: '10px 16px 0' }}><div className="sk" style={{ height: 80 }} /></div>
       <div style={{ padding: '12px 16px 0', display: 'flex', gap: 10 }}>
-        <div className="sk" style={{ flex: 1, height: 54, border: '1px solid #7ee7c020' }} />
-        <div className="sk" style={{ flex: 1, height: 54, border: '1px solid #7eb8f720' }} />
+        <div className="sk" style={{ flex: 1, height: 54 }} />
+        <div className="sk" style={{ flex: 1, height: 54 }} />
       </div>
       <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
-          {[1,2,3,4].map(i => <div key={i} className="sk" style={{ height: 68, border: '1px solid #d4af3710' }} />)}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
+          {[1,2,3,4].map(i => <div key={i} className="sk" style={{ height: 68 }} />)}
         </div>
       </div>
-      <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
-        {[1,2,3,4].map(i => (
-          <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ width: 24, height: 24, borderRadius: 6, background: '#ffffff08' }} />
-            <div style={{ width: 30, height: 8, borderRadius: 4, background: '#ffffff08' }} />
-          </div>
-        ))}
-      </nav>
     </div>
   );
 }
@@ -247,38 +204,78 @@ function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const router = useRouter();
 
-  // ✅ Smart Orchestration — user-aware domain visibility
   const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
   const userKyc = (user as { kycVerified?: boolean } | null)?.kycVerified ?? false;
 
   const visibleLive = getVisibleDomains(userKyc, userPro)
     .filter(d => d.status === 'live' && d.layer !== 'os')
-    .map(d => ({
-      name:  d.name.en,
-      emoji: d.emoji,
-      href:  d.route ?? `/${d.slug}`,
-      desc:  d.description.en,
-      slug:  d.slug,
-    }));
+    .map(d => ({ name: d.name.en, emoji: d.emoji, href: d.route ?? `/${d.slug}`, desc: d.description.en, slug: d.slug }));
 
-  const [balance,     setBalance]     = useState('—');
-  const [assetCount,  setAssetCount]  = useState<number | null>(null);
-  const [time,        setTime]        = useState('');
-  const [notifCount,  setNotifCount]  = useState(0);
-  const [carouselIdx, setCarouselIdx] = useState(0);
-  const [aiOpen,      setAiOpen]      = useState(false);
-  const [piPrice,     setPiPrice]     = useState<{
-    price: number; change24h: number; high24h: number; low24h: number;
-  } | null>(null);
+  const [balance,      setBalance]      = useState('—');
+  const [assetCount,   setAssetCount]   = useState<number | null>(null);
+  const [time,         setTime]         = useState('');
+  const [notifCount,   setNotifCount]   = useState(0);
+  const [carouselIdx,  setCarouselIdx]  = useState(0);
+  const [aiOpen,       setAiOpen]       = useState(false);
+  const [piPrice,      setPiPrice]      = useState<{ price: number; change24h: number; high24h: number; low24h: number } | null>(null);
   const [toasts,       setToasts]       = useState<Toast[]>([]);
   const [pullProgress, setPullProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // ✅ Pi SDK readiness state
+  const [piReady, setPiReady] = useState(false);
 
   const pullStartY     = useRef(0);
   const isPulling      = useRef(false);
   const touchStartX    = useRef(0);
   const touchEndX      = useRef(0);
   const PULL_THRESHOLD = 80;
+
+  // ✅ Pi SDK ready + auto re-authenticate للـ payments scope
+  useEffect(() => {
+    const initPiAuth = async () => {
+      // انتظر SDK
+      if (!window.__TEC_PI_READY) {
+        await new Promise<void>((resolve) => {
+          if (window.__TEC_PI_READY) { resolve(); return; }
+          const onReady = () => resolve();
+          window.addEventListener('tec-pi-ready', onReady, { once: true });
+          const poll = setInterval(() => {
+            if (window.__TEC_PI_READY) { clearInterval(poll); resolve(); }
+          }, 300);
+          setTimeout(() => { clearInterval(poll); resolve(); }, 15000);
+        });
+      }
+
+      if (!window.Pi) return;
+
+      // ✅ Re-authenticate عشان نجدد الـ payments scope بعد الـ redirect
+      try {
+        const result = window.Pi.authenticate(
+          ['username', 'payments'],
+          async (payment: unknown) => {
+            const p = payment as { identifier?: string } | null;
+            if (!p?.identifier) return;
+            try {
+              await fetch('/api/payment/resolve-incomplete', {
+                method:      'POST',
+                credentials: 'include',
+                headers:     { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+                body:        JSON.stringify({ pi_payment_id: p.identifier }),
+              });
+            } catch { /* ignore */ }
+          },
+        );
+        if (result && typeof (result as Promise<unknown>).then === 'function') {
+          await result;
+        }
+      } catch { /* ignore */ }
+
+      setPiReady(true);
+    };
+
+    initPiAuth();
+  }, []);
 
   const showToast = useCallback((type: ToastType, message: string, txid?: string) => {
     const id = Math.random().toString(36).slice(2);
@@ -291,37 +288,34 @@ function HubPageInner() {
   }, []);
 
   const refreshBalance = useCallback(() => {
-  if (!user?.id) return Promise.resolve();
-  return fetch(`/api/wallet/balance?userId=${user.id}`, {
-    credentials: 'include',
-    headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-  })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
-    .catch(() => {});
-}, [user?.id]);
+    if (!user?.id) return Promise.resolve();
+    return fetch(`/api/wallet/balance?userId=${user.id}`, {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setBalance(`${Number(d.balance).toFixed(2)}`))
+      .catch(() => {});
+  }, [user?.id]);
 
   const refreshAssets = useCallback(() => {
-  if (!user?.id) return Promise.resolve();
-  return fetch('/api/bff/assets/list', {
-    credentials: 'include',
-    cache:       'no-store',
-  })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
-    .catch(() => {});
-}, [user?.id]);
+    if (!user?.id) return Promise.resolve();
+    return fetch('/api/bff/assets/list', { credentials: 'include', cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setAssetCount(d.count ?? d.data?.length ?? 0))
+      .catch(() => {});
+  }, [user?.id]);
 
   const refreshNotifCount = useCallback(() => {
-  if (!user?.id) return Promise.resolve();
-  return fetch(`/api/notifications/unread-count?userId=${user.id}`, {
-    credentials: 'include',
-    headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-  })
-    .then(r => r.ok ? r.json() : null)
-    .then(d => d && setNotifCount(d.count ?? 0))
-    .catch(() => {});
-}, [user?.id]);
+    if (!user?.id) return Promise.resolve();
+    return fetch(`/api/notifications/unread-count?userId=${user.id}`, {
+      credentials: 'include',
+      headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
+    })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d && setNotifCount(d.count ?? 0))
+      .catch(() => {});
+  }, [user?.id]);
 
   const refreshPrice = useCallback(async () => {
     try {
@@ -329,7 +323,6 @@ function HubPageInner() {
       const data = await res.json();
       if (!data.error) setPiPrice(data);
     } catch {}
-    return Promise.resolve();
   }, []);
 
   const handlePullStart = (e: React.TouchEvent) => {
@@ -395,9 +388,12 @@ function HubPageInner() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
+  // ✅ handlePay — بيتحقق من piReady أولاً
   const handlePay = useCallback(async () => {
-    if (typeof window === 'undefined' || !window.Pi) {
-      haptic('heavy'); showToast('error', 'Open in Pi Browser to make payments'); return;
+    if (!piReady || !window.Pi) {
+      haptic('heavy');
+      showToast('warning', piReady ? 'Open in Pi Browser' : 'Connecting to Pi... try again');
+      return;
     }
     haptic('medium');
     setBalance(prev => { const n = parseFloat(prev); return isNaN(n) ? prev : (n - 1).toFixed(2); });
@@ -418,7 +414,7 @@ function HubPageInner() {
         showToast('warning', 'Pending payment detected — try again');
       } else { showToast('error', msg); }
     }
-  }, [refreshBalance, showToast]);
+  }, [piReady, refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
@@ -443,24 +439,11 @@ function HubPageInner() {
 
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
       <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
-
-      {/* ── AI Drawer ── */}
       <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
 
-      {/* ── AI Floating Button ── */}
       {!aiOpen && (
-        <button
-          onClick={() => { haptic('medium'); setAiOpen(true); }}
-          style={{
-            position: 'fixed', bottom: 90, right: 16, zIndex: 200,
-            width: 52, height: 52, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
-            border: '2px solid #d4af3740',
-            boxShadow: '0 4px 20px rgba(212,175,55,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 22, cursor: 'pointer',
-            animation: 'aiPop 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-          }}>
+        <button onClick={() => { haptic('medium'); setAiOpen(true); }}
+          style={{ position: 'fixed', bottom: 90, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', border: '2px solid #d4af3740', boxShadow: '0 4px 20px rgba(212,175,55,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, cursor: 'pointer', animation: 'aiPop 0.4s cubic-bezier(0.34,1.56,0.64,1)' }}>
           🤖
         </button>
       )}
@@ -519,33 +502,27 @@ function HubPageInner() {
       <div style={{ padding: '10px 16px 0' }} className="fade-in">
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ overflow: 'hidden', borderRadius: 18 }}>
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
-
             {/* Slide 0: Assets */}
-<div style={{ minWidth: '100%' }}>
-  <button className="hub-btn" onClick={() => {
-    haptic('light');
-    window.location.href =
-      '/api/auth/sso?target=' +
-      encodeURIComponent('https://tec-assets.vercel.app');
-  }}
-    style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-      <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
-        <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
-      </div>
-    </div>
-    <div style={{ textAlign: 'right' }}>
-      <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
-        {assetCount === null
-          ? <span style={{ display: 'inline-block', width: 32, height: 28, borderRadius: 6, background: '#ffffff10', animation: 'shimmer 1.4s infinite' }} />
-          : assetCount}
-      </div>
-      <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
-    </div>
-  </button>
-</div>
+            <div style={{ minWidth: '100%' }}>
+              <button className="hub-btn" onClick={() => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets.vercel.app'); }}
+                style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
+                    <div style={{ fontSize: 10, color: '#4a4a5a' }}>Domains · Real Estate · NFTs</div>
+                  </div>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: '#d4af37', lineHeight: 1 }}>
+                    {assetCount === null
+                      ? <span style={{ display: 'inline-block', width: 32, height: 28, borderRadius: 6, background: '#ffffff10', animation: 'shimmer 1.4s infinite' }} />
+                      : assetCount}
+                  </div>
+                  <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 1, marginTop: 3 }}>ASSETS →</div>
+                </div>
+              </button>
+            </div>
 
             {/* Slide 1: Pi Price */}
             <div style={{ minWidth: '100%' }}>
@@ -565,9 +542,7 @@ function HubPageInner() {
                         {piPrice.change24h >= 0 ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
                       </div>
                     </div>
-                  ) : (
-                    <div style={{ width: 80, height: 40, borderRadius: 8, background: '#ffffff08', animation: 'shimmer 1.4s infinite' }} />
-                  )}
+                  ) : <div style={{ width: 80, height: 40, borderRadius: 8, background: '#ffffff08', animation: 'shimmer 1.4s infinite' }} />}
                 </div>
                 {piPrice ? (
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
@@ -591,7 +566,7 @@ function HubPageInner() {
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-          {[0, 1].map(i => (
+          {[0,1].map(i => (
             <button key={i} onClick={() => { haptic('light'); setCarouselIdx(i); }}
               style={{ width: carouselIdx === i ? 16 : 6, height: 6, borderRadius: 3, background: carouselIdx === i ? '#d4af37' : '#ffffff20', border: 'none', cursor: 'pointer', transition: 'all 0.3s ease', padding: 0 }} />
           ))}
@@ -601,10 +576,22 @@ function HubPageInner() {
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
         <div style={{ display: 'flex', gap: 10 }}>
-          <button className="hub-btn" onClick={handlePay}
-            style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0d2e14,#0a1f0f)', border: '1px solid #7ee7c040', color: '#7ee7c0', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span>
-            <span>Pay 1 π</span>
+          {/* ✅ Pay button — disabled لو piReady مش true */}
+          <button className="hub-btn" onClick={handlePay} disabled={!piReady}
+            style={{
+              flex: 1, padding: '16px 12px', borderRadius: 18,
+              background: piReady ? 'linear-gradient(135deg,#0d2e14,#0a1f0f)' : '#0a0a0a',
+              border: `1px solid ${piReady ? '#7ee7c040' : '#ffffff10'}`,
+              color: piReady ? '#7ee7c0' : '#4a4a5a',
+              fontWeight: 700, fontSize: 13, cursor: piReady ? 'pointer' : 'not-allowed',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+              opacity: piReady ? 1 : 0.5, transition: 'all 0.3s',
+            }}>
+            {piReady ? (
+              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
+            ) : (
+              <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #4a4a5a30', borderTop: '2px solid #4a4a5a', animation: 'spin 0.8s linear infinite' }} /><span>Connecting...</span></>
+            )}
           </button>
           <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -614,7 +601,7 @@ function HubPageInner() {
         </div>
       </div>
 
-      {/* ── Live Apps — Smart Orchestration ── */}
+      {/* ── Live Apps ── */}
       <div style={{ padding: '20px 16px 0' }} className="fade-in">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -625,7 +612,7 @@ function HubPageInner() {
             {visibleLive.length} ACTIVE
           </span>
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
           {visibleLive.map((app, idx) => (
             <button key={app.slug} className="app-btn"
               onClick={() => { haptic('light'); router.push(app.href); }}
@@ -649,7 +636,6 @@ function HubPageInner() {
           <span style={{ fontSize: 11, fontWeight: 700, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase' }}>Coming Soon</span>
           <span style={{ fontSize: 10, color: '#4a4a5a', letterSpacing: 1 }}>24 APPS</span>
         </div>
-
         {([
           { group: 'finance',      label: '💰 Finance',    style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
           { group: 'commerce',     label: '🛒 Commerce',   style: { border: '1px solid #ffffff06', opacity: 0.45, color: '#6b6b7a' } },
@@ -663,7 +649,7 @@ function HubPageInner() {
           return (
             <div key={group} style={{ marginBottom: 16 }}>
               <span style={{ fontSize: 9, color: '#d4af3760', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>{label}</span>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginTop: 8 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 8 }}>
                 {apps.map(app => (
                   <div key={app.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '14px 6px', background: '#0d0d14', borderRadius: 14, opacity: style.opacity, border: style.border }}>
                     <span style={{ fontSize: 20 }}>{app.emoji}</span>
@@ -679,15 +665,10 @@ function HubPageInner() {
       {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
         {[
-          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {}                                                    },
+          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: '💎', label: 'Assets',   active: false, action: () => {
-  haptic('light');
-  window.location.href =
-    '/api/auth/sso?target=' +
-    encodeURIComponent('https://tec-assets.vercel.app');
-}},
-          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard');         } },
+          { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets.vercel.app'); } },
+          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -707,4 +688,4 @@ export default function HubPage() {
       <HubPageInner />
     </ErrorBoundary>
   );
-}
+          }

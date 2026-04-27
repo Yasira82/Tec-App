@@ -84,6 +84,30 @@ export type DiagnosticCallback = (type: string, message: string, data?: unknown)
 const PI_PAYMENT_ID_REGEX = /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/;
 const PI_TXID_REGEX       = /^[a-zA-Z0-9_-]{8,128}$/;
 
+// ✅ انتظر Pi SDK يكون initialized فعلاً
+const waitForPiInit = (): Promise<void> =>
+  new Promise<void>((resolve) => {
+    // ✅ لو جاهز — رجع فوراً
+    if (window.__TEC_PI_READY && typeof window.Pi !== 'undefined') {
+      resolve();
+      return;
+    }
+
+    const poll = setInterval(() => {
+      if (window.__TEC_PI_READY && typeof window.Pi !== 'undefined') {
+        clearInterval(poll);
+        clearTimeout(timeout);
+        resolve();
+      }
+    }, 200);
+
+    // ✅ fallback بعد 15 ثانية
+    const timeout = setTimeout(() => {
+      clearInterval(poll);
+      resolve(); // نكمل حتى لو مش ready
+    }, 15000);
+  });
+
 // ✅ U2A — User to App
 export const createU2APayment = async (
   amount:        number,
@@ -93,22 +117,13 @@ export const createU2APayment = async (
 ): Promise<PaymentResult> => {
   if (typeof window === 'undefined') throw new Error('Pi SDK not available - Open in Pi Browser');
 
+  // ✅ الخطوة 1: انتظر الـ SDK يـ load
   await waitForPiSDK();
 
-// ✅ تأكد إن Pi.init() اتعمل فعلاً
-if (!window.__TEC_PI_READY) {
-  await new Promise<void>((resolve) => {
-    const poll = setInterval(() => {
-      if (window.__TEC_PI_READY) {
-        clearInterval(poll);
-        resolve();
-      }
-    }, 200);
-    setTimeout(() => { clearInterval(poll); resolve(); }, 10000);
-  });
-}
+  // ✅ الخطوة 2: انتظر الـ init يكتمل
+  await waitForPiInit();
 
-  // ✅ تأكد إن الـ payments scope موجود قبل createPayment
+  // ✅ الخطوة 3: تأكد إن الـ payments scope موجود
   try {
     const authResult = window.Pi.authenticate(
       ['username', 'payments'],
@@ -120,8 +135,11 @@ if (!window.__TEC_PI_READY) {
           await fetch('/api/payment/resolve-incomplete', {
             method:      'POST',
             credentials: 'include',
-            headers:     { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
-            body:        JSON.stringify({ pi_payment_id: piPaymentId }),
+            headers:     {
+              'Content-Type': 'application/json',
+              Authorization:  `Bearer ${getAccessToken()}`,
+            },
+            body: JSON.stringify({ pi_payment_id: piPaymentId }),
           });
         } catch { /* ignore */ }
       },
@@ -129,8 +147,9 @@ if (!window.__TEC_PI_READY) {
     if (authResult && typeof (authResult as Promise<unknown>).then === 'function') {
       await authResult;
     }
-  } catch { /* ignore */ }
+  } catch { /* ignore — proceed anyway */ }
 
+  // ✅ الخطوة 4: عمل الـ payment record في الـ backend
   let internalId: string | null = null;
   const storedUser = getStoredUser();
   const userId     = storedUser?.id ?? storedUser?.piId ?? null;
@@ -159,6 +178,7 @@ if (!window.__TEC_PI_READY) {
     }
   }
 
+  // ✅ الخطوة 5: createPayment
   return new Promise((resolve, reject) => {
     if (!window.Pi) { reject(new Error('Pi SDK not available - Open in Pi Browser')); return; }
 

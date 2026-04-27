@@ -63,10 +63,16 @@ export default function PiPaymentButton() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
       if (
-        message.includes('not initialized') ||
-        message.includes('Pi Browser') ||
-        message.includes('init')
-      ) {
+  message.includes('not initialized') ||
+  message.includes('Pi Browser') ||
+  message.includes('init') ||
+  message.includes('failed to load')
+) {
+  window.location.reload();
+  return;
+}
+setError(message);
+setLoading(false);
         // ✅ SDK موجود بس مش initialized — reset وخلّي يحاول تاني
         window.__TEC_PI_READY = false;
         setSdkReady(false);

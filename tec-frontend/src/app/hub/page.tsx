@@ -204,7 +204,9 @@ function HubSkeleton() {
 // ─── Hub Inner ────────────────────────────────────────────────
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady, ensurePiAuth }            = usePiSdkReady();
+
+  // ✅ 3-state: piReady (SDK) + authReady (scope)
+  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
   const router = useRouter();
 
   const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
@@ -342,7 +344,7 @@ function HubPageInner() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
-  // ✅ handlePay — PiSessionManager integration
+  // ✅ handlePay — 3-state model
   const handlePay = useCallback(async () => {
     if (!window.Pi) {
       haptic('heavy');
@@ -352,7 +354,7 @@ function HubPageInner() {
 
     if (!piReady) {
       haptic('heavy');
-      showToast('warning', 'Connecting to Pi... try again');
+      showToast('warning', 'Pi SDK connecting... try again');
       return;
     }
 
@@ -366,7 +368,8 @@ function HubPageInner() {
     haptic('medium');
 
     try {
-      const authOk = await ensurePiAuth();
+      // ✅ 3-state: استخدم authReady أو اعمل auth جديد
+      const authOk = authReady || await ensurePiAuth();
       if (!authOk) {
         showToast('error', 'Pi authentication failed. Try again.');
         return;
@@ -397,12 +400,10 @@ function HubPageInner() {
         window.location.reload();
         return;
       }
-
       if (/scope|permission|payments/i.test(msg)) {
         showToast('warning', 'Reconnecting to Pi payments... tap again');
         return;
       }
-
       if (/pending|already have/i.test(msg)) {
         showToast('warning', 'Pending payment detected — try again');
       } else {
@@ -412,7 +413,7 @@ function HubPageInner() {
       piSession.releasePaymentLock();
       refreshBalance();
     }
-  }, [piReady, ensurePiAuth, refreshBalance, showToast]);
+  }, [piReady, authReady, ensurePiAuth, refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
@@ -574,20 +575,24 @@ function HubPageInner() {
       {/* ── Payment Buttons ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
         <div style={{ display: 'flex', gap: 10 }}>
+          {/* ✅ 3-state Pay button */}
           <button className="hub-btn" onClick={handlePay} disabled={!piReady}
             style={{
               flex: 1, padding: '16px 12px', borderRadius: 18,
               background: piReady ? 'linear-gradient(135deg,#0d2e14,#0a1f0f)' : '#0a0a0a',
               border: `1px solid ${piReady ? '#7ee7c040' : '#ffffff10'}`,
               color: piReady ? '#7ee7c0' : '#4a4a5a',
-              fontWeight: 700, fontSize: 13, cursor: piReady ? 'pointer' : 'not-allowed',
+              fontWeight: 700, fontSize: 13,
+              cursor: piReady ? 'pointer' : 'not-allowed',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
               opacity: piReady ? 1 : 0.5, transition: 'all 0.3s',
             }}>
-            {piReady ? (
-              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
-            ) : (
+            {!piReady ? (
               <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #4a4a5a30', borderTop: '2px solid #4a4a5a', animation: 'spin 0.8s linear infinite' }} /><span>Connecting...</span></>
+            ) : !authReady ? (
+              <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', animation: 'spin 0.8s linear infinite' }} /><span>Connecting to Pi...</span></>
+            ) : (
+              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay 1 π</span></>
             )}
           </button>
           <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}

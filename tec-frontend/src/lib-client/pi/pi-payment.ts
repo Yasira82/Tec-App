@@ -96,30 +96,27 @@ export const createU2APayment = async (
   await waitForPiSDK();
 
   // ✅ تأكد إن الـ payments scope موجود قبل createPayment
-  await new Promise<void>((resolve, reject) => {
-    window.Pi.authenticate(
+  try {
+    const authResult = window.Pi.authenticate(
       ['username', 'payments'],
       async (payment: unknown) => {
         const p           = payment as { identifier?: string } | null;
         const piPaymentId = p?.identifier;
         if (!piPaymentId) return;
-
-        onDiagnostic?.('warn', `Incomplete payment detected: ${piPaymentId} — resolving...`);
-
         try {
           await fetch('/api/payment/resolve-incomplete', {
             method:      'POST',
             credentials: 'include',
-            headers:     {
-              'Content-Type': 'application/json',
-              Authorization:  `Bearer ${getAccessToken()}`,
-            },
-            body: JSON.stringify({ pi_payment_id: piPaymentId }),
+            headers:     { 'Content-Type': 'application/json', Authorization: `Bearer ${getAccessToken()}` },
+            body:        JSON.stringify({ pi_payment_id: piPaymentId }),
           });
         } catch { /* ignore */ }
       },
-    ).then(() => resolve()).catch(reject);
-  });
+    );
+    if (authResult && typeof (authResult as Promise<unknown>).then === 'function') {
+      await authResult;
+    }
+  } catch { /* ignore */ }
 
   let internalId: string | null = null;
   const storedUser = getStoredUser();

@@ -8,6 +8,11 @@ const FAILURE_COOLDOWN_MS  = 3000;
 const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;  // 5 min
 const PAYMENT_LOCK_TIMEOUT = 20000;           // 20s self-healing
 
+declare global {
+  interface Window {
+    __TEC_PI_AUTHENTICATED?: boolean;
+  }
+}
 export type PiAuthError =
   | 'SDK_MISSING'
   | 'TIMEOUT'

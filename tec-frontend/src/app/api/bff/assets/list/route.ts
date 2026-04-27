@@ -9,24 +9,26 @@ interface RawAsset {
   createdAt: string;
 }
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? 'https://api-gateway-production-6a68.up.railway.app';
+// ✅ server-side env أولاً
+const GATEWAY =
+  process.env.API_GATEWAY_URL ??
+  process.env.NEXT_PUBLIC_API_GATEWAY_URL ??
+  'https://api-gateway-production-6a68.up.railway.app';
 
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    // ✅ الـ route الصح
-    const res = await fetch(
-      `${GATEWAY}/api/assets/user/${encodeURIComponent(ctx.userId)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-request-id':  ctx.requestId,
-        },
-        cache: 'no-store',
+    const url = `${GATEWAY}/api/assets/user/${encodeURIComponent(ctx.userId)}`;
+
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-request-id':  ctx.requestId,
       },
-    );
+      cache: 'no-store',
+    });
 
     if (!res.ok) throw new Error(`Gateway ${res.status}`);
 

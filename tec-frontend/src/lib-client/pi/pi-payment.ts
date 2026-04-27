@@ -95,6 +95,19 @@ export const createU2APayment = async (
 
   await waitForPiSDK();
 
+// ✅ تأكد إن Pi.init() اتعمل فعلاً
+if (!window.__TEC_PI_READY) {
+  await new Promise<void>((resolve) => {
+    const poll = setInterval(() => {
+      if (window.__TEC_PI_READY) {
+        clearInterval(poll);
+        resolve();
+      }
+    }, 200);
+    setTimeout(() => { clearInterval(poll); resolve(); }, 10000);
+  });
+}
+
   // ✅ تأكد إن الـ payments scope موجود قبل createPayment
   try {
     const authResult = window.Pi.authenticate(

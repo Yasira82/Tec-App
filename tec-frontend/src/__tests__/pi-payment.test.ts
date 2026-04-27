@@ -15,6 +15,18 @@ vi.mock('@/lib-client/pi/payment-timeouts', () => ({
   RETRY_BASE_DELAY_MS:        0,
 }));
 
+vi.mock('@/lib-client/pi/pi-session', () => ({
+  piSession: {
+    isAuthenticated:    true,
+    hasScope:           true,
+    ensureAuth:         vi.fn(() => Promise.resolve(true)),
+    acquirePaymentLock: vi.fn(() => Promise.resolve(true)),
+    releasePaymentLock: vi.fn(),
+    reset:              vi.fn(),
+    lastError:          null,
+  },
+}));
+
 vi.mock('@/lib/sdk', () => ({
   default: {
     payment: {
@@ -35,6 +47,8 @@ vi.mock('@/lib/sdk', () => ({
 
 import { createA2UPayment, createU2APayment } from '@/lib-client/pi/pi-payment';
 import sdk from '@/lib/sdk';
+
+// ... باقي الكود زي ما هو
 
 const TEST_UUID =
   'test-uuid-1234-5678-abcd-ef0123456789' as `${string}-${string}-${string}-${string}-${string}`;

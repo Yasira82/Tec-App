@@ -9,41 +9,50 @@ export default function PiPaymentButton() {
   const [sdkReady, setSdkReady] = useState(false);
 
   useEffect(() => {
-  if (window.__TEC_PI_READY) { setSdkReady(true); return; }
+    // ✅ لو جاهز بالفعل
+    if (window.__TEC_PI_READY) { setSdkReady(true); return; }
 
-  const onReady = () => setSdkReady(true);
-  window.addEventListener('tec-pi-ready', onReady);
+    const onReady = () => setSdkReady(true);
+    window.addEventListener('tec-pi-ready', onReady);
 
-  // ✅ polling كل 300ms لمدة 30 ثانية
-  const poll = setInterval(() => {
-    if (window.__TEC_PI_READY) {
-      setSdkReady(true);
+    // ✅ polling كل 300ms لمدة 30 ثانية
+    const poll = setInterval(() => {
+      if (window.__TEC_PI_READY) {
+        setSdkReady(true);
+        clearInterval(poll);
+      }
+    }, 300);
+
+    // ✅ بعد 30 ثانية — لو Pi موجود اعتبره ready
+    const timeout = setTimeout(() => {
       clearInterval(poll);
-    } else if (typeof window.Pi !== 'undefined' && !window.__TEC_PI_READY) {
-      // Pi موجود بس مش initialized بعد — استنى
-    }
-  }, 300);
+      if (typeof window.Pi !== 'undefined') {
+        setSdkReady(true);
+      }
+    }, 30000);
 
-  const timeout = setTimeout(() => {
-    clearInterval(poll);
-    // ✅ لو Pi موجود بس __TEC_PI_READY مش set — جرب init
-    if (typeof window.Pi !== 'undefined' && !window.__TEC_PI_READY) {
-      setSdkReady(true); // optimistic
-    }
-  }, 30000);
-
-  return () => {
-    window.removeEventListener('tec-pi-ready', onReady);
-    clearInterval(poll);
-    clearTimeout(timeout);
-  };
-}, []);
+    return () => {
+      window.removeEventListener('tec-pi-ready', onReady);
+      clearInterval(poll);
+      clearTimeout(timeout);
+    };
+  }, []);
 
   const handleAuth = useCallback(async () => {
+    // ✅ لو دوس وـ SDK مش ready — جرب تـ check تاني
     if (!sdkReady) {
+      if (window.__TEC_PI_READY) {
+        setSdkReady(true);
+        return; // يضغط تاني
+      }
+      if (typeof window.Pi !== 'undefined') {
+        setSdkReady(true);
+        return; // يضغط تاني
+      }
       setError('Please open in Pi Browser');
       return;
     }
+
     setLoading(true);
     setError(null);
     try {
@@ -53,11 +62,18 @@ export default function PiPaymentButton() {
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
-      setError(
-        message.includes('Pi Browser') || message.includes('not initialized')
-          ? 'Please open in Pi Browser'
-          : message
-      );
+      if (
+        message.includes('not initialized') ||
+        message.includes('Pi Browser') ||
+        message.includes('init')
+      ) {
+        // ✅ SDK موجود بس مش initialized — reset وخلّي يحاول تاني
+        window.__TEC_PI_READY = false;
+        setSdkReady(false);
+        setError('Tap again to connect');
+      } else {
+        setError(message);
+      }
       setLoading(false);
     }
   }, [sdkReady]);
@@ -66,7 +82,7 @@ export default function PiPaymentButton() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
       <button
         onClick={handleAuth}
-        disabled={loading || !sdkReady}
+        disabled={loading}
         style={{
           background:    'transparent',
           border:        'none',
@@ -74,9 +90,9 @@ export default function PiPaymentButton() {
           color:         sdkReady ? '#d4af37' : '#4a4a5a',
           fontSize:      '11px',
           fontWeight:    400,
-          cursor:        (loading || !sdkReady) ? 'not-allowed' : 'pointer',
+          cursor:        loading ? 'not-allowed' : 'pointer',
           padding:       '4px 8px',
-          opacity:       (loading || !sdkReady) ? 0.6 : 1,
+          opacity:       loading ? 0.6 : 1,
           textTransform: 'uppercase',
           fontFamily:    'inherit',
         }}>

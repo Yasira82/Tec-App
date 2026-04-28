@@ -5,17 +5,16 @@ export async function GET() {
     ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
 
   if (!gatewayUrl) {
-    return NextResponse.json({ online: false, error: 'not configured' }, { status: 503 });
+    return NextResponse.json({ online: false, error: 'not configured' });
   }
 
   try {
     const res = await fetch(`${gatewayUrl}/health`, {
       signal: AbortSignal.timeout(5000),
-      headers: { 'Content-Type': 'application/json' },
     });
 
     if (!res.ok) {
-      return NextResponse.json({ online: false, error: `status ${res.status}` }, { status: 200 });
+      return NextResponse.json({ online: false, error: `status ${res.status}` });
     }
 
     const data = await res.json();
@@ -23,7 +22,7 @@ export async function GET() {
   } catch (err) {
     return NextResponse.json({
       online: false,
-      error: err instanceof Error ? err.message : 'Failed to reach gateway',
+      error:  err instanceof Error ? err.message : 'Failed to reach gateway',
     });
   }
 }

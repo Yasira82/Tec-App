@@ -613,7 +613,7 @@ function HubPageInner() {
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
             {/* Slide 0: Assets */}
             <div style={{ minWidth: '100%' }}>
-              <button className="hub-btn" onClick={() => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets.vercel.app'); }}
+              <button className="hub-btn" onClick={() => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets-app.vercel.app'); }}
                 style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>

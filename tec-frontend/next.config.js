@@ -9,11 +9,6 @@ const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../'),
 
-  // ✅ منع prerender لصفحات CSR
-  experimental: {
-    missingSuspenseWithCSRBailout: false,
-  },
-
   images: {
     formats:         ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,

@@ -8,6 +8,9 @@ import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PiBrowserGuard from '@/components/PiBrowserGuard';
 import type { Metadata, Viewport } from 'next';
 
+// ✅ منع prerender لكل الصفحات
+export const dynamic = 'force-dynamic';
+
 const cormorantGaramond = Cormorant_Garamond({
   subsets:  ['latin'],
   weight:   ['300', '400', '600'],
@@ -23,7 +26,7 @@ const dmSans = DM_Sans({
   display:  'swap',
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tec-app.vercel.app';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tec-app-frontend.vercel.app';
 
 export const viewport: Viewport = {
   width:            'device-width',
@@ -101,7 +104,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" dir="ltr" className={`${cormorantGaramond.variable} ${dmSans.variable}`}>
       <body>
-        {/* ✅ beforeInteractive — Pi SDK يـ load قبل الـ page */}
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
         <PiSdkLoader sandbox={piSandbox} timeout={sdkTimeout} />
         <BackendOfflineBanner />

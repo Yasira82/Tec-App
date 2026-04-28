@@ -1,5 +1,5 @@
 'use client';
-
+export const dynamic = 'force-dynamic';
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';

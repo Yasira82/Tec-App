@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify }        from 'jose';
 
 const ALLOWED_TARGETS = [
-  'https://tec-assets.vercel.app',
+  'https://tec-assets-app.vercel.app',
   'https://assets.pi',
 ];
 

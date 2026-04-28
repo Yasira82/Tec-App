@@ -1,9 +1,7 @@
 export const dynamic = 'force-dynamic';
 
-import dynamicImport from 'next/dynamic';
-
-const AiClient = dynamicImport(() => import('./AiClient'), { ssr: false });
+import AiWrapper from './AiWrapper';
 
 export default function AiPage() {
-  return <AiClient />;
+  return <AiWrapper />;
 }

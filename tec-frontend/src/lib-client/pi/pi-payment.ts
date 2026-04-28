@@ -120,11 +120,6 @@ export const createU2APayment = async (
   // ✅ الخطوة 2: انتظر الـ init يكتمل
   await waitForPiInit();
 
-  // ✅ P4 Payment context guard
-  if (!piSession.isAuthenticated) {
-    throw new Error('PI_NOT_AUTHENTICATED');
-  }
-
   // ✅ الخطوة 3: عمل الـ payment record في الـ backend
   let internalId: string | null = null;
   const storedUser = getStoredUser();

@@ -60,4 +60,4 @@ jobs:
         env:
           NEXT_PUBLIC_PI_SANDBOX:      'true'
           NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL }}
-          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'test-app-id' }}
+          NEXT_PUBLIC_PI_APP_ID: ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}

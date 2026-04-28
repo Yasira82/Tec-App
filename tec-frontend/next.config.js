@@ -9,6 +9,11 @@ const nextConfig = {
   output: 'standalone',
   outputFileTracingRoot: path.join(__dirname, '../'),
 
+  // ✅ منع prerender لصفحات CSR
+  experimental: {
+    missingSuspenseWithCSRBailout: false,
+  },
+
   images: {
     formats:         ['image/avif', 'image/webp'],
     minimumCacheTTL: 86400,
@@ -79,7 +84,6 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              // ✅ مؤقتاً open — Pi Browser WebView يحتاج https: wss:
               "connect-src 'self' https: wss: http://localhost:3000 ws://localhost:3000",
               "img-src 'self' data: blob: *.railway.app *.vercel.app",
               "style-src 'self' 'unsafe-inline'",

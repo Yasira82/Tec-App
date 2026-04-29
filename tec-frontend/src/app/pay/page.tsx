@@ -1,4 +1,7 @@
 export const dynamic = 'force-dynamic';
-import dynamicImport from 'next/dynamic';
-const PayClient = dynamicImport(() => import('./PayClient'), { ssr: false });
-export default function PayPage() { return <PayClient />; }
+
+import PayWrapper from './PayWrapper';
+
+export default function PayPage() {
+  return <PayWrapper />;
+}

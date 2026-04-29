@@ -787,7 +787,7 @@ function HubPageInner() {
         {[
           { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets.vercel.app'); } },
+          { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets-app.vercel.app'); } },
           { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}

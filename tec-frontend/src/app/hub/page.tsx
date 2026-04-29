@@ -706,12 +706,10 @@ function HubPageInner() {
               opacity: piReady ? 1 : 0.5, transition: 'all 0.3s',
             }}>
             {!piReady ? (
-              <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #4a4a5a30', borderTop: '2px solid #4a4a5a', animation: 'spin 0.8s linear infinite' }} /><span>Connecting...</span></>
-            ) : !authReady ? (
-              <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', animation: 'spin 0.8s linear infinite' }} /><span>Connecting to Pi...</span></>
-            ) : (
-              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay {payAmount}π</span></>
-            )}
+  <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #4a4a5a30', borderTop: '2px solid #4a4a5a', animation: 'spin 0.8s linear infinite' }} /><span>Connecting...</span></>
+) : (
+  <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay {payAmount}π</span></>
+)}
           </button>
           <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>

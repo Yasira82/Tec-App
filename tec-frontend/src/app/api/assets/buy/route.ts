@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // ✅ استخرج buyerId من JWT مش من الـ body
+  // ✅ استخرج buyerId من JWT
   let buyerId: string | null = null;
   try {
     const { payload } = await jwtVerify(
@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
     {
       method:  'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization:  `Bearer ${token}`,
+        'Content-Type':   'application/json',
+        Authorization:    `Bearer ${token}`,
+        'x-internal-key': process.env.INTERNAL_SECRET ?? '', // ✅ أضف
       },
       body: JSON.stringify({
         buyerId,

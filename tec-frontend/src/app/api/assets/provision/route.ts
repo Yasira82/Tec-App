@@ -28,7 +28,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'slug and payment_id required' }, { status: 400 });
   }
 
-  const slug = body.slug.toLowerCase().trim();
+  const slug     = body.slug.toLowerCase().trim();
+  const category = body.category ?? 'DOMAIN';
+  const metadata = body.metadata ?? {};
+
+  // ✅ أضف extension لو domain
+  if (category === 'DOMAIN' && !metadata.extension) {
+    metadata.extension = '.pi';
+  }
 
   const res = await fetch(`${GATEWAY}/api/assets/provision`, {
     method:  'POST',
@@ -40,12 +47,9 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify({
       transactionId: body.payment_id,
       userId,
-      category:      'DOMAIN',
+      category,
       slug,
-      metadata: {
-        extension: '.pi',
-        addedBy:   userId,
-      },
+      metadata,
     }),
   });
 

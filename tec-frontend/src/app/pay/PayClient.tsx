@@ -54,30 +54,48 @@ export default function PayClient() {
       if (result.success && result.status === 'completed') {
 
   // ✅ Domain registration
-  if (listingId.startsWith('domain-reg-')) {
-    await fetch('/api/assets/provision', {
-      method:      'POST',
-      credentials: 'include',
-      headers:     { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        slug:       assetName.toLowerCase().trim(),
-        payment_id: result.paymentId,
-      }),
-    });
+if (listingId.startsWith('domain-reg-')) {
+  await fetch('/api/assets/provision', {
+    method:      'POST',
+    credentials: 'include',
+    headers:     { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      slug:       assetName.toLowerCase().trim(),
+      payment_id: result.paymentId,
+      category:   'DOMAIN',
+    }),
+  });
 
-  // ✅ Marketplace buy
-  } else {
-    await fetch('/api/assets/buy', {
-      method:      'POST',
-      credentials: 'include',
-      headers:     { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        listing_id: listingId,
-        payment_id: result.paymentId,
-        txid:       result.txid,
-      }),
-    });
-  }
+// ✅ NFT mint
+} else if (listingId.startsWith('nft-mint-')) {
+  await fetch('/api/assets/provision', {
+    method:      'POST',
+    credentials: 'include',
+    headers:     { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      slug:       `nft-${result.paymentId?.slice(0, 8) ?? Date.now()}`,
+      payment_id: result.paymentId,
+      category:   'NFT',
+      metadata: {
+        name:     assetName,
+        imageUrl: params.get('image_url') ?? '',
+      },
+    }),
+  });
+
+// ✅ Marketplace buy
+} else {
+  await fetch('/api/assets/buy', {
+    method:      'POST',
+    credentials: 'include',
+    headers:     { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      listing_id: listingId,
+      payment_id: result.paymentId,
+      txid:       result.txid,
+    }),
+  });
+}
 
   setTxid(result.txid ?? '');
   setStatus('success');

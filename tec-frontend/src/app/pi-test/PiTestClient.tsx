@@ -59,7 +59,7 @@ export function PiTestClient() {
     const timer = setTimeout(() => {
       if (!resolved) {
         setSdkReady(false);
-        log('warn', 'Pi SDK not ready after 5 s — are you inside Pi Browser?');
+        log('warn', 'Pi SDK not ready after 5s — are you inside Pi Browser?');
       }
     }, 5000);
 
@@ -96,6 +96,36 @@ export function PiTestClient() {
     }
   }, [log]);
 
+  const handleShowCookies = useCallback(() => {
+    const cookies = document.cookie.split('; ').reduce((acc, c) => {
+      const [k, ...rest] = c.split('=');
+      const v = rest.join('=');
+      acc[k] = k.includes('token') || k.includes('csrf')
+        ? v?.slice(0, 30) + '...'
+        : v;
+      return acc;
+    }, {} as Record<string, string>);
+    log('info', `🍪 Cookies: ${JSON.stringify(cookies, null, 2)}`);
+  }, [log]);
+
+  const handleShowUser = useCallback(() => {
+    const user = getStoredUser();
+    log('info', `👤 Stored user: ${JSON.stringify(user, null, 2)}`);
+    const token = getAccessToken();
+    log('info', `🔑 Token exists: ${!!token} | prefix: ${token?.slice(0, 20) ?? 'N/A'}...`);
+  }, [log]);
+
+  const handleCheckHealth = useCallback(async () => {
+    log('info', 'Checking backend health...');
+    try {
+      const res  = await fetch('/api/health', { cache: 'no-store' });
+      const data = await res.json();
+      log(res.ok ? 'success' : 'error', `🏥 Health: ${JSON.stringify(data)}`);
+    } catch (err) {
+      log('error', `Health check failed: ${String(err)}`);
+    }
+  }, [log]);
+
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
@@ -115,7 +145,10 @@ export function PiTestClient() {
             return;
           }
 
-          log('warn', `Found pending payment: ${piPaymentId}. txid: ${txid ?? 'none'}. Resolving...`);
+          log('warn', `Found pending payment: ${piPaymentId}`);
+          log('warn', `Amount: ${piPayment?.amount} | Memo: ${piPayment?.memo}`);
+          log('warn', `txid: ${txid ?? 'none'}`);
+          log('info', 'Resolving...');
 
           const token     = getAccessToken();
           const csrfToken = document.cookie
@@ -127,12 +160,9 @@ export function PiTestClient() {
           if (token)     headers['Authorization'] = `Bearer ${token}`;
           if (csrfToken) headers['x-csrf-token']  = csrfToken;
 
-          log('info', `CSRF token: ${csrfToken ? '✅ found' : '❌ missing'}`);
-          log('info', 'Calling /api/payment/resolve-incomplete...');
+          log('info', `Token: ${token ? '✅' : '❌'} | CSRF: ${csrfToken ? '✅' : '❌'}`);
 
           try {
-            // ✅ pi_payment_id في الـ URL — مش في الـ body
-            // عشان الـ middleware مش ياكل الـ body
             const res = await fetch(
               `/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(piPaymentId)}`,
               {
@@ -167,7 +197,7 @@ export function PiTestClient() {
       log('warn', 'Authenticate first before testing payment');
       return;
     }
-    log('info', 'Creating payment (amount: 1 Pi, memo: "TEC sandbox test")…');
+    log('info', 'Creating payment (amount: 1 Pi)…');
     setPayStatus('loading');
 
     const onDiagnostic = (type: string, message: string, data?: unknown) => {
@@ -188,10 +218,10 @@ export function PiTestClient() {
 
       if (result.status === 'cancelled') {
         setPayStatus('cancelled');
-        log('warn', `Payment cancelled by user (id: ${result.paymentId ?? 'n/a'})`);
+        log('warn', `Payment cancelled (id: ${result.paymentId ?? 'n/a'})`);
       } else {
         setPayStatus('done');
-        log('success', `Payment completed! id=${result.paymentId} txid=${result.txid}`);
+        log('success', `✅ Payment complete! id=${result.paymentId} txid=${result.txid}`);
       }
     } catch (err) {
       setPayStatus('error');
@@ -201,20 +231,26 @@ export function PiTestClient() {
 
   const clearLogs = () => setLogs([]);
 
+  const btnStyle = (color = '#333'): React.CSSProperties => ({
+    padding: '8px 16px', borderRadius: 6, border: 'none',
+    background: color, color: '#fff', cursor: 'pointer',
+    fontSize: '0.85rem', fontWeight: 600,
+  });
+
   return (
     <main style={{ fontFamily: 'monospace', maxWidth: 760, margin: '40px auto', padding: '0 20px' }}>
       <h1 style={{ fontSize: '1.4rem', marginBottom: 4 }}>🥧 Pi Sandbox Test Page</h1>
       <p style={{ fontSize: '0.85rem', color: '#666', marginBottom: 24 }}>
-        Verify Pi auth + payment callbacks end-to-end. Open this page inside{' '}
-        <strong>Pi Browser</strong> to exercise the live SDK.
+        Open inside <strong>Pi Browser</strong> to test the live SDK.
       </p>
 
+      {/* SDK Status */}
       <div style={{
         marginBottom: 20, padding: '10px 14px', borderRadius: 6,
         background: sdkReady === null ? '#f5f5f5' : sdkReady ? '#e6f9ee' : '#fff0f0',
         border: '1px solid ' + (sdkReady === null ? '#ddd' : sdkReady ? '#6dd68e' : '#f99'),
       }}>
-        <strong>SDK status:</strong>{' '}
+        <strong>SDK:</strong>{' '}
         {sdkReady === null ? '⏳ waiting…' : sdkReady ? '✅ ready' : '❌ unavailable'}
         <span style={{ marginLeft: 16, color: '#888', fontSize: '0.8rem' }}>
           appId: {process.env.NEXT_PUBLIC_PI_APP_ID ?? '(not set)'} | sandbox:{' '}
@@ -222,67 +258,88 @@ export function PiTestClient() {
         </span>
       </div>
 
-      <section style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>1. Authentication</h2>
-        <button
-          onClick={handleAuth}
-          disabled={authStatus === 'loading'}
-          style={{ padding: '8px 18px', marginRight: 10, cursor: authStatus === 'loading' ? 'not-allowed' : 'pointer' }}
-        >
-          {authStatus === 'loading' ? 'Authenticating…' : 'Authenticate with Pi'}
-        </button>
-        {username && (
-          <span style={{ color: '#2a9a4e' }}>✅ Logged in as <strong>@{username}</strong></span>
-        )}
-        {authStatus === 'error' && (
-          <span style={{ color: '#c0392b' }}>❌ Auth failed — see logs below</span>
-        )}
+      {/* Debug Tools */}
+      <section style={{ marginBottom: 20, padding: '12px 16px', border: '1px solid #3498db', borderRadius: 8 }}>
+        <h2 style={{ fontSize: '1rem', marginBottom: 10, color: '#3498db' }}>🔍 Debug Tools</h2>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button onClick={handleShowCookies}  style={btnStyle('#3498db')}>Show Cookies</button>
+          <button onClick={handleShowUser}     style={btnStyle('#8e44ad')}>Show User</button>
+          <button onClick={handleCheckHealth}  style={btnStyle('#27ae60')}>Check Health</button>
+        </div>
       </section>
 
-      <section style={{ marginBottom: 24, padding: '16px', border: '1px solid #e67e22', borderRadius: '8px' }}>
+      {/* Auth */}
+      <section style={{ marginBottom: 20 }}>
+        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>1. Authentication</h2>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={handleAuth}
+            disabled={authStatus === 'loading'}
+            style={btnStyle('#2c3e50')}
+          >
+            {authStatus === 'loading' ? 'Authenticating…' : 'Authenticate with Pi'}
+          </button>
+          {username    && <span style={{ color: '#2a9a4e' }}>✅ @{username}</span>}
+          {authStatus === 'error' && <span style={{ color: '#c0392b' }}>❌ Auth failed</span>}
+        </div>
+      </section>
+
+      {/* Pending Payments */}
+      <section style={{ marginBottom: 20, padding: '16px', border: '1px solid #e67e22', borderRadius: 8 }}>
         <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Stuck / Pending Payments</h2>
-        <p style={{ fontSize: '0.85rem', marginBottom: '12px' }}>
-          If you have a &quot;pending payment needs to be handled&quot; error, click here to resolve it:
+        <p style={{ fontSize: '0.85rem', marginBottom: 12, color: '#666' }}>
+          Got &quot;pending payment needs to be handled&quot;? Click below to resolve:
         </p>
-        <button
-          onClick={handleCancelPending}
-          style={{ padding: '8px 18px', backgroundColor: '#e67e22', color: 'white', border: 'none', borderRadius: 6, cursor: 'pointer' }}
-        >
+        <button onClick={handleCancelPending} style={btnStyle('#e67e22')}>
           Check &amp; Cancel Pending Payments
         </button>
       </section>
 
+      {/* Payment Test */}
       <section style={{ marginBottom: 24 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment (1 Pi)</h2>
-        <button
-          onClick={handlePayment}
-          disabled={authStatus !== 'done' || payStatus === 'loading'}
-          style={{ padding: '8px 18px', cursor: authStatus !== 'done' || payStatus === 'loading' ? 'not-allowed' : 'pointer', opacity: authStatus !== 'done' ? 0.5 : 1 }}
-        >
-          {payStatus === 'loading' ? 'Processing…' : 'Pay 1 Pi (test)'}
-        </button>
-        {payStatus === 'done'      && <span style={{ marginLeft: 12, color: '#2a9a4e' }}>✅ Payment complete!</span>}
-        {payStatus === 'cancelled' && <span style={{ marginLeft: 12, color: '#e67e22' }}>⚠️ Cancelled</span>}
-        {payStatus === 'error'     && <span style={{ marginLeft: 12, color: '#c0392b' }}>❌ Error — see logs</span>}
+        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment Test (1π)</h2>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            onClick={handlePayment}
+            disabled={authStatus !== 'done' || payStatus === 'loading'}
+            style={{ ...btnStyle('#8e44ad'), opacity: authStatus !== 'done' ? 0.5 : 1 }}
+          >
+            {payStatus === 'loading' ? 'Processing…' : 'Pay 1π (test)'}
+          </button>
+          {payStatus === 'done'      && <span style={{ color: '#2a9a4e' }}>✅ Complete!</span>}
+          {payStatus === 'cancelled' && <span style={{ color: '#e67e22' }}>⚠️ Cancelled</span>}
+          {payStatus === 'error'     && <span style={{ color: '#c0392b' }}>❌ Error</span>}
+        </div>
       </section>
 
+      {/* Logs */}
       <section>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 12 }}>
-          <h2 style={{ fontSize: '1rem', margin: 0 }}>Logs</h2>
-          <button onClick={clearLogs} style={{ fontSize: '0.75rem', padding: '2px 8px' }}>Clear</button>
+          <h2 style={{ fontSize: '1rem', margin: 0 }}>📋 Logs ({logs.length})</h2>
+          <button onClick={clearLogs} style={{ fontSize: '0.75rem', padding: '2px 8px', cursor: 'pointer' }}>
+            Clear
+          </button>
         </div>
         <div style={{
           background: '#1a1a1a', color: '#eee', padding: 14, borderRadius: 6,
-          minHeight: 120, maxHeight: 400, overflowY: 'auto', fontSize: '0.78rem', lineHeight: 1.6,
+          minHeight: 120, maxHeight: 400, overflowY: 'auto',
+          fontSize: '0.78rem', lineHeight: 1.6,
         }}>
           {logs.length === 0 ? (
             <span style={{ color: '#888' }}>— no events yet —</span>
           ) : (
             logs.map((e, i) => (
               <div key={i} style={{
-                color: e.type === 'error' ? '#ff6b6b' : e.type === 'warn' ? '#ffd93d' : e.type === 'success' ? '#6bcb77' : '#ddd',
+                color: e.type === 'error'   ? '#ff6b6b'
+                     : e.type === 'warn'    ? '#ffd93d'
+                     : e.type === 'success' ? '#6bcb77'
+                     : '#ddd',
+                borderBottom: '1px solid #2a2a2a',
+                paddingBottom: 2,
+                marginBottom: 2,
               }}>
-                <span style={{ color: '#888' }}>{e.ts}</span> {e.msg}
+                <span style={{ color: '#888' }}>{e.ts}</span>{' '}
+                {e.msg}
               </div>
             ))
           )}
@@ -290,4 +347,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-                }
+}

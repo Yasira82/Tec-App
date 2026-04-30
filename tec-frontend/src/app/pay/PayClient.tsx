@@ -16,11 +16,12 @@ export default function PayClient() {
 
   // ✅ Query params من Tec-Assets
   const assetId    = params.get('asset_id')   ?? '';
-  const assetType  = params.get('asset_type') ?? 'asset';
-  const assetName  = params.get('name')       ?? 'Asset';
-  const price      = parseFloat(params.get('price') ?? '0');
-  const returnUrl  = params.get('return_url') ?? 'https://tec-assets-app.vercel.app/app';
-  const listingId  = params.get('listing_id') ?? '';
+const assetType  = params.get('asset_type') ?? 'asset';
+const assetName  = params.get('name')       ?? 'Asset';
+const price      = parseFloat(params.get('price') ?? '0');
+const returnUrl  = params.get('return_url') ?? 'https://tec-assets-app.vercel.app/app';
+const listingId  = params.get('listing_id') ?? '';
+const imageUrl   = params.get('image_url')  ?? ''; // ✅ أضف هنا
 
   const [status,  setStatus]  = useState<PayStatus>('idle');
   const [message, setMessage] = useState('');

@@ -52,20 +52,35 @@ export default function PayClient() {
       );
 
       if (result.success && result.status === 'completed') {
-        // ✅ سجل الشراء في Backend
-        await fetch('/api/assets/buy', {
-          method:      'POST',
-          credentials: 'include',
-          headers:     { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            listing_id: listingId,
-            payment_id: result.paymentId,
-            txid:       result.txid,
-          }),
-        });
 
-        setTxid(result.txid ?? '');
-        setStatus('success');
+  // ✅ Domain registration
+  if (listingId.startsWith('domain-reg-')) {
+    await fetch('/api/assets/provision', {
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        slug:       assetName.toLowerCase().trim(),
+        payment_id: result.paymentId,
+      }),
+    });
+
+  // ✅ Marketplace buy
+  } else {
+    await fetch('/api/assets/buy', {
+      method:      'POST',
+      credentials: 'include',
+      headers:     { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        listing_id: listingId,
+        payment_id: result.paymentId,
+        txid:       result.txid,
+      }),
+    });
+  }
+
+  setTxid(result.txid ?? '');
+  setStatus('success');
 
         // ✅ بعد 3 ثواني رجّع لـ Tec-Assets
         setTimeout(() => {

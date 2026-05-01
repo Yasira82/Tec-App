@@ -87,7 +87,7 @@ export default function PayClient() {
             credentials: 'include',
             headers,
             body: JSON.stringify({
-              slug:       `nft-${result.paymentId?.slice(0, 8) ?? Date.now()}`,
+              slug: `nft-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, 
               payment_id: result.paymentId,
               category:   'NFT',
               metadata: {

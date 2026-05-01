@@ -28,11 +28,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'slug and payment_id required' }, { status: 400 });
   }
 
-  const slug     = body.slug.toLowerCase().trim();
+  // ✅ sanitize slug
+  const rawSlug = body.slug.toLowerCase().trim();
+  const slug    = rawSlug
+    .replace(/[^a-z0-9\-_.]/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '');
+
+  if (slug.length < 3) {
+    return NextResponse.json({ error: 'slug too short (min 3 chars)' }, { status: 400 });
+  }
+
   const category = body.category ?? 'DOMAIN';
   const metadata = body.metadata ?? {};
 
-  // ✅ أضف extension لو domain
   if (category === 'DOMAIN' && !metadata.extension) {
     metadata.extension = '.pi';
   }
@@ -54,5 +63,10 @@ export async function POST(req: NextRequest) {
   });
 
   const data = await res.json();
+
+  if (!res.ok) {
+    console.error('[Provision] failed:', res.status, JSON.stringify(data));
+  }
+
   return NextResponse.json(data, { status: res.status });
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
+import { randomUUID }                from 'crypto';
 
 const GATEWAY = process.env.API_GATEWAY_URL
   ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
@@ -54,11 +55,14 @@ export async function POST(req: NextRequest) {
       'x-internal-key': process.env.INTERNAL_SECRET ?? '',
     },
     body: JSON.stringify({
-      transactionId: body.payment_id,
+      transactionId: randomUUID(),        // ✅ UUID جديد دايماً
       userId,
       category,
       slug,
-      metadata,
+      metadata: {
+        ...metadata,
+        piPaymentId: body.payment_id,     // ✅ احفظ الـ Pi payment ID
+      },
     }),
   });
 

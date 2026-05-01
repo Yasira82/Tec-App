@@ -1,33 +1,40 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { useSearchParams }                  from 'next/navigation';
-import { usePiAuth }                        from '@/lib-client/hooks/usePiAuth';
-import { createU2APayment }                 from '@/lib-client/pi/pi-payment';
-import { piSession }                        from '@/lib-client/pi/pi-session';
-import { usePiSdkReady }                    from '@/lib-client/hooks/usePiSdkReady';
+import { useCallback, useState } from 'react';
+import { useSearchParams }       from 'next/navigation';
+import { usePiAuth }             from '@/lib-client/hooks/usePiAuth';
+import { createU2APayment }      from '@/lib-client/pi/pi-payment';
+import { piSession }             from '@/lib-client/pi/pi-session';
+import { usePiSdkReady }         from '@/lib-client/hooks/usePiSdkReady';
 
 type PayStatus = 'idle' | 'paying' | 'success' | 'cancelled' | 'error';
 
+// ✅ CSRF helper
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  const match = document.cookie
+    .split('; ')
+    .find(row => row.startsWith('tec_csrf='));
+  return match ? match.split('=')[1] : '';
+};
+
 export default function PayClient() {
-  const params     = useSearchParams();
-  const { user }   = usePiAuth();
+  const params   = useSearchParams();
+  const { user } = usePiAuth();
   const { piReady, ensurePiAuth } = usePiSdkReady();
 
-  // ✅ Query params من Tec-Assets
-  const assetId    = params.get('asset_id')   ?? '';
-const assetType  = params.get('asset_type') ?? 'asset';
-const assetName  = params.get('name')       ?? 'Asset';
-const price      = parseFloat(params.get('price') ?? '0');
-const returnUrl  = params.get('return_url') ?? 'https://tec-assets-app.vercel.app/app';
-const listingId  = params.get('listing_id') ?? '';
-const imageUrl   = params.get('image_url')  ?? ''; // ✅ أضف هنا
+  const assetId   = params.get('asset_id')   ?? '';
+  const assetType = params.get('asset_type') ?? 'asset';
+  const assetName = params.get('name')       ?? 'Asset';
+  const price     = parseFloat(params.get('price') ?? '0');
+  const returnUrl = params.get('return_url') ?? 'https://tec-assets-app.vercel.app/app';
+  const listingId = params.get('listing_id') ?? '';
+  const imageUrl  = params.get('image_url')  ?? '';
 
   const [status,  setStatus]  = useState<PayStatus>('idle');
   const [message, setMessage] = useState('');
   const [txid,    setTxid]    = useState('');
 
-  // ✅ Validate params
   const isValid = assetId && price > 0 && listingId;
 
   const handlePay = useCallback(async () => {
@@ -54,54 +61,59 @@ const imageUrl   = params.get('image_url')  ?? ''; // ✅ أضف هنا
 
       if (result.success && result.status === 'completed') {
 
-  // ✅ Domain registration
-if (listingId.startsWith('domain-reg-')) {
-  await fetch('/api/assets/provision', {
-    method:      'POST',
-    credentials: 'include',
-    headers:     { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      slug:       assetName.toLowerCase().trim(),
-      payment_id: result.paymentId,
-      category:   'DOMAIN',
-    }),
-  });
+        const csrfToken = getCsrfToken();
+        const headers   = {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        };
 
-// ✅ NFT mint
-} else if (listingId.startsWith('nft-mint-')) {
-  await fetch('/api/assets/provision', {
-    method:      'POST',
-    credentials: 'include',
-    headers:     { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      slug:       `nft-${result.paymentId?.slice(0, 8) ?? Date.now()}`,
-      payment_id: result.paymentId,
-      category:   'NFT',
-      metadata: {
-        name:     assetName,
-        imageUrl: params.get('image_url') ?? '',
-      },
-    }),
-  });
+        // ✅ Domain registration
+        if (listingId.startsWith('domain-reg-')) {
+          await fetch('/api/assets/provision', {
+            method:      'POST',
+            credentials: 'include',
+            headers,
+            body: JSON.stringify({
+              slug:       assetName.toLowerCase().trim(),
+              payment_id: result.paymentId,
+              category:   'DOMAIN',
+            }),
+          });
 
-// ✅ Marketplace buy
-} else {
-  await fetch('/api/assets/buy', {
-    method:      'POST',
-    credentials: 'include',
-    headers:     { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      listing_id: listingId,
-      payment_id: result.paymentId,
-      txid:       result.txid,
-    }),
-  });
-}
+        // ✅ NFT mint
+        } else if (listingId.startsWith('nft-mint-')) {
+          await fetch('/api/assets/provision', {
+            method:      'POST',
+            credentials: 'include',
+            headers,
+            body: JSON.stringify({
+              slug:       `nft-${result.paymentId?.slice(0, 8) ?? Date.now()}`,
+              payment_id: result.paymentId,
+              category:   'NFT',
+              metadata: {
+                name:     assetName,
+                imageUrl: imageUrl,
+              },
+            }),
+          });
 
-  setTxid(result.txid ?? '');
-  setStatus('success');
+        // ✅ Marketplace buy
+        } else {
+          await fetch('/api/assets/buy', {
+            method:      'POST',
+            credentials: 'include',
+            headers,
+            body: JSON.stringify({
+              listing_id: listingId,
+              payment_id: result.paymentId,
+              txid:       result.txid,
+            }),
+          });
+        }
 
-        // ✅ بعد 3 ثواني رجّع لـ Tec-Assets
+        setTxid(result.txid ?? '');
+        setStatus('success');
+
         setTimeout(() => {
           window.location.href = returnUrl;
         }, 3000);
@@ -119,7 +131,7 @@ if (listingId.startsWith('domain-reg-')) {
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [piReady, isValid, ensurePiAuth, price, assetName, assetId, assetType, listingId, user?.id, returnUrl]);
+  }, [piReady, isValid, ensurePiAuth, price, assetName, assetId, assetType, listingId, user?.id, returnUrl, imageUrl]);
 
   if (!isValid) {
     return (
@@ -142,9 +154,21 @@ if (listingId.startsWith('domain-reg-')) {
 
         {/* Asset Info */}
         <div style={styles.assetBox}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>
-            {assetType === 'domain' ? '🌐' : assetType === 'nft' ? '🎨' : '💎'}
-          </div>
+          {assetType === 'nft' && imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={assetName}
+              style={{
+                width: 120, height: 120, objectFit: 'cover',
+                borderRadius: 16, marginBottom: 8,
+                border: '2px solid #7b6bc840',
+              }}
+            />
+          ) : (
+            <div style={{ fontSize: 48, marginBottom: 8 }}>
+              {assetType === 'domain' ? '🌐' : assetType === 'nft' ? '🎨' : '💎'}
+            </div>
+          )}
           <div style={styles.assetName}>{assetName}</div>
           <div style={styles.assetType}>{assetType.toUpperCase()}</div>
         </div>
@@ -158,7 +182,6 @@ if (listingId.startsWith('domain-reg-')) {
           </div>
         </div>
 
-        {/* Status */}
         {status === 'idle' && (
           <>
             <div style={styles.warning}>
@@ -230,7 +253,6 @@ if (listingId.startsWith('domain-reg-')) {
   );
 }
 
-// ── Styles ────────────────────────────────────────────────
 const styles: Record<string, React.CSSProperties> = {
   container: {
     minHeight: '100vh', background: '#020205',
@@ -249,15 +271,9 @@ const styles: Record<string, React.CSSProperties> = {
     background: '#ffffff05', borderRadius: 20,
     border: '1px solid #ffffff08', width: '100%',
   },
-  assetName: {
-    fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4,
-  },
-  assetType: {
-    fontSize: 10, color: '#4a4a5a', letterSpacing: 3,
-  },
-  priceBox: {
-    textAlign: 'center', width: '100%',
-  },
+  assetName: { fontSize: 20, fontWeight: 800, color: '#fff', marginBottom: 4 },
+  assetType: { fontSize: 10, color: '#4a4a5a', letterSpacing: 3 },
+  priceBox:  { textAlign: 'center', width: '100%' },
   priceLabel: {
     fontSize: 11, color: '#4a4a5a', letterSpacing: 2,
     textTransform: 'uppercase', marginBottom: 8,
@@ -269,8 +285,7 @@ const styles: Record<string, React.CSSProperties> = {
   warning: {
     fontSize: 12, color: '#6b6b7a', textAlign: 'center',
     padding: '12px', background: '#ffffff05',
-    borderRadius: 12, border: '1px solid #ffffff08',
-    width: '100%',
+    borderRadius: 12, border: '1px solid #ffffff08', width: '100%',
   },
   btn: {
     width: '100%', padding: '16px',
@@ -281,20 +296,16 @@ const styles: Record<string, React.CSSProperties> = {
   cancelBtn: {
     width: '100%', padding: '14px',
     background: 'none', border: '1px solid #ffffff10',
-    borderRadius: 16, color: '#4a4a5a',
-    fontSize: 14, cursor: 'pointer',
+    borderRadius: 16, color: '#4a4a5a', fontSize: 14, cursor: 'pointer',
   },
   statusBox: {
     textAlign: 'center', width: '100%',
-    display: 'flex', flexDirection: 'column',
-    alignItems: 'center', gap: 12,
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
   },
-  statusText: {
-    fontSize: 20, fontWeight: 800, color: '#fff',
-  },
-  statusSub: {
-    fontSize: 13, color: '#4a4a5a',
-  },
+  statusText: { fontSize: 20, fontWeight: 800, color: '#fff' },
+  statusSub:  { fontSize: 13, color: '#4a4a5a' },
+  title:      { fontSize: 20, fontWeight: 800, color: '#fff' },
+  sub:        { fontSize: 13, color: '#4a4a5a' },
   spinner: {
     width: 48, height: 48, borderRadius: '50%',
     border: '3px solid #d4af3730',

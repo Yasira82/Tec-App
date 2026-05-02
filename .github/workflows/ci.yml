@@ -3,61 +3,66 @@ name: TEC CI/CD Pipeline
 on:
   push:
     branches: [main]
+    paths:
+      - 'tec-frontend/**'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
+    paths:
+      - 'tec-frontend/**'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  lint:
-    name: Lint Code
+  frontend-pipeline:
+    name: Frontend Pipeline
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: ./tec-frontend
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      # ✅ Cache node_modules
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: tec-frontend/node_modules
+          key: ${{ runner.os }}-frontend-${{ hashFiles('tec-frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-frontend-
+
       - name: Install dependencies
         run: npm install --legacy-peer-deps
+
+      # ✅ Lint
       - name: Lint
         run: npm run lint
 
-  test-frontend:
-    name: Test Frontend
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install frontend dependencies
-        working-directory: ./tec-frontend
-        run: npm install --legacy-peer-deps
-      - name: Run tests
-        working-directory: ./tec-frontend
+      # ✅ Unit tests
+      - name: Test
         run: npm test
 
-  build-frontend:
-    name: Build Frontend
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./tec-frontend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - name: Install dependencies
-        run: npm install --legacy-peer-deps
+      # ✅ Build
       - name: Build Next.js
         run: npm run build
         env:
           NEXT_PUBLIC_PI_SANDBOX:      'true'
           NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL }}
-          NEXT_PUBLIC_PI_APP_ID: ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}
+          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}
+
+      # ✅ Upload build artifact
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        if: github.event_name == 'push'
+        with:
+          name: frontend-build
+          path: tec-frontend/.next/
+          retention-days: 3

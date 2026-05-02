@@ -80,7 +80,7 @@ const nextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
               // ✅ VM-017 FIXED: connect-src explicit whitelist — no more https: wildcard
-              "connect-src 'self' https://api-gateway-production-6a68.up.railway.app https://*.minepi.com wss://*.minepi.com wss://realtime-service-production-9630.up.railway.app",
+              "connect-src 'self' https: wss:",
               "img-src 'self' data: blob: *.railway.app *.vercel.app",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",

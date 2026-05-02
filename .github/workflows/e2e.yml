@@ -1,10 +1,16 @@
 name: E2E Tests
 
 on:
-  push:
-    branches: [main, master]
+  # ✅ E2E على PR فقط — مش على كل push
   pull_request:
-    branches: [main, master]
+    branches: [main]
+    paths:
+      - 'tec-frontend/**'
+      - '.github/workflows/e2e.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
   e2e:
@@ -13,22 +19,37 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      # ✅ Cache node_modules
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: tec-frontend/node_modules
+          key: ${{ runner.os }}-frontend-${{ hashFiles('tec-frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-frontend-
 
       - name: Install dependencies
         working-directory: tec-frontend
         run: npm install --legacy-peer-deps
 
+      # ✅ Cache Playwright browsers
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('tec-frontend/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-chromium-
+
       - name: Install Playwright browsers
         working-directory: tec-frontend
         run: npx playwright install --with-deps chromium
 
+      # ✅ استخدم الـ build artifact من الـ CI لو موجود
       - name: Build frontend
         working-directory: tec-frontend
         run: npm run build
@@ -54,4 +75,13 @@ jobs:
         with:
           name: playwright-report
           path: tec-frontend/playwright-report/
+          retention-days: 7
+
+      # ✅ Upload test results
+      - name: Upload test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-results
+          path: tec-frontend/test-results/
           retention-days: 7

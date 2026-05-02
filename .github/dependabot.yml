@@ -8,6 +8,8 @@ updates:
     ignore:
       - dependency-name: "@yasser172/tec-sdk"
         update-types: ["version-update:semver-major"]
+      - dependency-name: "@yasser172/tec-shared"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: "github-actions"
     directory: "/"

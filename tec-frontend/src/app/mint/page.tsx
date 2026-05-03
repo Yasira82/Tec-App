@@ -1,18 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useSearchParams }     from 'next/navigation';
-import { loginWithPi }         from '@/lib-client/pi/pi-auth';
+import { useEffect, useState, useRef } from 'react';
+import { useSearchParams }              from 'next/navigation';
 
 export default function MintPage() {
-  const params     = useSearchParams();
-  const assetId    = params.get('asset_id') ?? '';
-  const name       = params.get('name') ?? '';
-  const tier       = params.get('tier') ?? 'Common';
-  const returnUrl  = params.get('return_url') ?? 'https://tec-assets-app.vercel.app/app';
+  const params    = useSearchParams();
+  const assetId   = params.get('asset_id') ?? '';
+  const name      = params.get('name') ?? '';
+  const tier      = params.get('tier') ?? 'Common';
+  const returnUrl = params.get('return_url') ?? 'https://tec-assets-app.vercel.app/app';
 
   const [status, setStatus] = useState<'idle' | 'auth' | 'payment' | 'minting' | 'success' | 'error'>('idle');
   const [error,  setError]  = useState<string | null>(null);
+  const started = useRef(false);
 
   const tierColor = tier === 'Legendary'  ? '#ffd700'
                   : tier === 'Ultra Rare' ? '#b39ddb'
@@ -20,21 +20,19 @@ export default function MintPage() {
                   : tier === 'Uncommon'   ? '#7ee7c0'
                   : '#d4af37';
 
-  useEffect(() => {
-    if (!assetId || !name) {
-      setError('Invalid mint request');
-      return;
-    }
-    startMint();
-  }, []);
-
   const startMint = async () => {
-    try {
-      // 1. Auth
-      setStatus('auth');
-      await loginWithPi();
+    if (started.current) return;
+    started.current = true;
 
-      // 2. Payment
+    try {
+      if (!assetId || !name) throw new Error('Invalid mint request');
+      if (!window.Pi)        throw new Error('Open in Pi Browser');
+
+      // ✅ 1. Authenticate مباشرة — بدون loginWithPi
+      setStatus('auth');
+      await window.Pi.authenticate(['username', 'payments'], () => {});
+
+      // ✅ 2. Payment
       setStatus('payment');
       await new Promise<void>((resolve, reject) => {
         window.Pi.createPayment(
@@ -55,7 +53,7 @@ export default function MintPage() {
             },
             onReadyForServerCompletion: async (_paymentId: string, txid: string) => {
               try {
-                // 3. Mint
+                // ✅ 3. Mint
                 setStatus('minting');
                 const res = await fetch('/api/bff/assets/mint-as-nft', {
                   method: 'POST', credentials: 'include',
@@ -72,7 +70,7 @@ export default function MintPage() {
         );
       });
 
-      // 4. Success → redirect back
+      // ✅ 4. Success
       setStatus('success');
       setTimeout(() => { window.location.href = returnUrl; }, 1500);
 
@@ -86,6 +84,21 @@ export default function MintPage() {
       }
     }
   };
+
+  useEffect(() => {
+    if (!assetId || !name) { setError('Invalid mint request'); setStatus('error'); return; }
+
+    // ✅ انتظر الـ Pi SDK
+    if (window.__TEC_PI_READY && window.Pi) {
+      startMint();
+    } else {
+      window.addEventListener('tec-pi-ready', startMint, { once: true });
+      window.addEventListener('tec-pi-error', () => {
+        setError('Pi SDK failed to load');
+        setStatus('error');
+      }, { once: true });
+    }
+  }, []);
 
   return (
     <div style={{
@@ -102,25 +115,19 @@ export default function MintPage() {
         borderRadius: 24, padding: 32,
         textAlign: 'center',
       }}>
-        {/* ── Domain Name ── */}
-        <div style={{
-          fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8,
-        }}>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
           {name}
         </div>
 
-        {/* ── Tier ── */}
         <div style={{
           display: 'inline-block', fontSize: 11, fontWeight: 700,
           color: tierColor, background: `${tierColor}15`,
           border: `1px solid ${tierColor}30`,
-          borderRadius: 20, padding: '4px 14px', marginBottom: 32,
-          letterSpacing: 1,
+          borderRadius: 20, padding: '4px 14px', marginBottom: 32, letterSpacing: 1,
         }}>
           ✦ {tier.toUpperCase()} DOMAIN
         </div>
 
-        {/* ── Status ── */}
         {status === 'error' ? (
           <>
             <div style={{ fontSize: 40, marginBottom: 12 }}>❌</div>
@@ -142,9 +149,7 @@ export default function MintPage() {
             <div style={{ fontSize: 16, fontWeight: 700, color: '#7ee7c0', marginBottom: 8 }}>
               Minted Successfully!
             </div>
-            <div style={{ fontSize: 12, color: '#4a4a5a' }}>
-              Redirecting back...
-            </div>
+            <div style={{ fontSize: 12, color: '#4a4a5a' }}>Redirecting back...</div>
           </>
         ) : (
           <>
@@ -156,18 +161,16 @@ export default function MintPage() {
               margin: '0 auto 20px',
             }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-              {status === 'auth'    ? 'Authenticating...'  :
+              {status === 'auth'    ? 'Authenticating...'     :
                status === 'payment' ? 'Processing payment...' :
-               status === 'minting' ? 'Minting your NFT...' :
+               status === 'minting' ? 'Minting your NFT...'   :
                'Preparing...'}
             </div>
           </>
         )}
       </div>
 
-      <style>{`
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
 }

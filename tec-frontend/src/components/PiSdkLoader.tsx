@@ -8,20 +8,20 @@ const warn  = (...args: unknown[]) => { if (isDev) console.warn(...args); };
 const err   = (...args: unknown[]) => { if (isDev) console.error(...args); };
 
 interface PiSdkLoaderProps {
-  sandbox: boolean;
-  timeout: number;
+  sandbox:  boolean;
+  timeout:  number;
+  onReady?: () => void;  // ✅ أضف
 }
 
-export default function PiSdkLoader({ sandbox, timeout }: PiSdkLoaderProps) {
+export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderProps) {
   useEffect(() => {
-    // ✅ لو فيه error سابق — reset وجرب تاني
     if (window.__TEC_PI_ERROR) {
       window.__TEC_PI_ERROR = false;
     }
 
-    // ✅ لو ready بالفعل — dispatch event تاني عشان الـ listeners يشتغلوا
     if (window.__TEC_PI_READY) {
       window.dispatchEvent(new Event('tec-pi-ready'));
+      onReady?.();  // ✅ أضف
       return;
     }
 
@@ -45,15 +45,16 @@ export default function PiSdkLoader({ sandbox, timeout }: PiSdkLoaderProps) {
         log(`[TEC] Pi SDK initialized (sandbox: ${sandbox})`);
         window.__TEC_PI_READY = true;
         window.dispatchEvent(new Event('tec-pi-ready'));
+        onReady?.();  // ✅ أضف
         return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
 
-        // ✅ لو already initialized — اعتبره ready
         if (msg.includes('already') || msg.includes('initialized')) {
           log('[TEC] Pi SDK already initialized — marking as ready');
           window.__TEC_PI_READY = true;
           window.dispatchEvent(new Event('tec-pi-ready'));
+          onReady?.();  // ✅ أضف
           return true;
         }
 

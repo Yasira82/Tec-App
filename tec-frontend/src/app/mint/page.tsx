@@ -28,11 +28,27 @@ export default function MintPage() {
       if (!assetId || !name) throw new Error('Invalid mint request');
       if (!window.Pi)        throw new Error('Open in Pi Browser');
 
-      // ✅ 1. Authenticate مباشرة — بدون loginWithPi
+      // ✅ Force init بالـ appId الحقيقي
+      try {
+        window.Pi.init({
+          version: '2.0',
+          sandbox: false,
+          appId:   'tec-app-923b947851f9dfe1',
+        });
+        window.__TEC_PI_READY = true;
+      } catch (e) {
+        const msg = String(e);
+        if (!msg.includes('already') && !msg.includes('initialized')) {
+          throw new Error('Pi SDK init failed');
+        }
+        // already initialized — ok
+      }
+
+      // ✅ Authenticate
       setStatus('auth');
       await window.Pi.authenticate(['username', 'payments'], () => {});
 
-      // ✅ 2. Payment
+      // ✅ Payment
       setStatus('payment');
       await new Promise<void>((resolve, reject) => {
         window.Pi.createPayment(
@@ -53,7 +69,6 @@ export default function MintPage() {
             },
             onReadyForServerCompletion: async (_paymentId: string, txid: string) => {
               try {
-                // ✅ 3. Mint
                 setStatus('minting');
                 const res = await fetch('/api/bff/assets/mint-as-nft', {
                   method: 'POST', credentials: 'include',
@@ -70,7 +85,6 @@ export default function MintPage() {
         );
       });
 
-      // ✅ 4. Success
       setStatus('success');
       setTimeout(() => { window.location.href = returnUrl; }, 1500);
 
@@ -86,18 +100,21 @@ export default function MintPage() {
   };
 
   useEffect(() => {
-    if (!assetId || !name) { setError('Invalid mint request'); setStatus('error'); return; }
-
-    // ✅ انتظر الـ Pi SDK
-    if (window.__TEC_PI_READY && window.Pi) {
-      startMint();
-    } else {
-      window.addEventListener('tec-pi-ready', startMint, { once: true });
-      window.addEventListener('tec-pi-error', () => {
-        setError('Pi SDK failed to load');
-        setStatus('error');
-      }, { once: true });
+    if (!assetId || !name) {
+      setError('Invalid mint request');
+      setStatus('error');
+      return;
     }
+
+    // ✅ انتظر الـ Pi SDK script يتحمل
+    const tryStart = () => {
+      if (typeof window.Pi !== 'undefined') {
+        startMint();
+      } else {
+        setTimeout(tryStart, 200);
+      }
+    };
+    tryStart();
   }, []);
 
   return (

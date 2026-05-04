@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import { useSearchParams }              from 'next/navigation';
-import PiSdkLoader                      from '@/components/PiSdkLoader';
+import { useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams }                           from 'next/navigation';
+import PiSdkLoader                                   from '@/components/PiSdkLoader';
 
 export default function MintPage() {
   const params    = useSearchParams();
@@ -22,14 +22,7 @@ export default function MintPage() {
                   : tier === 'Uncommon'   ? '#7ee7c0'
                   : '#d4af37';
 
-  // ✅ لما الـ SDK يكون ready — ابدأ الـ mint
-  useEffect(() => {
-    if (!sdkReady) return;
-    if (!assetId || !name) { setError('Invalid mint request'); setStatus('error'); return; }
-    startMint();
-  }, [sdkReady]);
-
-  const startMint = async () => {
+  const startMint = useCallback(async () => {
     if (started.current) return;
     started.current = true;
 
@@ -87,11 +80,16 @@ export default function MintPage() {
         setStatus('error');
       }
     }
-  };
+  }, [assetId, name, returnUrl]);
+
+  useEffect(() => {
+    if (!sdkReady) return;
+    if (!assetId || !name) { setError('Invalid mint request'); setStatus('error'); return; }
+    startMint();
+  }, [sdkReady, assetId, name, startMint]);
 
   return (
     <>
-      {/* ✅ PiSdkLoader — يضمن الـ SDK initialized قبل أي call */}
       <PiSdkLoader
         sandbox={process.env.NEXT_PUBLIC_PI_SANDBOX === 'true'}
         timeout={15000}
@@ -158,7 +156,7 @@ export default function MintPage() {
                 margin: '0 auto 20px',
               }} />
               <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-                {!sdkReady          ? 'Loading Pi SDK...'      :
+                {!sdkReady           ? 'Loading Pi SDK...'      :
                  status === 'auth'    ? 'Authenticating...'     :
                  status === 'payment' ? 'Processing payment...' :
                  status === 'minting' ? 'Minting your NFT...'   :

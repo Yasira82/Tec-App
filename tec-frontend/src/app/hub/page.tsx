@@ -16,7 +16,8 @@ import { AmountSelector }                                 from './components/Amo
 import { HubSkeleton }                                    from './components/HubSkeleton';
 import { PullIndicator }                                  from './components/PullIndicator';
 
-const ASSETS_URL = 'https://assets.tecosystem.app';
+const ASSETS_URL   = 'https://assets.tecosystem.app';
+const COMMERCE_URL = 'https://commerce.tecosystem.app';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -201,10 +202,8 @@ function HubPageInner() {
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
-  const goToAssets = () => {
-    haptic('light');
-    window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL);
-  };
+  const goToAssets   = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
+  const goToCommerce = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
 
   return (
     <div
@@ -293,7 +292,8 @@ function HubPageInner() {
       <div style={{ padding: '10px 16px 0' }} className="fade-in">
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ overflow: 'hidden', borderRadius: 18 }}>
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
-            {/* ✅ Slide 0: Assets */}
+
+            {/* Slide 0: Assets */}
             <div style={{ minWidth: '100%' }}>
               <button className="hub-btn" onClick={goToAssets}
                 style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
@@ -315,7 +315,22 @@ function HubPageInner() {
               </button>
             </div>
 
-            {/* Slide 1: Pi Price */}
+            {/* Slide 1: Commerce */}
+            <div style={{ minWidth: '100%' }}>
+              <button className="hub-btn" onClick={goToCommerce}
+                style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #7eb8f720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#0a1a2e,#0d0d14)', border: '1px solid #7eb8f730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🛒</div>
+                  <div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Commerce</div>
+                    <div style={{ fontSize: 10, color: '#4a4a5a' }}>Buy · Sell · Trade on Pi</div>
+                  </div>
+                </div>
+                <div style={{ fontSize: 9, color: '#7eb8f7', letterSpacing: 1 }}>OPEN →</div>
+              </button>
+            </div>
+
+            {/* Slide 2: Pi Price */}
             <div style={{ minWidth: '100%' }}>
               <div style={{ borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -354,10 +369,11 @@ function HubPageInner() {
                 )}
               </div>
             </div>
+
           </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'center', gap: 6, marginTop: 8 }}>
-          {[0,1].map(i => (
+          {[0,1,2].map(i => (
             <button key={i} onClick={() => { haptic('light'); setCarouselIdx(i); }}
               style={{ width: carouselIdx === i ? 16 : 6, height: 6, borderRadius: 3, background: carouselIdx === i ? '#d4af37' : '#ffffff20', border: 'none', cursor: 'pointer', transition: 'all 0.3s ease', padding: 0 }} />
           ))}
@@ -451,6 +467,7 @@ function HubPageInner() {
           { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
           { icon: '💎', label: 'Assets',   active: false, action: goToAssets },
+          { icon: '🛒', label: 'Commerce', active: false, action: goToCommerce },
           { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}
@@ -471,4 +488,4 @@ export default function HubPage() {
       <HubPageInner />
     </ErrorBoundary>
   );
-            }
+                }

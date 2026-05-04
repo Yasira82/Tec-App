@@ -1,10 +1,27 @@
 'use client';
 
-import { useEffect, useState, useRef, useCallback } from 'react';
-import { useSearchParams }                           from 'next/navigation';
-import PiSdkLoader                                   from '@/components/PiSdkLoader';
+import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
+import { useSearchParams }                                      from 'next/navigation';
+import PiSdkLoader                                             from '@/components/PiSdkLoader';
 
-export default function MintPage() {
+// ── Spinner ───────────────────────────────────────────────
+const Spinner = ({ color = '#d4af37' }: { color?: string }) => (
+  <div style={{
+    minHeight: '100vh', background: '#020205',
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  }}>
+    <div style={{
+      width: 48, height: 48, borderRadius: '50%',
+      border: '3px solid #ffffff10',
+      borderTopColor: color,
+      animation: 'spin 0.8s linear infinite',
+    }} />
+    <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+  </div>
+);
+
+// ── Main Component ────────────────────────────────────────
+function MintPageInner() {
   const params    = useSearchParams();
   const assetId   = params.get('asset_id') ?? '';
   const name      = params.get('name') ?? '';
@@ -169,5 +186,14 @@ export default function MintPage() {
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     </>
+  );
+}
+
+// ── Export with Suspense ──────────────────────────────────
+export default function MintPage() {
+  return (
+    <Suspense fallback={<Spinner />}>
+      <MintPageInner />
+    </Suspense>
   );
 }

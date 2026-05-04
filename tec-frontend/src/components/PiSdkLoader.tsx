@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 
 const isDev = process.env.NODE_ENV !== 'production';
 const log   = (...args: unknown[]) => { if (isDev) console.log(...args); };
@@ -10,10 +10,12 @@ const err   = (...args: unknown[]) => { if (isDev) console.error(...args); };
 interface PiSdkLoaderProps {
   sandbox:  boolean;
   timeout:  number;
-  onReady?: () => void;  // ✅ أضف
+  onReady?: () => void;
 }
 
 export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderProps) {
+  const stableOnReady = useCallback(() => { onReady?.(); }, [onReady]);
+
   useEffect(() => {
     if (window.__TEC_PI_ERROR) {
       window.__TEC_PI_ERROR = false;
@@ -21,7 +23,7 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
 
     if (window.__TEC_PI_READY) {
       window.dispatchEvent(new Event('tec-pi-ready'));
-      onReady?.();  // ✅ أضف
+      stableOnReady();
       return;
     }
 
@@ -36,28 +38,24 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
         log(`[TEC] Pi SDK detected after ${elapsed}ms, calling Pi.init()`);
 
         const appId = process.env.NEXT_PUBLIC_PI_APP_ID;
-        if (!appId) {
-          warn('[TEC] NEXT_PUBLIC_PI_APP_ID is not set — Pi.init() may fail');
-        }
+        if (!appId) warn('[TEC] NEXT_PUBLIC_PI_APP_ID is not set — Pi.init() may fail');
 
         window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
 
         log(`[TEC] Pi SDK initialized (sandbox: ${sandbox})`);
         window.__TEC_PI_READY = true;
         window.dispatchEvent(new Event('tec-pi-ready'));
-        onReady?.();  // ✅ أضف
+        stableOnReady();
         return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-
         if (msg.includes('already') || msg.includes('initialized')) {
           log('[TEC] Pi SDK already initialized — marking as ready');
           window.__TEC_PI_READY = true;
           window.dispatchEvent(new Event('tec-pi-ready'));
-          onReady?.();  // ✅ أضف
+          stableOnReady();
           return true;
         }
-
         err('[TEC] Pi.init() failed:', e);
         window.__TEC_PI_ERROR = true;
         window.dispatchEvent(new CustomEvent('tec-pi-error', { detail: e }));
@@ -68,22 +66,17 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
     if (tryInit()) return;
 
     const poll = setInterval(() => {
-      if (tryInit()) {
-        clearInterval(poll);
-        return;
-      }
+      if (tryInit()) { clearInterval(poll); return; }
       if (Date.now() - startTime >= timeout) {
         clearInterval(poll);
         err(`[TEC] Pi SDK not available after ${timeout}ms`);
         window.__TEC_PI_ERROR = true;
-        window.dispatchEvent(
-          new CustomEvent('tec-pi-error', { detail: { message: 'SDK load timeout' } }),
-        );
+        window.dispatchEvent(new CustomEvent('tec-pi-error', { detail: { message: 'SDK load timeout' } }));
       }
     }, POLL_INTERVAL);
 
     return () => clearInterval(poll);
-  }, [sandbox, timeout]);
+  }, [sandbox, timeout, stableOnReady]);
 
   return null;
 }

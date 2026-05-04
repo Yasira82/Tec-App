@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react';
 import { useSearchParams }       from 'next/navigation';
+import Image                     from 'next/image';
 import { usePiAuth }             from '@/lib-client/hooks/usePiAuth';
 import { createU2APayment }      from '@/lib-client/pi/pi-payment';
 import { piSession }             from '@/lib-client/pi/pi-session';
@@ -87,7 +88,7 @@ export default function PayClient() {
             credentials: 'include',
             headers,
             body: JSON.stringify({
-              slug: `nft-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`, 
+              slug: `nft-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
               payment_id: result.paymentId,
               category:   'NFT',
               metadata: {
@@ -155,12 +156,15 @@ export default function PayClient() {
         {/* Asset Info */}
         <div style={styles.assetBox}>
           {assetType === 'nft' && imageUrl ? (
-            <img
+            <Image
               src={imageUrl}
               alt={assetName}
+              width={120}
+              height={120}
               style={{
-                width: 120, height: 120, objectFit: 'cover',
-                borderRadius: 16, marginBottom: 8,
+                objectFit: 'cover',
+                borderRadius: 16,
+                marginBottom: 8,
                 border: '2px solid #7b6bc840',
               }}
             />

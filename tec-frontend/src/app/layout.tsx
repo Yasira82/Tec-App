@@ -9,7 +9,6 @@ import PiBrowserGuard from '@/components/PiBrowserGuard';
 import type { Metadata, Viewport } from 'next';
 
 // ✅ منع prerender لكل الصفحات
-export const dynamic = 'force-dynamic';
 
 const cormorantGaramond = Cormorant_Garamond({
   subsets:  ['latin'],

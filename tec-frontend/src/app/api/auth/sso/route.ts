@@ -6,6 +6,9 @@ const ALLOWED_TARGETS = [
   'https://tec-assets.vercel.app',
   'https://assets.tecosystem.app',
   'https://assets.pi',
+  'https://tec-commerce-app.vercel.app',
+  'https://commerce.tecosystem.app',
+  'https://commerce.pi',
 ];
 
 export async function GET(req: NextRequest) {

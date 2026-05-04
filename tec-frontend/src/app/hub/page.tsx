@@ -10,8 +10,14 @@ import { piSession }                                      from '@/lib-client/pi/
 import { createU2APayment }                               from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications }                       from '@/lib-client/hooks/useRealtimeNotifications';
 import { ErrorBoundary }                                  from '@/components/ErrorBoundary';
+import { ToastContainer, Toast }                          from './components/ToastContainer';
+import { AIDrawer }                                       from './components/AIDrawer';
+import { AmountSelector }                                 from './components/AmountSelector';
+import { HubSkeleton }                                    from './components/HubSkeleton';
+import { PullIndicator }                                  from './components/PullIndicator';
 
-// ─── Haptic ───────────────────────────────────────────────────
+const ASSETS_URL = 'https://assets.tecosystem.app';
+
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
     const patterns = { light: 10, medium: 25, heavy: 50 };
@@ -19,294 +25,6 @@ const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   }
 };
 
-// ─── Toast ────────────────────────────────────────────────────
-type ToastType = 'success' | 'error' | 'info' | 'warning';
-
-interface Toast {
-  id:      string;
-  type:    ToastType;
-  message: string;
-  txid?:   string;
-}
-
-function ToastContainer({ toasts, onDismiss }: {
-  toasts:    Toast[];
-  onDismiss: (id: string) => void;
-}) {
-  const colors: Record<ToastType, { bg: string; border: string; color: string; icon: string }> = {
-    success: { bg: '#051a0a', border: '#7ee7c040', color: '#7ee7c0', icon: '✅' },
-    error:   { bg: '#1a0505', border: '#e74c3c40', color: '#e74c3c', icon: '❌' },
-    info:    { bg: '#0a0f1a', border: '#7eb8f740', color: '#7eb8f7', icon: 'ℹ️' },
-    warning: { bg: '#1a1505', border: '#f0c04040', color: '#f0c040', icon: '⚠️' },
-  };
-  return (
-    <div style={{ position: 'fixed', top: 70, left: 16, right: 16, zIndex: 999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>
-      {toasts.map(toast => {
-        const c = colors[toast.type];
-        return (
-          <div key={toast.id}
-            style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 14, padding: '12px 16px', display: 'flex', alignItems: 'flex-start', gap: 10, animation: 'toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1)', pointerEvents: 'auto', boxShadow: '0 8px 32px rgba(0,0,0,0.4)' }}>
-            <span style={{ fontSize: 16 }}>{c.icon}</span>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: c.color }}>{toast.message}</div>
-              {toast.txid && (
-                <div style={{ fontSize: 10, color: '#4a4a5a', fontFamily: 'monospace', marginTop: 3 }}>
-                  txid: {toast.txid.slice(0, 20)}...
-                </div>
-              )}
-            </div>
-            <button onClick={() => onDismiss(toast.id)}
-              style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 14, padding: '0 2px' }}>✕</button>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-// ─── AI Drawer ────────────────────────────────────────────────
-function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [input,    setInput]    = useState('');
-  const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
-  const [loading,  setLoading]  = useState(false);
-
-  const send = useCallback(async () => {
-    if (!input.trim() || loading) return;
-    const text = input.trim();
-    setInput('');
-    setMessages(prev => [...prev, { role: 'user', text }]);
-    setLoading(true);
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method:      'POST',
-        headers:     { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body:        JSON.stringify({ messages: [{ role: 'user', content: text }] }),
-      });
-      const reader  = res.body?.getReader();
-      const decoder = new TextDecoder();
-      let reply = '';
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split('\n')) {
-            if (!line.startsWith('data: ')) continue;
-            const data = line.slice(6).trim();
-            if (!data || data === '[DONE]') continue;
-            try { const parsed = JSON.parse(data); if (parsed.text) reply += parsed.text; } catch { /* skip */ }
-          }
-        }
-      }
-      setMessages(prev => [...prev, { role: 'ai', text: reply || 'Sorry, no response.' }]);
-    } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
-    } finally { setLoading(false); }
-  }, [input, loading]);
-
-  if (!open) return null;
-
-  return (
-    <>
-      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0a0a12', borderTop: '1px solid #d4af3720', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
-            <div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>TEC AI</div>
-              <div style={{ fontSize: 10, color: '#4a4a5a' }}>Powered by tec.pi</div>
-            </div>
-          </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
-        </div>
-        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {messages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#4a4a5a', fontSize: 13 }}>مرحباً! أنا مساعدك الذكي على TEC 🤖</div>
-          )}
-          {messages.map((m, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-              <div style={{
-                maxWidth: '80%', padding: '10px 14px',
-                borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                background: m.role === 'user' ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#0d0d1a',
-                border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
-                fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
-              }}>{m.text}</div>
-            </div>
-          ))}
-          {loading && (
-            <div style={{ display: 'flex', gap: 4, padding: '8px 0' }}>
-              {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#d4af37', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />)}
-            </div>
-          )}
-        </div>
-        <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
-          <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
-            placeholder="اسأل TEC AI..."
-            style={{ flex: 1, background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }} />
-          <button onClick={send} disabled={loading || !input.trim()}
-            style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-// ─── Pull Indicator ───────────────────────────────────────────
-function PullIndicator({ progress, refreshing }: { progress: number; refreshing: boolean }) {
-  if (progress === 0 && !refreshing) return null;
-  return (
-    <div style={{ position: 'fixed', top: 60, left: '50%', transform: 'translateX(-50%)', zIndex: 200 }}>
-      <div style={{ background: '#0d0d14', border: '1px solid #d4af3730', borderRadius: '50%', width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {refreshing
-          ? <div style={{ width: 16, height: 16, border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', borderRadius: '50%', animation: 'spin 0.6s linear infinite' }} />
-          : <span style={{ fontSize: 14, transform: `rotate(${progress * 180}deg)`, display: 'inline-block', transition: 'transform 0.1s' }}>↓</span>}
-      </div>
-    </div>
-  );
-}
-
-// ─── Amount Selector ──────────────────────────────────────────
-const PRESETS = [1, 5, 10, 50];
-
-function AmountSelector({ value, onChange, disabled }: {
-  value:    number;
-  onChange: (v: number) => void;
-  disabled: boolean;
-}) {
-  const [showCustom, setShowCustom] = useState(false);
-  const [customRaw,  setCustomRaw]  = useState('');
-  const isPreset = PRESETS.includes(value) && !showCustom;
-
-  const handlePreset = (v: number) => {
-    haptic('light');
-    onChange(v);
-    setShowCustom(false);
-    setCustomRaw('');
-  };
-
-  const handleCustomChange = (raw: string) => {
-    setCustomRaw(raw);
-    const n = parseFloat(raw);
-    if (!isNaN(n) && n > 0) onChange(n);
-  };
-
-  const toggleCustom = () => {
-    haptic('light');
-    setShowCustom(p => {
-      if (!p) setCustomRaw('');
-      return !p;
-    });
-  };
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      {/* ── Presets row ── */}
-      <div style={{ display: 'flex', gap: 8 }}>
-        {PRESETS.map(p => {
-          const active = value === p && isPreset;
-          return (
-            <button key={p} onClick={() => handlePreset(p)} disabled={disabled}
-              style={{
-                flex: 1, padding: '11px 0', borderRadius: 14,
-                background: active ? '#d4af3718' : '#0d0d14',
-                border: `1px solid ${active ? '#d4af3760' : '#ffffff10'}`,
-                color: active ? '#d4af37' : '#6b6b7a',
-                fontWeight: 700, fontSize: 13,
-                cursor: disabled ? 'not-allowed' : 'pointer',
-                transition: 'all 0.2s',
-              }}>
-              {p}π
-            </button>
-          );
-        })}
-
-        {/* Custom toggle */}
-        <button onClick={toggleCustom} disabled={disabled}
-          style={{
-            flex: 1, padding: '11px 0', borderRadius: 14,
-            background: showCustom ? '#d4af3718' : '#0d0d14',
-            border: `1px solid ${showCustom ? '#d4af3760' : '#ffffff10'}`,
-            color: showCustom ? '#d4af37' : '#6b6b7a',
-            fontWeight: 700, fontSize: 13,
-            cursor: disabled ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s',
-          }}>
-          ✏️
-        </button>
-      </div>
-
-      {/* ── Custom input ── */}
-      {showCustom && (
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10,
-          background: '#0d0d14', border: '1px solid #d4af3740',
-          borderRadius: 14, padding: '12px 16px',
-        }}>
-          <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#d4af37' }}>π</span>
-          <input
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={customRaw}
-            onChange={e => handleCustomChange(e.target.value)}
-            placeholder="Enter amount"
-            autoFocus
-            style={{
-              flex: 1, background: 'none', border: 'none', outline: 'none',
-              color: '#fff', fontSize: 18, fontWeight: 700,
-              fontVariantNumeric: 'tabular-nums',
-            }}
-          />
-          {customRaw && (
-            <button onClick={() => { setCustomRaw(''); onChange(1); }}
-              style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 16 }}>
-              ✕
-            </button>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Skeleton ─────────────────────────────────────────────────
-function HubSkeleton() {
-  return (
-    <div style={{ minHeight: '100vh', background: '#020205', padding: '0 0 90px' }}>
-      <style>{`@keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.8}}.sk{animation:shimmer 1.4s ease infinite;background:#0d0d14;border-radius:18px}`}</style>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: '#d4af3730' }} />
-          <div style={{ width: 60, height: 20, borderRadius: 6, background: '#ffffff08' }} />
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08' }} />
-          <div style={{ width: 90, height: 36, borderRadius: 12, background: '#ffffff08' }} />
-        </div>
-      </div>
-      <div style={{ padding: '16px 16px 0' }}><div className="sk" style={{ height: 120 }} /></div>
-      <div style={{ padding: '10px 16px 0' }}><div className="sk" style={{ height: 80 }} /></div>
-      <div style={{ padding: '12px 16px 0' }}><div className="sk" style={{ height: 100 }} /></div>
-      <div style={{ padding: '10px 16px 0', display: 'flex', gap: 10 }}>
-        <div className="sk" style={{ flex: 1, height: 54 }} />
-        <div className="sk" style={{ flex: 1, height: 54 }} />
-      </div>
-      <div style={{ padding: '20px 16px 0' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 10 }}>
-          {[1,2,3,4].map(i => <div key={i} className="sk" style={{ height: 68 }} />)}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Hub Inner ────────────────────────────────────────────────
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
@@ -329,9 +47,7 @@ function HubPageInner() {
   const [toasts,       setToasts]       = useState<Toast[]>([]);
   const [pullProgress, setPullProgress] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
-
-  // ✅ Amount state
-  const [payAmount, setPayAmount] = useState(1);
+  const [payAmount,    setPayAmount]    = useState(1);
 
   const pullStartY     = useRef(0);
   const isPulling      = useRef(false);
@@ -339,7 +55,7 @@ function HubPageInner() {
   const touchEndX      = useRef(0);
   const PULL_THRESHOLD = 80;
 
-  const showToast = useCallback((type: ToastType, message: string, txid?: string) => {
+  const showToast = useCallback((type: Toast['type'], message: string, txid?: string) => {
     const id = Math.random().toString(36).slice(2);
     setToasts(prev => [...prev, { id, type, message, txid }]);
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
@@ -450,72 +166,33 @@ function HubPageInner() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
-  // ✅ handlePay — user-defined amount
   const handlePay = useCallback(async () => {
-    if (!window.Pi) {
-      haptic('heavy');
-      showToast('error', 'Open in Pi Browser to make payments');
-      return;
-    }
-
-    if (!piReady) {
-      haptic('heavy');
-      showToast('warning', 'Pi SDK connecting... try again');
-      return;
-    }
-
-    if (!payAmount || payAmount <= 0) {
-      haptic('heavy');
-      showToast('warning', 'Enter a valid amount');
-      return;
-    }
+    if (!window.Pi) { haptic('heavy'); showToast('error', 'Open in Pi Browser to make payments'); return; }
+    if (!piReady)   { haptic('heavy'); showToast('warning', 'Pi SDK connecting... try again'); return; }
+    if (!payAmount || payAmount <= 0) { haptic('heavy'); showToast('warning', 'Enter a valid amount'); return; }
 
     const locked = await piSession.acquirePaymentLock();
-    if (!locked) {
-      showToast('warning', 'Payment already in progress');
-      return;
-    }
+    if (!locked) { showToast('warning', 'Payment already in progress'); return; }
 
     haptic('medium');
-
     try {
-      // ✅ حاول auth — بس مش بوقف لو فشل
       if (!authReady) await ensurePiAuth();
-
-      const result = await createU2APayment(
-        payAmount,
-        `TEC Payment — ${payAmount}π`,
-        { source: 'hub', amount: payAmount, version: '1.0' },
-      );
-
+      const result = await createU2APayment(payAmount, `TEC Payment — ${payAmount}π`, { source: 'hub', amount: payAmount, version: '1.0' });
       if (result.success && result.status === 'completed') {
-        haptic('heavy');
-        showToast('success', `Payment of ${payAmount}π successful! 🎉`, result.txid);
+        haptic('heavy'); showToast('success', `Payment of ${payAmount}π successful! 🎉`, result.txid);
         setTimeout(refreshBalance, 2000);
       } else if (result.status === 'cancelled') {
-        haptic('light');
-        showToast('warning', 'Payment cancelled');
+        haptic('light'); showToast('warning', 'Payment cancelled');
       } else {
-        haptic('heavy');
-        showToast('error', result.message ?? 'Payment failed');
+        haptic('heavy'); showToast('error', result.message ?? 'Payment failed');
       }
     } catch (err) {
       haptic('heavy');
       const msg = err instanceof Error ? err.message : 'Payment failed';
-
-      if (msg.includes('not initialized') || msg.includes('init')) {
-        window.location.reload();
-        return;
-      }
-      if (/scope|permission|payments/i.test(msg)) {
-        showToast('warning', 'Reconnecting to Pi payments... tap again');
-        return;
-      }
-      if (/pending|already have/i.test(msg)) {
-        showToast('warning', 'Pending payment detected — try again');
-      } else {
-        showToast('error', msg);
-      }
+      if (msg.includes('not initialized') || msg.includes('init')) { window.location.reload(); return; }
+      if (/scope|permission|payments/i.test(msg)) { showToast('warning', 'Reconnecting to Pi payments... tap again'); return; }
+      if (/pending|already have/i.test(msg)) { showToast('warning', 'Pending payment detected — try again'); }
+      else { showToast('error', msg); }
     } finally {
       piSession.releasePaymentLock();
       refreshBalance();
@@ -523,6 +200,11 @@ function HubPageInner() {
   }, [piReady, authReady, ensurePiAuth, payAmount, refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
+
+  const goToAssets = () => {
+    haptic('light');
+    window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL);
+  };
 
   return (
     <div
@@ -611,9 +293,9 @@ function HubPageInner() {
       <div style={{ padding: '10px 16px 0' }} className="fade-in">
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ overflow: 'hidden', borderRadius: 18 }}>
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
-            {/* Slide 0: Assets */}
+            {/* ✅ Slide 0: Assets */}
             <div style={{ minWidth: '100%' }}>
-              <button className="hub-btn" onClick={() => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets-app.vercel.app'); }}
+              <button className="hub-btn" onClick={goToAssets}
                 style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 44, height: 44, borderRadius: 14, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>💎</div>
@@ -684,32 +366,15 @@ function HubPageInner() {
 
       {/* ── Amount Selector + Pay ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
-
-        {/* ✅ Amount selector */}
-        <AmountSelector
-          value={payAmount}
-          onChange={setPayAmount}
-          disabled={!piReady}
-        />
-
-        {/* ✅ Pay + Receive */}
+        <AmountSelector value={payAmount} onChange={setPayAmount} disabled={!piReady} />
         <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
           <button className="hub-btn" onClick={handlePay} disabled={!piReady}
-            style={{
-              flex: 1, padding: '16px 12px', borderRadius: 18,
-              background: piReady ? 'linear-gradient(135deg,#0d2e14,#0a1f0f)' : '#0a0a0a',
-              border: `1px solid ${piReady ? '#7ee7c040' : '#ffffff10'}`,
-              color: piReady ? '#7ee7c0' : '#4a4a5a',
-              fontWeight: 700, fontSize: 13,
-              cursor: piReady ? 'pointer' : 'not-allowed',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              opacity: piReady ? 1 : 0.5, transition: 'all 0.3s',
-            }}>
+            style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: piReady ? 'linear-gradient(135deg,#0d2e14,#0a1f0f)' : '#0a0a0a', border: `1px solid ${piReady ? '#7ee7c040' : '#ffffff10'}`, color: piReady ? '#7ee7c0' : '#4a4a5a', fontWeight: 700, fontSize: 13, cursor: piReady ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, opacity: piReady ? 1 : 0.5, transition: 'all 0.3s' }}>
             {!piReady ? (
-  <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #4a4a5a30', borderTop: '2px solid #4a4a5a', animation: 'spin 0.8s linear infinite' }} /><span>Connecting...</span></>
-) : (
-  <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay {payAmount}π</span></>
-)}
+              <><div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid #4a4a5a30', borderTop: '2px solid #4a4a5a', animation: 'spin 0.8s linear infinite' }} /><span>Connecting...</span></>
+            ) : (
+              <><span style={{ fontFamily: 'Georgia,serif', fontSize: 16 }}>π</span><span>Pay {payAmount}π</span></>
+            )}
           </button>
           <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
             style={{ flex: 1, padding: '16px 12px', borderRadius: 18, background: 'linear-gradient(135deg,#0a0f2e,#0a0f1f)', border: '1px solid #7eb8f740', color: '#7eb8f7', fontWeight: 700, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
@@ -785,7 +450,7 @@ function HubPageInner() {
         {[
           { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: '💎', label: 'Assets',   active: false, action: () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent('https://tec-assets-app.vercel.app'); } },
+          { icon: '💎', label: 'Assets',   active: false, action: goToAssets },
           { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
         ].map(item => (
           <button key={item.label} className="hub-btn" onClick={item.action}
@@ -806,4 +471,4 @@ export default function HubPage() {
       <HubPageInner />
     </ErrorBoundary>
   );
-                }
+            }

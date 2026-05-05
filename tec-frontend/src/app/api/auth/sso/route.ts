@@ -39,9 +39,15 @@ export async function GET(req: NextRequest) {
       const encoded = new TextEncoder().encode(jwtSecret);
       await jwtVerify(accessToken, encoded, { algorithms: ['HS256'] });
     } catch {
+      // Token expired — try refresh with CSRF
+      const csrfToken  = req.cookies.get('tec_csrf')?.value ?? '';
       const refreshRes = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
         method:  'POST',
-        headers: { Cookie: req.headers.get('cookie') ?? '' },
+        headers: {
+          Cookie:         req.headers.get('cookie') ?? '',
+          'x-csrf-token': csrfToken,
+          'Content-Type': 'application/json',
+        },
       });
       if (refreshRes.ok) {
         const refreshData = await refreshRes.json();

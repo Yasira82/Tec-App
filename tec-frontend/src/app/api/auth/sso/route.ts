@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { SignJWT }                   from 'jose';
+import { SignJWT, jwtVerify }        from 'jose';
 
 const ALLOWED_TARGETS = [
   'https://tec-assets-app.vercel.app',
@@ -24,17 +24,35 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
   }
 
-  const secret = process.env.SSO_SECRET;
-  if (!secret) {
-    return NextResponse.json({ error: 'sso_not_configured' }, { status: 503 });
+  const secret    = process.env.SSO_SECRET;
+  const jwtSecret = process.env.JWT_SECRET;
+  if (!secret || !jwtSecret) {
+    return NextResponse.json({ error: 'not_configured' }, { status: 503 });
   }
 
   try {
-    const user    = JSON.parse(decodeURIComponent(userCookie));
+    const user = JSON.parse(decodeURIComponent(userCookie));
+
+    // ✅ تحقق من الـ token — لو expired اعمل refresh
+    let validToken = accessToken;
+    try {
+      const encoded = new TextEncoder().encode(jwtSecret);
+      await jwtVerify(accessToken, encoded, { algorithms: ['HS256'] });
+    } catch {
+      const refreshRes = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
+        method:  'POST',
+        headers: { Cookie: req.headers.get('cookie') ?? '' },
+      });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        validToken = refreshData.token ?? accessToken;
+      }
+    }
+
     const jti     = crypto.randomUUID();
     const encoded = new TextEncoder().encode(secret);
 
-    const token = await new SignJWT({ accessToken, user })
+    const token = await new SignJWT({ accessToken: validToken, user })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(user.id)
       .setIssuer('tec.pi')

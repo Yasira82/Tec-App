@@ -9,5 +9,3 @@ export default function PiTestPage() {
   }
   return <PiTestClient />;
 }
-
-ده الكود الي في الريبو

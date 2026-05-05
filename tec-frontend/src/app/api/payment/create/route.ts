@@ -1,5 +1,3 @@
-src/app/api/payment/complete/route.ts
-
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { isE2eMode } from '@/lib/server/e2e-mode';

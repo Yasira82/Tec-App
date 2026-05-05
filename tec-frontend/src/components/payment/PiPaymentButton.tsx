@@ -49,12 +49,18 @@ export default function PiPaymentButton() {
     try {
       const result = await loginWithPi();
       if (result?.success) {
-        window.location.href = '/hub';
+        // ✅ لو في returnTo في الـ URL — ارجع ليه عن طريق SSO
+        const params   = new URLSearchParams(window.location.search);
+        const returnTo = params.get('returnTo');
+        if (returnTo) {
+          window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnTo)}`;
+        } else {
+          window.location.href = '/hub';
+        }
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Authentication failed';
 
-      // ✅ لو SDK مش initialized — reload الصفحة
       if (
         message.includes('not initialized') ||
         message.includes('failed to load') ||
@@ -64,7 +70,6 @@ export default function PiPaymentButton() {
         return;
       }
 
-      // ✅ لو مش Pi Browser
       if (message.includes('Pi Browser')) {
         setError('Please open in Pi Browser');
         setLoading(false);

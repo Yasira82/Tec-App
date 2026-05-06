@@ -9,15 +9,15 @@ import { piSession }                                   from '@/lib-client/pi/pi-
 import { ErrorBoundary }                               from '@/components/ErrorBoundary';
 
 function HubPayInner() {
-  const params     = useSearchParams();
+  const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
 
-  const amount     = parseFloat(params.get('amount')     ?? '0');
-  const memo       = params.get('memo')       ?? 'TEC Payment';
-  const returnUrl  = params.get('return_url') ?? 'https://tec-commerce-app.vercel.app/app';
-  const productId  = params.get('product_id') ?? '';
-  const source     = params.get('source')     ?? 'commerce';
+  const amount    = parseFloat(params.get('amount')     ?? '0');
+  const memo      = params.get('memo')       ?? 'TEC Payment';
+  const returnUrl = params.get('return_url') ?? 'https://tec-commerce-app.vercel.app/app';
+  const productId = params.get('product_id') ?? '';
+  const source    = params.get('source')     ?? 'commerce';
 
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message, setMessage] = useState('');
@@ -38,6 +38,21 @@ function HubPayInner() {
 
     setStatus('paying');
     try {
+      // ✅ Refresh token الأول عشان نضمن صلاحيته
+      try {
+        const refreshRes = await fetch('/api/auth/refresh', {
+          method:      'POST',
+          credentials: 'include',
+        });
+        if (!refreshRes.ok) {
+          piSession.releasePaymentLock();
+          window.location.href = '/';
+          return;
+        }
+      } catch {
+        // تكمل حتى لو فشل الـ refresh
+      }
+
       if (!authReady) await ensurePiAuth();
 
       const result = await createU2APayment(
@@ -52,7 +67,7 @@ function HubPayInner() {
         setTimeout(() => {
           const url = new URL(returnUrl);
           url.searchParams.set('payment_status', 'success');
-          url.searchParams.set('txid',            result.txid    ?? '');
+          url.searchParams.set('txid',            result.txid      ?? '');
           url.searchParams.set('payment_id',      result.paymentId ?? '');
           url.searchParams.set('product_id',      productId);
           window.location.href = url.toString();
@@ -80,8 +95,11 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated, piReady, status, handlePay]);
 
   if (isLoading) return (
-    <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid #d4af3730', borderTop: '3px solid #d4af37', animation: 'spin 0.8s linear infinite' }} />
+    <div style={{ minHeight: '100vh', background: '#020205',
+      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, borderRadius: '50%',
+        border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
+        animation: 'spin 0.8s linear infinite' }} />
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -113,7 +131,7 @@ function HubPayInner() {
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
         {/* Status */}
-        {status === 'idle' || status === 'paying' ? (
+        {(status === 'idle' || status === 'paying') && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%',
               border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
@@ -122,24 +140,30 @@ function HubPayInner() {
               {status === 'idle' ? 'Preparing payment...' : 'Processing payment...'}
             </div>
           </div>
-        ) : status === 'success' ? (
+        )}
+
+        {status === 'success' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>✅</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#7ee7c0' }}>Payment Successful!</div>
             <div style={{ fontSize: 12, color: '#4a4a5a' }}>Redirecting back...</div>
           </div>
-        ) : status === 'cancelled' ? (
+        )}
+
+        {status === 'cancelled' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>⚠️</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>Payment Cancelled</div>
-            <button onClick={() => window.location.href = returnUrl}
+            <button onClick={() => { window.location.href = returnUrl; }}
               style={{ marginTop: 8, padding: '12px 24px', borderRadius: 14,
                 background: '#ffffff10', border: '1px solid #ffffff20',
                 color: '#fff', fontSize: 13, cursor: 'pointer' }}>
               Go Back
             </button>
           </div>
-        ) : (
+        )}
+
+        {status === 'error' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>❌</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
@@ -152,7 +176,7 @@ function HubPayInner() {
                   fontWeight: 700, cursor: 'pointer' }}>
                 Try Again
               </button>
-              <button onClick={() => window.location.href = returnUrl}
+              <button onClick={() => { window.location.href = returnUrl; }}
                 style={{ padding: '12px 24px', borderRadius: 14,
                   background: '#ffffff10', border: '1px solid #ffffff20',
                   color: '#fff', fontSize: 13, cursor: 'pointer' }}>

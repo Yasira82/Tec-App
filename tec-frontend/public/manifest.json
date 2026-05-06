@@ -12,34 +12,10 @@
   "categories": ["finance", "utilities", "productivity"],
   "icons": [
     {
-      "src": "/icons/icon-72.png",
-      "sizes": "72x72",
-      "type": "image/png",
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon",
       "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-96.png",
-      "sizes": "96x96",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-128.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icons/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
     }
   ],
   "shortcuts": [
@@ -52,20 +28,6 @@
       "name": "Wallet",
       "url": "/dashboard/wallet",
       "description": "Pi Wallet"
-    },
-    {
-      "name": "Marketplace",
-      "url": "/dashboard/marketplace",
-      "description": "Asset Marketplace"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "/screenshots/home.png",
-      "sizes": "390x844",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "TEC Home"
     }
   ]
 }

@@ -24,12 +24,31 @@ function getUserIdFromCookie(req: NextRequest): string | null {
   } catch { return null; }
 }
 
+// ✅ Refresh token server-side
+async function refreshAccessToken(req: NextRequest): Promise<string | null> {
+  try {
+    const refreshToken = req.cookies.get('tec_refresh_token')?.value;
+    if (!refreshToken) return null;
+
+    const res = await fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/v1/auth/refresh`, {
+      method:  'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ refreshToken }),
+    });
+
+    if (!res.ok) return null;
+    const data = await res.json().catch(() => ({}));
+    return data?.tokens?.accessToken ?? data?.token ?? null;
+  } catch { return null; }
+}
+
 export async function POST(req: NextRequest) {
-  // ── Debug ─────────────────────────────────────────────
   const allCookies = req.cookies.getAll().map(c => c.name);
   console.log('[create] cookies:', allCookies.join(', ') || 'NONE');
 
-  const authHeader =
+  let authHeader =
     req.headers.get('authorization') ??
     req.headers.get('Authorization') ??
     (() => {
@@ -91,7 +110,7 @@ export async function POST(req: NextRequest) {
 
     const idempotencyKey = randomUUID();
 
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payments/create`, {
+    let res = await fetchWithTimeout(`${GATEWAY}/api/payments/create`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',
@@ -99,11 +118,35 @@ export async function POST(req: NextRequest) {
         'Idempotency-Key': idempotencyKey,
         'X-Request-ID':    requestId,
       },
-      body: JSON.stringify({
-        ...body,
-        userId,
-      }),
+      body: JSON.stringify({ ...body, userId }),
     });
+
+    // ✅ لو 401 — جرب refresh وحاول تاني
+    if (res.status === 401) {
+      console.log('[create] Token expired — attempting refresh...');
+      const newToken = await refreshAccessToken(req);
+
+      if (newToken) {
+        console.log('[create] Token refreshed — retrying...');
+        authHeader = `Bearer ${newToken}`;
+        res = await fetchWithTimeout(`${GATEWAY}/api/payments/create`, {
+          method:  'POST',
+          headers: {
+            'Content-Type':    'application/json',
+            Authorization:     authHeader,
+            'Idempotency-Key': idempotencyKey,
+            'X-Request-ID':    requestId,
+          },
+          body: JSON.stringify({ ...body, userId }),
+        });
+      } else {
+        console.warn('[create] Token refresh failed');
+        return NextResponse.json(
+          { error: 'Session expired — please login again' },
+          { status: 401, headers: { 'X-Request-ID': requestId } },
+        );
+      }
+    }
 
     const data = await res.json().catch(() => ({}));
     console.log('[create] gateway response:', res.status, JSON.stringify(data));

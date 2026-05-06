@@ -25,6 +25,10 @@ function getUserIdFromCookie(req: NextRequest): string | null {
 }
 
 export async function POST(req: NextRequest) {
+  // ── Debug ─────────────────────────────────────────────
+  const allCookies = req.cookies.getAll().map(c => c.name);
+  console.log('[create] cookies:', allCookies.join(', ') || 'NONE');
+
   const authHeader =
     req.headers.get('authorization') ??
     req.headers.get('Authorization') ??
@@ -33,7 +37,11 @@ export async function POST(req: NextRequest) {
       return raw ? `Bearer ${raw}` : null;
     })();
 
+  console.log('[create] authHeader exists:', !!authHeader);
+  console.log('[create] authHeader prefix:', authHeader?.substring(0, 20) ?? 'N/A');
+
   if (!authHeader?.startsWith('Bearer ')) {
+    console.warn('[create] No valid auth header — returning 401');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -41,11 +49,13 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
+    console.log('[create] body:', JSON.stringify(body));
 
-    // ✅ VM-NEW-003: userId من cookie أو JWT فقط — مش من body
     const userId =
       getUserIdFromCookie(req) ??
       getUserIdFromToken(authHeader);
+
+    console.log('[create] userId:', userId);
 
     if (!userId) {
       return NextResponse.json(
@@ -91,16 +101,19 @@ export async function POST(req: NextRequest) {
       },
       body: JSON.stringify({
         ...body,
-        userId, // ✅ دايماً من cookie/JWT
+        userId,
       }),
     });
 
     const data = await res.json().catch(() => ({}));
+    console.log('[create] gateway response:', res.status, JSON.stringify(data));
+
     return NextResponse.json(data, {
       status:  res.status,
       headers: { 'X-Request-ID': requestId },
     });
-  } catch {
+  } catch (err) {
+    console.error('[create] error:', err);
     return NextResponse.json(
       { error: 'Service unavailable', requestId },
       { status: 503, headers: { 'X-Request-ID': requestId } },

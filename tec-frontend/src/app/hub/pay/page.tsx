@@ -8,6 +8,12 @@ import { createU2APayment }                            from '@/lib-client/pi/pi-
 import { piSession }                                   from '@/lib-client/pi/pi-session';
 import { ErrorBoundary }                               from '@/components/ErrorBoundary';
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ')
+    .find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 function HubPayInner() {
   const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
@@ -38,11 +44,14 @@ function HubPayInner() {
 
     setStatus('paying');
     try {
-      // ✅ Refresh token الأول عشان نضمن صلاحيته
+      // ✅ Refresh token مع CSRF
       try {
         const refreshRes = await fetch('/api/auth/refresh', {
           method:      'POST',
           credentials: 'include',
+          headers: {
+            'x-csrf-token': getCsrfToken(),
+          },
         });
         if (!refreshRes.ok) {
           piSession.releasePaymentLock();

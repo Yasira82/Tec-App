@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_ROUTES = ['/hub', '/dashboard', '/profile', '/settings'];
+const PROTECTED_ROUTES  = ['/hub', '/dashboard', '/profile', '/settings'];
+const PUBLIC_HUB_ROUTES = ['/hub/pay']; // ✅ صفحة الـ payment — مش محتاجة redirect
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
-// BFF routes اللي محتاجة CSRF verification
+
 const CSRF_PROTECTED = [
   '/api/auth/logout',
   '/api/auth/refresh',
@@ -19,10 +20,12 @@ const CSRF_PROTECTED = [
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const method = req.method.toUpperCase();
+  const method       = req.method.toUpperCase();
 
   // ── Page protection ────────────────────────────────────────
-  const isProtected = PROTECTED_ROUTES.some((r) => pathname.startsWith(r));
+  const isPublicHub  = PUBLIC_HUB_ROUTES.some(r => pathname.startsWith(r));
+  const isProtected  = !isPublicHub && PROTECTED_ROUTES.some(r => pathname.startsWith(r));
+
   if (isProtected) {
     const token = req.cookies.get('tec_access_token')?.value;
     if (!token || token.trim() === '') {
@@ -32,17 +35,16 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // ── CSRF verification — double-submit pattern ──────────────
+  // ── CSRF verification ──────────────────────────────────────
   if (!CSRF_SAFE_METHODS.has(method)) {
-    const isCsrfProtected = CSRF_PROTECTED.some((r) => pathname.startsWith(r));
+    const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
     if (isCsrfProtected) {
       const csrfCookie = req.cookies.get('tec_csrf')?.value;
       const csrfHeader = req.headers.get('x-csrf-token');
-
       if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
-          { status: 403 }
+          { status: 403 },
         );
       }
     }

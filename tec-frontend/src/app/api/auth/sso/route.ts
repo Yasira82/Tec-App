@@ -9,6 +9,9 @@ const ALLOWED_TARGETS = [
   'https://tec-commerce-app.vercel.app',
   'https://commerce.tecosystem.app',
   'https://commerce.pi',
+  // ✅ Hub pay page — للـ cross-app payments
+  'https://tec-app-frontend.vercel.app/hub/pay',
+  'https://hub.tecosystem.app/hub/pay',
 ];
 
 export async function GET(req: NextRequest) {
@@ -20,7 +23,10 @@ export async function GET(req: NextRequest) {
   }
 
   const target = req.nextUrl.searchParams.get('target');
-  if (!target || !ALLOWED_TARGETS.includes(target)) {
+
+  // ✅ startsWith بدل exact match عشان يقبل URL مع query params
+  const isAllowed = target && ALLOWED_TARGETS.some(t => target.startsWith(t));
+  if (!target || !isAllowed) {
     return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
   }
 
@@ -39,7 +45,6 @@ export async function GET(req: NextRequest) {
       const encoded = new TextEncoder().encode(jwtSecret);
       await jwtVerify(accessToken, encoded, { algorithms: ['HS256'] });
     } catch {
-      // Token expired — try refresh with CSRF
       const csrfToken  = req.cookies.get('tec_csrf')?.value ?? '';
       const refreshRes = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
         method:  'POST',
@@ -62,13 +67,13 @@ export async function GET(req: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(user.id)
       .setIssuer('tec.pi')
-      .setAudience(target)
+      .setAudience('https://tec-app-frontend.vercel.app') // ✅ Hub audience
       .setJti(jti)
       .setExpirationTime('5m')
       .setIssuedAt()
       .sign(encoded);
 
-    const redirectUrl = `${target}/api/auth/sso-callback?token=${encodeURIComponent(token)}`;
+    const redirectUrl = `${target}`;
     return NextResponse.redirect(redirectUrl);
   } catch {
     return NextResponse.json({ error: 'sso_failed' }, { status: 500 });

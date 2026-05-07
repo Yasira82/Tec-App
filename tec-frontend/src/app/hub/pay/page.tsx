@@ -23,10 +23,13 @@ function HubPayInner() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      window.location.href = '/';
-    }
-  }, [isLoading, isAuthenticated]);
+  if (isLoading) return;
+  if (!isAuthenticated) {
+    // ✅ مش بنروح لـ / — Pi Browser هيعمل login تلقائي في Hub
+    // لأن Hub مسجل في develop.pi
+    window.location.href = `/?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  }
+}, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }

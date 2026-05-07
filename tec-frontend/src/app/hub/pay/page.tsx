@@ -40,11 +40,14 @@ function HubPayInner() {
     try {
       if (!authReady) await ensurePiAuth();
 
-      const result = await createU2APayment(
-        amount,
-        memo,
-        { source, product_id: productId, version: '1.0' },
-      );
+     const result = await createU2APayment(
+  amount,
+  memo,
+  { source, product_id: productId, version: '1.0' },
+  (type, message, data) => {
+    console.log(`[HubPay][${type}] ${message}`, data ?? '');
+  },
+); 
 
       if (result.success && result.status === 'completed') {
         setStatus('success');

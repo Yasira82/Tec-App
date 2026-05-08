@@ -12,6 +12,9 @@ const goToReturn = (returnUrl: string) => {
   window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
 };
 
+const getCsrf = (): string =>
+  document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+
 function HubPayInner() {
   const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
@@ -43,19 +46,35 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
-    if (!window.__TEC_PI_READY || !window.Pi) {
-      setStatus('error'); setMessage('Pi SDK not ready'); return;
-    }
-    if (!piReady) { setStatus('error'); setMessage('Pi SDK not ready'); return; }
+    if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
+
+    // ✅ Force Pi.init() مباشرة قبل الـ payment
+    try {
+      const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';
+      window.Pi.init({ version: '2.0', sandbox });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (!msg.includes('already') && !msg.includes('initialized')) {
+        setStatus('error'); setMessage('Pi SDK init failed'); return;
+      }
+    }
+
+    // ✅ Refresh token قبل الـ payment
+    try {
+      await fetch('/api/auth/refresh', {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'x-csrf-token': getCsrf() },
+      });
+    } catch { /* تكمل */ }
 
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
     setStatus('paying');
     try {
-      // ✅ Auth داخل الـ payment — مش blocking للـ UI
-      try { await ensurePiAuth(); } catch { /* تكمل حتى لو فشل */ }
+      try { await ensurePiAuth(); } catch { /* تكمل */ }
 
       const result = await createU2APayment(
         amount, memo,
@@ -87,7 +106,6 @@ function HubPayInner() {
     }
   }, [piReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — بس sdkReady + piReady كافيين
   useEffect(() => {
     if (!isLoading && isAuthenticated && piReady && sdkReady && !hasStarted.current) {
       hasStarted.current = true;
@@ -203,4 +221,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-}
+          }

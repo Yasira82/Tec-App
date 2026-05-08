@@ -15,7 +15,7 @@ const goToReturn = (returnUrl: string) => {
 function HubPayInner() {
   const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
+  const { piReady, ensurePiAuth } = usePiSdkReady();
 
   const amount    = parseFloat(params.get('amount')     ?? '0');
   const memo      = params.get('memo')       ?? 'TEC Payment';
@@ -26,7 +26,6 @@ function HubPayInner() {
   const [status,   setStatus]   = useState<'idle' | 'waiting' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message,  setMessage]  = useState('');
   const [sdkReady, setSdkReady] = useState(false);
-
   const hasStarted = useRef(false);
 
   useEffect(() => {
@@ -45,9 +44,7 @@ function HubPayInner() {
 
   const handlePay = useCallback(async () => {
     if (!window.__TEC_PI_READY || !window.Pi) {
-      setStatus('error');
-      setMessage('Pi SDK not ready — please try again');
-      return;
+      setStatus('error'); setMessage('Pi SDK not ready'); return;
     }
     if (!piReady) { setStatus('error'); setMessage('Pi SDK not ready'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
@@ -57,32 +54,27 @@ function HubPayInner() {
 
     setStatus('paying');
     try {
-      // ✅ دايماً ensurePiAuth قبل الـ payment
-      await ensurePiAuth();
+      // ✅ Auth داخل الـ payment — مش blocking للـ UI
+      try { await ensurePiAuth(); } catch { /* تكمل حتى لو فشل */ }
 
       const result = await createU2APayment(
-        amount,
-        memo,
+        amount, memo,
         { source, product_id: productId, version: '1.0' },
-        (type, msg, data) => {
-          console.log(`[HubPay][${type}] ${msg}`, data ?? '');
-        },
+        (type, msg, data) => console.log(`[HubPay][${type}] ${msg}`, data ?? ''),
       );
 
       if (result.success && result.status === 'completed') {
         setStatus('success');
-        setMessage('Payment successful! 🎉');
         setTimeout(() => {
-          const returnWithParams = new URL(returnUrl);
-          returnWithParams.searchParams.set('payment_status', 'success');
-          returnWithParams.searchParams.set('txid',            result.txid      ?? '');
-          returnWithParams.searchParams.set('payment_id',      result.paymentId ?? '');
-          returnWithParams.searchParams.set('product_id',      productId);
-          window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnWithParams.toString())}`;
+          const ret = new URL(returnUrl);
+          ret.searchParams.set('payment_status', 'success');
+          ret.searchParams.set('txid',            result.txid      ?? '');
+          ret.searchParams.set('payment_id',      result.paymentId ?? '');
+          ret.searchParams.set('product_id',      productId);
+          window.location.href = `/api/auth/sso?target=${encodeURIComponent(ret.toString())}`;
         }, 1500);
       } else if (result.status === 'cancelled') {
         setStatus('cancelled');
-        setMessage('Payment cancelled');
       } else {
         setStatus('error');
         setMessage(result.message ?? 'Payment failed');
@@ -95,43 +87,26 @@ function HubPayInner() {
     }
   }, [piReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — انتظر piReady + sdkReady + authReady
+  // ✅ Auto-start — بس sdkReady + piReady كافيين
   useEffect(() => {
-    if (
-      !isLoading      &&
-      isAuthenticated &&
-      piReady         &&
-      sdkReady        &&
-      authReady       &&
-      !hasStarted.current
-    ) {
+    if (!isLoading && isAuthenticated && piReady && sdkReady && !hasStarted.current) {
       hasStarted.current = true;
       setStatus('waiting');
       setTimeout(() => handlePay(), 500);
     }
-  }, [isLoading, isAuthenticated, piReady, sdkReady, authReady, handlePay]);
+  }, [isLoading, isAuthenticated, piReady, sdkReady, handlePay]);
 
-  // ✅ Loading screen — انتظر كل الـ states
-  if (isLoading || !sdkReady || !authReady) return (
-    <div style={{
-      minHeight: '100vh', background: '#020205',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center', gap: 16,
-    }}>
+  if (isLoading || !sdkReady) return (
+    <div style={{ minHeight: '100vh', background: '#020205',
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div style={{ width: 64, height: 64, borderRadius: 20,
         background: 'linear-gradient(135deg,#d4af37,#b8882a)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 28, fontWeight: 900, color: '#0a0800', marginBottom: 8 }}>
-        T
-      </div>
+        fontSize: 28, fontWeight: 900, color: '#0a0800', marginBottom: 8 }}>T</div>
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 13, color: '#4a4a5a' }}>
-        {!sdkReady  ? 'Initializing Pi...'  :
-         !authReady ? 'Authenticating...'   :
-                      'Loading...'}
-      </div>
+      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Initializing Pi...</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -143,21 +118,15 @@ function HubPayInner() {
       display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
     }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-
       <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
         <div style={{ width: 64, height: 64, borderRadius: 20,
           background: 'linear-gradient(135deg,#d4af37,#b8882a)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800' }}>
-          T
-        </div>
+          fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800' }}>T</div>
 
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2,
           textTransform: 'uppercase', marginBottom: 8 }}>TEC Payment</div>
-
-        <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>
-          {amount}π
-        </div>
+        <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>{amount}π</div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
         {(status === 'idle' || status === 'waiting' || status === 'paying') && (
@@ -166,11 +135,7 @@ function HubPayInner() {
               border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
               animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-              {status === 'waiting'
-                ? 'Preparing...'
-                : status === 'paying'
-                ? 'Processing payment...'
-                : 'Preparing payment...'}
+              {status === 'paying' ? 'Processing payment...' : 'Preparing payment...'}
             </div>
           </div>
         )}
@@ -190,9 +155,7 @@ function HubPayInner() {
             <button onClick={() => goToReturn(returnUrl)}
               style={{ marginTop: 8, padding: '12px 24px', borderRadius: 14,
                 background: '#ffffff10', border: '1px solid #ffffff20',
-                color: '#fff', fontSize: 13, cursor: 'pointer' }}>
-              Go Back
-            </button>
+                color: '#fff', fontSize: 13, cursor: 'pointer' }}>Go Back</button>
           </div>
         )}
 
@@ -202,20 +165,16 @@ function HubPayInner() {
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button
-                onClick={() => { hasStarted.current = false; handlePay(); }}
+              <button onClick={() => { hasStarted.current = false; handlePay(); }}
                 style={{ padding: '12px 24px', borderRadius: 14,
                   background: 'linear-gradient(135deg,#d4af37,#b8882a)',
-                  border: 'none', color: '#0a0800', fontSize: 13,
-                  fontWeight: 700, cursor: 'pointer' }}>
+                  border: 'none', color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 Try Again
               </button>
               <button onClick={() => goToReturn(returnUrl)}
                 style={{ padding: '12px 24px', borderRadius: 14,
                   background: '#ffffff10', border: '1px solid #ffffff20',
-                  color: '#fff', fontSize: 13, cursor: 'pointer' }}>
-                Cancel
-              </button>
+                  color: '#fff', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         )}

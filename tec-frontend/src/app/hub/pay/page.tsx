@@ -27,10 +27,8 @@ function HubPayInner() {
   const [message,  setMessage]  = useState('');
   const [sdkReady, setSdkReady] = useState(false);
 
-  // ✅ ref عشان نمنع double-start
   const hasStarted = useRef(false);
 
-  // ✅ انتظر Pi SDK ready event
   useEffect(() => {
     const onReady = () => setSdkReady(true);
     window.addEventListener('tec-pi-ready', onReady, { once: true });
@@ -59,7 +57,8 @@ function HubPayInner() {
 
     setStatus('paying');
     try {
-      if (!authReady) await ensurePiAuth();
+      // ✅ دايماً ensurePiAuth قبل الـ payment
+      await ensurePiAuth();
 
       const result = await createU2APayment(
         amount,
@@ -94,30 +93,45 @@ function HubPayInner() {
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
+  }, [piReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — مرة واحدة بس عن طريق ref
+  // ✅ Auto-start — انتظر piReady + sdkReady + authReady
   useEffect(() => {
     if (
-      !isLoading &&
+      !isLoading      &&
       isAuthenticated &&
-      piReady &&
-      sdkReady &&
+      piReady         &&
+      sdkReady        &&
+      authReady       &&
       !hasStarted.current
     ) {
       hasStarted.current = true;
       setStatus('waiting');
-      setTimeout(() => handlePay(), 1000);
+      setTimeout(() => handlePay(), 500);
     }
-  }, [isLoading, isAuthenticated, piReady, sdkReady, handlePay]);
+  }, [isLoading, isAuthenticated, piReady, sdkReady, authReady, handlePay]);
 
-  if (isLoading || !sdkReady) return (
-    <div style={{ minHeight: '100vh', background: '#020205',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+  // ✅ Loading screen — انتظر كل الـ states
+  if (isLoading || !sdkReady || !authReady) return (
+    <div style={{
+      minHeight: '100vh', background: '#020205',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center', gap: 16,
+    }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20,
+        background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 28, fontWeight: 900, color: '#0a0800', marginBottom: 8 }}>
+        T
+      </div>
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Initializing Pi...</div>
+      <div style={{ fontSize: 13, color: '#4a4a5a' }}>
+        {!sdkReady  ? 'Initializing Pi...'  :
+         !authReady ? 'Authenticating...'   :
+                      'Loading...'}
+      </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );

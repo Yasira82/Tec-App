@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify }        from 'jose';
 
 const ALLOWED_TARGETS = [
-  'https://tec-app-frontend.vercel.app', // ✅ Hub نفسه
+  'https://tec-app-frontend.vercel.app',
   'https://hub.tecosystem.app',
   'https://tec-assets-app.vercel.app',
   'https://tec-assets.vercel.app',
@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
 
   const target = req.nextUrl.searchParams.get('target');
 
-  // ✅ الـ target لازم يبدأ بـ allowed base
+  // ✅ startsWith عشان يقبل URL مع query params
   const targetBase = ALLOWED_TARGETS.find(t => target?.startsWith(t));
   if (!target || !targetBase) {
     return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
@@ -65,17 +65,25 @@ export async function GET(req: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(user.id)
       .setIssuer('tec.pi')
-      .setAudience(targetBase) // ✅ الـ audience = الـ base URL
+      .setAudience(targetBase)
       .setJti(jti)
       .setExpirationTime('5m')
       .setIssuedAt()
       .sign(encoded);
 
-    // ✅ ابعت لـ sso-callback على نفس الـ targetBase
-    const redirectUrl = `${targetBase}/api/auth/sso-callback?token=${encodeURIComponent(token)}`;
-    return NextResponse.redirect(redirectUrl);
+    // ✅ ابعت لـ sso-callback + حط الـ redirect params في الـ state
+    const callbackUrl = new URL(`${targetBase}/api/auth/sso-callback`);
+    callbackUrl.searchParams.set('token', token);
+
+    // ✅ لو الـ target عنده params — حطهم في الـ callback
+    const targetUrl   = new URL(target);
+    const targetPath  = targetUrl.pathname + targetUrl.search;
+    if (targetPath !== '/' && targetPath !== '') {
+      callbackUrl.searchParams.set('redirect', targetPath);
+    }
+
+    return NextResponse.redirect(callbackUrl.toString());
   } catch {
     return NextResponse.json({ error: 'sso_failed' }, { status: 500 });
   }
 }
- 

@@ -9,7 +9,6 @@ import { piSession }                                   from '@/lib-client/pi/pi-
 import { ErrorBoundary }                               from '@/components/ErrorBoundary';
 
 const goToReturn = (returnUrl: string) => {
-  // ✅ روح عن طريق SSO عشان الـ token يتحول
   window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
 };
 
@@ -35,13 +34,12 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
-    // ✅ انتظر الـ SDK يكون ready
     if (!window.__TEC_PI_READY || !window.Pi) {
       setStatus('error');
       setMessage('Pi SDK not initialized — please try again');
       return;
     }
-    if (!piReady) { setStatus('error'); setMessage('Pi SDK not ready'); return; }
+    if (!piReady)  { setStatus('error'); setMessage('Pi SDK not ready'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
     const locked = await piSession.acquirePaymentLock();
@@ -69,8 +67,6 @@ function HubPayInner() {
           returnWithParams.searchParams.set('txid',            result.txid      ?? '');
           returnWithParams.searchParams.set('payment_id',      result.paymentId ?? '');
           returnWithParams.searchParams.set('product_id',      productId);
-
-          // ✅ SSO عشان الـ token يتحول لـ Commerce
           window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnWithParams.toString())}`;
         }, 1500);
       } else if (result.status === 'cancelled') {
@@ -88,10 +84,21 @@ function HubPayInner() {
     }
   }, [piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — بس لو SDK ready
+  // ✅ Auto-start — انتظر Pi SDK event
   useEffect(() => {
-    if (!isLoading && isAuthenticated && piReady && window.__TEC_PI_READY && status === 'idle') {
-      handlePay();
+    if (isLoading || !isAuthenticated || !piReady || status !== 'idle') return;
+
+    const tryPay = () => {
+      if (window.__TEC_PI_READY && window.Pi) {
+        handlePay();
+      }
+    };
+
+    if (window.__TEC_PI_READY && window.Pi) {
+      tryPay();
+    } else {
+      window.addEventListener('tec-pi-ready', tryPay, { once: true });
+      return () => window.removeEventListener('tec-pi-ready', tryPay);
     }
   }, [isLoading, isAuthenticated, piReady, status, handlePay]);
 
@@ -125,13 +132,11 @@ function HubPayInner() {
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2,
           textTransform: 'uppercase', marginBottom: 8 }}>TEC Payment</div>
 
-        {/* Amount */}
         <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>
           {amount}π
         </div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
-        {/* Status */}
         {(status === 'idle' || status === 'paying') && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%',

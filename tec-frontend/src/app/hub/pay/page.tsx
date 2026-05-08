@@ -23,8 +23,25 @@ function HubPayInner() {
   const productId = params.get('product_id') ?? '';
   const source    = params.get('source')     ?? 'commerce';
 
-  const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
-  const [message, setMessage] = useState('');
+  const [status,    setStatus]    = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [message,   setMessage]   = useState('');
+  const [sdkReady,  setSdkReady]  = useState(false);
+
+  // ✅ انتظر Pi SDK يكون ready فعلاً
+  useEffect(() => {
+    if (window.__TEC_PI_READY) {
+      setSdkReady(true);
+      return;
+    }
+    const onReady = () => setSdkReady(true);
+    const onError = () => setSdkReady(false);
+    window.addEventListener('tec-pi-ready', onReady,  { once: true });
+    window.addEventListener('tec-pi-error', onError,  { once: true });
+    return () => {
+      window.removeEventListener('tec-pi-ready', onReady);
+      window.removeEventListener('tec-pi-error', onError);
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -34,9 +51,9 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
-    if (!window.__TEC_PI_READY || !window.Pi) {
+    if (!sdkReady || !window.Pi) {
       setStatus('error');
-      setMessage('Pi SDK not initialized — please try again');
+      setMessage('Pi SDK not ready — please try again');
       return;
     }
     if (!piReady)  { setStatus('error'); setMessage('Pi SDK not ready'); return; }
@@ -82,32 +99,25 @@ function HubPayInner() {
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
+  }, [sdkReady, piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — انتظر Pi SDK event
+  // ✅ Auto-start — بس لما SDK + auth جاهزين
   useEffect(() => {
-    if (isLoading || !isAuthenticated || !piReady || status !== 'idle') return;
-
-    const tryPay = () => {
-      if (window.__TEC_PI_READY && window.Pi) {
-        handlePay();
-      }
-    };
-
-    if (window.__TEC_PI_READY && window.Pi) {
-      tryPay();
-    } else {
-      window.addEventListener('tec-pi-ready', tryPay, { once: true });
-      return () => window.removeEventListener('tec-pi-ready', tryPay);
+    if (!isLoading && isAuthenticated && piReady && sdkReady && status === 'idle') {
+      handlePay();
     }
-  }, [isLoading, isAuthenticated, piReady, status, handlePay]);
+  }, [isLoading, isAuthenticated, piReady, sdkReady, status, handlePay]);
 
-  if (isLoading) return (
+  // ✅ loading = isLoading OR SDK مش ready لسه
+  if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',
-      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ fontSize: 13, color: '#4a4a5a' }}>
+        {!sdkReady ? 'Initializing Pi...' : 'Loading...'}
+      </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -121,7 +131,6 @@ function HubPayInner() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
       <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
-        {/* Logo */}
         <div style={{ width: 64, height: 64, borderRadius: 20,
           background: 'linear-gradient(135deg,#d4af37,#b8882a)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',

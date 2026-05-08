@@ -8,6 +8,8 @@ import { createU2APayment }                                     from '@/lib-clie
 import { piSession }                                            from '@/lib-client/pi/pi-session';
 import { ErrorBoundary }                                        from '@/components/ErrorBoundary';
 
+const HUB_ORIGIN = 'https://hub.tecosystem.app';
+
 const goToReturn = (returnUrl: string) => {
   window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
 };
@@ -41,7 +43,7 @@ function HubPayInner() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      window.location.href = `/?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
     }
   }, [isLoading, isAuthenticated]);
 
@@ -63,20 +65,26 @@ function HubPayInner() {
       }
     }
 
-    // ✅ Refresh token
+    // ✅ Refresh token — لو فشل → re-login على Hub domain
     try {
-      await fetch('/api/auth/refresh', {
+      const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
         headers: { 'x-csrf-token': getCsrf() },
       });
-    } catch { /* تكمل */ }
+      if (!refreshRes.ok) {
+        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+        return;
+      }
+    } catch {
+      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+      return;
+    }
 
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
     setStatus('auth');
     try {
-      // ✅ Pi auth لازم تنجح قبل الـ payment
       const authOk = await ensurePiAuth();
       if (!authOk) {
         piSession.releasePaymentLock();
@@ -235,4 +243,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-}
+                     }

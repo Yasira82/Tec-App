@@ -60,12 +60,12 @@ function HubPayInner() {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.includes('already') && !msg.includes('initialized')) {
-        setStatus('error'); setMessage('Pi SDK init failed'); return;
+      if (!msg.toLowerCase().includes('already')) {
+        console.warn('[HubPay] Pi.init warning:', msg);
       }
     }
 
-    // ✅ Refresh token — لو فشل → re-login على Hub domain
+    // ✅ Refresh token
     try {
       const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
@@ -85,11 +85,14 @@ function HubPayInner() {
 
     setStatus('auth');
     try {
+      // ✅ Reset session عشان نعمل fresh auth كل مرة
+      piSession.reset();
+
       const authOk = await ensurePiAuth();
       if (!authOk) {
         piSession.releasePaymentLock();
         setStatus('error');
-        setMessage('Pi authentication failed — please try again');
+        setMessage(`Pi auth failed: ${piSession.lastError ?? 'unknown'}`);
         return;
       }
 
@@ -243,4 +246,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-                     }
+}

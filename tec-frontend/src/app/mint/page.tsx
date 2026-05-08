@@ -27,9 +27,9 @@ const Spinner = () => (
 
 function MintPageInner() {
   const params    = useSearchParams();
-  const assetId   = params.get('asset_id') ?? '';
-  const name      = params.get('name')     ?? '';
-  const tier      = params.get('tier')     ?? 'Common';
+  const assetId   = params.get('asset_id')   ?? '';
+  const name      = params.get('name')       ?? '';
+  const tier      = params.get('tier')       ?? 'Common';
   const returnUrl = params.get('return_url') ?? 'https://assets.tecosystem.app/app';
 
   const { isAuthenticated, isLoading } = usePiAuth();
@@ -78,20 +78,13 @@ function MintPageInner() {
       }
     }
 
-    // ✅ Refresh token — لو فشل → Hub login
+    // ✅ جرب refresh بس متوقفش لو فشل — الـ token من SSO تازة
     try {
-      const refreshRes = await fetch('/api/auth/refresh', {
+      await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
         headers: { 'x-csrf-token': getCsrf() },
       });
-      if (!refreshRes.ok) {
-        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
-        return;
-      }
-    } catch {
-      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
-      return;
-    }
+    } catch { /* تكمل بالـ token الحالي */ }
 
     if (hasStarted.current) return;
     hasStarted.current = true;
@@ -160,7 +153,7 @@ function MintPageInner() {
       setError(msg);
       setStatus('error');
     }
-  }, [assetId, name, returnUrl, ensurePiAuth]);
+  }, [assetId, name, returnUrl, ensurePiAuth, piReady]);
 
   if (isLoading || !sdkReady) return <Spinner />;
 

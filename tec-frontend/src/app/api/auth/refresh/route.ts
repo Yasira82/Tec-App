@@ -14,43 +14,51 @@ export async function POST(req: NextRequest) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${refreshToken}`,
+        Authorization:  `Bearer ${refreshToken}`,
       },
     });
 
     const data = await backendRes.json().catch(() => ({}));
 
+    console.log('[refresh] gateway status:', backendRes.status);
+    console.log('[refresh] gateway data keys:', Object.keys(data));
+
     if (!backendRes.ok) {
       return NextResponse.json(data, { status: backendRes.status });
     }
 
-    const res = NextResponse.json({ token: data.token });
-    const accessMaxAge = 60 * 60 * 24; // 24h
-    const refreshMaxAge = 60 * 60 * 24 * 7; // 7d
+    // ✅ الـ token ممكن يكون في مكانين مختلفين
+    const newAccessToken  = data.token ?? data.accessToken ?? data.data?.token ?? data.data?.accessToken ?? null;
+    const newRefreshToken = data.refreshToken ?? data.data?.refreshToken ?? null;
 
-    // ✅ P0-1: httpOnly:false — Pi Browser يقرأ من document.cookie
-    res.cookies.set('tec_access_token', data.token, {
+    if (!newAccessToken) {
+      console.error('[refresh] No access token in response:', JSON.stringify(data));
+      return NextResponse.json({ error: 'No token in response' }, { status: 502 });
+    }
+
+    const res = NextResponse.json({ token: newAccessToken });
+
+    res.cookies.set('tec_access_token', newAccessToken, {
       httpOnly: false,
-      secure: true,
+      secure:   true,
       sameSite: 'none',
-      maxAge: accessMaxAge,
-      path: '/',
+      maxAge:   60 * 60 * 24,
+      path:     '/',
     });
 
-    // ✅ P1-4: حط الـ refresh token الجديد في الـ cookie
-    if (data.refreshToken) {
-      res.cookies.set('tec_refresh_token', data.refreshToken, {
+    if (newRefreshToken) {
+      res.cookies.set('tec_refresh_token', newRefreshToken, {
         httpOnly: true,
-        secure: true,
+        secure:   true,
         sameSite: 'none',
-        maxAge: refreshMaxAge,
-        path: '/',
+        maxAge:   60 * 60 * 24 * 7,
+        path:     '/',
       });
     }
 
     return res;
   } catch (err) {
-    console.error('[refresh-token] Error:', err);
+    console.error('[refresh] Error:', err);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

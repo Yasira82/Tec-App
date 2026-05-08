@@ -21,7 +21,9 @@ const markJtiUsed = (jti: string): void => {
 };
 
 export async function GET(req: NextRequest) {
-  const token = req.nextUrl.searchParams.get('token');
+  const token    = req.nextUrl.searchParams.get('token');
+  const redirect = req.nextUrl.searchParams.get('redirect') ?? '/hub';
+
   if (!token) return NextResponse.redirect(new URL('/hub', req.url));
 
   const secret = process.env.SSO_SECRET;
@@ -45,15 +47,15 @@ export async function GET(req: NextRequest) {
   if (!payload) return NextResponse.redirect(new URL('/', req.url));
 
   const jti = payload.jti as string;
-  if (!jti)            return NextResponse.json({ error: 'missing_jti' },     { status: 401 });
-  if (isJtiUsed(jti))  return NextResponse.json({ error: 'replay_detected' }, { status: 401 });
+  if (!jti)           return NextResponse.json({ error: 'missing_jti' },     { status: 401 });
+  if (isJtiUsed(jti)) return NextResponse.json({ error: 'replay_detected' }, { status: 401 });
   markJtiUsed(jti);
 
   const accessToken = payload.accessToken as string;
   const user        = payload.user as Record<string, unknown>;
 
-  // ✅ روح لـ /hub بعد الـ SSO
-  const res = NextResponse.redirect(new URL('/hub', req.url));
+  // ✅ روح لـ redirect path بعد الـ SSO
+  const res = NextResponse.redirect(new URL(redirect, req.url));
 
   const cookieOpts = {
     httpOnly: false,

@@ -23,13 +23,11 @@ function HubPayInner() {
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-  if (isLoading) return;
-  if (!isAuthenticated) {
-    // ✅ مش بنروح لـ / — Pi Browser هيعمل login تلقائي في Hub
-    // لأن Hub مسجل في develop.pi
-    window.location.href = `/?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
-  }
-}, [isLoading, isAuthenticated]);
+    if (isLoading) return;
+    if (!isAuthenticated) {
+      window.location.href = `/?redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    }
+  }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
@@ -43,25 +41,27 @@ function HubPayInner() {
     try {
       if (!authReady) await ensurePiAuth();
 
-     const result = await createU2APayment(
-  amount,
-  memo,
-  { source, product_id: productId, version: '1.0' },
-  (type, message, data) => {
-    console.log(`[HubPay][${type}] ${message}`, data ?? '');
-  },
-); 
+      const result = await createU2APayment(
+        amount,
+        memo,
+        { source, product_id: productId, version: '1.0' },
+        (type, msg, data) => {
+          console.log(`[HubPay][${type}] ${msg}`, data ?? '');
+        },
+      );
 
       if (result.success && result.status === 'completed') {
         setStatus('success');
         setMessage('Payment successful! 🎉');
         setTimeout(() => {
-          const url = new URL(returnUrl);
-          url.searchParams.set('payment_status', 'success');
-          url.searchParams.set('txid',            result.txid      ?? '');
-          url.searchParams.set('payment_id',      result.paymentId ?? '');
-          url.searchParams.set('product_id',      productId);
-          window.location.href = url.toString();
+          // ✅ روح عن طريق SSO عشان الـ token يتحول لـ Commerce
+          const returnWithParams = new URL(returnUrl);
+          returnWithParams.searchParams.set('payment_status', 'success');
+          returnWithParams.searchParams.set('txid',            result.txid      ?? '');
+          returnWithParams.searchParams.set('payment_id',      result.paymentId ?? '');
+          returnWithParams.searchParams.set('product_id',      productId);
+
+          window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnWithParams.toString())}`;
         }, 1500);
       } else if (result.status === 'cancelled') {
         setStatus('cancelled');
@@ -201,4 +201,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-                       }
+}

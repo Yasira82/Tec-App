@@ -23,24 +23,16 @@ function HubPayInner() {
   const productId = params.get('product_id') ?? '';
   const source    = params.get('source')     ?? 'commerce';
 
-  const [status,    setStatus]    = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
-  const [message,   setMessage]   = useState('');
-  const [sdkReady,  setSdkReady]  = useState(false);
+  const [status,   setStatus]   = useState<'idle' | 'waiting' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [message,  setMessage]  = useState('');
+  const [sdkReady, setSdkReady] = useState(false);
 
-  // ✅ انتظر Pi SDK يكون ready فعلاً
+  // ✅ انتظر Pi SDK ready event
   useEffect(() => {
-    if (window.__TEC_PI_READY) {
-      setSdkReady(true);
-      return;
-    }
     const onReady = () => setSdkReady(true);
-    const onError = () => setSdkReady(false);
-    window.addEventListener('tec-pi-ready', onReady,  { once: true });
-    window.addEventListener('tec-pi-error', onError,  { once: true });
-    return () => {
-      window.removeEventListener('tec-pi-ready', onReady);
-      window.removeEventListener('tec-pi-error', onError);
-    };
+    window.addEventListener('tec-pi-ready', onReady, { once: true });
+    if (window.__TEC_PI_READY) setSdkReady(true);
+    return () => window.removeEventListener('tec-pi-ready', onReady);
   }, []);
 
   useEffect(() => {
@@ -51,7 +43,7 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
-    if (!sdkReady || !window.Pi) {
+    if (!window.__TEC_PI_READY || !window.Pi) {
       setStatus('error');
       setMessage('Pi SDK not ready — please try again');
       return;
@@ -99,25 +91,27 @@ function HubPayInner() {
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [sdkReady, piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
+  }, [piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — بس لما SDK + auth جاهزين
+  // ✅ Auto-start — انتظر 800ms بعد SDK جاهز عشان Pi Browser يخلص init
   useEffect(() => {
     if (!isLoading && isAuthenticated && piReady && sdkReady && status === 'idle') {
-      handlePay();
+      setStatus('waiting');
+      const timer = setTimeout(() => {
+        setStatus('idle');
+        handlePay();
+      }, 800);
+      return () => clearTimeout(timer);
     }
   }, [isLoading, isAuthenticated, piReady, sdkReady, status, handlePay]);
 
-  // ✅ loading = isLoading OR SDK مش ready لسه
   if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 13, color: '#4a4a5a' }}>
-        {!sdkReady ? 'Initializing Pi...' : 'Loading...'}
-      </div>
+      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Initializing Pi...</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -146,13 +140,13 @@ function HubPayInner() {
         </div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
-        {(status === 'idle' || status === 'paying') && (
+        {(status === 'idle' || status === 'waiting' || status === 'paying') && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%',
               border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
               animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-              {status === 'idle' ? 'Preparing payment...' : 'Processing payment...'}
+              {status === 'waiting' ? 'Preparing...' : status === 'paying' ? 'Processing payment...' : 'Preparing payment...'}
             </div>
           </div>
         )}

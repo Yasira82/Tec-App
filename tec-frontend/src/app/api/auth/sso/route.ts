@@ -20,8 +20,10 @@ export async function GET(req: NextRequest) {
   }
 
   const target = req.nextUrl.searchParams.get('target');
-  const isAllowed = target && ALLOWED_TARGETS.some(t => target.startsWith(t));
-  if (!target || !isAllowed) {
+
+  // ✅ الـ target لازم يبدأ بـ allowed base
+  const targetBase = ALLOWED_TARGETS.find(t => target?.startsWith(t));
+  if (!target || !targetBase) {
     return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
   }
 
@@ -34,7 +36,6 @@ export async function GET(req: NextRequest) {
   try {
     const user = JSON.parse(decodeURIComponent(userCookie));
 
-    // ✅ تحقق من الـ token — لو expired اعمل refresh
     let validToken = accessToken;
     try {
       const encoded = new TextEncoder().encode(jwtSecret);
@@ -55,9 +56,6 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // ✅ الـ audience = الـ target app base URL
-    const targetBase = ALLOWED_TARGETS.find(t => target.startsWith(t)) ?? target;
-
     const jti     = crypto.randomUUID();
     const encoded = new TextEncoder().encode(secret);
 
@@ -65,13 +63,13 @@ export async function GET(req: NextRequest) {
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(user.id)
       .setIssuer('tec.pi')
-      .setAudience(targetBase) // ✅ الـ audience الصح
+      .setAudience(targetBase) // ✅ الـ audience = الـ base URL
       .setJti(jti)
       .setExpirationTime('5m')
       .setIssuedAt()
       .sign(encoded);
 
-    // ✅ ابعت لـ sso-callback مع الـ token
+    // ✅ ابعت لـ sso-callback على نفس الـ targetBase
     const redirectUrl = `${targetBase}/api/auth/sso-callback?token=${encodeURIComponent(token)}`;
     return NextResponse.redirect(redirectUrl);
   } catch {

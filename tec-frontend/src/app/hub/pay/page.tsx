@@ -26,7 +26,7 @@ function HubPayInner() {
   const productId = params.get('product_id') ?? '';
   const source    = params.get('source')     ?? 'commerce';
 
-  const [status,   setStatus]   = useState<'idle' | 'waiting' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [status,   setStatus]   = useState<'idle' | 'waiting' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message,  setMessage]  = useState('');
   const [sdkReady, setSdkReady] = useState(false);
   const hasStarted = useRef(false);
@@ -49,10 +49,13 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ Force Pi.init() مباشرة قبل الـ payment
+    // ✅ Force Pi.init() مع appId
     try {
-      const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';
-      window.Pi.init({ version: '2.0', sandbox });
+      window.Pi.init({
+        version: '2.0',
+        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
+        appId:   process.env.NEXT_PUBLIC_PI_APP_ID ?? '',
+      });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (!msg.includes('already') && !msg.includes('initialized')) {
@@ -60,21 +63,29 @@ function HubPayInner() {
       }
     }
 
-    // ✅ Refresh token قبل الـ payment
+    // ✅ Refresh token
     try {
       await fetch('/api/auth/refresh', {
-        method:      'POST',
-        credentials: 'include',
-        headers:     { 'x-csrf-token': getCsrf() },
+        method: 'POST', credentials: 'include',
+        headers: { 'x-csrf-token': getCsrf() },
       });
     } catch { /* تكمل */ }
 
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
-    setStatus('paying');
+    setStatus('auth');
     try {
-      try { await ensurePiAuth(); } catch { /* تكمل */ }
+      // ✅ Pi auth لازم تنجح قبل الـ payment
+      const authOk = await ensurePiAuth();
+      if (!authOk) {
+        piSession.releasePaymentLock();
+        setStatus('error');
+        setMessage('Pi authentication failed — please try again');
+        return;
+      }
+
+      setStatus('paying');
 
       const result = await createU2APayment(
         amount, memo,
@@ -137,6 +148,7 @@ function HubPayInner() {
     }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
+
         <div style={{ width: 64, height: 64, borderRadius: 20,
           background: 'linear-gradient(135deg,#d4af37,#b8882a)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -147,13 +159,15 @@ function HubPayInner() {
         <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>{amount}π</div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
-        {(status === 'idle' || status === 'waiting' || status === 'paying') && (
+        {(status === 'idle' || status === 'waiting' || status === 'auth' || status === 'paying') && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%',
               border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
               animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-              {status === 'paying' ? 'Processing payment...' : 'Preparing payment...'}
+              {status === 'auth'   ? 'Authenticating with Pi...' :
+               status === 'paying' ? 'Processing payment...'     :
+                                     'Preparing payment...'}
             </div>
           </div>
         )}
@@ -221,4 +235,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-          }
+}

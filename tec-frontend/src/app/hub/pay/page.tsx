@@ -8,6 +8,11 @@ import { createU2APayment }                            from '@/lib-client/pi/pi-
 import { piSession }                                   from '@/lib-client/pi/pi-session';
 import { ErrorBoundary }                               from '@/components/ErrorBoundary';
 
+const goToReturn = (returnUrl: string) => {
+  // ✅ روح عن طريق SSO عشان الـ token يتحول
+  window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
+};
+
 function HubPayInner() {
   const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
@@ -30,8 +35,13 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
-    if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
-    if (!piReady)   { setStatus('error'); setMessage('Pi SDK not ready'); return; }
+    // ✅ انتظر الـ SDK يكون ready
+    if (!window.__TEC_PI_READY || !window.Pi) {
+      setStatus('error');
+      setMessage('Pi SDK not initialized — please try again');
+      return;
+    }
+    if (!piReady) { setStatus('error'); setMessage('Pi SDK not ready'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
     const locked = await piSession.acquirePaymentLock();
@@ -54,13 +64,13 @@ function HubPayInner() {
         setStatus('success');
         setMessage('Payment successful! 🎉');
         setTimeout(() => {
-          // ✅ روح عن طريق SSO عشان الـ token يتحول لـ Commerce
           const returnWithParams = new URL(returnUrl);
           returnWithParams.searchParams.set('payment_status', 'success');
           returnWithParams.searchParams.set('txid',            result.txid      ?? '');
           returnWithParams.searchParams.set('payment_id',      result.paymentId ?? '');
           returnWithParams.searchParams.set('product_id',      productId);
 
+          // ✅ SSO عشان الـ token يتحول لـ Commerce
           window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnWithParams.toString())}`;
         }, 1500);
       } else if (result.status === 'cancelled') {
@@ -78,9 +88,9 @@ function HubPayInner() {
     }
   }, [piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start payment لما الصفحة تفتح
+  // ✅ Auto-start — بس لو SDK ready
   useEffect(() => {
-    if (!isLoading && isAuthenticated && piReady && status === 'idle') {
+    if (!isLoading && isAuthenticated && piReady && window.__TEC_PI_READY && status === 'idle') {
       handlePay();
     }
   }, [isLoading, isAuthenticated, piReady, status, handlePay]);
@@ -145,7 +155,7 @@ function HubPayInner() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>⚠️</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>Payment Cancelled</div>
-            <button onClick={() => { window.location.href = returnUrl; }}
+            <button onClick={() => goToReturn(returnUrl)}
               style={{ marginTop: 8, padding: '12px 24px', borderRadius: 14,
                 background: '#ffffff10', border: '1px solid #ffffff20',
                 color: '#fff', fontSize: 13, cursor: 'pointer' }}>
@@ -167,7 +177,7 @@ function HubPayInner() {
                   fontWeight: 700, cursor: 'pointer' }}>
                 Try Again
               </button>
-              <button onClick={() => { window.location.href = returnUrl; }}
+              <button onClick={() => goToReturn(returnUrl)}
                 style={{ padding: '12px 24px', borderRadius: 14,
                   background: '#ffffff10', border: '1px solid #ffffff20',
                   color: '#fff', fontSize: 13, cursor: 'pointer' }}>

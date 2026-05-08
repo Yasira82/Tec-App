@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback, Suspense } from 'react';
-import { useSearchParams }                             from 'next/navigation';
-import { usePiAuth }                                   from '@/lib-client/hooks/usePiAuth';
-import { usePiSdkReady }                               from '@/lib-client/hooks/usePiSdkReady';
-import { createU2APayment }                            from '@/lib-client/pi/pi-payment';
-import { piSession }                                   from '@/lib-client/pi/pi-session';
-import { ErrorBoundary }                               from '@/components/ErrorBoundary';
+import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
+import { useSearchParams }                                      from 'next/navigation';
+import { usePiAuth }                                            from '@/lib-client/hooks/usePiAuth';
+import { usePiSdkReady }                                        from '@/lib-client/hooks/usePiSdkReady';
+import { createU2APayment }                                     from '@/lib-client/pi/pi-payment';
+import { piSession }                                            from '@/lib-client/pi/pi-session';
+import { ErrorBoundary }                                        from '@/components/ErrorBoundary';
 
 const goToReturn = (returnUrl: string) => {
   window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
@@ -26,6 +26,9 @@ function HubPayInner() {
   const [status,   setStatus]   = useState<'idle' | 'waiting' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message,  setMessage]  = useState('');
   const [sdkReady, setSdkReady] = useState(false);
+
+  // ✅ ref عشان نمنع double-start
+  const hasStarted = useRef(false);
 
   // ✅ انتظر Pi SDK ready event
   useEffect(() => {
@@ -48,7 +51,7 @@ function HubPayInner() {
       setMessage('Pi SDK not ready — please try again');
       return;
     }
-    if (!piReady)  { setStatus('error'); setMessage('Pi SDK not ready'); return; }
+    if (!piReady) { setStatus('error'); setMessage('Pi SDK not ready'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
     const locked = await piSession.acquirePaymentLock();
@@ -93,16 +96,20 @@ function HubPayInner() {
     }
   }, [piReady, authReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  // ✅ Auto-start — انتظر 800ms بعد SDK جاهز عشان Pi Browser يخلص init
+  // ✅ Auto-start — مرة واحدة بس عن طريق ref
   useEffect(() => {
-  if (!isLoading && isAuthenticated && piReady && sdkReady && status === 'idle') {
-    setStatus('waiting');
-    const timer = setTimeout(() => {
-      handlePay(); // ✅ بدون reset لـ idle
-    }, 800);
-    return () => clearTimeout(timer);
-  }
-}, [isLoading, isAuthenticated, piReady, sdkReady, status, handlePay]);
+    if (
+      !isLoading &&
+      isAuthenticated &&
+      piReady &&
+      sdkReady &&
+      !hasStarted.current
+    ) {
+      hasStarted.current = true;
+      setStatus('waiting');
+      setTimeout(() => handlePay(), 1000);
+    }
+  }, [isLoading, isAuthenticated, piReady, sdkReady, handlePay]);
 
   if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',
@@ -145,7 +152,11 @@ function HubPayInner() {
               border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
               animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-              {status === 'waiting' ? 'Preparing...' : status === 'paying' ? 'Processing payment...' : 'Preparing payment...'}
+              {status === 'waiting'
+                ? 'Preparing...'
+                : status === 'paying'
+                ? 'Processing payment...'
+                : 'Preparing payment...'}
             </div>
           </div>
         )}
@@ -177,7 +188,8 @@ function HubPayInner() {
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handlePay}
+              <button
+                onClick={() => { hasStarted.current = false; handlePay(); }}
                 style={{ padding: '12px 24px', borderRadius: 14,
                   background: 'linear-gradient(135deg,#d4af37,#b8882a)',
                   border: 'none', color: '#0a0800', fontSize: 13,

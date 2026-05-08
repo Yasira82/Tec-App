@@ -28,7 +28,7 @@ function HubPayInner() {
   const productId = params.get('product_id') ?? '';
   const source    = params.get('source')     ?? 'commerce';
 
-  const [status,   setStatus]   = useState<'idle' | 'waiting' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [status,   setStatus]   = useState<'idle' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message,  setMessage]  = useState('');
   const [sdkReady, setSdkReady] = useState(false);
   const hasStarted = useRef(false);
@@ -51,7 +51,7 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ Force Pi.init() مع appId
+    // ✅ Force Pi.init()
     try {
       window.Pi.init({
         version: '2.0',
@@ -80,12 +80,15 @@ function HubPayInner() {
       return;
     }
 
+    if (hasStarted.current) return;
+    hasStarted.current = true;
+
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
     setStatus('auth');
     try {
-      // ✅ Reset session عشان نعمل fresh auth كل مرة
+      // ✅ Reset session عشان fresh auth
       piSession.reset();
 
       const authOk = await ensurePiAuth();
@@ -128,14 +131,6 @@ function HubPayInner() {
     }
   }, [piReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
 
-  useEffect(() => {
-    if (!isLoading && isAuthenticated && piReady && sdkReady && !hasStarted.current) {
-      hasStarted.current = true;
-      setStatus('waiting');
-      setTimeout(() => handlePay(), 500);
-    }
-  }, [isLoading, isAuthenticated, piReady, sdkReady, handlePay]);
-
   if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
@@ -170,15 +165,35 @@ function HubPayInner() {
         <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>{amount}π</div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
-        {(status === 'idle' || status === 'waiting' || status === 'auth' || status === 'paying') && (
+        {/* ✅ Idle — زرار يضغطه المستخدم */}
+        {status === 'idle' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <button onClick={handlePay} style={{
+              padding: '18px 48px', borderRadius: 20,
+              background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+              border: 'none', color: '#0a0800',
+              fontSize: 18, fontWeight: 900, cursor: 'pointer',
+              boxShadow: '0 8px 32px rgba(212,175,55,0.3)',
+              transition: 'transform 0.1s',
+            }}>
+              Pay {amount}π
+            </button>
+            <button onClick={() => goToReturn(returnUrl)} style={{
+              background: 'none', border: 'none',
+              color: '#4a4a5a', fontSize: 12, cursor: 'pointer', marginTop: 4,
+            }}>
+              Cancel
+            </button>
+          </div>
+        )}
+
+        {(status === 'auth' || status === 'paying') && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{ width: 40, height: 40, borderRadius: '50%',
               border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
               animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>
-              {status === 'auth'   ? 'Authenticating with Pi...' :
-               status === 'paying' ? 'Processing payment...'     :
-                                     'Preparing payment...'}
+              {status === 'auth' ? 'Authenticating with Pi...' : 'Processing payment...'}
             </div>
           </div>
         )}
@@ -208,7 +223,7 @@ function HubPayInner() {
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => { hasStarted.current = false; handlePay(); }}
+              <button onClick={() => { hasStarted.current = false; setStatus('idle'); }}
                 style={{ padding: '12px 24px', borderRadius: 14,
                   background: 'linear-gradient(135deg,#d4af37,#b8882a)',
                   border: 'none', color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
@@ -246,4 +261,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-}
+            }

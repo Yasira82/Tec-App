@@ -95,15 +95,14 @@ function HubPayInner() {
 
   // ✅ Auto-start — انتظر 800ms بعد SDK جاهز عشان Pi Browser يخلص init
   useEffect(() => {
-    if (!isLoading && isAuthenticated && piReady && sdkReady && status === 'idle') {
-      setStatus('waiting');
-      const timer = setTimeout(() => {
-        setStatus('idle');
-        handlePay();
-      }, 800);
-      return () => clearTimeout(timer);
-    }
-  }, [isLoading, isAuthenticated, piReady, sdkReady, status, handlePay]);
+  if (!isLoading && isAuthenticated && piReady && sdkReady && status === 'idle') {
+    setStatus('waiting');
+    const timer = setTimeout(() => {
+      handlePay(); // ✅ بدون reset لـ idle
+    }, 800);
+    return () => clearTimeout(timer);
+  }
+}, [isLoading, isAuthenticated, piReady, sdkReady, status, handlePay]);
 
   if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',

@@ -10,7 +10,13 @@ import { ErrorBoundary }                                        from '@/componen
 
 const HUB_ORIGIN = 'https://hub.tecosystem.app';
 
+// ✅ Cancel — مباشر بدون SSO
 const goToReturn = (returnUrl: string) => {
+  window.location.href = returnUrl;
+};
+
+// ✅ Success — عن طريق SSO عشان الـ token يتحول
+const goToReturnWithSSO = (returnUrl: string) => {
   window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
 };
 
@@ -88,7 +94,6 @@ function HubPayInner() {
 
     setStatus('auth');
     try {
-      // ✅ Reset session عشان fresh auth
       piSession.reset();
 
       const authOk = await ensurePiAuth();
@@ -98,6 +103,9 @@ function HubPayInner() {
         setMessage(`Pi auth failed: ${piSession.lastError ?? 'unknown'}`);
         return;
       }
+
+      // ✅ انتظر Pi Browser يخلص الـ auth processing
+      await new Promise(r => setTimeout(r, 1000));
 
       setStatus('paying');
 
@@ -115,7 +123,8 @@ function HubPayInner() {
           ret.searchParams.set('txid',            result.txid      ?? '');
           ret.searchParams.set('payment_id',      result.paymentId ?? '');
           ret.searchParams.set('product_id',      productId);
-          window.location.href = `/api/auth/sso?target=${encodeURIComponent(ret.toString())}`;
+          // ✅ Success — SSO عشان الـ token يتحول
+          goToReturnWithSSO(ret.toString());
         }, 1500);
       } else if (result.status === 'cancelled') {
         setStatus('cancelled');
@@ -165,7 +174,6 @@ function HubPayInner() {
         <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>{amount}π</div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{memo}</div>
 
-        {/* ✅ Idle — زرار يضغطه المستخدم */}
         {status === 'idle' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <button onClick={handlePay} style={{
@@ -174,7 +182,6 @@ function HubPayInner() {
               border: 'none', color: '#0a0800',
               fontSize: 18, fontWeight: 900, cursor: 'pointer',
               boxShadow: '0 8px 32px rgba(212,175,55,0.3)',
-              transition: 'transform 0.1s',
             }}>
               Pay {amount}π
             </button>
@@ -261,4 +268,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-            }
+}

@@ -6,8 +6,14 @@ import { usePiAuth }                                            from '@/lib-clie
 import { usePiSdkReady }                                        from '@/lib-client/hooks/usePiSdkReady';
 import { piSession }                                            from '@/lib-client/pi/pi-session';
 
+const HUB_ORIGIN = 'https://hub.tecosystem.app';
+
 const getCsrf = (): string =>
   document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+
+const goBack = (returnUrl: string) => {
+  window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
+};
 
 const Spinner = () => (
   <div style={{ minHeight: '100vh', background: '#020205',
@@ -50,7 +56,7 @@ function MintPageInner() {
   useEffect(() => {
     if (isLoading) return;
     if (!isAuthenticated) {
-      window.location.href = `/?redirect=${encodeURIComponent(window.location.href)}`;
+      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
     }
   }, [isLoading, isAuthenticated]);
 
@@ -72,18 +78,18 @@ function MintPageInner() {
       }
     }
 
-    // ✅ Refresh token
+    // ✅ Refresh token — لو فشل → Hub login
     try {
       const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
         headers: { 'x-csrf-token': getCsrf() },
       });
       if (!refreshRes.ok) {
-        window.location.href = `/?redirect=${encodeURIComponent(window.location.href)}`;
+        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
         return;
       }
     } catch {
-      window.location.href = `/?redirect=${encodeURIComponent(window.location.href)}`;
+      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
       return;
     }
 
@@ -95,7 +101,6 @@ function MintPageInner() {
 
     setStatus('auth');
     try {
-      // ✅ Reset + fresh auth
       piSession.reset();
       const authOk = await ensurePiAuth();
       if (!authOk) {
@@ -105,7 +110,6 @@ function MintPageInner() {
         return;
       }
 
-      // ✅ انتظر Pi Browser يخلص الـ auth
       await new Promise(r => setTimeout(r, 1000));
 
       setStatus('payment');
@@ -138,10 +142,8 @@ function MintPageInner() {
                 resolve();
               } catch (e) { reject(e); }
             },
-            onCancel: () => {
-              window.location.href = returnUrl;
-            },
-            onError: (e: unknown) => {
+            onCancel: () => goBack(returnUrl),
+            onError:  (e: unknown) => {
               reject(e instanceof Error ? e : new Error('Pi SDK error'));
             },
           }
@@ -150,7 +152,7 @@ function MintPageInner() {
 
       setStatus('success');
       piSession.releasePaymentLock();
-      setTimeout(() => { window.location.href = returnUrl; }, 1500);
+      setTimeout(() => goBack(returnUrl), 1500);
 
     } catch (e) {
       piSession.releasePaymentLock();
@@ -177,9 +179,7 @@ function MintPageInner() {
         borderRadius: 24, padding: 32,
         textAlign: 'center',
       }}>
-        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>
-          {name}
-        </div>
+        <div style={{ fontSize: 28, fontWeight: 900, color: '#fff', marginBottom: 8 }}>{name}</div>
         <div style={{
           display: 'inline-block', fontSize: 11, fontWeight: 700,
           color: tierColor, background: `${tierColor}15`,
@@ -203,7 +203,7 @@ function MintPageInner() {
             }}>
               🎨 Mint as NFT
             </button>
-            <button onClick={() => window.location.href = returnUrl} style={{
+            <button onClick={() => goBack(returnUrl)} style={{
               background: 'none', border: 'none',
               color: '#4a4a5a', fontSize: 12, cursor: 'pointer',
             }}>
@@ -244,7 +244,7 @@ function MintPageInner() {
                   color: tierColor, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
                 Try Again
               </button>
-              <button onClick={() => window.location.href = returnUrl}
+              <button onClick={() => goBack(returnUrl)}
                 style={{ padding: '12px 20px', borderRadius: 12,
                   background: '#ffffff10', border: '1px solid #ffffff20',
                   color: '#fff', fontSize: 13, cursor: 'pointer' }}>
@@ -265,4 +265,4 @@ export default function MintPage() {
       <MintPageInner />
     </Suspense>
   );
-            }
+}

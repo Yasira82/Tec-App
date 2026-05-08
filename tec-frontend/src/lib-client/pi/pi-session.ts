@@ -3,9 +3,9 @@
  * Production-locked: self-healing lock + visibility resume + exposed errors + payment guard
  */
 
-const RESOLVE_TIMEOUT_MS   = 12000;
-const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;  // 5 min
-const PAYMENT_LOCK_TIMEOUT = 20000;           // 20s self-healing
+const RESOLVE_TIMEOUT_MS   = 30000; // ✅ من 12000 لـ 30000
+const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;
+const PAYMENT_LOCK_TIMEOUT = 20000;
 
 declare global {
   interface Window {
@@ -66,19 +66,16 @@ class PiSessionManager {
       return false;
     }
 
-    // ✅ Drift detection
     if (this.authenticated && (!window.__TEC_PI_READY || !window.Pi)) {
       this._log('warn', 'auth:drift', 'SDK lost — resetting');
       this.reset();
     }
 
-    // ✅ Scope awareness
     if (this.authenticated && !this.hasPaymentsScope) {
       this._log('warn', 'auth:scope', 'payments scope missing — resetting');
       this.reset();
     }
 
-    // ✅ Session expiry
     if (this.authenticated && Date.now() - this.lastAuthAt > MAX_SESSION_AGE_MS) {
       this._log('info', 'auth:revalidate', 'session expired — resetting');
       this.reset();
@@ -91,7 +88,6 @@ class PiSessionManager {
     return this.authPromise.then(r => r.ok);
   }
 
-  // ✅ Self-healing payment lock
   async acquirePaymentLock(): Promise<boolean> {
     if (this.paymentInFlight) {
       if (Date.now() - this.paymentLockAt > PAYMENT_LOCK_TIMEOUT) {
@@ -209,9 +205,9 @@ class PiSessionManager {
     if (level === 'error') console.error('[PiSession]', payload);
   }
 
-  get isAuthenticated():  boolean           { return this.authenticated; }
-  get hasScope():         boolean           { return this.hasPaymentsScope; }
-  get isPaymentLocked():  boolean           { return this.paymentInFlight; }
+  get isAuthenticated():  boolean            { return this.authenticated; }
+  get hasScope():         boolean            { return this.hasPaymentsScope; }
+  get isPaymentLocked():  boolean            { return this.paymentInFlight; }
   get lastError():        PiAuthError | null { return this._lastError; }
 }
 

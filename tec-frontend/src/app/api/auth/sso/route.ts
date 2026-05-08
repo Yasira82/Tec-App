@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify }        from 'jose';
 
 const ALLOWED_TARGETS = [
+  'https://tec-app-frontend.vercel.app', // ✅ Hub نفسه
+  'https://hub.tecosystem.app',
   'https://tec-assets-app.vercel.app',
   'https://tec-assets.vercel.app',
   'https://assets.tecosystem.app',
@@ -76,3 +78,4 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'sso_failed' }, { status: 500 });
   }
 }
+ 

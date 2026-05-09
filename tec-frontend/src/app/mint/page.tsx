@@ -105,6 +105,31 @@ function MintPageInner() {
 
       await new Promise(r => setTimeout(r, 1000));
 
+      // ✅ أنشئ payment record في الـ backend أولاً
+      let internalPaymentId: string | null = null;
+      try {
+        const createRes = await fetch('/api/payment/create', {
+          method: 'POST', credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': getCsrf(),
+          },
+          body: JSON.stringify({
+            amount:         0.1,
+            currency:       'PI',
+            payment_method: 'pi',
+            metadata:       { assetId, type: 'domain_mint', name },
+          }),
+        });
+        if (createRes.ok) {
+          const createData = await createRes.json();
+          internalPaymentId = createData?.data?.payment?.id
+            ?? createData?.data?.id
+            ?? createData?.data?.payment_id
+            ?? null;
+        }
+      } catch { /* تكمل بدون internalId */ }
+
       setStatus('payment');
       await new Promise<void>((resolve, reject) => {
         window.Pi.createPayment(
@@ -114,17 +139,17 @@ function MintPageInner() {
             metadata: { assetId, type: 'domain_mint' },
           },
           {
-            onReadyForServerApproval: async (paymentId: string) => {
+            onReadyForServerApproval: async (piPaymentId: string) => {
               try {
                 const res = await fetch('/api/payment/approve', {
                   method: 'POST', credentials: 'include',
                   headers: {
                     'Content-Type': 'application/json',
-                    'x-csrf-token': getCsrf(), // ✅ CSRF
+                    'x-csrf-token': getCsrf(),
                   },
                   body: JSON.stringify({
-                    payment_id:    paymentId,
-                    pi_payment_id: paymentId,
+                    payment_id:    internalPaymentId ?? piPaymentId,
+                    pi_payment_id: piPaymentId,
                   }),
                 });
                 if (!res.ok) {
@@ -135,14 +160,14 @@ function MintPageInner() {
                 reject(e instanceof Error ? e : new Error('Approval failed'));
               }
             },
-            onReadyForServerCompletion: async (_paymentId: string, txid: string) => {
+            onReadyForServerCompletion: async (_piPaymentId: string, txid: string) => {
               try {
                 setStatus('minting');
                 const res = await fetch('/api/bff/assets/mint-as-nft', {
                   method: 'POST', credentials: 'include',
                   headers: {
                     'Content-Type': 'application/json',
-                    'x-csrf-token': getCsrf(), // ✅ CSRF
+                    'x-csrf-token': getCsrf(),
                   },
                   body: JSON.stringify({ assetId, transactionId: txid }),
                 });
@@ -273,4 +298,4 @@ export default function MintPage() {
       <MintPageInner />
     </Suspense>
   );
-      }
+              }

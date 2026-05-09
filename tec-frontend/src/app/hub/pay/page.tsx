@@ -35,9 +35,19 @@ function HubPayInner() {
 
   useEffect(() => {
     const onReady = () => setSdkReady(true);
+    const onError = () => {
+      // ✅ لو Pi SDK فشل → روح Hub main page عشان يعمل Pi.init() من أول
+      console.warn('[HubPay] Pi SDK init failed — redirecting to Hub');
+      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+    };
     window.addEventListener('tec-pi-ready', onReady, { once: true });
-    if (window.__TEC_PI_READY) setSdkReady(true);
-    return () => window.removeEventListener('tec-pi-ready', onReady);
+    window.addEventListener('tec-pi-error', onError, { once: true });
+    if (window.__TEC_PI_READY)  setSdkReady(true);
+    if (window.__TEC_PI_ERROR)  onError();
+    return () => {
+      window.removeEventListener('tec-pi-ready', onReady);
+      window.removeEventListener('tec-pi-error', onError);
+    };
   }, []);
 
   useEffect(() => {
@@ -51,25 +61,18 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ Force Pi.init() أول حاجة
-    try {
-      window.Pi.init({
-        version: '2.0',
-        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-        appId:   process.env.NEXT_PUBLIC_PI_APP_ID ?? '',
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.toLowerCase().includes('already')) console.warn('[HubPay] Pi.init warning:', msg);
-    }
-
-    // ✅ Pi.authenticate() مباشر عشان نشوف الـ error الفعلي
+    // ✅ Pi.authenticate() فقط — بدون Pi.init() هنا
     setStatus('auth');
     try {
       await window.Pi.authenticate(['username', 'payments'], () => {});
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error('[HubPay] Pi.authenticate error:', errMsg);
+      // ✅ لو not initialized → روح Hub عشان يعمل Pi.init()
+      if (errMsg.toLowerCase().includes('not initialized') || errMsg.toLowerCase().includes('init')) {
+        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+        return;
+      }
       setStatus('error');
       setMessage(`Auth: ${errMsg}`);
       return;
@@ -98,7 +101,6 @@ function HubPayInner() {
 
     try {
       await new Promise(r => setTimeout(r, 500));
-
       setStatus('paying');
 
       const result = await createU2APayment(

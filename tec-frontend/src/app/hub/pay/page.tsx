@@ -3,16 +3,13 @@
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams }                                      from 'next/navigation';
 import { usePiAuth }                                            from '@/lib-client/hooks/usePiAuth';
-import { usePiSdkReady }                                        from '@/lib-client/hooks/usePiSdkReady';
 import { createU2APayment }                                     from '@/lib-client/pi/pi-payment';
 import { piSession }                                            from '@/lib-client/pi/pi-session';
 import { ErrorBoundary }                                        from '@/components/ErrorBoundary';
 
 const HUB_ORIGIN = 'https://hub.tecosystem.app';
 
-const goToReturn = (returnUrl: string) => {
-  window.location.href = returnUrl;
-};
+const goToReturn = (returnUrl: string) => { window.location.href = returnUrl; };
 
 const getCsrf = (): string =>
   document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
@@ -20,7 +17,6 @@ const getCsrf = (): string =>
 function HubPayInner() {
   const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady } = usePiSdkReady();
 
   const amount    = parseFloat(params.get('amount')     ?? '0');
   const memo      = params.get('memo')       ?? 'TEC Payment';
@@ -28,28 +24,9 @@ function HubPayInner() {
   const productId = params.get('product_id') ?? '';
   const source    = params.get('source')     ?? 'commerce';
 
-  const [status,   setStatus]   = useState<'idle' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
-  const [message,  setMessage]  = useState('');
-  const [sdkReady, setSdkReady] = useState(false);
+  const [status,  setStatus]  = useState<'idle' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
-
-  useEffect(() => {
-    const onReady = () => setSdkReady(true);
-    const onError = () => {
-      // ✅ Pi SDK فشل → احفظ الـ URL وروح لـ /hub عشان يعمل Pi auth
-      console.warn('[HubPay] Pi SDK init failed — redirecting to /hub');
-      sessionStorage.setItem('post_pi_redirect', window.location.pathname + window.location.search);
-      window.location.href = `${HUB_ORIGIN}/hub`;
-    };
-    window.addEventListener('tec-pi-ready', onReady, { once: true });
-    window.addEventListener('tec-pi-error', onError, { once: true });
-    if (window.__TEC_PI_READY) setSdkReady(true);
-    if (window.__TEC_PI_ERROR) onError();
-    return () => {
-      window.removeEventListener('tec-pi-ready', onReady);
-      window.removeEventListener('tec-pi-error', onError);
-    };
-  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -62,36 +39,35 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
+    // ✅ جرب Pi.init() — لو فشل كمّل
+    try {
+      window.Pi.init({
+        version: '2.0',
+        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
+        appId:   process.env.NEXT_PUBLIC_PI_APP_ID ?? '',
+      });
+    } catch { /* تكمل */ }
+
     setStatus('auth');
+
+    // ✅ Pi.authenticate() مباشر
     try {
       await window.Pi.authenticate(['username', 'payments'], () => {});
     } catch (e) {
-      const errMsg = e instanceof Error ? e.message : String(e);
-      console.error('[HubPay] Pi.authenticate error:', errMsg);
-      if (errMsg.toLowerCase().includes('not initialized') || errMsg.toLowerCase().includes('init')) {
-        // ✅ روح /hub عشان يعمل Pi auth من أول
-        sessionStorage.setItem('post_pi_redirect', window.location.pathname + window.location.search);
-        window.location.href = `${HUB_ORIGIN}/hub`;
-        return;
-      }
+      const msg = e instanceof Error ? e.message : String(e);
       setStatus('error');
-      setMessage(`Auth: ${errMsg}`);
+      setMessage(msg.includes('not initialized') ? 'Pi Browser not ready — tap Try Again' : `Auth: ${msg}`);
       return;
     }
 
+    // ✅ Refresh token
     try {
-      const refreshRes = await fetch('/api/auth/refresh', {
+      const r = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
         headers: { 'x-csrf-token': getCsrf() },
       });
-      if (!refreshRes.ok) {
-        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
-        return;
-      }
-    } catch {
-      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
-      return;
-    }
+      if (!r.ok) { window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`; return; }
+    } catch { window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`; return; }
 
     if (hasStarted.current) return;
     hasStarted.current = true;
@@ -100,9 +76,7 @@ function HubPayInner() {
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
     try {
-      await new Promise(r => setTimeout(r, 500));
       setStatus('paying');
-
       const result = await createU2APayment(
         amount, memo,
         { source, product_id: productId, version: '1.0' },
@@ -131,19 +105,14 @@ function HubPayInner() {
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [piReady, amount, memo, productId, returnUrl, source]);
+  }, [amount, memo, productId, returnUrl, source]);
 
-  if (isLoading || !sdkReady) return (
+  if (isLoading) return (
     <div style={{ minHeight: '100vh', background: '#020205',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 20,
-        background: 'linear-gradient(135deg,#d4af37,#b8882a)',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 28, fontWeight: 900, color: '#0a0800', marginBottom: 8 }}>T</div>
+      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Initializing Pi...</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -180,10 +149,8 @@ function HubPayInner() {
             </button>
             <button onClick={() => goToReturn(returnUrl)} style={{
               background: 'none', border: 'none',
-              color: '#4a4a5a', fontSize: 12, cursor: 'pointer', marginTop: 4,
-            }}>
-              Cancel
-            </button>
+              color: '#4a4a5a', fontSize: 12, cursor: 'pointer',
+            }}>Cancel</button>
           </div>
         )}
 
@@ -261,4 +228,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-}
+                       }

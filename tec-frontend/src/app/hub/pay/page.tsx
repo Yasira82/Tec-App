@@ -10,14 +10,8 @@ import { ErrorBoundary }                                        from '@/componen
 
 const HUB_ORIGIN = 'https://hub.tecosystem.app';
 
-// ✅ Cancel — مباشر بدون SSO
 const goToReturn = (returnUrl: string) => {
   window.location.href = returnUrl;
-};
-
-// ✅ Success — عن طريق SSO عشان الـ token يتحول
-const goToReturnWithSSO = (returnUrl: string) => {
-  window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnUrl)}`;
 };
 
 const getCsrf = (): string =>
@@ -57,7 +51,6 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ Force Pi.init()
     try {
       window.Pi.init({
         version: '2.0',
@@ -66,12 +59,9 @@ function HubPayInner() {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.toLowerCase().includes('already')) {
-        console.warn('[HubPay] Pi.init warning:', msg);
-      }
+      if (!msg.toLowerCase().includes('already')) console.warn('[HubPay] Pi.init warning:', msg);
     }
 
-    // ✅ Refresh token
     try {
       const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
@@ -104,7 +94,6 @@ function HubPayInner() {
         return;
       }
 
-      // ✅ انتظر Pi Browser يخلص الـ auth processing
       await new Promise(r => setTimeout(r, 1000));
 
       setStatus('paying');
@@ -120,11 +109,11 @@ function HubPayInner() {
         setTimeout(() => {
           const ret = new URL(returnUrl);
           ret.searchParams.set('payment_status', 'success');
-          ret.searchParams.set('txid',            result.txid      ?? '');
-          ret.searchParams.set('payment_id',      result.paymentId ?? '');
-          ret.searchParams.set('product_id',      productId);
-          // ✅ Success — SSO عشان الـ token يتحول
-          goToReturnWithSSO(ret.toString());
+          ret.searchParams.set('txid',       result.txid      ?? '');
+          ret.searchParams.set('payment_id', result.paymentId ?? '');
+          ret.searchParams.set('product_id', productId);
+          // ✅ Direct redirect — بدون SSO عشان الـ params ميتمسحوش
+          goToReturn(ret.toString());
         }, 1500);
       } else if (result.status === 'cancelled') {
         setStatus('cancelled');

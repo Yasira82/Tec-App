@@ -20,7 +20,7 @@ const getCsrf = (): string =>
 function HubPayInner() {
   const params    = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady, ensurePiAuth } = usePiSdkReady();
+  const { piReady } = usePiSdkReady();
 
   const amount    = parseFloat(params.get('amount')     ?? '0');
   const memo      = params.get('memo')       ?? 'TEC Payment';
@@ -51,16 +51,7 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ Auth أول حاجة — قبل أي async operation عشان Pi Browser ميفقدش الـ user gesture
-    setStatus('auth');
-    const authOk = await ensurePiAuth();
-    if (!authOk) {
-      setStatus('error');
-      setMessage(`Pi auth failed: ${piSession.lastError ?? 'unknown'}`);
-      return;
-    }
-
-    // ✅ Force Pi.init() بعد الـ auth
+    // ✅ Force Pi.init() أول حاجة
     try {
       window.Pi.init({
         version: '2.0',
@@ -70,6 +61,18 @@ function HubPayInner() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       if (!msg.toLowerCase().includes('already')) console.warn('[HubPay] Pi.init warning:', msg);
+    }
+
+    // ✅ Pi.authenticate() مباشر عشان نشوف الـ error الفعلي
+    setStatus('auth');
+    try {
+      await window.Pi.authenticate(['username', 'payments'], () => {});
+    } catch (e) {
+      const errMsg = e instanceof Error ? e.message : String(e);
+      console.error('[HubPay] Pi.authenticate error:', errMsg);
+      setStatus('error');
+      setMessage(`Auth: ${errMsg}`);
+      return;
     }
 
     // ✅ Refresh token
@@ -126,7 +129,7 @@ function HubPayInner() {
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [piReady, ensurePiAuth, amount, memo, productId, returnUrl, source]);
+  }, [piReady, amount, memo, productId, returnUrl, source]);
 
   if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',

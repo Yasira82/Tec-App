@@ -36,14 +36,15 @@ function HubPayInner() {
   useEffect(() => {
     const onReady = () => setSdkReady(true);
     const onError = () => {
-      // ✅ لو Pi SDK فشل → روح Hub main page عشان يعمل Pi.init() من أول
-      console.warn('[HubPay] Pi SDK init failed — redirecting to Hub');
-      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+      // ✅ Pi SDK فشل → احفظ الـ URL وروح لـ /hub عشان يعمل Pi auth
+      console.warn('[HubPay] Pi SDK init failed — redirecting to /hub');
+      sessionStorage.setItem('post_pi_redirect', window.location.pathname + window.location.search);
+      window.location.href = `${HUB_ORIGIN}/hub`;
     };
     window.addEventListener('tec-pi-ready', onReady, { once: true });
     window.addEventListener('tec-pi-error', onError, { once: true });
-    if (window.__TEC_PI_READY)  setSdkReady(true);
-    if (window.__TEC_PI_ERROR)  onError();
+    if (window.__TEC_PI_READY) setSdkReady(true);
+    if (window.__TEC_PI_ERROR) onError();
     return () => {
       window.removeEventListener('tec-pi-ready', onReady);
       window.removeEventListener('tec-pi-error', onError);
@@ -61,16 +62,16 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ Pi.authenticate() فقط — بدون Pi.init() هنا
     setStatus('auth');
     try {
       await window.Pi.authenticate(['username', 'payments'], () => {});
     } catch (e) {
       const errMsg = e instanceof Error ? e.message : String(e);
       console.error('[HubPay] Pi.authenticate error:', errMsg);
-      // ✅ لو not initialized → روح Hub عشان يعمل Pi.init()
       if (errMsg.toLowerCase().includes('not initialized') || errMsg.toLowerCase().includes('init')) {
-        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+        // ✅ روح /hub عشان يعمل Pi auth من أول
+        sessionStorage.setItem('post_pi_redirect', window.location.pathname + window.location.search);
+        window.location.href = `${HUB_ORIGIN}/hub`;
         return;
       }
       setStatus('error');
@@ -78,7 +79,6 @@ function HubPayInner() {
       return;
     }
 
-    // ✅ Refresh token
     try {
       const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',

@@ -225,7 +225,7 @@ function MintPageInner() {
         {status === 'idle' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 13, color: '#6b6b7a', marginBottom: 8 }}>
-              Minting fee: <span style={{ color: tierColor, fontWeight: 700 }}>0.1π</span>
+              Minting fee: <span style={{ color: tierColor, fontWeight: 700 }}>1π</span>
             </div>
             <button onClick={startMint} style={{
               padding: '16px 40px', borderRadius: 18,

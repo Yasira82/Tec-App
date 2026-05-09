@@ -78,13 +78,13 @@ function MintPageInner() {
       }
     }
 
-    // ✅ جرب refresh بس متوقفش لو فشل — الـ token من SSO تازة
+    // ✅ جرب refresh بس متوقفش لو فشل
     try {
       await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
         headers: { 'x-csrf-token': getCsrf() },
       });
-    } catch { /* تكمل بالـ token الحالي */ }
+    } catch { /* تكمل */ }
 
     if (hasStarted.current) return;
     hasStarted.current = true;
@@ -116,19 +116,34 @@ function MintPageInner() {
           {
             onReadyForServerApproval: async (paymentId: string) => {
               try {
-                await fetch('/api/payment/approve', {
+                const res = await fetch('/api/payment/approve', {
                   method: 'POST', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ paymentId }),
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': getCsrf(), // ✅ CSRF
+                  },
+                  body: JSON.stringify({
+                    payment_id:    paymentId,
+                    pi_payment_id: paymentId,
+                  }),
                 });
-              } catch { reject(new Error('Approval failed')); }
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}));
+                  reject(new Error(err?.message ?? `Approval failed: ${res.status}`));
+                }
+              } catch (e) {
+                reject(e instanceof Error ? e : new Error('Approval failed'));
+              }
             },
             onReadyForServerCompletion: async (_paymentId: string, txid: string) => {
               try {
                 setStatus('minting');
                 const res = await fetch('/api/bff/assets/mint-as-nft', {
                   method: 'POST', credentials: 'include',
-                  headers: { 'Content-Type': 'application/json' },
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'x-csrf-token': getCsrf(), // ✅ CSRF
+                  },
                   body: JSON.stringify({ assetId, transactionId: txid }),
                 });
                 if (!res.ok) throw new Error('Mint failed');
@@ -258,4 +273,4 @@ export default function MintPage() {
       <MintPageInner />
     </Suspense>
   );
-}
+      }

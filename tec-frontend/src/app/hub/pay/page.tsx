@@ -51,6 +51,16 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
+    // ✅ Auth أول حاجة — قبل أي async operation عشان Pi Browser ميفقدش الـ user gesture
+    setStatus('auth');
+    const authOk = await ensurePiAuth();
+    if (!authOk) {
+      setStatus('error');
+      setMessage(`Pi auth failed: ${piSession.lastError ?? 'unknown'}`);
+      return;
+    }
+
+    // ✅ Force Pi.init() بعد الـ auth
     try {
       window.Pi.init({
         version: '2.0',
@@ -62,6 +72,7 @@ function HubPayInner() {
       if (!msg.toLowerCase().includes('already')) console.warn('[HubPay] Pi.init warning:', msg);
     }
 
+    // ✅ Refresh token
     try {
       const refreshRes = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
@@ -82,18 +93,8 @@ function HubPayInner() {
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
-    setStatus('auth');
     try {
-      // ✅ بلاش reset — خلي الـ auth اللي عملها usePiSdkReady تشتغل
-      const authOk = await ensurePiAuth();
-      if (!authOk) {
-        piSession.releasePaymentLock();
-        setStatus('error');
-        setMessage(`Pi auth failed: ${piSession.lastError ?? 'unknown'}`);
-        return;
-      }
-
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 500));
 
       setStatus('paying');
 

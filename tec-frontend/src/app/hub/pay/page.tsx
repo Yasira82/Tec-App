@@ -84,8 +84,7 @@ function HubPayInner() {
 
     setStatus('auth');
     try {
-      piSession.reset();
-
+      // ✅ بلاش reset — خلي الـ auth اللي عملها usePiSdkReady تشتغل
       const authOk = await ensurePiAuth();
       if (!authOk) {
         piSession.releasePaymentLock();
@@ -112,7 +111,6 @@ function HubPayInner() {
           ret.searchParams.set('txid',       result.txid      ?? '');
           ret.searchParams.set('payment_id', result.paymentId ?? '');
           ret.searchParams.set('product_id', productId);
-          // ✅ Direct redirect — بدون SSO عشان الـ params ميتمسحوش
           goToReturn(ret.toString());
         }, 1500);
       } else if (result.status === 'cancelled') {

@@ -115,7 +115,7 @@ function MintPageInner() {
             'x-csrf-token': getCsrf(),
           },
           body: JSON.stringify({
-            amount:         0.1,
+            amount:         1,
             currency:       'PI',
             payment_method: 'pi',
             metadata:       { assetId, type: 'domain_mint', name },
@@ -134,7 +134,7 @@ function MintPageInner() {
       await new Promise<void>((resolve, reject) => {
         window.Pi.createPayment(
           {
-            amount:   0.1,
+            amount:   1,
             memo:     `Mint ${name} as NFT`,
             metadata: { assetId, type: 'domain_mint' },
           },

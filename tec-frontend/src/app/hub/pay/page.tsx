@@ -8,14 +8,12 @@ import { piSession }                                            from '@/lib-clie
 import { ErrorBoundary }                                        from '@/components/ErrorBoundary';
 
 const HUB_ORIGIN = 'https://hub.tecosystem.app';
-
 const goToReturn = (returnUrl: string) => { window.location.href = returnUrl; };
-
 const getCsrf = (): string =>
   document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 
 function HubPayInner() {
-  const params    = useSearchParams();
+  const params = useSearchParams();
   const { user, isAuthenticated, isLoading } = usePiAuth();
 
   const amount    = parseFloat(params.get('amount')     ?? '0');
@@ -24,9 +22,25 @@ function HubPayInner() {
   const productId = params.get('product_id') ?? '';
   const source    = params.get('source')     ?? 'commerce';
 
-  const [status,  setStatus]  = useState<'idle' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
-  const [message, setMessage] = useState('');
+  const [status,   setStatus]   = useState<'idle' | 'auth' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [message,  setMessage]  = useState('');
+  const [sdkReady, setSdkReady] = useState(false);
   const hasStarted = useRef(false);
+
+  useEffect(() => {
+    // ✅ انتظر Pi Browser يتجهز — بدون error redirect
+    const onReady = () => setSdkReady(true);
+    window.addEventListener('tec-pi-ready', onReady, { once: true });
+    if (window.__TEC_PI_READY) setSdkReady(true);
+
+    // ✅ بعد 30 ثانية — اعرض الزرار على أي حال
+    const fallback = setTimeout(() => setSdkReady(true), 30000);
+
+    return () => {
+      window.removeEventListener('tec-pi-ready', onReady);
+      clearTimeout(fallback);
+    };
+  }, []);
 
   useEffect(() => {
     if (isLoading) return;
@@ -39,7 +53,6 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    // ✅ جرب Pi.init() — لو فشل كمّل
     try {
       window.Pi.init({
         version: '2.0',
@@ -49,8 +62,6 @@ function HubPayInner() {
     } catch { /* تكمل */ }
 
     setStatus('auth');
-
-    // ✅ Pi.authenticate() مباشر
     try {
       await window.Pi.authenticate(['username', 'payments'], () => {});
     } catch (e) {
@@ -60,7 +71,6 @@ function HubPayInner() {
       return;
     }
 
-    // ✅ Refresh token
     try {
       const r = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
@@ -107,12 +117,17 @@ function HubPayInner() {
     }
   }, [amount, memo, productId, returnUrl, source]);
 
-  if (isLoading) return (
+  if (isLoading || !sdkReady) return (
     <div style={{ minHeight: '100vh', background: '#020205',
-      display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <div style={{ width: 64, height: 64, borderRadius: 20,
+        background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 28, fontWeight: 900, color: '#0a0800', marginBottom: 8 }}>T</div>
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
+      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Waiting for Pi Browser...</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -125,12 +140,10 @@ function HubPayInner() {
     }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ maxWidth: 360, width: '100%', textAlign: 'center' }}>
-
         <div style={{ width: 64, height: 64, borderRadius: 20,
           background: 'linear-gradient(135deg,#d4af37,#b8882a)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800' }}>T</div>
-
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2,
           textTransform: 'uppercase', marginBottom: 8 }}>TEC Payment</div>
         <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>{amount}π</div>
@@ -144,9 +157,7 @@ function HubPayInner() {
               border: 'none', color: '#0a0800',
               fontSize: 18, fontWeight: 900, cursor: 'pointer',
               boxShadow: '0 8px 32px rgba(212,175,55,0.3)',
-            }}>
-              Pay {amount}π
-            </button>
+            }}>Pay {amount}π</button>
             <button onClick={() => goToReturn(returnUrl)} style={{
               background: 'none', border: 'none',
               color: '#4a4a5a', fontSize: 12, cursor: 'pointer',
@@ -228,4 +239,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-                       }
+}

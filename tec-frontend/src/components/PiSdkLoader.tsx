@@ -50,7 +50,6 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
 
-        // ✅ فقط "already" تعني إن الـ SDK اتعمل init قبل كده
         if (msg.toLowerCase().includes('already')) {
           log('[TEC] Pi SDK already initialized — marking as ready');
           window.__TEC_PI_READY = true;
@@ -59,11 +58,9 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
           return true;
         }
 
-        // ❌ أي error تانية → SDK مش initialized فعلاً
-        err('[TEC] Pi.init() failed:', msg);
-        window.__TEC_PI_ERROR = true;
-        window.dispatchEvent(new CustomEvent('tec-pi-error', { detail: e }));
-        return true;
+        // ✅ لو فشل → متوقفش، الـ poll هيعيد المحاولة
+        warn('[TEC] Pi.init() failed, will retry:', msg);
+        return false;
       }
     }
 

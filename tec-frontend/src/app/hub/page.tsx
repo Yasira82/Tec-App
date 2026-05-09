@@ -135,14 +135,7 @@ function HubPageInner() {
   }, [isLoading, isAuthenticated, router]);
 
   // ✅ بعد ما Pi SDK يكون ready → روح لـ hub/pay لو فيه redirect محفوظ
-useEffect(() => {
-  if (!piReady || !isAuthenticated) return;
-  const redirect = sessionStorage.getItem('post_pi_redirect');
-  if (redirect?.startsWith('/hub/pay')) {
-    sessionStorage.removeItem('post_pi_redirect');
-    window.location.href = redirect;
-  }
-}, [piReady, isAuthenticated]);
+
   
   useEffect(() => {
     const tick = () => setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
@@ -150,7 +143,14 @@ useEffect(() => {
     const id = setInterval(tick, 60000);
     return () => clearInterval(id);
   }, []);
-
+useEffect(() => {
+  if (!authReady || !isAuthenticated) return;  // ← السطر ده
+  const redirect = sessionStorage.getItem('post_pi_redirect');
+  if (redirect?.startsWith('/hub/pay')) {
+    sessionStorage.removeItem('post_pi_redirect');
+    window.location.href = redirect;
+  }
+}, [authReady, isAuthenticated]);
   useEffect(() => { refreshBalance(); refreshAssets(); }, [refreshBalance, refreshAssets]);
 
   useEffect(() => {

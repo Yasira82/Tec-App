@@ -134,23 +134,13 @@ function HubPageInner() {
     if (!isLoading && !isAuthenticated) router.replace('/');
   }, [isLoading, isAuthenticated, router]);
 
-  // ✅ بعد ما Pi SDK يكون ready → روح لـ hub/pay لو فيه redirect محفوظ
-
-  
   useEffect(() => {
     const tick = () => setTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }));
     tick();
     const id = setInterval(tick, 60000);
     return () => clearInterval(id);
   }, []);
-useEffect(() => {
-  if (!authReady || !isAuthenticated) return;  // ← السطر ده
-  const redirect = sessionStorage.getItem('post_pi_redirect');
-  if (redirect?.startsWith('/hub/pay')) {
-    sessionStorage.removeItem('post_pi_redirect');
-    window.location.href = redirect;
-  }
-}, [authReady, isAuthenticated]);
+
   useEffect(() => { refreshBalance(); refreshAssets(); }, [refreshBalance, refreshAssets]);
 
   useEffect(() => {
@@ -178,6 +168,9 @@ useEffect(() => {
   });
 
   const handlePay = useCallback(async () => {
+    // ✅ امسح أي redirect محفوظ من Commerce/Assets
+    sessionStorage.removeItem('post_pi_redirect');
+
     if (!window.Pi) { haptic('heavy'); showToast('error', 'Open in Pi Browser to make payments'); return; }
     if (!piReady)   { haptic('heavy'); showToast('warning', 'Pi SDK connecting... try again'); return; }
     if (!payAmount || payAmount <= 0) { haptic('heavy'); showToast('warning', 'Enter a valid amount'); return; }
@@ -248,7 +241,6 @@ useEffect(() => {
         </button>
       )}
 
-      {/* ── Header ── */}
       <header style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, background: 'rgba(2,2,5,0.95)', backdropFilter: 'blur(20px)', zIndex: 100 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 900, fontSize: 14, color: '#0a0800' }}>T</div>
@@ -279,7 +271,6 @@ useEffect(() => {
         </div>
       </header>
 
-      {/* ── Wallet Card ── */}
       <div style={{ padding: '16px 16px 0' }} className="fade-in">
         <button className="hub-btn" onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
           style={{ width: '100%', borderRadius: 24, background: 'linear-gradient(135deg,#1a1208 0%,#0f0f1a 60%,#0a0f1f 100%)', border: '1px solid #d4af3725', padding: '22px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', transition: 'transform 0.2s ease' }}>
@@ -298,12 +289,10 @@ useEffect(() => {
         </button>
       </div>
 
-      {/* ── Carousel ── */}
       <div style={{ padding: '10px 16px 0' }} className="fade-in">
         <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd} style={{ overflow: 'hidden', borderRadius: 18 }}>
           <div style={{ display: 'flex', transition: 'transform 0.35s cubic-bezier(0.4,0,0.2,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
 
-            {/* Slide 0: Assets */}
             <div style={{ minWidth: '100%' }}>
               <button className="hub-btn" onClick={goToAssets}
                 style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
@@ -325,7 +314,6 @@ useEffect(() => {
               </button>
             </div>
 
-            {/* Slide 1: Commerce */}
             <div style={{ minWidth: '100%' }}>
               <button className="hub-btn" onClick={goToCommerce}
                 style={{ width: '100%', borderRadius: 18, background: '#0d0d14', border: '1px solid #7eb8f720', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
@@ -340,7 +328,6 @@ useEffect(() => {
               </button>
             </div>
 
-            {/* Slide 2: Pi Price */}
             <div style={{ minWidth: '100%' }}>
               <div style={{ borderRadius: 18, background: '#0d0d14', border: '1px solid #d4af3720', padding: '16px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -390,7 +377,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ── Amount Selector + Pay ── */}
       <div style={{ padding: '12px 16px 0' }} className="fade-in">
         <AmountSelector value={payAmount} onChange={setPayAmount} disabled={!piReady} />
         <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
@@ -410,7 +396,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ── Live Apps ── */}
       <div style={{ padding: '20px 16px 0' }} className="fade-in">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -439,7 +424,6 @@ useEffect(() => {
         </div>
       </div>
 
-      {/* ── Coming Soon ── */}
       <div style={{ padding: '20px 16px 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <span style={{ fontSize: 11, fontWeight: 700, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase' }}>Coming Soon</span>
@@ -471,7 +455,6 @@ useEffect(() => {
         })}
       </div>
 
-      {/* ── Bottom Nav ── */}
       <nav style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(10,10,18,0.97)', backdropFilter: 'blur(20px)', borderTop: '1px solid #ffffff08', display: 'flex', padding: '10px 0 22px' }}>
         {[
           { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
@@ -498,4 +481,4 @@ export default function HubPage() {
       <HubPageInner />
     </ErrorBoundary>
   );
-                }
+        }

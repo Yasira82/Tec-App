@@ -59,16 +59,17 @@ function HubPayInner() {
         sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
         appId:   process.env.NEXT_PUBLIC_PI_APP_ID ?? '',
       });
-    } catch { /* تكمل */ }
-
-    setStatus('auth');
-    try {
-      await window.Pi.authenticate(['username', 'payments'], () => {});
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      setStatus('error');
-      setMessage(msg.includes('not initialized') ? 'Pi Browser not ready — tap Try Again' : `Auth: ${msg}`);
-      return;
+    } catch (err) {
+  const msg = err instanceof Error ? err.message : 'Payment failed';
+  // ✅ لو scope error → reset session عشان Try Again يعمل fresh auth
+  if (msg.toLowerCase().includes('scope') || msg.toLowerCase().includes('payments')) {
+    piSession.reset();
+    setStatus('error');
+    setMessage('Tap Try Again to grant payment permissions');
+    return;
+  }
+  setStatus('error');
+  setMessage(msg);
     }
 
     try {

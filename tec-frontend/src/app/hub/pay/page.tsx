@@ -28,13 +28,18 @@ function HubPayInner() {
   const hasStarted = useRef(false);
 
   useEffect(() => {
-    // ✅ انتظر Pi Browser يتجهز — بدون error redirect
     const onReady = () => setSdkReady(true);
     window.addEventListener('tec-pi-ready', onReady, { once: true });
-    if (window.__TEC_PI_READY) setSdkReady(true);
+    if (window.__TEC_PI_READY) { setSdkReady(true); return; }
 
-    // ✅ بعد 30 ثانية — اعرض الزرار على أي حال
-    const fallback = setTimeout(() => setSdkReady(true), 30000);
+    // ✅ بعد 5 ثواني لو Pi مش جاهز → روح /hub عشان يعمل auth
+    const fallback = setTimeout(() => {
+      if (!window.__TEC_PI_READY) {
+        sessionStorage.setItem('post_pi_redirect',
+          window.location.pathname + window.location.search);
+        window.location.href = `${HUB_ORIGIN}/hub`;
+      }
+    }, 5000);
 
     return () => {
       window.removeEventListener('tec-pi-ready', onReady);
@@ -53,32 +58,38 @@ function HubPayInner() {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
+    // ✅ Pi.authenticate() — بدون Pi.init() هنا
+    setStatus('auth');
     try {
-      window.Pi.init({
-        version: '2.0',
-        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-        appId:   process.env.NEXT_PUBLIC_PI_APP_ID ?? '',
-      });
-    } catch (err) {
-  const msg = err instanceof Error ? err.message : 'Payment failed';
-  // ✅ لو scope error → reset session عشان Try Again يعمل fresh auth
-  if (msg.toLowerCase().includes('scope') || msg.toLowerCase().includes('payments')) {
-    piSession.reset();
-    setStatus('error');
-    setMessage('Tap Try Again to grant payment permissions');
-    return;
-  }
-  setStatus('error');
-  setMessage(msg);
+      await window.Pi.authenticate(['username', 'payments'], () => {});
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (msg.toLowerCase().includes('not initialized')) {
+        // Pi مش initialized → روح /hub
+        sessionStorage.setItem('post_pi_redirect',
+          window.location.pathname + window.location.search);
+        window.location.href = `${HUB_ORIGIN}/hub`;
+        return;
+      }
+      setStatus('error');
+      setMessage(`Auth: ${msg}`);
+      return;
     }
 
+    // ✅ Refresh token
     try {
       const r = await fetch('/api/auth/refresh', {
         method: 'POST', credentials: 'include',
         headers: { 'x-csrf-token': getCsrf() },
       });
-      if (!r.ok) { window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`; return; }
-    } catch { window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`; return; }
+      if (!r.ok) {
+        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+        return;
+      }
+    } catch {
+      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
+      return;
+    }
 
     if (hasStarted.current) return;
     hasStarted.current = true;
@@ -108,11 +119,15 @@ function HubPayInner() {
         setStatus('cancelled');
       } else {
         setStatus('error');
-        setMessage(result.message ?? 'Payment failed');
+        const errMsg = result.message ?? 'Payment failed';
+        if (/scope|payments/i.test(errMsg)) piSession.reset();
+        setMessage(errMsg);
       }
     } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Payment failed';
+      if (/scope|payments/i.test(msg)) piSession.reset();
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Payment failed');
+      setMessage(msg);
     } finally {
       piSession.releasePaymentLock();
     }
@@ -128,7 +143,7 @@ function HubPayInner() {
       <div style={{ width: 32, height: 32, borderRadius: '50%',
         border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
         animation: 'spin 0.8s linear infinite' }} />
-      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Waiting for Pi Browser...</div>
+      <div style={{ fontSize: 13, color: '#4a4a5a' }}>Connecting to Pi...</div>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
     </div>
   );
@@ -240,4 +255,4 @@ export default function HubPayPage() {
       </Suspense>
     </ErrorBoundary>
   );
-}
+                         }

@@ -255,7 +255,7 @@ export default function HomePage() {
                 <div style={{
                   fontSize: 11, color: '#4a4a5a', marginBottom: 24, lineHeight: 1.6,
                 }}>
-                  You'll be redirected back automatically after signing in
+                  You&apos;ll be redirected back automatically after signing in
                 </div>
 
                 {ssoError && (

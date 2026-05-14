@@ -16,18 +16,13 @@ const ALLOWED_TARGETS = [
 export async function GET(req: NextRequest) {
   const accessToken = req.cookies.get('tec_access_token')?.value;
   const userCookie  = req.cookies.get('tec_user')?.value;
-  const target      = req.nextUrl.searchParams.get('target');
 
-  // ✅ مش authenticated → احفظ الـ target وروح للـ login
   if (!accessToken || !userCookie) {
-    const loginUrl = new URL('/', req.url);
-    if (target) {
-      loginUrl.searchParams.set('sso_target', encodeURIComponent(target));
-    }
-    return NextResponse.redirect(loginUrl.toString());
+    return NextResponse.redirect(new URL('/', req.url));
   }
 
-  // ✅ startsWith عشان يقبل URL مع query params
+  const target = req.nextUrl.searchParams.get('target');
+
   const targetBase = ALLOWED_TARGETS.find(t => target?.startsWith(t));
   if (!target || !targetBase) {
     return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
@@ -78,8 +73,8 @@ export async function GET(req: NextRequest) {
     const callbackUrl = new URL(`${targetBase}/api/auth/sso-callback`);
     callbackUrl.searchParams.set('token', token);
 
-    const targetUrl  = new URL(target);
-    const targetPath = targetUrl.pathname + targetUrl.search;
+    const targetUrl   = new URL(target);
+    const targetPath  = targetUrl.pathname + targetUrl.search;
     if (targetPath !== '/' && targetPath !== '') {
       callbackUrl.searchParams.set('redirect', targetPath);
     }

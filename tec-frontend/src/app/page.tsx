@@ -1,14 +1,12 @@
 'use client';
 
 import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
-import { useState, useMemo, useEffect, useCallback }     from 'react';
-import Link                                              from 'next/link';
-import { useTranslation }                                from '@/lib/i18n';
-import LanguageSwitcher                                  from '@/components/LanguageSwitcher';
-import PiPaymentButton                                   from '@/components/payment/PiPaymentButton';
-import styles                                            from './page.module.css';
-import { loginWithPi, isPiBrowser }                      from '@/lib-client/pi/pi-auth';
-import { usePiAuth }                                     from '@/lib-client/hooks/usePiAuth';
+import { useState, useMemo }     from 'react';
+import Link                      from 'next/link';
+import { useTranslation }        from '@/lib/i18n';
+import LanguageSwitcher          from '@/components/LanguageSwitcher';
+import PiPaymentButton           from '@/components/payment/PiPaymentButton';
+import styles                    from './page.module.css';
 
 const APPS = [
   { name: 'Life',        emoji: '🌱', domain: 'life.pi',        category: 'Personal'      },
@@ -61,73 +59,8 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export default function HomePage() {
   const { t, dir }                          = useTranslation();
-  const { isAuthenticated, isLoading }      = usePiAuth();
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery,    setSearchQuery]    = useState('');
-
-  // ✅ SSO state
-  const [ssoTarget,  setSsoTarget]  = useState<string | null>(null);
-  const [ssoLoading, setSsoLoading] = useState(false);
-  const [ssoError,   setSsoError]   = useState<string | null>(null);
-
-  // ✅ Detect sso_target from URL (set by SSO route when not authenticated)
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const target = params.get('sso_target');
-    if (target) setSsoTarget(decodeURIComponent(target));
-  }, []);
-
-  // ✅ Auto-redirect لو user already authenticated
-  useEffect(() => {
-    if (isLoading) return;
-    if (!isAuthenticated) return;
-
-    // لو فيه payment params محفوظة (Hub cold start)
-    const hubParams = sessionStorage.getItem('tec_post_login_hub_params');
-    if (hubParams) {
-      sessionStorage.removeItem('tec_post_login_hub_params');
-      window.location.href = `/hub?${hubParams}`;
-      return;
-    }
-
-    // لو فيه sso_target في الـ URL
-    const params    = new URLSearchParams(window.location.search);
-    const rawTarget = params.get('sso_target');
-    if (rawTarget) {
-      window.location.href = `/api/auth/sso?target=${decodeURIComponent(rawTarget)}`;
-      return;
-    }
-
-    // Default: روح للـ hub
-    window.location.href = '/hub';
-  }, [isAuthenticated, isLoading]);
-
-  // ✅ SSO Login handler
-  const handleSsoLogin = useCallback(async () => {
-    if (!isPiBrowser()) {
-      setSsoError('Please open in Pi Browser to sign in');
-      return;
-    }
-    setSsoLoading(true);
-    setSsoError(null);
-    try {
-      await loginWithPi();
-
-      // بعد login — check للـ redirects بالأولوية
-      const hubParams = sessionStorage.getItem('tec_post_login_hub_params');
-      if (hubParams) {
-        sessionStorage.removeItem('tec_post_login_hub_params');
-        window.location.href = `/hub?${hubParams}`;
-      } else if (ssoTarget) {
-        window.location.href = `/api/auth/sso?target=${encodeURIComponent(ssoTarget)}`;
-      } else {
-        window.location.href = '/hub';
-      }
-    } catch (err) {
-      setSsoError(err instanceof Error ? err.message : 'Sign in failed. Try again.');
-      setSsoLoading(false);
-    }
-  }, [ssoTarget]);
 
   const filteredApps = useMemo(() => {
     let result = APPS;
@@ -242,73 +175,8 @@ export default function HomePage() {
       <section id="payment" className={styles.paymentSection}>
         <div className={styles.paymentCard}>
           <div className={styles.paymentCardInner}>
-
-            {/* ✅ SSO Login Card — لما بيجي من Commerce/Assets */}
-            {ssoTarget ? (
-              <div style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 16 }}>🔐</div>
-                <div style={{
-                  fontSize: 15, fontWeight: 800, color: '#d4af37', marginBottom: 8,
-                }}>
-                  Sign in to continue
-                </div>
-                <div style={{
-                  fontSize: 11, color: '#4a4a5a', marginBottom: 24, lineHeight: 1.6,
-                }}>
-                  You&apos;ll be redirected back automatically after signing in
-                </div>
-
-                {ssoError && (
-                  <div style={{
-                    fontSize: 11, color: '#e74c3c', marginBottom: 16,
-                    padding: '8px 12px', background: '#e74c3c10',
-                    border: '1px solid #e74c3c30', borderRadius: 10,
-                  }}>
-                    {ssoError}
-                  </div>
-                )}
-
-                <button
-                  onClick={handleSsoLogin}
-                  disabled={ssoLoading}
-                  style={{
-                    padding: '16px 32px', borderRadius: 18, width: '100%',
-                    background: ssoLoading
-                      ? '#1a1a2e'
-                      : 'linear-gradient(135deg,#d4af37,#b8882a)',
-                    border:     ssoLoading ? '1px solid #333' : 'none',
-                    color:      ssoLoading ? '#4a4a5a' : '#0a0800',
-                    fontSize: 15, fontWeight: 800,
-                    cursor: ssoLoading ? 'not-allowed' : 'pointer',
-                    boxShadow: ssoLoading ? 'none' : '0 8px 32px rgba(212,175,55,0.3)',
-                    display: 'flex', alignItems: 'center',
-                    justifyContent: 'center', gap: 10,
-                  }}
-                >
-                  {ssoLoading ? (
-                    <>
-                      <span style={{
-                        display: 'inline-block', width: 14, height: 14,
-                        borderRadius: '50%', border: '2px solid #333',
-                        borderTop: '2px solid #d4af37',
-                        animation: 'spin 0.8s linear infinite',
-                      }} />
-                      Signing in...
-                    </>
-                  ) : (
-                    <>🔷 Sign in with Pi</>
-                  )}
-                </button>
-
-                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-              </div>
-            ) : (
-              <PiPaymentButton />
-            )}
-
-            <p style={{
-              fontSize: 11, color: '#4a4a5a', marginTop: 12, textAlign: 'center',
-            }}>
+            <PiPaymentButton />
+            <p style={{ fontSize: 11, color: '#4a4a5a', marginTop: 12, textAlign: 'center' }}>
               🌐 Best experience in Pi Browser
             </p>
           </div>
@@ -466,4 +334,4 @@ export default function HomePage() {
       </Link>
     </main>
   );
-          }
+            }

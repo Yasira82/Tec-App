@@ -71,7 +71,7 @@ export function PaymentModal({
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [payment, authReady, ensurePiAuth]);
+  }, [payment, authReady, ensurePiAuth, onSuccess]);
 
   return (
     <div style={{

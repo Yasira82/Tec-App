@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import Link from 'next/link';
-import { useTranslation } from '@/lib/i18n';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-import PiPaymentButton from '@/components/payment/PiPaymentButton';
-import styles from './page.module.css';
+import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
+import { useState, useMemo, useEffect, useCallback }     from 'react';
+import Link                                              from 'next/link';
+import { useTranslation }                                from '@/lib/i18n';
+import LanguageSwitcher                                  from '@/components/LanguageSwitcher';
+import PiPaymentButton                                   from '@/components/payment/PiPaymentButton';
+import styles                                            from './page.module.css';
+import { loginWithPi, isPiBrowser }                      from '@/lib-client/pi/pi-auth';
+import { usePiAuth }                                     from '@/lib-client/hooks/usePiAuth';
 
 const APPS = [
   { name: 'Life',        emoji: '🌱', domain: 'life.pi',        category: 'Personal'      },
@@ -57,9 +60,74 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function HomePage() {
-  const { t, dir } = useTranslation();
+  const { t, dir }                          = useTranslation();
+  const { isAuthenticated, isLoading }      = usePiAuth();
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery,    setSearchQuery]    = useState('');
+
+  // ✅ SSO state
+  const [ssoTarget,  setSsoTarget]  = useState<string | null>(null);
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const [ssoError,   setSsoError]   = useState<string | null>(null);
+
+  // ✅ Detect sso_target from URL (set by SSO route when not authenticated)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const target = params.get('sso_target');
+    if (target) setSsoTarget(decodeURIComponent(target));
+  }, []);
+
+  // ✅ Auto-redirect لو user already authenticated
+  useEffect(() => {
+    if (isLoading) return;
+    if (!isAuthenticated) return;
+
+    // لو فيه payment params محفوظة (Hub cold start)
+    const hubParams = sessionStorage.getItem('tec_post_login_hub_params');
+    if (hubParams) {
+      sessionStorage.removeItem('tec_post_login_hub_params');
+      window.location.href = `/hub?${hubParams}`;
+      return;
+    }
+
+    // لو فيه sso_target في الـ URL
+    const params    = new URLSearchParams(window.location.search);
+    const rawTarget = params.get('sso_target');
+    if (rawTarget) {
+      window.location.href = `/api/auth/sso?target=${decodeURIComponent(rawTarget)}`;
+      return;
+    }
+
+    // Default: روح للـ hub
+    window.location.href = '/hub';
+  }, [isAuthenticated, isLoading]);
+
+  // ✅ SSO Login handler
+  const handleSsoLogin = useCallback(async () => {
+    if (!isPiBrowser()) {
+      setSsoError('Please open in Pi Browser to sign in');
+      return;
+    }
+    setSsoLoading(true);
+    setSsoError(null);
+    try {
+      await loginWithPi();
+
+      // بعد login — check للـ redirects بالأولوية
+      const hubParams = sessionStorage.getItem('tec_post_login_hub_params');
+      if (hubParams) {
+        sessionStorage.removeItem('tec_post_login_hub_params');
+        window.location.href = `/hub?${hubParams}`;
+      } else if (ssoTarget) {
+        window.location.href = `/api/auth/sso?target=${encodeURIComponent(ssoTarget)}`;
+      } else {
+        window.location.href = '/hub';
+      }
+    } catch (err) {
+      setSsoError(err instanceof Error ? err.message : 'Sign in failed. Try again.');
+      setSsoLoading(false);
+    }
+  }, [ssoTarget]);
 
   const filteredApps = useMemo(() => {
     let result = APPS;
@@ -80,7 +148,6 @@ export default function HomePage() {
   }, [activeCategory, searchQuery, t]);
 
   const openApp = (app: typeof APPS[0]) => {
-    // ✅ لو App live — افتحه مباشرة
     const liveUrl = LIVE_APPS[app.name];
     if (liveUrl) {
       window.location.href = `/api/auth/sso?target=${encodeURIComponent(liveUrl)}`;
@@ -175,8 +242,73 @@ export default function HomePage() {
       <section id="payment" className={styles.paymentSection}>
         <div className={styles.paymentCard}>
           <div className={styles.paymentCardInner}>
-            <PiPaymentButton />
-            <p style={{ fontSize: 11, color: '#4a4a5a', marginTop: 12, textAlign: 'center' }}>
+
+            {/* ✅ SSO Login Card — لما بيجي من Commerce/Assets */}
+            {ssoTarget ? (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: 40, marginBottom: 16 }}>🔐</div>
+                <div style={{
+                  fontSize: 15, fontWeight: 800, color: '#d4af37', marginBottom: 8,
+                }}>
+                  Sign in to continue
+                </div>
+                <div style={{
+                  fontSize: 11, color: '#4a4a5a', marginBottom: 24, lineHeight: 1.6,
+                }}>
+                  You'll be redirected back automatically after signing in
+                </div>
+
+                {ssoError && (
+                  <div style={{
+                    fontSize: 11, color: '#e74c3c', marginBottom: 16,
+                    padding: '8px 12px', background: '#e74c3c10',
+                    border: '1px solid #e74c3c30', borderRadius: 10,
+                  }}>
+                    {ssoError}
+                  </div>
+                )}
+
+                <button
+                  onClick={handleSsoLogin}
+                  disabled={ssoLoading}
+                  style={{
+                    padding: '16px 32px', borderRadius: 18, width: '100%',
+                    background: ssoLoading
+                      ? '#1a1a2e'
+                      : 'linear-gradient(135deg,#d4af37,#b8882a)',
+                    border:     ssoLoading ? '1px solid #333' : 'none',
+                    color:      ssoLoading ? '#4a4a5a' : '#0a0800',
+                    fontSize: 15, fontWeight: 800,
+                    cursor: ssoLoading ? 'not-allowed' : 'pointer',
+                    boxShadow: ssoLoading ? 'none' : '0 8px 32px rgba(212,175,55,0.3)',
+                    display: 'flex', alignItems: 'center',
+                    justifyContent: 'center', gap: 10,
+                  }}
+                >
+                  {ssoLoading ? (
+                    <>
+                      <span style={{
+                        display: 'inline-block', width: 14, height: 14,
+                        borderRadius: '50%', border: '2px solid #333',
+                        borderTop: '2px solid #d4af37',
+                        animation: 'spin 0.8s linear infinite',
+                      }} />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>🔷 Sign in with Pi</>
+                  )}
+                </button>
+
+                <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+              </div>
+            ) : (
+              <PiPaymentButton />
+            )}
+
+            <p style={{
+              fontSize: 11, color: '#4a4a5a', marginTop: 12, textAlign: 'center',
+            }}>
               🌐 Best experience in Pi Browser
             </p>
           </div>
@@ -189,7 +321,10 @@ export default function HomePage() {
           <span className={styles.featuredEmoji}>🌐</span>
           <h2 className={styles.featuredTitle}>TEC Nexus</h2>
           <p className={styles.featuredDesc}>{t.apps.Nexus}</p>
-          <button className={styles.featuredBtn} onClick={() => window.open('https://nexus.pi', '_blank', 'noopener,noreferrer')}>
+          <button
+            className={styles.featuredBtn}
+            onClick={() => window.open('https://nexus.pi', '_blank', 'noopener,noreferrer')}
+          >
             {dir === 'rtl' ? 'استكشف Nexus ←' : 'Explore Nexus →'}
           </button>
         </div>
@@ -218,7 +353,11 @@ export default function HomePage() {
             aria-label="Search apps"
           />
           {searchQuery && (
-            <button className={styles.searchClear} onClick={() => setSearchQuery('')} aria-label="Clear search">
+            <button
+              className={styles.searchClear}
+              onClick={() => setSearchQuery('')}
+              aria-label="Clear search"
+            >
               ×
             </button>
           )}
@@ -227,8 +366,11 @@ export default function HomePage() {
         {/* Category Filter */}
         <div className={styles.filterBar}>
           {CATEGORIES.map((cat) => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
-              className={`${styles.filterBtn} ${activeCategory === cat ? styles.filterBtnActive : ''}`}>
+            <button
+              key={cat}
+              onClick={() => setActiveCategory(cat)}
+              className={`${styles.filterBtn} ${activeCategory === cat ? styles.filterBtnActive : ''}`}
+            >
               {cat}
             </button>
           ))}
@@ -239,7 +381,10 @@ export default function HomePage() {
           <div className={styles.noResults}>
             <span>🔍</span>
             <p>{dir === 'rtl' ? 'لا توجد نتائج' : 'No apps found'}</p>
-            <button className={styles.noResultsBtn} onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}>
+            <button
+              className={styles.noResultsBtn}
+              onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
+            >
               {dir === 'rtl' ? 'مسح البحث' : 'Clear search'}
             </button>
           </div>
@@ -265,14 +410,18 @@ export default function HomePage() {
                   <div className={styles.appCardTop}>
                     <span className={styles.appEmoji}>{app.emoji}</span>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                      <span className={styles.appCategory}
-                        style={{ color: CATEGORY_COLORS[app.category] ?? '#d4af37' }}>
+                      <span
+                        className={styles.appCategory}
+                        style={{ color: CATEGORY_COLORS[app.category] ?? '#d4af37' }}
+                      >
                         {app.category}
                       </span>
                       {isLive && (
-                        <span style={{ fontSize: 8, color: '#7ee7c0', letterSpacing: 1,
+                        <span style={{
+                          fontSize: 8, color: '#7ee7c0', letterSpacing: 1,
                           background: '#7ee7c010', border: '1px solid #7ee7c030',
-                          borderRadius: 4, padding: '1px 4px' }}>
+                          borderRadius: 4, padding: '1px 4px',
+                        }}>
                           LIVE
                         </span>
                       )}
@@ -301,7 +450,9 @@ export default function HomePage() {
           <span className={styles.navLogoMark}>T</span>
           <span className={styles.navLogoText}>EC</span>
         </div>
-        <p className={styles.footerText}>© 2026 {t.common.tagline} · Built on Pi Network</p>
+        <p className={styles.footerText}>
+          © 2026 {t.common.tagline} · Built on Pi Network
+        </p>
         <div className={styles.footerLinks}>
           <a href="/privacy" className={styles.footerLink}>Privacy</a>
           <a href="/terms"   className={styles.footerLink}>Terms</a>

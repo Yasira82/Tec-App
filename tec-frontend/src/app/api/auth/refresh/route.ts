@@ -20,9 +20,6 @@ export async function POST(req: NextRequest) {
 
     const data = await backendRes.json().catch(() => ({}));
 
-    console.log('[refresh] gateway status:', backendRes.status);
-    console.log('[refresh] gateway data keys:', Object.keys(data));
-
     if (!backendRes.ok) {
       return NextResponse.json(data, { status: backendRes.status });
     }

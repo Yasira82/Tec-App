@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID }                from 'crypto';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const GATEWAY     = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+// ✅ COOKIE_DOMAIN=.tecosystem.app في Vercel env vars
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN ?? '.tecosystem.app';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,7 +15,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
     }
 
-    // ✅ fetchWithTimeout — يمنع الـ 504 على Vercel
     let backendRes: Response;
     try {
       backendRes = await fetchWithTimeout(
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({ accessToken }),
         },
-        25000, // 10 ثانية
+        25000,
       );
     } catch (timeoutErr) {
       console.error('[pi-login] Gateway timeout:', timeoutErr);
@@ -39,7 +40,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(data, { status: backendRes.status });
     }
 
-    // ✅ Guard: لو tokens مش موجودين
     if (!data.tokens?.accessToken || !data.tokens?.refreshToken) {
       console.error('[pi-login] Missing tokens in backend response');
       return NextResponse.json({ error: 'Invalid backend response' }, { status: 502 });
@@ -54,13 +54,14 @@ export async function POST(req: NextRequest) {
     const maxAge     = 60 * 60 * 24;
     const refreshAge = 60 * 60 * 24 * 7;
 
-    // ✅ sameSite: 'none' ضروري للـ Pi Browser WebView
+    // ✅ domain: COOKIE_DOMAIN يخلي الـ cookies تتشارك بين كل الـ apps
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: false,
       secure:   true,
       sameSite: 'none',
       maxAge,
       path:     '/',
+      domain:   COOKIE_DOMAIN,
     });
 
     res.cookies.set('tec_refresh_token', data.tokens.refreshToken, {
@@ -69,6 +70,7 @@ export async function POST(req: NextRequest) {
       sameSite: 'none',
       maxAge:   refreshAge,
       path:     '/',
+      domain:   COOKIE_DOMAIN,
     });
 
     res.cookies.set('tec_user', JSON.stringify(data.user), {
@@ -77,9 +79,9 @@ export async function POST(req: NextRequest) {
       sameSite: 'none',
       maxAge,
       path:     '/',
+      domain:   COOKIE_DOMAIN,
     });
 
-    // ✅ CSRF double-submit token
     const csrf = randomUUID();
     res.cookies.set('tec_csrf', csrf, {
       httpOnly: false,
@@ -87,6 +89,7 @@ export async function POST(req: NextRequest) {
       sameSite: 'none',
       maxAge,
       path:     '/',
+      domain:   COOKIE_DOMAIN,
     });
 
     return res;

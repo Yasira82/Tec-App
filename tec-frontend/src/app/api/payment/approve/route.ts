@@ -1,25 +1,26 @@
-import { NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
-import { isE2eMode } from '@/lib/server/e2e-mode';
-import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
+import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID }                from 'crypto';
+import { isE2eMode }                 from '@/lib/server/e2e-mode';
+import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // ✅ NextRequest بيقدر يقرأ cookies صح
     const authHeader =
-  request.headers.get('Authorization') ??
-  request.headers.get('authorization') ??
-  (() => {
-    const raw = (request as unknown as { cookies?: { get?: (k: string) => { value?: string } | undefined } }).cookies?.get?.('tec_access_token')?.value;
-    return raw ? `Bearer ${raw}` : null;
-  })();
+      req.headers.get('Authorization') ??
+      req.headers.get('authorization') ??
+      (() => {
+        const raw = req.cookies.get('tec_access_token')?.value;
+        return raw ? `Bearer ${raw}` : null;
+      })();
 
-if (!authHeader?.startsWith('Bearer ')) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-}
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
-    const body = await request.json();
+    const body = await req.json();
     const { payment_id, pi_payment_id } = body;
 
     if (!payment_id) {
@@ -46,9 +47,11 @@ if (!authHeader?.startsWith('Bearer ')) {
     });
 
     const data = await res.json().catch(() => ({}));
+    console.log('[approve] gateway response:', res.status, JSON.stringify(data));
+
     return NextResponse.json(data, { status: res.status });
   } catch (error) {
-    console.error('[Approve Route] Error:', error);
+    console.error('[approve] error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

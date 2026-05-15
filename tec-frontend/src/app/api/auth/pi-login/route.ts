@@ -51,7 +51,23 @@ export async function POST(req: NextRequest) {
 
     const maxAge     = 60 * 60 * 24;
     const refreshAge = 60 * 60 * 24 * 7;
+    const csrf       = randomUUID();
 
+    // ✅ امسح الـ domain cookies القديمة اللي اتعملت بالغلط
+    // ده بيمنع CSRF mismatch من duplicate cookies
+    const domainClearOptions = {
+      secure:   true,
+      sameSite: 'none' as const,
+      maxAge:   0,
+      path:     '/',
+      domain:   '.tecosystem.app',
+    };
+    res.cookies.set('tec_access_token',  '', { ...domainClearOptions, httpOnly: false });
+    res.cookies.set('tec_refresh_token', '', { ...domainClearOptions, httpOnly: true  });
+    res.cookies.set('tec_user',          '', { ...domainClearOptions, httpOnly: false });
+    res.cookies.set('tec_csrf',          '', { ...domainClearOptions, httpOnly: false });
+
+    // ✅ Set cookies الجديدة بدون domain (hub.tecosystem.app فقط)
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: false,
       secure:   true,
@@ -76,7 +92,6 @@ export async function POST(req: NextRequest) {
       path:     '/',
     });
 
-    const csrf = randomUUID();
     res.cookies.set('tec_csrf', csrf, {
       httpOnly: false,
       secure:   true,

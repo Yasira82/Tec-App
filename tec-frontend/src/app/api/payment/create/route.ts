@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
-import { isE2eMode } from '@/lib/server/e2e-mode';
-import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
+import { randomUUID }                from 'crypto';
+import { isE2eMode }                 from '@/lib/server/e2e-mode';
+import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -24,19 +24,23 @@ function getUserIdFromCookie(req: NextRequest): string | null {
   } catch { return null; }
 }
 
-// ✅ Refresh token server-side
+// ✅ Fix: الـ refresh token بيتبعت في Authorization header
 async function refreshAccessToken(req: NextRequest): Promise<string | null> {
   try {
     const refreshToken = req.cookies.get('tec_refresh_token')?.value;
     if (!refreshToken) return null;
 
-    const res = await fetchWithTimeout(`${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/v1/auth/refresh`, {
-      method:  'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const res = await fetchWithTimeout(
+      `${GATEWAY}/api/v1/auth/refresh`,
+      {
+        method:  'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${refreshToken}`, // ✅ header مش body
+        },
       },
-      body: JSON.stringify({ refreshToken }),
-    });
+      10000,
+    );
 
     if (!res.ok) return null;
     const data = await res.json().catch(() => ({}));
@@ -57,7 +61,6 @@ export async function POST(req: NextRequest) {
     })();
 
   console.log('[create] authHeader exists:', !!authHeader);
-  console.log('[create] authHeader prefix:', authHeader?.substring(0, 20) ?? 'N/A');
 
   if (!authHeader?.startsWith('Bearer ')) {
     console.warn('[create] No valid auth header — returning 401');
@@ -83,7 +86,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const missing = REQUIRED_FIELDS.filter((f) => body[f] == null || body[f] === '');
+    const missing = REQUIRED_FIELDS.filter(f => body[f] == null || body[f] === '');
     if (missing.length > 0) {
       return NextResponse.json(
         { error: 'Missing required fields', missing, requestId },
@@ -110,7 +113,8 @@ export async function POST(req: NextRequest) {
 
     const idempotencyKey = randomUUID();
 
-    let res = await fetchWithTimeout(`${GATEWAY}/api/payments/create`, {
+    // ✅ URL موحد مع approve route
+    let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',
@@ -129,7 +133,7 @@ export async function POST(req: NextRequest) {
       if (newToken) {
         console.log('[create] Token refreshed — retrying...');
         authHeader = `Bearer ${newToken}`;
-        res = await fetchWithTimeout(`${GATEWAY}/api/payments/create`, {
+        res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
           method:  'POST',
           headers: {
             'Content-Type':    'application/json',

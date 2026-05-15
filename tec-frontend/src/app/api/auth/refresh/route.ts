@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const GATEWAY       = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN ?? '.tecosystem.app';
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,7 +28,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(data, { status: backendRes.status });
     }
 
-    // ✅ الـ token ممكن يكون في مكانين مختلفين
     const newAccessToken  = data.token ?? data.accessToken ?? data.data?.token ?? data.data?.accessToken ?? null;
     const newRefreshToken = data.refreshToken ?? data.data?.refreshToken ?? null;
 
@@ -38,12 +38,14 @@ export async function POST(req: NextRequest) {
 
     const res = NextResponse.json({ token: newAccessToken });
 
+    // ✅ domain: COOKIE_DOMAIN — يشارك الـ token مع assets + commerce
     res.cookies.set('tec_access_token', newAccessToken, {
       httpOnly: false,
       secure:   true,
       sameSite: 'none',
       maxAge:   60 * 60 * 24,
       path:     '/',
+      domain:   COOKIE_DOMAIN,
     });
 
     if (newRefreshToken) {
@@ -53,6 +55,7 @@ export async function POST(req: NextRequest) {
         sameSite: 'none',
         maxAge:   60 * 60 * 24 * 7,
         path:     '/',
+        domain:   COOKIE_DOMAIN,
       });
     }
 

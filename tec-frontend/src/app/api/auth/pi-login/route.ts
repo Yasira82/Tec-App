@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID }                from 'crypto';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY     = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
-// ✅ COOKIE_DOMAIN=.tecosystem.app في Vercel env vars
-const COOKIE_DOMAIN = process.env.COOKIE_DOMAIN ?? '.tecosystem.app';
+const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
 export async function POST(req: NextRequest) {
   try {
@@ -54,14 +52,12 @@ export async function POST(req: NextRequest) {
     const maxAge     = 60 * 60 * 24;
     const refreshAge = 60 * 60 * 24 * 7;
 
-    // ✅ domain: COOKIE_DOMAIN يخلي الـ cookies تتشارك بين كل الـ apps
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: false,
       secure:   true,
       sameSite: 'none',
       maxAge,
       path:     '/',
-      domain:   COOKIE_DOMAIN,
     });
 
     res.cookies.set('tec_refresh_token', data.tokens.refreshToken, {
@@ -70,7 +66,6 @@ export async function POST(req: NextRequest) {
       sameSite: 'none',
       maxAge:   refreshAge,
       path:     '/',
-      domain:   COOKIE_DOMAIN,
     });
 
     res.cookies.set('tec_user', JSON.stringify(data.user), {
@@ -79,7 +74,6 @@ export async function POST(req: NextRequest) {
       sameSite: 'none',
       maxAge,
       path:     '/',
-      domain:   COOKIE_DOMAIN,
     });
 
     const csrf = randomUUID();
@@ -89,7 +83,6 @@ export async function POST(req: NextRequest) {
       sameSite: 'none',
       maxAge,
       path:     '/',
-      domain:   COOKIE_DOMAIN,
     });
 
     return res;

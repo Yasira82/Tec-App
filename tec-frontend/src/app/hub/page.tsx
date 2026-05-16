@@ -127,14 +127,19 @@ function HubPageInner() {
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
   if (!externalPayment) return;
 
-  // ✅ NFT: سجل server-side قبل الـ redirect
   if (externalPayment.productId.startsWith('nft:')) {
     try {
-      const nftMeta = JSON.parse(atob(externalPayment.productId.slice(4)));
+      const nftMeta    = JSON.parse(atob(externalPayment.productId.slice(4)));
+      const csrfToken  = document.cookie.split('; ')
+        .find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+
       await fetch('/api/assets/provision', {
         method:      'POST',
         credentials: 'include',
-        headers:     { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,          // ✅ CSRF
+        },
         body: JSON.stringify({
           slug:       `nft-${paymentId.slice(0, 8)}-${Date.now()}`,
           payment_id: paymentId,
@@ -149,7 +154,7 @@ function HubPageInner() {
           },
         }),
       });
-    } catch { /* payment نجح — مش بنمنع الـ redirect */ }
+    } catch { /* مش بنمنع الـ redirect */ }
   }
 
   setExternalPayment(null);

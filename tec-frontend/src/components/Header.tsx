@@ -1,90 +1,86 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { haptic }    from '@/lib/hub/utils';
+import { usePiAuth }        from '@/lib-client/hooks/usePiAuth';
+import { useTranslation }   from '@/lib/i18n';
+import LanguageSwitcher     from './LanguageSwitcher';
 
-interface Props {
-  piUsername:  string;
-  time:        string;
-  notifCount:  number;
-  onNotifClick: () => void;
-}
-
-export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props) {
-  const router = useRouter();
+export default function Header() {
+  const { user, isAuthenticated, logout } = usePiAuth();
+  const { t } = useTranslation();
 
   return (
     <header style={{
-      padding: '14px 20px', display: 'flex', alignItems: 'center',
-      justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100,
-      background: 'rgba(2,2,5,0.85)',
+      display:        'flex',
+      alignItems:     'center',
+      justifyContent: 'space-between',
+      padding:        'var(--sp-4) var(--sp-6)',
+      background:     'rgba(2,2,5,0.85)',
       backdropFilter: 'blur(24px) saturate(1.8)',
       WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-      borderBottom: '1px solid rgba(255,255,255,0.05)',
+      borderBottom:   '1px solid var(--tec-border)',
+      position:       'sticky',
+      top:            0,
+      zIndex:         100,
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
-          width: 34, height: 34, borderRadius: 10,
+          width: 32, height: 32, borderRadius: 10,
           background: 'linear-gradient(135deg,#d4af37,#b8882a)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: '#0a0800',
-          boxShadow: '0 2px 12px rgba(212,175,55,0.3)',
+          boxShadow: '0 2px 10px rgba(212,175,55,0.25)',
         }}>T</div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#d4af37', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
-          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: 2, lineHeight: 1.4 }}>ECOSYSTEM</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>
+            {t.common.appName}
+          </div>
+          <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 2, lineHeight: 1.4 }}>ECOSYSTEM</div>
         </div>
       </div>
 
       {/* Right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-4)' }}>
+        <LanguageSwitcher />
 
-        {/* Notifications */}
-        <button className="tec-btn" onClick={onNotifClick}
-          aria-label={`Notifications${notifCount > 0 ? ` — ${notifCount} unread` : ''}`}
-          style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: notifCount > 0 ? 'rgba(212,175,55,0.1)' : 'rgba(255,255,255,0.06)',
-            border: `1px solid ${notifCount > 0 ? 'rgba(212,175,55,0.25)' : 'rgba(255,255,255,0.08)'}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 16, position: 'relative',
-          }}>
-          🔔
-          {notifCount > 0 && (
-            <span style={{
-              position: 'absolute', top: -4, right: -4,
-              minWidth: 17, height: 17, borderRadius: 999,
-              background: '#ef4444', border: '2px solid #020205',
-              fontSize: 9, fontWeight: 800, color: '#fff',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              padding: '0 3px',
+        {isAuthenticated && user && (
+          <>
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'var(--tec-gold-glow)',
+              border: '1px solid var(--tec-border-gold)',
+              borderRadius: 'var(--radius-full)', padding: '5px 12px',
             }}>
-              {notifCount > 9 ? '9+' : notifCount}
-            </span>
-          )}
-        </button>
+              <div style={{
+                width: 22, height: 22, borderRadius: '50%',
+                background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 800, color: '#0a0800',
+              }}>
+                {user.piUsername?.[0]?.toUpperCase()}
+              </div>
+              <span style={{ fontSize: 13, color: 'var(--tec-gold)', fontWeight: 600 }}>
+                @{user.piUsername}
+              </span>
+            </div>
 
-        {/* Avatar */}
-        <button className="tec-btn" onClick={() => { haptic('light'); router.push('/dashboard'); }}
-          aria-label="Open dashboard"
-          style={{
-            display: 'flex', alignItems: 'center', gap: 8,
-            background: 'rgba(212,175,55,0.08)',
-            border: '1px solid rgba(212,175,55,0.2)',
-            borderRadius: 12, padding: '5px 10px 5px 5px', cursor: 'pointer',
-          }}>
-          <div style={{
-            width: 26, height: 26, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 11, fontWeight: 800, color: '#0a0800',
-          }}>
-            {piUsername[0]?.toUpperCase()}
-          </div>
-          <span style={{ fontSize: 12, color: '#d4af37', fontWeight: 600 }}>@{piUsername}</span>
-        </button>
+            <button
+              onClick={logout}
+              aria-label="Log out"
+              style={{
+                padding: 'var(--sp-2) var(--sp-4)',
+                background: 'rgba(239,68,68,0.08)',
+                border: '1px solid rgba(239,68,68,0.2)',
+                borderRadius: 'var(--radius-sm)',
+                color: 'rgba(239,68,68,0.7)',
+                fontSize: 'var(--text-sm)',
+                cursor: 'pointer',
+                transition: 'all var(--dur-base) ease',
+              }}>
+              {t.common.logout}
+            </button>
+          </>
+        )}
       </div>
     </header>
   );

@@ -124,16 +124,42 @@ function HubPageInner() {
     }
   }, []);
 
-  const handlePaymentSuccess = useCallback((txid: string, paymentId: string) => {
-    if (!externalPayment) return;
-    setExternalPayment(null);
-    const ret = new URL(externalPayment.returnUrl);
-    ret.searchParams.set('payment_status', 'success');
-    ret.searchParams.set('txid',           txid);
-    ret.searchParams.set('payment_id',     paymentId);
-    ret.searchParams.set('product_id',     externalPayment.productId);
-    window.location.href = ret.toString();
-  }, [externalPayment]);
+  const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
+  if (!externalPayment) return;
+
+  // ✅ NFT: سجل server-side قبل الـ redirect
+  if (externalPayment.productId.startsWith('nft:')) {
+    try {
+      const nftMeta = JSON.parse(atob(externalPayment.productId.slice(4)));
+      await fetch('/api/assets/provision', {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          slug:       `nft-${paymentId.slice(0, 8)}-${Date.now()}`,
+          payment_id: paymentId,
+          category:   'NFT',
+          metadata: {
+            name:        nftMeta.n,
+            description: nftMeta.d ?? '',
+            imageUrl:    nftMeta.u,
+            key:         nftMeta.k ?? '',
+            mimeType:    nftMeta.m ?? 'image/jpeg',
+            txid,
+          },
+        }),
+      });
+    } catch { /* payment نجح — مش بنمنع الـ redirect */ }
+  }
+
+  setExternalPayment(null);
+  const ret = new URL(externalPayment.returnUrl);
+  ret.searchParams.set('payment_status', 'success');
+  ret.searchParams.set('txid',           txid);
+  ret.searchParams.set('payment_id',     paymentId);
+  ret.searchParams.set('product_id',     externalPayment.productId);
+  window.location.href = ret.toString();
+}, [externalPayment]);
 
   const handlePullStart = (e: React.TouchEvent) => {
     const el = e.currentTarget as HTMLElement;

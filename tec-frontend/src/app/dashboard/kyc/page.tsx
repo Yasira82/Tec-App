@@ -317,7 +317,7 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
 // ── Rejected State ─────────────────────────────────────────────
 function RejectedState({ reason, isSubmitting, onReset }: {
   reason?: string | null; isSubmitting: boolean; onReset: () => void | Promise<void>;
-})
+}) {      
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-8) var(--sp-6)' }}>

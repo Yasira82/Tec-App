@@ -12,11 +12,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router   = useRouter();
   const pathname = usePathname();
 
-  // ✅ null = not hydrated yet → prevents layout shift
   const [isDesktop,  setIsDesktop]  = useState<boolean | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  /* ── matchMedia — lighter than resize ─────────────── */
   useEffect(() => {
     const media  = window.matchMedia('(min-width: 1024px)');
     const handle = () => setIsDesktop(media.matches);
@@ -25,15 +23,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => media.removeEventListener('change', handle);
   }, []);
 
-  /* ── Close sidebar on route change ──────────────── */
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
-  /* ── Auth guard ──────────────────────────────────── */
   useEffect(() => {
     if (!isLoading && !isAuthenticated) router.push('/');
   }, [isAuthenticated, isLoading, router]);
 
-  /* ── Body scroll lock ────────────────────────────── */
   useEffect(() => {
     document.body.style.overflow = (!isDesktop && mobileOpen) ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -41,7 +36,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   const handleLogout = () => { logout(); router.push('/'); };
 
-  /* ── Prevent layout shift on first render ────────── */
   if (isDesktop === null || isLoading || !user) {
     return (
       <div style={{
@@ -75,7 +69,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           onClick={() => setMobileOpen(false)}
           style={{
             position: 'fixed', inset: 0,
-            zIndex: 'var(--z-overlay)' as unknown as number,
+            zIndex: 200,
             background: 'rgba(2,2,5,0.75)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
@@ -88,7 +82,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         id="tec-sidebar"
         style={{
           position: 'fixed', top: 0, left: 0, bottom: 0,
-          zIndex: 210
+          zIndex: 210,
           transform: (isDesktop || mobileOpen) ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1)',
           width: 240,
@@ -112,11 +106,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className="tec-main-content"
         style={{
           flex: 1,
-          marginLeft: isDesktop ? 240 : 0,
-          marginTop:  isDesktop ? 0   : 64,
-          padding:    'var(--sp-6) var(--sp-5)',
-          minHeight:  '100vh',
-          transition: 'margin 0.3s ease',
+          marginLeft:  isDesktop ? 240 : 0,
+          marginTop:   isDesktop ? 0   : 64,
+          padding:     'var(--sp-6) var(--sp-5)',
+          minHeight:   '100vh',
+          transition:  'margin-left 0.3s ease, margin-top 0.3s ease',
         }}>
         {children}
       </main>

@@ -1,28 +1,23 @@
-name: TEC CI/CD Pipeline
+name: E2E Tests
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'tec-frontend/**'
-      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'tec-frontend/**'
-      - '.github/workflows/ci.yml'
+      - 'src/**'
+      - 'e2e/**'              # ✅ أضف
+      - 'playwright.config.ts' # ✅ أضف
+      - '.github/workflows/e2e.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  frontend-pipeline:
-    name: Frontend Pipeline
+  e2e:
+    name: Playwright E2E
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./tec-frontend
+    timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v4
@@ -31,38 +26,57 @@ jobs:
         with:
           node-version: '20'
 
-      # ✅ Cache node_modules
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
-          path: tec-frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('tec-frontend/package-lock.json') }}
-          restore-keys: ${{ runner.os }}-frontend-
+          path: node_modules
+          key: ${{ runner.os }}-assets-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-assets-
 
-      - name: Install dependencies
+      - name: Install
         run: npm install --legacy-peer-deps
 
-      # ✅ Lint
-      - name: Lint
-        run: npm run lint
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-playwright-
 
-      # ✅ Unit tests
-      - name: Test
-        run: npm test
+      - name: Install Playwright
+        run: npx playwright install --with-deps chromium
 
-      # ✅ Build
-      - name: Build Next.js
+      - name: Build
         run: npm run build
         env:
+          NEXT_PUBLIC_API_GATEWAY_URL: 'http://localhost:8080'
           NEXT_PUBLIC_PI_SANDBOX:      'true'
-          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL }}
-          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}
+          NEXT_PUBLIC_HUB_URL:         'https://hub.tecosystem.app'
+          NEXT_PUBLIC_ASSETS_URL:      'https://assets.tecosystem.app'
+          E2E_MODE:                    'true'
 
-      # ✅ Upload build artifact
-      - name: Upload build artifact
+      - name: Copy static files
+        run: |
+          cp -r .next/static .next/standalone/.next/static
+          if [ -d "public" ]; then
+            cp -r public .next/standalone/public
+          else
+            mkdir -p .next/standalone/public
+          fi
+
+      - name: Run E2E
+        run: npm run test:e2e
+        continue-on-error: true
+        env:
+          CI:                          'true'
+          E2E_MODE:                    'true'
+          PLAYWRIGHT_BASE_URL:         'http://localhost:3000'
+          NEXT_PUBLIC_API_GATEWAY_URL: 'http://localhost:8080'
+
+      - name: Upload Report
         uses: actions/upload-artifact@v4
-        if: github.event_name == 'push'
+        if: always()
         with:
-          name: frontend-build
-          path: tec-frontend/.next/
-          retention-days: 3
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

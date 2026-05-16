@@ -19,28 +19,33 @@ export const GET = createHandler({
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const url = `${GATEWAY}/api/assets/user/${encodeURIComponent(ctx.userId)}`;
-
-    const res = await fetch(url, {
-      headers: {
-        'Authorization':  `Bearer ${token}`,
-        'x-request-id':   ctx.requestId,
-        'x-internal-key': process.env.INTERNAL_SECRET ?? '', // ✅
+    const res = await fetch(
+      `${GATEWAY}/api/assets/user/${encodeURIComponent(ctx.userId)}`,
+      {
+        headers: {
+          Authorization:    `Bearer ${token}`,
+          'x-request-id':   ctx.requestId,
+          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+        },
+        cache: 'no-store',
       },
-      cache: 'no-store',
-    });
+    );
 
-    if (!res.ok) throw new Error(`Gateway ${res.status}`);
+    if (!res.ok) {
+      console.error('[Hub BFF] assets/list failed:', res.status);
+      return { data: [], total: 0 }; // ✅ مش بيرمي error
+    }
 
     const raw    = await res.json();
     const assets = (raw?.data ?? []).map((a: RawAsset) => ({
       id:         a.id,
-      name:       a.slug,
+      name:       (a.metadata?.name as string) ?? a.slug, // ✅ الاسم الحقيقي
       asset_type: a.category?.toLowerCase() ?? 'domain',
-      value:      0,
+      value:      a.category?.toLowerCase() === 'nft' ? 2 : 1,
       currency:   'PI',
       status:     a.status?.toLowerCase() ?? 'active',
       created_at: a.createdAt,
+      metadata:   a.metadata ?? {},
     }));
 
     return { data: assets, total: assets.length };

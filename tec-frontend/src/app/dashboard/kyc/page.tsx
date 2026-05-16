@@ -1,113 +1,149 @@
 'use client';
 
-import { useState } from 'react';
-import { useKyc, KycRecord, KycStatus } from '@/lib-client/hooks/useKyc';
-import styles from './kyc.module.css';
+import { useState }                         from 'react';
+import { useKyc, KycRecord, KycStatus }     from '@/lib-client/hooks/useKyc';
+import { DashboardShell, DashboardCard }    from '@/components/dashboard';
 
-// ─── Status Config ─────────────────────────────────────────────
+// ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<KycStatus, {
-  icon: string; label: string; css: string; desc: string;
+  icon: string; label: string; desc: string;
+  bg: string; border: string; color: string;
 }> = {
   NOT_STARTED: {
     icon: '📋', label: 'Not Started',
-    css:  'statusNotStarted',
-    desc: 'Complete your identity verification to unlock all features.',
+    desc: 'Complete your identity verification to unlock all TEC features.',
+    bg: 'rgba(255,255,255,0.03)', border: 'var(--tec-border)', color: 'var(--tec-text-2)',
   },
   PENDING: {
     icon: '⏳', label: 'Under Review',
-    css:  'statusPending',
-    desc: 'Your documents are being reviewed. This usually takes 1-2 business days.',
+    desc: 'Your documents are being reviewed. This usually takes 1–2 business days.',
+    bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: '#f59e0b',
   },
   VERIFIED: {
     icon: '✅', label: 'Verified',
-    css:  'statusVerified',
     desc: 'Your identity has been successfully verified.',
+    bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', color: '#10b981',
   },
   REJECTED: {
     icon: '❌', label: 'Rejected',
-    css:  'statusRejected',
     desc: 'Your verification was rejected. Please resubmit with correct documents.',
+    bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: '#ef4444',
   },
 };
 
-// ─── Page ──────────────────────────────────────────────────────
-export default function KycPage() {
-  const { kyc, isLoading, isSubmitting, error, uploadDocs, submit, reset } = useKyc();
-
-  if (isLoading) {
-    return (
-      <div className={styles.container}>
-        <KycSkeleton />
-      </div>
-    );
-  }
-
-  return (
-    <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Identity Verification</h1>
-        <p className={styles.subtitle}>KYC — Know Your Customer</p>
-      </header>
-
-      {/* ── Status Card ── */}
-      {kyc && <StatusCard kyc={kyc} />}
-
-      {/* ── Error ── */}
-      {error && (
-        <div className={styles.errorBanner}>⚠️ {error}</div>
-      )}
-
-      {/* ── Content by status ── */}
-      {kyc?.status === 'NOT_STARTED' && (
-        <KycForm
-          kyc={kyc}
-          isSubmitting={isSubmitting}
-          onUpload={uploadDocs}
-          onSubmit={submit}
-        />
-      )}
-
-      {kyc?.status === 'REJECTED' && (
-        <RejectedState
-          reason={kyc.rejection_reason}
-          isSubmitting={isSubmitting}
-          onReset={reset}
-        />
-      )}
-
-      {kyc?.status === 'PENDING' && <PendingState />}
-      {kyc?.status === 'VERIFIED' && <VerifiedState kyc={kyc} />}
-    </div>
-  );
-}
-
-// ─── Status Card ───────────────────────────────────────────────
+// ── Status Card ────────────────────────────────────────────────
 function StatusCard({ kyc }: { kyc: KycRecord }) {
   const cfg = STATUS_CONFIG[kyc.status];
   return (
-    <div className={`${styles.statusCard} ${styles[cfg.css]}`}>
-      <span className={styles.statusIcon}>{cfg.icon}</span>
-      <div className={styles.statusInfo}>
-        <div className={styles.statusLabel}>{cfg.label}</div>
-        <div className={styles.statusDesc}>{cfg.desc}</div>
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 16,
+      padding: 'var(--sp-5) var(--sp-6)',
+      background: cfg.bg, border: `1px solid ${cfg.border}`,
+      borderRadius: 'var(--radius-xl)', marginBottom: 'var(--sp-5)',
+    }}>
+      <span style={{ fontSize: 36, flexShrink: 0 }}>{cfg.icon}</span>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: cfg.color, marginBottom: 4 }}>
+          {cfg.label}
+        </div>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
+          {cfg.desc}
+        </div>
       </div>
-      <div className={styles.levelBadge}>Level {kyc.level}</div>
+      <div style={{
+        fontSize: 'var(--text-xs)', fontWeight: 700, letterSpacing: 1,
+        padding: '4px 14px', borderRadius: 'var(--radius-full)',
+        background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)',
+        color: 'var(--tec-gold)', flexShrink: 0,
+      }}>
+        Level {kyc.level}
+      </div>
     </div>
   );
 }
 
-// ─── KYC Form ──────────────────────────────────────────────────
-function KycForm({
-  kyc, isSubmitting, onUpload, onSubmit,
-}: {
-  kyc:          KycRecord;
-  isSubmitting: boolean;
-  onUpload:     (data: any) => Promise<void>;
-  onSubmit:     () => Promise<void>;
-}) {
-  const [step, setStep] = useState<'docs' | 'review'>(
-    kyc.id_front_url ? 'review' : 'docs'
+// ── Step indicator ─────────────────────────────────────────────
+function StepIndicator({ step }: { step: 'docs' | 'review' }) {
+  const steps = [
+    { key: 'docs',   label: 'Upload Documents' },
+    { key: 'review', label: 'Review & Submit' },
+  ];
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--sp-6)' }}>
+      {steps.map((s, i) => {
+        const isActive = step === s.key;
+        const isDone   = step === 'review' && s.key === 'docs';
+        return (
+          <div key={s.key} style={{ display: 'flex', alignItems: 'center', flex: i < steps.length - 1 ? 1 : 'none' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{
+                width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 11, fontWeight: 700,
+                background: isDone  ? 'rgba(16,185,129,0.15)'
+                          : isActive ? 'var(--tec-gold-dim)'
+                          : 'var(--tec-surface-2)',
+                border: `1px solid ${isDone  ? 'rgba(16,185,129,0.4)'
+                                    : isActive ? 'var(--tec-border-gold)'
+                                    : 'var(--tec-border)'}`,
+                color: isDone ? '#10b981' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
+              }}>
+                {isDone ? '✓' : i + 1}
+              </div>
+              <span style={{
+                fontSize: 'var(--text-sm)', fontWeight: isActive ? 600 : 400,
+                color: isActive ? 'var(--tec-text-1)' : 'var(--tec-text-3)',
+              }}>{s.label}</span>
+            </div>
+            {i < steps.length - 1 && (
+              <div style={{ flex: 1, height: 1, background: 'var(--tec-border)', margin: '0 var(--sp-3)' }} />
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
+}
+
+// ── Field ──────────────────────────────────────────────────────
+function Field({ label, required, value, onChange, placeholder }: {
+  label: string; required?: boolean; value: string;
+  onChange: (v: string) => void; placeholder?: string;
+}) {
+  return (
+    <div style={{ marginBottom: 'var(--sp-5)' }}>
+      <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--tec-text-2)', marginBottom: 8, letterSpacing: 0.5 }}>
+        {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+      </label>
+      <input
+        type="url"
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder ?? 'https://...'}
+        style={{
+          width: '100%', padding: 'var(--sp-3) var(--sp-4)',
+          background: 'var(--tec-surface-1)',
+          border: '1px solid var(--tec-border)',
+          borderRadius: 'var(--radius-md)',
+          color: 'var(--tec-text-1)', fontSize: 'var(--text-sm)',
+          outline: 'none', boxSizing: 'border-box',
+          fontFamily: 'var(--font-sans)',
+          transition: 'border-color 0.2s ease',
+        }}
+        onFocus={e => { e.target.style.borderColor = 'rgba(212,175,55,0.4)'; }}
+        onBlur={e  => { e.target.style.borderColor = 'var(--tec-border)'; }}
+      />
+    </div>
+  );
+}
+
+// ── KYC Form ───────────────────────────────────────────────────
+function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
+  kyc: KycRecord; isSubmitting: boolean;
+  onUpload: (data: { idFrontUrl: string; idBackUrl?: string; selfieUrl: string }) => Promise<void>;
+  onSubmit: () => Promise<void>;
+}) {
+  const [step,       setStep]       = useState<'docs' | 'review'>(kyc.id_front_url ? 'review' : 'docs');
   const [idFrontUrl, setIdFrontUrl] = useState(kyc.id_front_url ?? '');
   const [idBackUrl,  setIdBackUrl]  = useState(kyc.id_back_url  ?? '');
   const [selfieUrl,  setSelfieUrl]  = useState(kyc.selfie_url   ?? '');
@@ -115,237 +151,246 @@ function KycForm({
   const [uploadErr,  setUploadErr]  = useState<string | null>(null);
 
   const handleUpload = async () => {
-    if (!idFrontUrl || !selfieUrl) {
-      setUploadErr('ID front and selfie are required');
-      return;
-    }
-    setUploading(true);
-    setUploadErr(null);
+    if (!idFrontUrl || !selfieUrl) { setUploadErr('ID front and selfie are required'); return; }
+    setUploading(true); setUploadErr(null);
     try {
       await onUpload({ idFrontUrl, idBackUrl: idBackUrl || undefined, selfieUrl });
       setStep('review');
-    } catch (err: any) {
-      setUploadErr(err.message);
-    } finally {
-      setUploading(false);
-    }
+    } catch (err: unknown) { setUploadErr((err as Error).message); }
+    finally { setUploading(false); }
   };
 
+  const reviewItems = [
+    { label: 'ID Front',  value: kyc.id_front_url, required: true },
+    { label: 'ID Back',   value: kyc.id_back_url,  required: false },
+    { label: 'Selfie',    value: kyc.selfie_url,   required: true },
+  ];
+
   return (
-    <div className={`${styles.formSection} fade-up`}>
-      {/* Steps */}
-      <div className={styles.steps}>
-        <div className={`${styles.step} ${step === 'docs' ? styles.stepActive : styles.stepDone}`}>
-          <span className={styles.stepNum}>1</span>
-          <span>Upload Documents</span>
-        </div>
-        <div className={styles.stepLine} />
-        <div className={`${styles.step} ${step === 'review' ? styles.stepActive : ''}`}>
-          <span className={styles.stepNum}>2</span>
-          <span>Review & Submit</span>
-        </div>
-      </div>
+    <DashboardCard>
+      <StepIndicator step={step} />
 
       {step === 'docs' && (
-        <div className={styles.formCard}>
-          <h2 className={styles.formTitle}>Upload Your Documents</h2>
-          <p className={styles.formHint}>
-            Provide valid document URLs. In production, integrate with your storage service.
-          </p>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.label}>
-              ID Front <span className={styles.required}>*</span>
-            </label>
-            <input
-              className={styles.input}
-              type="url"
-              placeholder="https://..."
-              value={idFrontUrl}
-              onChange={e => setIdFrontUrl(e.target.value)}
-            />
+        <div>
+          <div style={{ marginBottom: 'var(--sp-6)' }}>
+            <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>
+              Upload Your Documents
+            </div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6 }}>
+              Provide valid document URLs. Ensure images are clear and not expired.
+            </div>
           </div>
 
-          <div className={styles.fieldGroup}>
-            <label className={styles.label}>ID Back (optional)</label>
-            <input
-              className={styles.input}
-              type="url"
-              placeholder="https://..."
-              value={idBackUrl}
-              onChange={e => setIdBackUrl(e.target.value)}
-            />
+          <Field label="ID Front" required value={idFrontUrl} onChange={setIdFrontUrl} placeholder="https://storage/id-front.jpg" />
+          <Field label="ID Back (optional)" value={idBackUrl} onChange={setIdBackUrl} placeholder="https://storage/id-back.jpg" />
+          <Field label="Selfie with ID" required value={selfieUrl} onChange={setSelfieUrl} placeholder="https://storage/selfie.jpg" />
+
+          {uploadErr && (
+            <div style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
+              ⚠️ {uploadErr}
+            </div>
+          )}
+
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button onClick={handleUpload} disabled={uploading || !idFrontUrl || !selfieUrl}
+              style={{
+                padding: '12px 28px', borderRadius: 'var(--radius-md)',
+                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,#d4af37,#b8882a)',
+                border: 'none', color: '#0a0800', fontWeight: 700, fontSize: 'var(--text-sm)',
+                cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
+                opacity: uploading ? 0.6 : 1,
+              }}>
+              {uploading ? 'Uploading…' : 'Continue →'}
+            </button>
           </div>
-
-          <div className={styles.fieldGroup}>
-            <label className={styles.label}>
-              Selfie with ID <span className={styles.required}>*</span>
-            </label>
-            <input
-              className={styles.input}
-              type="url"
-              placeholder="https://..."
-              value={selfieUrl}
-              onChange={e => setSelfieUrl(e.target.value)}
-            />
-          </div>
-
-          {uploadErr && <div className={styles.fieldError}>{uploadErr}</div>}
-
-          <button
-            className={styles.btnPrimary}
-            onClick={handleUpload}
-            disabled={uploading}
-          >
-            {uploading ? 'Uploading...' : 'Continue →'}
-          </button>
         </div>
       )}
 
       {step === 'review' && (
-        <div className={styles.formCard}>
-          <h2 className={styles.formTitle}>Review & Submit</h2>
-
-          <div className={styles.reviewGrid}>
-            <div className={styles.reviewItem}>
-              <span className={styles.reviewLabel}>ID Front</span>
-              <span className={`${styles.reviewValue} ${kyc.id_front_url ? styles.reviewOk : styles.reviewMissing}`}>
-                {kyc.id_front_url ? '✓ Uploaded' : '✗ Missing'}
-              </span>
-            </div>
-            <div className={styles.reviewItem}>
-              <span className={styles.reviewLabel}>ID Back</span>
-              <span className={`${styles.reviewValue} ${kyc.id_back_url ? styles.reviewOk : styles.reviewOptional}`}>
-                {kyc.id_back_url ? '✓ Uploaded' : '— Optional'}
-              </span>
-            </div>
-            <div className={styles.reviewItem}>
-              <span className={styles.reviewLabel}>Selfie</span>
-              <span className={`${styles.reviewValue} ${kyc.selfie_url ? styles.reviewOk : styles.reviewMissing}`}>
-                {kyc.selfie_url ? '✓ Uploaded' : '✗ Missing'}
-              </span>
-            </div>
+        <div>
+          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-5)' }}>
+            Review & Submit
           </div>
 
-          <div className={styles.reviewNotice}>
-            <span>ℹ️</span>
-            <p>Once submitted, your documents will be reviewed by our team within 1-2 business days.</p>
+          <div style={{ border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 'var(--sp-5)' }}>
+            {reviewItems.map((item, i) => (
+              <div key={item.label} style={{
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                padding: 'var(--sp-3) var(--sp-5)',
+                borderBottom: i < reviewItems.length - 1 ? '1px solid var(--tec-border)' : 'none',
+                background: 'var(--tec-surface-1)',
+              }}>
+                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{item.label}</span>
+                <span style={{
+                  fontSize: 'var(--text-sm)', fontWeight: 600,
+                  color: item.value ? '#10b981' : item.required ? '#ef4444' : 'var(--tec-text-3)',
+                }}>
+                  {item.value ? '✓ Uploaded' : item.required ? '✗ Missing' : '— Optional'}
+                </span>
+              </div>
+            ))}
           </div>
 
-          <div className={styles.formActions}>
-            <button
-              className={styles.btnOutline}
-              onClick={() => setStep('docs')}
-              disabled={isSubmitting}
-            >
-              ← Edit Documents
+          <div style={{
+            padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
+            background: 'rgba(212,175,55,0.05)', border: '1px solid var(--tec-border-gold)',
+            borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
+          }}>
+            ℹ️ By submitting, you confirm these documents are authentic and belong to you.
+          </div>
+
+          <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'flex-end' }}>
+            <button onClick={() => setStep('docs')}
+              style={{ padding: '11px 20px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+              ← Back
             </button>
-            <button
-              className={styles.btnPrimary}
-              onClick={onSubmit}
-              disabled={isSubmitting || !kyc.id_front_url || !kyc.selfie_url}
-            >
-              {isSubmitting ? 'Submitting...' : 'Submit for Review'}
+            <button onClick={onSubmit} disabled={isSubmitting}
+              style={{
+                padding: '11px 28px', borderRadius: 'var(--radius-md)',
+                background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+                border: 'none', color: '#0a0800', fontWeight: 700,
+                fontSize: 'var(--text-sm)', cursor: 'pointer',
+                opacity: isSubmitting ? 0.6 : 1,
+              }}>
+              {isSubmitting ? 'Submitting…' : 'Submit for Review'}
             </button>
           </div>
         </div>
       )}
-    </div>
+    </DashboardCard>
   );
 }
 
-// ─── Pending State ─────────────────────────────────────────────
+// ── Pending State ───────────────────────────────────────────────
 function PendingState() {
   return (
-    <div className={`${styles.stateCard} fade-up`}>
-      <div className={styles.stateIcon}>⏳</div>
-      <h2 className={styles.stateTitle}>Under Review</h2>
-      <p className={styles.stateDesc}>
-        Your documents have been submitted and are currently being reviewed.
-        You will be notified once the review is complete.
-      </p>
-      <div className={styles.stateTimeline}>
-        <div className={`${styles.timelineItem} ${styles.timelineDone}`}>
-          <span>✓</span> Documents Submitted
+    <DashboardCard>
+      <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
+        <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>⏳</div>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-3)' }}>
+          Under Review
         </div>
-        <div className={`${styles.timelineItem} ${styles.timelineActive}`}>
-          <span>⏳</span> Under Review
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, maxWidth: 400, margin: '0 auto' }}>
+          Your documents are being reviewed by our team. You'll receive a notification once complete — usually within 1–2 business days.
         </div>
-        <div className={styles.timelineItem}>
-          <span>○</span> Decision
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240, margin: 'var(--sp-6) auto 0' }}>
+          {['Documents submitted', 'Manual review in progress', 'Decision notification'].map((s, i) => (
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#10b981' : i === 1 ? '#f59e0b' : 'var(--tec-text-3)' }}>
+              <span>{i === 0 ? '✓' : i === 1 ? '◉' : '○'}</span>
+              <span>{s}</span>
+            </div>
+          ))}
         </div>
       </div>
-    </div>
+    </DashboardCard>
   );
 }
 
-// ─── Verified State ────────────────────────────────────────────
+// ── Verified State ─────────────────────────────────────────────
 function VerifiedState({ kyc }: { kyc: KycRecord }) {
   return (
-    <div className={`${styles.stateCard} ${styles.stateCardVerified} fade-up`}>
-      <div className={styles.stateIcon}>✅</div>
-      <h2 className={styles.stateTitle}>Identity Verified</h2>
-      <p className={styles.stateDesc}>
-        Your identity has been successfully verified. You now have full access to all TEC features.
-      </p>
-      <div className={styles.verifiedMeta}>
-        <div className={styles.verifiedItem}>
-          <span className={styles.verifiedLabel}>Level</span>
-          <span className={styles.verifiedValue}>{kyc.level}</span>
+    <DashboardCard>
+      <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
+        <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>✅</div>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#10b981', marginBottom: 'var(--sp-3)' }}>
+          Identity Verified
         </div>
-        {kyc.verified_at && (
-          <div className={styles.verifiedItem}>
-            <span className={styles.verifiedLabel}>Verified</span>
-            <span className={styles.verifiedValue}>
-              {new Date(kyc.verified_at).toLocaleDateString('en-US', {
-                month: 'long', day: 'numeric', year: 'numeric',
-              })}
-            </span>
-          </div>
-        )}
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, marginBottom: 'var(--sp-6)' }}>
+          Your identity has been verified. You now have full access to all TEC features.
+        </div>
+        <div style={{ display: 'flex', gap: 'var(--sp-8)', justifyContent: 'center' }}>
+          {[
+            { label: 'Level',    value: kyc.level },
+            { label: 'Verified', value: kyc.verified_at ? new Date(kyc.verified_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—' },
+          ].map(m => (
+            <div key={m.label} style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>{m.label}</div>
+              <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 900, color: 'var(--tec-gold)' }}>{m.value}</div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </DashboardCard>
   );
 }
 
-// ─── Rejected State ────────────────────────────────────────────
-function RejectedState({
-  reason, isSubmitting, onReset,
-}: {
-  reason:       string | null;
-  isSubmitting: boolean;
-  onReset:      () => void;
+// ── Rejected State ─────────────────────────────────────────────
+function RejectedState({ reason, isSubmitting, onReset }: {
+  reason?: string | null; isSubmitting: boolean; onReset: () => Promise<void>;
 }) {
   return (
-    <div className={`${styles.stateCard} ${styles.stateCardRejected} fade-up`}>
-      <div className={styles.stateIcon}>❌</div>
-      <h2 className={styles.stateTitle}>Verification Rejected</h2>
-      {reason && (
-        <div className={styles.rejectionReason}>
-          <span className={styles.rejectionLabel}>Reason:</span>
-          <span className={styles.rejectionText}>{reason}</span>
+    <DashboardCard>
+      <div style={{ textAlign: 'center', padding: 'var(--sp-8) var(--sp-6)' }}>
+        <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>❌</div>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#ef4444', marginBottom: 'var(--sp-3)' }}>
+          Verification Rejected
         </div>
-      )}
-      <p className={styles.stateDesc}>
-        Please review the rejection reason and resubmit with the correct documents.
-      </p>
-      <button
-        className={styles.btnPrimary}
-        onClick={onReset}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? 'Please wait...' : 'Resubmit KYC →'}
-      </button>
-    </div>
+        {reason && (
+          <div style={{
+            padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
+            background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+            borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6,
+          }}>
+            <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Reason</span>
+            {reason}
+          </div>
+        )}
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-6)', lineHeight: 1.6 }}>
+          Please resubmit with clearer, valid documents.
+        </div>
+        <button onClick={onReset} disabled={isSubmitting}
+          style={{
+            padding: '12px 32px', borderRadius: 'var(--radius-md)',
+            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+            border: 'none', color: '#0a0800', fontWeight: 700,
+            fontSize: 'var(--text-sm)', cursor: 'pointer',
+            opacity: isSubmitting ? 0.6 : 1,
+          }}>
+          {isSubmitting ? 'Resetting…' : 'Try Again →'}
+        </button>
+      </div>
+    </DashboardCard>
   );
 }
 
-function KycSkeleton() {
+// ── Main Page ──────────────────────────────────────────────────
+export default function KycPage() {
+  const { kyc, isLoading, isSubmitting, error, uploadDocs, submit, reset } = useKyc();
+
+  const badge = kyc ? {
+    NOT_STARTED: { text: 'Action Required', color: 'blue'  as const },
+    PENDING:     { text: 'Under Review',    color: 'gold'  as const },
+    VERIFIED:    { text: 'Verified',        color: 'green' as const },
+    REJECTED:    { text: 'Rejected',        color: 'red'   as const },
+  }[kyc.status] : undefined;
+
   return (
-    <div className={styles.skeleton}>
-      <div className={styles.skeletonHeader} />
-      <div className={styles.skeletonStatus} />
-      <div className={styles.skeletonForm} />
-    </div>
+    <DashboardShell
+      title="Identity Verification"
+      subtitle="KYC — Know Your Customer"
+      badge={badge}
+      loading={isLoading}
+    >
+      {kyc && <StatusCard kyc={kyc} />}
+
+      {error && (
+        <div style={{
+          padding: 'var(--sp-3) var(--sp-5)', marginBottom: 'var(--sp-4)',
+          background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+          borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444',
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
+      {kyc?.status === 'NOT_STARTED' && (
+        <KycForm kyc={kyc} isSubmitting={isSubmitting} onUpload={uploadDocs} onSubmit={submit} />
+      )}
+      {kyc?.status === 'REJECTED' && (
+        <RejectedState reason={kyc.rejection_reason} isSubmitting={isSubmitting} onReset={reset} />
+      )}
+      {kyc?.status === 'PENDING'   && <PendingState />}
+      {kyc?.status === 'VERIFIED'  && <VerifiedState kyc={kyc} />}
+    </DashboardShell>
   );
-}
+            }

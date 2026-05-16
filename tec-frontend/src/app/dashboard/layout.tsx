@@ -88,7 +88,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         id="tec-sidebar"
         style={{
           position: 'fixed', top: 0, left: 0, bottom: 0,
-          zIndex: 'var(--z-sidebar)' as unknown as number,
+          zIndex: 210
           transform: (isDesktop || mobileOpen) ? 'translateX(0)' : 'translateX(-100%)',
           transition: 'transform 0.3s cubic-bezier(0.16,1,0.3,1)',
           width: 240,

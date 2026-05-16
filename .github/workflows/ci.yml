@@ -1,23 +1,36 @@
-name: E2E Tests
+name: CI
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'next.config.js'
+      - 'vitest.config.ts'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
     paths:
       - 'src/**'
-      - 'e2e/**'              # ✅ أضف
-      - 'playwright.config.ts' # ✅ أضف
-      - '.github/workflows/e2e.yml'
+      - 'public/**'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'next.config.js'
+      - 'vitest.config.ts'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  e2e:
-    name: Playwright E2E
+  pipeline:
+    name: Lint + Typecheck + Test + Build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
@@ -30,53 +43,36 @@ jobs:
         uses: actions/cache@v4
         with:
           path: node_modules
-          key: ${{ runner.os }}-assets-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-assets-
+          key: ${{ runner.os }}-hub-${{ hashFiles('package-lock.json') }}
+          restore-keys: ${{ runner.os }}-hub-
 
       - name: Install
         run: npm install --legacy-peer-deps
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
-          restore-keys: ${{ runner.os }}-playwright-
+      - name: Lint
+        run: npm run lint
+        continue-on-error: true
 
-      - name: Install Playwright
-        run: npx playwright install --with-deps chromium
+      - name: Clear TS cache
+        run: rm -f tsconfig.tsbuildinfo
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
         env:
-          NEXT_PUBLIC_API_GATEWAY_URL: 'http://localhost:8080'
           NEXT_PUBLIC_PI_SANDBOX:      'true'
-          NEXT_PUBLIC_HUB_URL:         'https://hub.tecosystem.app'
-          NEXT_PUBLIC_ASSETS_URL:      'https://assets.tecosystem.app'
-          E2E_MODE:                    'true'
+          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
+          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}
 
-      - name: Copy static files
-        run: |
-          cp -r .next/static .next/standalone/.next/static
-          if [ -d "public" ]; then
-            cp -r public .next/standalone/public
-          else
-            mkdir -p .next/standalone/public
-          fi
-
-      - name: Run E2E
-        run: npm run test:e2e
-        continue-on-error: true
-        env:
-          CI:                          'true'
-          E2E_MODE:                    'true'
-          PLAYWRIGHT_BASE_URL:         'http://localhost:3000'
-          NEXT_PUBLIC_API_GATEWAY_URL: 'http://localhost:8080'
-
-      - name: Upload Report
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
-        if: always()
+        if: github.event_name == 'push'
         with:
-          name: playwright-report
-          path: playwright-report/
-          retention-days: 7
+          name: hub-build
+          path: .next/
+          retention-days: 3

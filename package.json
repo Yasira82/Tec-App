@@ -9,6 +9,9 @@
   "scripts": {
     "dev":             "npm run dev --workspace=tec-frontend",
     "build":           "npm run build --workspace=tec-frontend",
+    "lint":            "npm run lint --workspace=tec-frontend",
+    "typecheck":       "npm run typecheck --workspace=tec-frontend",
+    "test":            "npm run test --workspace=tec-frontend",
     "prepare":         "",
     "prisma:generate": "prisma generate",
     "prisma:migrate":  "prisma migrate dev",

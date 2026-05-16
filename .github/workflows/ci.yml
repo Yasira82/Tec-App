@@ -4,22 +4,14 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'public/**'
+      - 'tec-frontend/**'
       - 'package*.json'
-      - 'tsconfig.json'
-      - 'next.config.js'
-      - 'vitest.config.ts'
       - '.github/workflows/ci.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'src/**'
-      - 'public/**'
+      - 'tec-frontend/**'
       - 'package*.json'
-      - 'tsconfig.json'
-      - 'next.config.js'
-      - 'vitest.config.ts'
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
@@ -42,28 +34,34 @@ jobs:
       - name: Cache node_modules
         uses: actions/cache@v4
         with:
-          path: node_modules
-          key: ${{ runner.os }}-hub-${{ hashFiles('package-lock.json') }}
+          path: tec-frontend/node_modules
+          key: ${{ runner.os }}-hub-${{ hashFiles('tec-frontend/package-lock.json') }}
           restore-keys: ${{ runner.os }}-hub-
 
       - name: Install
         run: npm install --legacy-peer-deps
+        working-directory: tec-frontend
 
       - name: Lint
         run: npm run lint
+        working-directory: tec-frontend
         continue-on-error: true
 
       - name: Clear TS cache
         run: rm -f tsconfig.tsbuildinfo
+        working-directory: tec-frontend
 
       - name: Typecheck
         run: npm run typecheck
+        working-directory: tec-frontend
 
       - name: Test
         run: npm test
+        working-directory: tec-frontend
 
       - name: Build
         run: npm run build
+        working-directory: tec-frontend
         env:
           NEXT_PUBLIC_PI_SANDBOX:      'true'
           NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
@@ -74,5 +72,5 @@ jobs:
         if: github.event_name == 'push'
         with:
           name: hub-build
-          path: .next/
+          path: tec-frontend/.next/
           retention-days: 3

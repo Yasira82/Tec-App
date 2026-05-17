@@ -188,30 +188,25 @@ export default function SubscriptionPage() {
   const [success,    setSuccess]    = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
-    const token = getAccessToken();
-    try {
-      const [plansRes, subRes] = await Promise.all([
-        fetch('/api/subscriptions?endpoint=plans', { credentials: 'include' }),
-        fetch('/api/subscriptions?endpoint=status', {
-          credentials: 'include',
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        }),
-      ]);
-      const plansData = await plansRes.json();
-      const subData   = await subRes.json();
-      setPlans(
-  Array.isArray(plansData.data)
-    ? plansData.data
-    : plansData.data?.plans ?? []
-);
-      setSub(subData.data?.subscription ?? null);
-    } catch {
-      setError('Failed to load subscription data');
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  const token = getAccessToken();
+  setPlans(STATIC_PLANS);
+  try {
+    const subRes = await fetch('/api/subscriptions?endpoint=status', {
+      credentials: 'include',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+    if (subRes.ok) {
+      const subData = await subRes.json();
+      const s = subData?.data?.subscription ?? subData?.data ?? subData;
+      setSub(s?.plan ? s : null);
     }
-  }, []);
+  } catch {
+    // plans هتظهر على طول
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 

@@ -193,7 +193,7 @@ function MintPageInner() {
       setError(msg);
       setStatus('error');
     }
-  }, [assetId, name, returnUrl, ensurePiAuth, piReady]);
+    }, [assetId, name, returnUrl, ensurePiAuth]);
 
   if (isLoading || !sdkReady) return <Spinner />;
 

@@ -1,33 +1,120 @@
 'use client';
 
 import { useNotifications, Notification, NotifType } from '@/lib-client/hooks/useNotifications';
-import styles from './notifications.module.css';
+import { DashboardShell, DashboardCard }              from '@/components/dashboard';
 
-// ─── Helpers ──────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────
 function formatDate(iso: string) {
-  const d = new Date(iso);
-  const now = new Date();
-  const diff = now.getTime() - d.getTime();
-  const mins  = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-
-  if (mins < 1)   return 'Just now';
-  if (mins < 60)  return `${mins}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7)   return `${days}d ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hrs  = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins <  1) return 'Just now';
+  if (mins < 60) return `${mins}m ago`;
+  if (hrs  < 24) return `${hrs}h ago`;
+  if (days <  7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-const TYPE_CONFIG: Record<NotifType, { icon: string; css: string }> = {
-  PAYMENT:  { icon: '💳', css: 'typePayment'  },
-  WALLET:   { icon: '💰', css: 'typeWallet'   },
-  KYC:      { icon: '🪪', css: 'typeKyc'      },
-  SECURITY: { icon: '🔒', css: 'typeSecurity' },
-  SYSTEM:   { icon: '⚙️', css: 'typeSystem'   },
+const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }> = {
+  PAYMENT:  { icon: '💳', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)'  },
+  WALLET:   { icon: '💰', color: '#d4af37', bg: 'rgba(212,175,55,0.1)'  },
+  KYC:      { icon: '🪪', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)'  },
+  SECURITY: { icon: '🔒', color: '#ef4444', bg: 'rgba(239,68,68,0.1)'   },
+  SYSTEM:   { icon: '⚙️', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
 };
 
-// ─── Page ──────────────────────────────────────────────────────
+// ── Notification Card ──────────────────────────────────────────
+function NotifCard({ notif, onRead }: {
+  notif: Notification; onRead: (id: string) => void;
+}) {
+  const cfg = TYPE_CONFIG[notif.type] ?? TYPE_CONFIG.SYSTEM;
+
+  return (
+    <div
+      onClick={() => !notif.read && onRead(notif.id)}
+      style={{
+        display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)',
+        padding: 'var(--sp-4) var(--sp-5)',
+        borderBottom: '1px solid var(--tec-border)',
+        background: notif.read ? 'transparent' : 'rgba(212,175,55,0.03)',
+        cursor: notif.read ? 'default' : 'pointer',
+        transition: 'background 0.15s ease',
+      }}>
+
+      {/* Icon */}
+      <div style={{
+        width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+        background: cfg.bg, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', fontSize: 16,
+      }}>
+        {cfg.icon}
+      </div>
+
+      {/* Body */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
+          <div style={{ fontSize: 'var(--text-sm)', fontWeight: notif.read ? 400 : 600, color: 'var(--tec-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {notif.title}
+          </div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
+            {formatDate(notif.created_at)}
+          </div>
+        </div>
+        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
+          {notif.message}
+        </div>
+        <div style={{ marginTop: 6 }}>
+          <span style={{
+            fontSize: 9, fontWeight: 700, letterSpacing: 1.5,
+            color: cfg.color, background: cfg.bg,
+            padding: '2px 8px', borderRadius: 'var(--radius-full)',
+            textTransform: 'uppercase',
+          }}>
+            {notif.type}
+          </span>
+        </div>
+      </div>
+
+      {/* Unread dot */}
+      {!notif.read && (
+        <div style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--tec-gold)', flexShrink: 0, marginTop: 6 }} />
+      )}
+    </div>
+  );
+}
+
+// ── Empty State ────────────────────────────────────────────────
+function EmptyState() {
+  return (
+    <div style={{ padding: 'var(--sp-12)', textAlign: 'center', color: 'var(--tec-text-3)' }}>
+      <div style={{ fontSize: 40, marginBottom: 'var(--sp-3)' }}>🔔</div>
+      <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, marginBottom: 6 }}>All caught up</div>
+      <div style={{ fontSize: 'var(--text-sm)' }}>No notifications yet</div>
+    </div>
+  );
+}
+
+// ── Section ────────────────────────────────────────────────────
+function NotifSection({ title, count, notifications, onRead }: {
+  title: string; count: number;
+  notifications: Notification[]; onRead: (id: string) => void;
+}) {
+  if (!notifications.length) return null;
+  return (
+    <div style={{ marginBottom: 'var(--sp-5)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--tec-border)' }}>
+        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase' }}>{title}</span>
+        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--tec-gold)', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', padding: '1px 7px', borderRadius: 'var(--radius-full)' }}>
+          {count}
+        </span>
+      </div>
+      {notifications.map(n => <NotifCard key={n.id} notif={n} onRead={onRead} />)}
+    </div>
+  );
+}
+
+// ── Page ───────────────────────────────────────────────────────
 export default function NotificationsPage() {
   const {
     notifications, unreadCount,
@@ -35,137 +122,57 @@ export default function NotificationsPage() {
     refetch, markAsRead, markAllAsRead,
   } = useNotifications();
 
-  if (isLoading) {
-    return (
-      <div className={styles.container}>
-        <NotifSkeleton />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.errorState}>
-          <span>⚠️</span>
-          <p>{error}</p>
-          <button className={styles.btn} onClick={refetch}>إعادة المحاولة</button>
-        </div>
-      </div>
-    );
-  }
-
   const unread = notifications.filter(n => !n.read);
-  const read   = notifications.filter(n => n.read);
+  const read   = notifications.filter(n =>  n.read);
 
   return (
-    <div className={styles.container}>
-
-      {/* ── Header ── */}
-      <header className={styles.header}>
-        <div>
-          <h1 className={styles.title}>Notifications</h1>
-          <p className={styles.subtitle}>
-            {unreadCount > 0
-              ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
-              : 'All caught up ✓'}
-          </p>
-        </div>
-        <div className={styles.headerRight}>
-          {isRefreshing && <span className={styles.refreshing}>⟳ Refreshing...</span>}
+    <DashboardShell
+      title="Notifications"
+      subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+      badge={unreadCount > 0 ? { text: `${unreadCount}`, color: 'gold' } : undefined}
+      loading={isLoading}
+      actions={
+        <div style={{ display: 'flex', gap: 'var(--sp-2)' }}>
           {unreadCount > 0 && (
-            <button className={styles.btnOutline} onClick={markAllAsRead}>
-              Mark all as read
+            <button onClick={markAllAsRead}
+              style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-gold-dim)', border: '1px solid var(--tec-border-gold)', color: 'var(--tec-gold)', fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer' }}>
+              ✓ Mark all read
             </button>
           )}
-          <button className={styles.btn} onClick={refetch}>↻</button>
+          <button onClick={refetch} disabled={isRefreshing}
+            style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer', opacity: isRefreshing ? 0.6 : 1 }}>
+            {isRefreshing ? '⟳' : '↻'} Refresh
+          </button>
         </div>
-      </header>
-
-      {/* ── Empty State ── */}
-      {notifications.length === 0 && (
-        <div className={styles.emptyState}>
-          <span>🔔</span>
-          <p>No notifications yet</p>
-        </div>
-      )}
-
-      {/* ── Unread ── */}
-      {unread.length > 0 && (
-        <section className={`${styles.section} fade-up`}>
-          <div className={styles.sectionLabel}>
-            <span>Unread</span>
-            <span className={styles.badge}>{unread.length}</span>
-          </div>
-          <div className={styles.list}>
-            {unread.map(n => (
-              <NotifCard
-                key={n.id}
-                notif={n}
-                onRead={() => markAsRead(n.id)}
-              />
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* ── Read ── */}
-      {read.length > 0 && (
-        <section className={`${styles.section} fade-up-1`}>
-          {unread.length > 0 && (
-            <div className={styles.sectionLabel}>
-              <span>Earlier</span>
-            </div>
-          )}
-          <div className={styles.list}>
-            {read.map(n => (
-              <NotifCard key={n.id} notif={n} />
-            ))}
-          </div>
-        </section>
-      )}
-
-    </div>
-  );
-}
-
-// ─── NotifCard ──────────────────────────────────────────────────
-function NotifCard({
-  notif,
-  onRead,
-}: {
-  notif:   Notification;
-  onRead?: () => void;
-}) {
-  const cfg = TYPE_CONFIG[notif.type];
-
-  return (
-    <div
-      className={`${styles.card} ${!notif.read ? styles.cardUnread : ''}`}
-      onClick={!notif.read ? onRead : undefined}
+      }
     >
-      <div className={`${styles.iconWrap} ${styles[cfg.css]}`}>
-        {cfg.icon}
-      </div>
-      <div className={styles.cardBody}>
-        <div className={styles.cardTop}>
-          <span className={styles.cardTitle}>{notif.title}</span>
-          <span className={styles.cardTime}>{formatDate(notif.created_at)}</span>
+      {error && (
+        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span>⚠️</span>
+          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: '#ef4444' }}>{error}</span>
+          <button onClick={refetch}
+            style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
+            Retry
+          </button>
         </div>
-        <p className={styles.cardMsg}>{notif.message}</p>
-      </div>
-      {!notif.read && <div className={styles.unreadDot} />}
-    </div>
-  );
-}
+      )}
 
-function NotifSkeleton() {
-  return (
-    <div className={styles.skeleton}>
-      <div className={styles.skeletonHeader} />
-      {[1, 2, 3, 4].map(i => (
-        <div key={i} className={styles.skeletonCard} />
-      ))}
-    </div>
+      <DashboardCard padding="0">
+        {notifications.length === 0 ? (
+          <EmptyState />
+        ) : (
+          <>
+            <NotifSection
+              title="Unread" count={unread.length}
+              notifications={unread} onRead={markAsRead}
+            />
+            <NotifSection
+              title="Earlier" count={read.length}
+              notifications={read} onRead={markAsRead}
+            />
+          </>
+        )}
+      </DashboardCard>
+    </DashboardShell>
   );
 }

@@ -271,7 +271,7 @@ function PendingState() {
           Under Review
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, maxWidth: 400, margin: '0 auto' }}>
-          Your documents are being reviewed by our team. You'll receive a notification once complete — usually within 1–2 business days.
+          Your documents are being reviewed by our team. You&apos;ll receive a notification once complete — usually within 1–2 business days.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240, margin: 'var(--sp-6) auto 0' }}>
           {['Documents submitted', 'Manual review in progress', 'Decision notification'].map((s, i) => (

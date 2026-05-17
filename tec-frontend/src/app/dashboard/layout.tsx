@@ -101,19 +101,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       )}
 
-      {/* ── Main Content ───────────────────────────── */}
+     {/* ── Main Content ───────────────────────────── */}
       <main
         className="tec-main-content"
         style={{
           flex: 1,
-          marginLeft:  isDesktop ? 240 : 0,
-          marginTop:   isDesktop ? 0   : 64,
-          padding:     'var(--sp-6) var(--sp-5)',
-          minHeight:   '100vh',
-          transition:  'margin-left 0.3s ease, margin-top 0.3s ease',
+          marginLeft: isDesktop ? 240 : 0,
+          marginTop:  isDesktop ? 0   : 64,
+          minHeight:  '100vh',
+          transition: 'margin-left 0.3s ease, margin-top 0.3s ease',
         }}>
         {children}
       </main>
     </div>
   );
-}
+} 

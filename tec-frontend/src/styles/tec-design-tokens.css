@@ -181,8 +181,17 @@ input[type=number] { -moz-appearance: textfield; }
 .tec-nav-link:active { background: rgba(255,255,255,0.08) !important; transform: scale(0.98); }
 
 /* ── Dashboard sidebar ───────────────────────────────── */
+.tec-main-content {
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-3);
+}
+
+@media (min-width: 768px) {
+  .tec-main-content { padding: var(--sp-5) var(--sp-4); }
+}
+
 @media (min-width: 1024px) {
-  .tec-main-content  { margin-left: 240px !important; margin-top: 0 !important; }
+  .tec-main-content  { margin-left: 240px !important; margin-top: 0 !important; padding: var(--sp-6) var(--sp-5); }
   .tec-mobile-topbar { display: none !important; }
 }
 

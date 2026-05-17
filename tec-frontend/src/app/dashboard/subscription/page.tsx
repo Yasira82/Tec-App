@@ -162,6 +162,21 @@ function PlanCard({ plan, isCurrent, isUpgrade, paying, onSubscribe }: {
   );
 }
 
+const STATIC_PLANS: Plan[] = [
+  {
+    id: 'FREE', name: 'Free', price: 0, currency: 'PI', duration: 0,
+    features: ['Up to 5 assets', 'Basic wallet', 'Community access'],
+  },
+  {
+    id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30,
+    features: ['Unlimited assets', 'Advanced wallet', 'Priority support', 'Analytics dashboard', 'Commerce store'],
+  },
+  {
+    id: 'ENTERPRISE', name: 'Enterprise', price: 50, currency: 'PI', duration: 30,
+    features: ['Everything in Pro', 'Custom domain', 'API access', 'Dedicated support', 'White-label options'],
+  },
+];
+
 // ── Page ───────────────────────────────────────────────────────
 export default function SubscriptionPage() {
   const [plans,      setPlans]      = useState<Plan[]>([]);

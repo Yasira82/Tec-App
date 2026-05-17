@@ -185,7 +185,11 @@ export default function SubscriptionPage() {
       ]);
       const plansData = await plansRes.json();
       const subData   = await subRes.json();
-      setPlans(plansData.data?.plans ?? []);
+      setPlans(
+  Array.isArray(plansData.data)
+    ? plansData.data
+    : plansData.data?.plans ?? []
+);
       setSub(subData.data?.subscription ?? null);
     } catch {
       setError('Failed to load subscription data');

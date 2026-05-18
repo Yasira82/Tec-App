@@ -27,8 +27,8 @@ import { useHubData }  from '@/hooks/useHubData';
 import { haptic }      from '@/lib/hub/utils';
 import '@/styles/tec-design-tokens.css';
 
-const ASSETS_URL   = 'https://assets.tecosystem.app';
-const COMMERCE_URL = 'https://commerce.tecosystem.app';
+const ASSETS_URL     = 'https://assets.tecosystem.app';
+const COMMERCE_URL   = 'https://commerce.tecosystem.app';
 const PULL_THRESHOLD = 80;
 
 function HubPageInner() {
@@ -55,6 +55,7 @@ function HubPageInner() {
   const [isRefreshing,    setIsRefreshing]    = useState(false);
   const [payAmount,       setPayAmount]       = useState(1);
   const [externalPayment, setExternalPayment] = useState<ExternalPayment | null>(null);
+  const [pendingPayment,  setPendingPayment]  = useState<ExternalPayment | null>(null);
 
   const pullStartY = useRef(0);
   const isPulling  = useRef(false);
@@ -65,13 +66,13 @@ function HubPageInner() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   }, []);
 
-  /* ── External payment from URL ─────────────────────── */
+  /* ── Step 1: قرا الـ URL params فوراً وخزّن ────────── */
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get('pay') === '1') {
       const amount = parseFloat(p.get('amount') ?? '0');
       if (amount > 0) {
-        setExternalPayment({
+        setPendingPayment({
           amount,
           memo:      decodeURIComponent(p.get('memo')       ?? 'TEC Payment'),
           productId: p.get('product_id') ?? '',
@@ -83,6 +84,14 @@ function HubPageInner() {
     }
   }, []);
 
+  /* ── Step 2: لما Pi SDK يجهز → اعرض الـ Modal ──────── */
+  useEffect(() => {
+    if (piReady && pendingPayment && !externalPayment) {
+      setExternalPayment(pendingPayment);
+      setPendingPayment(null);
+    }
+  }, [piReady, pendingPayment, externalPayment]);
+
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
     if (!externalPayment) return;
     if (externalPayment.productId.startsWith('nft:')) {
@@ -92,7 +101,12 @@ function HubPageInner() {
         await fetch('/api/assets/provision', {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-          body: JSON.stringify({ slug: `nft-${paymentId.slice(0,8)}-${Date.now()}`, payment_id: paymentId, category: 'NFT', metadata: { name: nftMeta.n, description: nftMeta.d ?? '', imageUrl: nftMeta.u, txid } }),
+          body: JSON.stringify({
+            slug:       `nft-${paymentId.slice(0,8)}-${Date.now()}`,
+            payment_id: paymentId,
+            category:   'NFT',
+            metadata:   { name: nftMeta.n, description: nftMeta.d ?? '', imageUrl: nftMeta.u, txid },
+          }),
         });
       } catch {}
     }
@@ -176,9 +190,9 @@ function HubPageInner() {
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 
-  const totalNotif  = wsUnread > 0 ? wsUnread : notifCount;
-  const goToAssets  = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
-  const goToCommerce= () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
+  const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
+  const goToAssets   = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
+  const goToCommerce = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
 
   return (
     <div
@@ -214,7 +228,6 @@ function HubPageInner() {
           }}>🤖</button>
       )}
 
-      {/* Components */}
       <HubHeader
         piUsername={user?.piUsername ?? ''}
         time={time}
@@ -244,7 +257,6 @@ function HubPageInner() {
 
       <HubComingSoon />
 
-      {/* Bottom Nav */}
       <nav aria-label="Main navigation"
         style={{
           position: 'fixed', bottom: 0, left: 0, right: 0,
@@ -281,4 +293,4 @@ function HubPageInner() {
 
 export default function HubPage() {
   return <ErrorBoundary><HubPageInner /></ErrorBoundary>;
-                          }
+              }

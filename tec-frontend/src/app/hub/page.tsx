@@ -84,13 +84,13 @@ function HubPageInner() {
     }
   }, []);
 
-  /* ── Step 2: لما Pi SDK يجهز → اعرض الـ Modal ──────── */
+  /* ── Step 2: لما Pi SDK + Auth يجهزوا → اعرض الـ Modal ── */
   useEffect(() => {
-    if (piReady && pendingPayment && !externalPayment) {
+    if (piReady && authReady && pendingPayment && !externalPayment) {
       setExternalPayment(pendingPayment);
       setPendingPayment(null);
     }
-  }, [piReady, pendingPayment, externalPayment]);
+  }, [piReady, authReady, pendingPayment, externalPayment]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
     if (!externalPayment) return;

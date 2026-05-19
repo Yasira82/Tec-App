@@ -17,70 +17,75 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
   const stableOnReady = useCallback(() => { onReady?.(); }, [onReady]);
 
   useEffect(() => {
-    if (window.__TEC_PI_ERROR) {
-      window.__TEC_PI_ERROR = false;
-    }
+    if (window.__TEC_PI_ERROR) window.__TEC_PI_ERROR = false;
 
-    if (window.__TEC_PI_READY) {
+    const appId     = process.env.NEXT_PUBLIC_PI_APP_ID;
+    if (!appId) warn('[TEC] NEXT_PUBLIC_PI_APP_ID is not set — Pi.init() may fail');
+
+    const startTime = Date.now();
+    let cancelled   = false;
+
+    const markReady = () => {
+      window.__TEC_PI_READY = true;
       window.dispatchEvent(new Event('tec-pi-ready'));
       stableOnReady();
-      return;
-    }
-
-    const POLL_INTERVAL = 250;
-    const startTime     = Date.now();
-
-    // ✅ mark ready بعد delay عشان Pi Browser يكمل native init
-    const markReady = () => {
-      setTimeout(() => {
-        window.__TEC_PI_READY = true;
-        window.dispatchEvent(new Event('tec-pi-ready'));
-        stableOnReady();
-      }, 1000);
     };
 
-    function tryInit(): boolean {
+    const callInit = (): boolean => {
       if (typeof window.Pi === 'undefined') return false;
-
       try {
-        const elapsed = Date.now() - startTime;
-        log(`[TEC] Pi SDK detected after ${elapsed}ms, calling Pi.init()`);
-
-        const appId = process.env.NEXT_PUBLIC_PI_APP_ID;
-        if (!appId) warn('[TEC] NEXT_PUBLIC_PI_APP_ID is not set — Pi.init() may fail');
-
+        log(`[TEC] Pi SDK detected after ${Date.now() - startTime}ms, calling Pi.init()`);
         window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
         log(`[TEC] Pi SDK initialized (sandbox: ${sandbox})`);
-
-        markReady();
-        return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-
-        if (msg.toLowerCase().includes('already')) {
-          log('[TEC] Pi SDK already initialized — marking as ready');
-          markReady();
-          return true;
+        if (!msg.toLowerCase().includes('already')) {
+          warn('[TEC] Pi.init() failed, will retry:', msg);
+          return false;
         }
-
-        warn('[TEC] Pi.init() failed, will retry:', msg);
-        return false;
+        log('[TEC] Pi SDK already initialized — marking as ready');
       }
+      markReady();
+      return true;
+    };
+
+    // ✅ bfcache restore — Pi Browser drops native bridge state on background.
+    //    On restore, force a re-init so the next payment doesn't see a stale bridge.
+    const onPageShow = (e: PageTransitionEvent) => {
+      if (e.persisted) {
+        window.__TEC_PI_READY = false;
+        callInit();
+      }
+    };
+    window.addEventListener('pageshow', onPageShow);
+
+    if (window.__TEC_PI_READY && window.Pi) {
+      // Already ready on mount — emit event so late listeners catch up.
+      window.dispatchEvent(new Event('tec-pi-ready'));
+      stableOnReady();
+      return () => window.removeEventListener('pageshow', onPageShow);
     }
 
-    if (tryInit()) return;
+    if (callInit()) {
+      return () => window.removeEventListener('pageshow', onPageShow);
+    }
 
     const poll = setInterval(() => {
-      if (tryInit()) { clearInterval(poll); return; }
+      if (cancelled) { clearInterval(poll); return; }
+      if (callInit()) { clearInterval(poll); return; }
       if (Date.now() - startTime >= timeout) {
         clearInterval(poll);
         err(`[TEC] Pi SDK not available after ${timeout}ms`);
         window.__TEC_PI_ERROR = true;
         window.dispatchEvent(new CustomEvent('tec-pi-error', { detail: { message: 'SDK load timeout' } }));
       }
-    }, POLL_INTERVAL);
+    }, 100);
 
-    return () => clearInterval(poll);
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+      window.removeEventListener('pageshow', onPageShow);
+    };
   }, [sandbox, timeout, stableOnReady]);
 
   return null;

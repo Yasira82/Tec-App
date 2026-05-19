@@ -176,7 +176,7 @@ const _addBreadcrumb = (message: string, data: Record<string, unknown>): void =>
 };
 
 // ── Helper — قراءة CSRF token من الـ cookie ───────────────
-const getCsrfToken = (): string => {
+export const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
   return document.cookie
     .split('; ')

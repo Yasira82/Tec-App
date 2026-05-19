@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { useSearchParams }       from 'next/navigation';
 import Image                     from 'next/image';
 import { usePiAuth }             from '@/lib-client/hooks/usePiAuth';
-import { createU2APayment }      from '@/lib-client/pi/pi-payment';
+import { createU2APayment, preCreateInternalPayment } from '@/lib-client/pi/pi-payment';
 import { piSession }             from '@/lib-client/pi/pi-session';
 import { usePiSdkReady }         from '@/lib-client/hooks/usePiSdkReady';
 
@@ -49,6 +49,12 @@ export default function PayClient() {
     try {
       await ensurePiAuth();
 
+      const internalId = await preCreateInternalPayment(price, {
+        asset_id:   assetId,
+        asset_type: assetType,
+        listing_id: listingId,
+        buyer_id:   user?.id,
+      });
       const result = await createU2APayment(
         price,
         `Buy ${assetName} — TEC Assets`,
@@ -58,6 +64,7 @@ export default function PayClient() {
           listing_id: listingId,
           buyer_id:   user?.id,
         },
+        internalId,
       );
 
       if (result.success && result.status === 'completed') {

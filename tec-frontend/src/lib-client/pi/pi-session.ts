@@ -56,6 +56,42 @@ class PiSessionManager {
   private paymentInFlight:  boolean        = false;
   private paymentLockAt:    number         = 0;
   private _lastError:       PiAuthError | null = null;
+  private paymentsReadyPromise: Promise<boolean> | null = null;
+
+  // ✅ Single source of truth for "Pi.createPayment is safe to call".
+  //    Resolves only after Pi.init() AND Pi.authenticate(['username','payments']) succeeded.
+  async ensurePaymentsReady(): Promise<boolean> {
+    if (this.paymentsReadyPromise) return this.paymentsReadyPromise;
+    this.paymentsReadyPromise = (async () => {
+      await this._waitForInit();
+      return this.ensureAuth();
+    })();
+    const ok = await this.paymentsReadyPromise;
+    if (!ok) this.paymentsReadyPromise = null;
+    return ok;
+  }
+
+  private _waitForInit(timeout = 15000): Promise<void> {
+    if (typeof window === 'undefined') return Promise.resolve();
+    if (window.__TEC_PI_READY && window.Pi) return Promise.resolve();
+    return new Promise(resolve => {
+      const done = () => {
+        window.removeEventListener('tec-pi-ready', done);
+        resolve();
+      };
+      window.addEventListener('tec-pi-ready', done, { once: true });
+      setTimeout(done, timeout);
+    });
+  }
+
+  // ✅ Defensive re-init — call right before Pi.createPayment to recover from
+  //    a drifted native bridge. Safe to call repeatedly; swallows "already initialized".
+  reInit(sandbox: boolean, appId?: string): void {
+    if (typeof window === 'undefined' || !window.Pi) return;
+    try {
+      window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
+    } catch (_e) { /* "already initialized" — fine */ }
+  }
 
   async ensureAuth(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
@@ -194,6 +230,7 @@ class PiSessionManager {
     this.paymentInFlight           = false;
     this.paymentLockAt             = 0;
     this._lastError                = null;
+    this.paymentsReadyPromise      = null;
     window.__TEC_PI_AUTHENTICATED  = false;
     this._log('info', 'auth:reset', 'session cleared');
   }

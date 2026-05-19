@@ -1,4 +1,4 @@
-import { createU2APayment, PaymentResult } from './pi-payment';
+import { createU2APayment, preCreateInternalPayment, PaymentResult } from './pi-payment';
 import { getAccessToken } from './pi-auth';
 
 export interface BuyAssetResult {
@@ -19,10 +19,14 @@ export const buyAsset = async (params: {
 
   let paymentResult: PaymentResult;
   try {
+    const internalId = await preCreateInternalPayment(price, {
+      listingId, assetSlug, type: 'marketplace_purchase',
+    });
     paymentResult = await createU2APayment(
       price,
       `Buy Asset: ${assetSlug}`,
       { listingId, assetSlug, type: 'marketplace_purchase' },
+      internalId,
     );
   } catch (err) {
     return { success: false, message: err instanceof Error ? err.message : 'Payment failed' };

@@ -6,8 +6,9 @@ import { renderHook, act } from '@testing-library/react';
 
 // ---- mock Pi SDK modules ----
 vi.mock('@/lib-client/pi/pi-payment', () => ({
-  createU2APayment: vi.fn(),
-  testPiSDK: vi.fn(() => false),
+  createU2APayment:         vi.fn(),
+  preCreateInternalPayment: vi.fn(async () => 'internal-id-1'),
+  testPiSDK:                vi.fn(() => false),
 }));
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({

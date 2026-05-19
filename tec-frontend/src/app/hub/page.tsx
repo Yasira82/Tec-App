@@ -5,9 +5,9 @@ import { useRouter }                                 from 'next/navigation';
 import { usePiAuth }                                 from '@/lib-client/hooks/usePiAuth';
 import { usePiSdkReady }                             from '@/lib-client/hooks/usePiSdkReady';
 import { piSession }                                 from '@/lib-client/pi/pi-session';
-import { createU2APayment }                          from '@/lib-client/pi/pi-payment';
+import { createU2APayment, preCreateInternalPayment } from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications }                  from '@/lib-client/hooks/useRealtimeNotifications';
-import { getAccessToken }                            from '@/lib-client/pi/pi-auth';
+import { getAccessToken, getCsrfToken }              from '@/lib-client/pi/pi-auth';
 import { getVisibleDomains }                         from '@/domains/_registry';
 import { ErrorBoundary }                             from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }                     from './components/ToastContainer';
@@ -15,6 +15,8 @@ import { AIDrawer }                                  from './components/AIDrawer
 import { HubSkeleton }                               from './components/HubSkeleton';
 import { PullIndicator }                             from './components/PullIndicator';
 import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
+
+type PendingPayment = Omit<ExternalPayment, 'internalId'>;
 import {
   HubHeader,
   HubWalletCard,
@@ -33,7 +35,7 @@ const PULL_THRESHOLD = 80;
 
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
+  const { piReady, authReady } = usePiSdkReady();
   const router = useRouter();
 
   const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
@@ -55,7 +57,7 @@ function HubPageInner() {
   const [isRefreshing,    setIsRefreshing]    = useState(false);
   const [payAmount,       setPayAmount]       = useState(1);
   const [externalPayment, setExternalPayment] = useState<ExternalPayment | null>(null);
-  const [pendingPayment,  setPendingPayment]  = useState<ExternalPayment | null>(null);
+  const [pendingPayment,  setPendingPayment]  = useState<PendingPayment  | null>(null);
 
   const pullStartY = useRef(0);
   const isPulling  = useRef(false);
@@ -84,23 +86,46 @@ function HubPageInner() {
     }
   }, []);
 
-  /* ── Step 2: انتظر piReady + authReady → اعرض الـ Modal */
+  /* ── Step 2: انتظر piReady + authReady → pre-create backend record → اعرض الـ Modal */
   useEffect(() => {
-    if (piReady && authReady && pendingPayment && !externalPayment) {
-      setExternalPayment(pendingPayment);
-      setPendingPayment(null);
-    }
-  }, [piReady, authReady, pendingPayment, externalPayment]);
+    if (!(piReady && authReady && pendingPayment && !externalPayment)) return;
+
+    let cancelled = false;
+    const current = pendingPayment;
+
+    const failClosed = (reason: string) => {
+      showToast('error', 'Could not start payment. Please try again.');
+      const back = new URL(current.returnUrl);
+      back.searchParams.set('payment_status', 'error');
+      back.searchParams.set('reason',         reason);
+      setTimeout(() => { window.location.href = back.toString(); }, 1500);
+    };
+
+    (async () => {
+      try {
+        const internalId = await preCreateInternalPayment(current.amount, {
+          source:     current.source,
+          product_id: current.productId,
+        });
+        if (cancelled) return;
+        setExternalPayment({ ...current, internalId });
+        setPendingPayment(null);
+      } catch {
+        if (!cancelled) failClosed('create_failed');
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [piReady, authReady, pendingPayment, externalPayment, showToast]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
     if (!externalPayment) return;
     if (externalPayment.productId.startsWith('nft:')) {
       try {
         const nftMeta   = JSON.parse(atob(externalPayment.productId.slice(4)));
-        const csrfToken = document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
         await fetch('/api/assets/provision', {
           method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
+          headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
           body: JSON.stringify({
             slug:       `nft-${paymentId.slice(0,8)}-${Date.now()}`,
             payment_id: paymentId,
@@ -167,8 +192,24 @@ function HubPageInner() {
     if (!locked) { showToast('warning', 'Payment in progress'); return; }
     haptic('medium');
     try {
-      if (!authReady) await ensurePiAuth();
-      const result = await createU2APayment(payAmount, `TEC Payment — ${payAmount}π`, { source: 'hub', amount: payAmount });
+      const ready = await piSession.ensurePaymentsReady();
+      if (!ready) { haptic('heavy'); showToast('error', 'Pi SDK not ready. Try again.'); return; }
+
+      let internalId: string;
+      try {
+        internalId = await preCreateInternalPayment(payAmount, { source: 'hub', amount: payAmount });
+      } catch (e) {
+        haptic('heavy');
+        showToast('error', e instanceof Error ? e.message : 'Could not start payment');
+        return;
+      }
+
+      const result = await createU2APayment(
+        payAmount,
+        `TEC Payment — ${payAmount}π`,
+        { source: 'hub', amount: payAmount },
+        internalId,
+      );
       if (result.success && result.status === 'completed') {
         haptic('heavy'); showToast('success', `${payAmount}π paid! 🎉`, result.txid);
         setTimeout(refreshBalance, 2000);
@@ -180,13 +221,12 @@ function HubPageInner() {
     } catch (err) {
       haptic('heavy');
       const msg = err instanceof Error ? err.message : 'Payment failed';
-      if (msg.includes('not initialized')) { window.location.reload(); return; }
       showToast('error', msg);
     } finally {
       piSession.releasePaymentLock();
       refreshBalance();
     }
-  }, [piReady, authReady, ensurePiAuth, payAmount, refreshBalance, showToast]);
+  }, [piReady, payAmount, refreshBalance, showToast]);
 
   if (isLoading || !isAuthenticated) return <HubSkeleton />;
 

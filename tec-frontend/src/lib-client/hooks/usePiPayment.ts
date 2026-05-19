@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { createU2APayment, testPiSDK, PaymentResult, DiagnosticCallback } from '@/lib-client/pi/pi-payment';
+import { createU2APayment, preCreateInternalPayment, testPiSDK, PaymentResult, DiagnosticCallback } from '@/lib-client/pi/pi-payment';
 import { isPiBrowser } from '@/lib-client/pi/pi-auth';
 
 interface PaymentState {
@@ -42,11 +42,13 @@ export const usePiPayment = (options?: UsePiPaymentOptions) => {
     
     setState(prev => ({ ...prev, isProcessing: true, error: null, errorType: null }));
     try {
-      const result = await createU2APayment(
-        amount, 
-        `TEC Demo Payment - ${amount} Pi`, 
+      const internalId = await preCreateInternalPayment(amount, { type: 'demo' });
+      const result     = await createU2APayment(
+        amount,
+        `TEC Demo Payment - ${amount} Pi`,
         { type: 'demo' },
-        onDiagnostic
+        internalId,
+        onDiagnostic,
       );
       
       // Only update state if component is still mounted

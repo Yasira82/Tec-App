@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { usePiSdkReady }                 from '@/lib-client/hooks/usePiSdkReady';
-import { piSession }                     from '@/lib-client/pi/pi-session';
-import { createU2APayment }              from '@/lib-client/pi/pi-payment';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { piSession }        from '@/lib-client/pi/pi-session';
+import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -22,11 +21,12 @@ const getSourceLabel = (source: string) => {
 };
 
 export interface ExternalPayment {
-  amount:    number;
-  memo:      string;
-  productId: string;
-  returnUrl: string;
-  source:    string;
+  amount:     number;
+  memo:       string;
+  productId:  string;
+  returnUrl:  string;
+  source:     string;
+  internalId: string;
 }
 
 export function PaymentModal({
@@ -36,12 +36,19 @@ export function PaymentModal({
   onClose:   () => void;
   onSuccess: (txid: string, paymentId: string) => void;
 }) {
-  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
+  const [isReady, setIsReady] = useState(false);
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
 
-  const isReady = piReady && authReady;
+  // ✅ Single readiness gate — true once Pi.init() + Pi.authenticate(payments) both done.
+  useEffect(() => {
+    let cancelled = false;
+    piSession.ensurePaymentsReady().then(ok => {
+      if (!cancelled) setIsReady(ok);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
@@ -55,10 +62,10 @@ export function PaymentModal({
 
     haptic('medium');
     try {
-      const authOk = await ensurePiAuth();
-      if (!authOk) {
+      const ready = await piSession.ensurePaymentsReady();
+      if (!ready) {
         setStatus('error');
-        setMessage('Pi authentication failed. Please try again.');
+        setMessage('Pi SDK not ready. Please try again.');
         hasStarted.current = false;
         return;
       }
@@ -68,6 +75,7 @@ export function PaymentModal({
         payment.amount,
         payment.memo,
         { source: payment.source, product_id: payment.productId, version: '1.0' },
+        payment.internalId,
       );
 
       if (result.success && result.status === 'completed') {
@@ -90,7 +98,7 @@ export function PaymentModal({
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [payment, ensurePiAuth, onSuccess]);
+  }, [payment, onSuccess]);
 
   return (
     <div style={{
@@ -125,9 +133,7 @@ export function PaymentModal({
                 <div style={{ width: 16, height: 16, borderRadius: '50%',
                   border: '2px solid #d4af3730', borderTop: '2px solid #d4af37',
                   animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 11, color: '#4a4a5a' }}>
-                  {!piReady ? 'Loading Pi SDK...' : 'Authenticating...'}
-                </span>
+                <span style={{ fontSize: 11, color: '#4a4a5a' }}>Preparing Pi SDK...</span>
               </div>
             )}
             <button onClick={handlePay} disabled={!isReady} style={{
@@ -137,7 +143,7 @@ export function PaymentModal({
               fontSize: 18, fontWeight: 900, cursor: isReady ? 'pointer' : 'not-allowed',
               boxShadow: isReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
             }}>
-              {!piReady ? 'Loading Pi SDK...' : !authReady ? 'Authenticating...' : `Pay ${payment.amount}π`}
+              {isReady ? `Pay ${payment.amount}π` : 'Preparing...'}
             </button>
             <button onClick={onClose} style={{
               background: 'none', border: 'none',

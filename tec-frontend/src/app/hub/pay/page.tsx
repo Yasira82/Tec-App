@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams }                                      from 'next/navigation';
 import { usePiAuth }                                            from '@/lib-client/hooks/usePiAuth';
-import { createU2APayment }                                     from '@/lib-client/pi/pi-payment';
+import { createU2APayment, preCreateInternalPayment }            from '@/lib-client/pi/pi-payment';
 import { piSession }                                            from '@/lib-client/pi/pi-session';
 import { ErrorBoundary }                                        from '@/components/ErrorBoundary';
 
@@ -99,9 +99,13 @@ function HubPayInner() {
 
     try {
       setStatus('paying');
+      const internalId = await preCreateInternalPayment(amount, {
+        source, product_id: productId, version: '1.0',
+      });
       const result = await createU2APayment(
         amount, memo,
         { source, product_id: productId, version: '1.0' },
+        internalId,
         (type, msg, data) => console.log(`[HubPay][${type}] ${msg}`, data ?? ''),
       );
 

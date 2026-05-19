@@ -4,14 +4,16 @@ import { useState, useEffect, useRef } from 'react';
 import { piSession, PiAuthError }      from '@/lib-client/pi/pi-session';
 
 export function usePiSdkReady(): {
-  piReady:      boolean;
-  authReady:    boolean;
-  lastError:    PiAuthError | null;
-  ensurePiAuth: () => Promise<boolean>;
+  piReady:       boolean;
+  authReady:     boolean;
+  paymentsReady: boolean;
+  lastError:     PiAuthError | null;
+  ensurePiAuth:  () => Promise<boolean>;
 } {
-  const [piReady,   setPiReady]   = useState(false);
-  const [authReady, setAuthReady] = useState(false);
-  const [lastError, setLastError] = useState<PiAuthError | null>(null);
+  const [piReady,       setPiReady]       = useState(false);
+  const [authReady,     setAuthReady]     = useState(false);
+  const [paymentsReady, setPaymentsReady] = useState(false);
+  const [lastError,     setLastError]     = useState<PiAuthError | null>(null);
 
   // ✅ Guards — منع loops
   const isReauthing = useRef(false);
@@ -24,16 +26,23 @@ export function usePiSdkReady(): {
       // ✅ SDK جاهز فوراً
       setPiReady(true);
 
-      // ✅ auth في الخلفية
-      const ok = await piSession.ensureAuth();
+      // ✅ Single readiness gate — drives paymentsReady, which is the only
+      //    flag that should gate Pi.createPayment.
+      const ok = await piSession.ensurePaymentsReady();
       setAuthReady(ok);
+      setPaymentsReady(ok);
       setLastError(piSession.lastError);
     };
 
     // ✅ Auth events
-    const onAuthSuccess = () => { setAuthReady(true); setLastError(null); };
+    const onAuthSuccess = () => {
+      setAuthReady(true);
+      setPaymentsReady(true);
+      setLastError(null);
+    };
     const onAuthFailed  = (e: Event) => {
       setAuthReady(false);
+      setPaymentsReady(false);
       setLastError((e as CustomEvent).detail?.error ?? 'UNKNOWN');
     };
 
@@ -42,8 +51,10 @@ export function usePiSdkReady(): {
       if (isReauthing.current) return;
       isReauthing.current = true;
       setAuthReady(false);
-      const ok = await piSession.ensureAuth();
+      setPaymentsReady(false);
+      const ok = await piSession.ensurePaymentsReady();
       setAuthReady(ok);
+      setPaymentsReady(ok);
       isReauthing.current = false;
     };
 
@@ -108,7 +119,8 @@ export function usePiSdkReady(): {
   return {
     piReady,
     authReady,
+    paymentsReady,
     lastError,
-    ensurePiAuth: () => piSession.ensureAuth(),
+    ensurePiAuth: () => piSession.ensurePaymentsReady(),
   };
 }

@@ -17,13 +17,15 @@ vi.mock('@/lib-client/pi/payment-timeouts', () => ({
 
 vi.mock('@/lib-client/pi/pi-session', () => ({
   piSession: {
-    isAuthenticated:    true,
-    hasScope:           true,
-    ensureAuth:         vi.fn(() => Promise.resolve(true)),
-    acquirePaymentLock: vi.fn(() => Promise.resolve(true)),
-    releasePaymentLock: vi.fn(),
-    reset:              vi.fn(),
-    lastError:          null,
+    isAuthenticated:      true,
+    hasScope:             true,
+    ensureAuth:           vi.fn(() => Promise.resolve(true)),
+    ensurePaymentsReady:  vi.fn(() => Promise.resolve(true)),
+    reInit:               vi.fn(),
+    acquirePaymentLock:   vi.fn(() => Promise.resolve(true)),
+    releasePaymentLock:   vi.fn(),
+    reset:                vi.fn(),
+    lastError:            null,
   },
 }));
 
@@ -146,12 +148,12 @@ describe('pi-payment', () => {
         callbacks.onError(new Error('Pi SDK unavailable'));
       });
       setupWindow(mockCreatePayment);
-      await expect(createU2APayment(1, 'Test')).rejects.toThrow('Pi SDK error: Pi SDK unavailable');
+      await expect(createU2APayment(1, 'Test', {}, 'internal-id')).rejects.toThrow('Pi SDK error: Pi SDK unavailable');
     });
 
     it('calls Pi.createPayment after SDK create', async () => {
       const mock = setupWindow();
-      const p = createU2APayment(1, 'Test');
+      const p = createU2APayment(1, 'Test', {}, 'internal-id');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
       mock.mock.calls[0][1].onCancel();
       const result = await p;
@@ -171,7 +173,7 @@ describe('pi-payment', () => {
       });
 
       const mock = setupWindow();
-      const p = createU2APayment(1, 'Test');
+      const p = createU2APayment(1, 'Test', {}, 'internal-id');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
       const cb = mock.mock.calls[0][1];
       await cb.onReadyForServerApproval('pi-pay-1');
@@ -194,7 +196,7 @@ describe('pi-payment', () => {
       });
 
       const mock = setupWindow();
-      const p = createU2APayment(1, 'Test');
+      const p = createU2APayment(1, 'Test', {}, 'internal-id');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
       const cb = mock.mock.calls[0][1];
       await cb.onReadyForServerApproval('pi-pay-1');
@@ -210,7 +212,7 @@ describe('pi-payment', () => {
 
     it('cancelled by user', async () => {
       const mock = setupWindow();
-      const p = createU2APayment(1, 'Test');
+      const p = createU2APayment(1, 'Test', {}, 'internal-id');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());
       mock.mock.calls[0][1].onCancel();
       const result = await p;
@@ -222,7 +224,7 @@ describe('pi-payment', () => {
       setupWindow(vi.fn((_data: unknown, callbacks: any) => {
         callbacks.onReadyForServerApproval('invalid id!!!');
       }));
-      await expect(createU2APayment(1, 'test')).rejects.toThrow('Invalid payment ID format');
+      await expect(createU2APayment(1, 'test', {}, 'internal-id')).rejects.toThrow('Invalid payment ID format');
     });
 
     it('resets piSession on scope error', async () => {
@@ -230,7 +232,7 @@ describe('pi-payment', () => {
       setupWindow(vi.fn((_data: unknown, callbacks: any) => {
         callbacks.onError(new Error('scope permission denied'));
       }));
-      await expect(createU2APayment(1, 'test')).rejects.toThrow();
+      await expect(createU2APayment(1, 'test', {}, 'internal-id')).rejects.toThrow();
       expect(piSession.reset).toHaveBeenCalled();
     });
   });

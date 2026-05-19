@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
-import { usePiSdkReady }                 from '@/lib-client/hooks/usePiSdkReady';
-import { piSession }                     from '@/lib-client/pi/pi-session';
-import { createU2APayment }              from '@/lib-client/pi/pi-payment';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { piSession }        from '@/lib-client/pi/pi-session';
+import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -22,11 +21,12 @@ const getSourceLabel = (source: string) => {
 };
 
 export interface ExternalPayment {
-  amount:    number;
-  memo:      string;
-  productId: string;
-  returnUrl: string;
-  source:    string;
+  amount:     number;
+  memo:       string;
+  productId:  string;
+  returnUrl:  string;
+  source:     string;
+  internalId: string; // ✅ pre-created — required
 }
 
 export function PaymentModal({
@@ -36,16 +36,22 @@ export function PaymentModal({
   onClose:   () => void;
   onSuccess: (txid: string, paymentId: string) => void;
 }) {
-  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
+  const [isReady, setIsReady] = useState(false);
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
 
-  const isReady = piReady && authReady;
+  // ✅ unified gate — resolves only when Pi.init() + Pi.authenticate() both done
+  useEffect(() => {
+    let cancelled = false;
+    piSession.ensurePaymentsReady().then(ok => {
+      if (!cancelled) setIsReady(ok);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
-    if (!payment.amount || payment.amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
@@ -55,19 +61,23 @@ export function PaymentModal({
 
     haptic('medium');
     try {
-      const authOk = await ensurePiAuth();
-      if (!authOk) {
+      // ✅ ensure ready before payment (idempotent if already done)
+      const ready = await piSession.ensurePaymentsReady();
+      if (!ready) {
         setStatus('error');
-        setMessage('Pi authentication failed. Please try again.');
+        setMessage('Pi SDK not ready. Please try again.');
         hasStarted.current = false;
         return;
       }
 
       setStatus('paying');
+
+      // ✅ no fetch here — internalId already pre-created by hub/page.tsx
       const result = await createU2APayment(
         payment.amount,
         payment.memo,
         { source: payment.source, product_id: payment.productId, version: '1.0' },
+        payment.internalId,
       );
 
       if (result.success && result.status === 'completed') {
@@ -90,27 +100,13 @@ export function PaymentModal({
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [payment, ensurePiAuth, onSuccess]);
+  }, [payment, onSuccess]);
 
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 999,
-      background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
-    }}>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 999, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-      <div style={{
-        width: '100%', maxWidth: 360, borderRadius: 28,
-        background: '#0d0d14', border: '1px solid #d4af3730',
-        padding: 32, textAlign: 'center',
-        boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
-      }}>
-        <div style={{
-          width: 64, height: 64, borderRadius: 20,
-          background: 'linear-gradient(135deg,#d4af37,#b8882a)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800',
-        }}>T</div>
+      <div style={{ width: '100%', maxWidth: 360, borderRadius: 28, background: '#0d0d14', border: '1px solid #d4af3730', padding: 32, textAlign: 'center', boxShadow: '0 24px 80px rgba(0,0,0,0.6)' }}>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800' }}>T</div>
 
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
           {getSourceLabel(payment.source)}
@@ -122,12 +118,8 @@ export function PaymentModal({
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {!isReady && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
-                <div style={{ width: 16, height: 16, borderRadius: '50%',
-                  border: '2px solid #d4af3730', borderTop: '2px solid #d4af37',
-                  animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 11, color: '#4a4a5a' }}>
-                  {!piReady ? 'Loading Pi SDK...' : 'Authenticating...'}
-                </span>
+                <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: 11, color: '#4a4a5a' }}>Authenticating...</span>
               </div>
             )}
             <button onClick={handlePay} disabled={!isReady} style={{
@@ -137,20 +129,15 @@ export function PaymentModal({
               fontSize: 18, fontWeight: 900, cursor: isReady ? 'pointer' : 'not-allowed',
               boxShadow: isReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
             }}>
-              {!piReady ? 'Loading Pi SDK...' : !authReady ? 'Authenticating...' : `Pay ${payment.amount}π`}
+              {isReady ? `Pay ${payment.amount}π` : 'Authenticating...'}
             </button>
-            <button onClick={onClose} style={{
-              background: 'none', border: 'none',
-              color: '#4a4a5a', fontSize: 12, cursor: 'pointer',
-            }}>Cancel</button>
+            <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#4a4a5a', fontSize: 12, cursor: 'pointer' }}>Cancel</button>
           </div>
         )}
 
         {status === 'paying' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%',
-              border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
-              animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #d4af3730', borderTop: '3px solid #d4af37', animation: 'spin 0.8s linear infinite' }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>Processing payment...</div>
           </div>
         )}
@@ -167,11 +154,7 @@ export function PaymentModal({
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>⚠️</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>Cancelled</div>
-            <button onClick={onClose} style={{
-              marginTop: 8, padding: '12px 24px', borderRadius: 14,
-              background: '#ffffff10', border: '1px solid #ffffff20',
-              color: '#fff', fontSize: 13, cursor: 'pointer',
-            }}>Go Back</button>
+            <button onClick={onClose} style={{ marginTop: 8, padding: '12px 24px', borderRadius: 14, background: '#ffffff10', border: '1px solid #ffffff20', color: '#fff', fontSize: 13, cursor: 'pointer' }}>Go Back</button>
           </div>
         )}
 
@@ -181,18 +164,8 @@ export function PaymentModal({
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handlePay} disabled={!isReady} style={{
-                padding: '12px 24px', borderRadius: 14,
-                background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
-                border: 'none', color: isReady ? '#0a0800' : '#666',
-                fontSize: 13, fontWeight: 700,
-                cursor: isReady ? 'pointer' : 'not-allowed',
-              }}>Try Again</button>
-              <button onClick={onClose} style={{
-                padding: '12px 24px', borderRadius: 14,
-                background: '#ffffff10', border: '1px solid #ffffff20',
-                color: '#fff', fontSize: 13, cursor: 'pointer',
-              }}>Cancel</button>
+              <button onClick={handlePay} disabled={!isReady} style={{ padding: '12px 24px', borderRadius: 14, background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333', border: 'none', color: isReady ? '#0a0800' : '#666', fontSize: 13, fontWeight: 700, cursor: isReady ? 'pointer' : 'not-allowed' }}>Try Again</button>
+              <button onClick={onClose} style={{ padding: '12px 24px', borderRadius: 14, background: '#ffffff10', border: '1px solid #ffffff20', color: '#fff', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>
         )}

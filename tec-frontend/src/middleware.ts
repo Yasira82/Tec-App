@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_ROUTES  = ['/hub', '/dashboard', '/profile', '/settings'];
-const PUBLIC_HUB_ROUTES = ['/hub/pay']; // ✅ صفحة الـ payment — مش محتاجة redirect
+const PUBLIC_HUB_ROUTES = ['/hub/pay'];
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const CSRF_PROTECTED = [
   '/api/auth/logout',
   '/api/auth/refresh',
   '/api/wallet',
-  '/api/payment',
-  '/api/payments',
   '/api/kyc',
   '/api/notifications',
   '/api/assets',
@@ -62,8 +60,6 @@ export const config = {
     '/api/auth/logout',
     '/api/auth/refresh',
     '/api/wallet/:path*',
-    '/api/payment/:path*',
-    '/api/payments/:path*',
     '/api/kyc/:path*',
     '/api/notifications/:path*',
     '/api/assets/:path*',

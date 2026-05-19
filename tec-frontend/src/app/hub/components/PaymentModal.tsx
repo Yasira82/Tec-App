@@ -1,310 +1,202 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
-import { useRouter }                                 from 'next/navigation';
-import { usePiAuth }                                 from '@/lib-client/hooks/usePiAuth';
-import { usePiSdkReady }                             from '@/lib-client/hooks/usePiSdkReady';
-import { piSession }                                 from '@/lib-client/pi/pi-session';
-import { createU2APayment }                          from '@/lib-client/pi/pi-payment';
-import { useRealtimeNotifications }                  from '@/lib-client/hooks/useRealtimeNotifications';
-import { getAccessToken }                            from '@/lib-client/pi/pi-auth';
-import { getVisibleDomains }                         from '@/domains/_registry';
-import { ErrorBoundary }                             from '@/components/ErrorBoundary';
-import { ToastContainer, Toast }                     from './components/ToastContainer';
-import { AIDrawer }                                  from './components/AIDrawer';
-import { HubSkeleton }                               from './components/HubSkeleton';
-import { PullIndicator }                             from './components/PullIndicator';
-import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
-import {
-  HubHeader,
-  HubWalletCard,
-  HubCarousel,
-  HubPayActions,
-  HubAppsGrid,
-  HubComingSoon,
-} from '@/components/hub';
-import { useHubData }  from '@/hooks/useHubData';
-import { haptic }      from '@/lib/hub/utils';
-import '@/styles/tec-design-tokens.css';
+import { useState, useCallback, useRef } from 'react';
+import { usePiSdkReady }                 from '@/lib-client/hooks/usePiSdkReady';
+import { piSession }                     from '@/lib-client/pi/pi-session';
+import { createU2APayment }              from '@/lib-client/pi/pi-payment';
 
-const ASSETS_URL     = 'https://assets.tecosystem.app';
-const COMMERCE_URL   = 'https://commerce.tecosystem.app';
-const PULL_THRESHOLD = 80;
+const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    const patterns = { light: 10, medium: 25, heavy: 50 };
+    navigator.vibrate(patterns[type]);
+  }
+};
 
-function HubPageInner() {
-  const { user, isAuthenticated, isLoading } = usePiAuth();
+const getSourceLabel = (source: string) => {
+  switch (source) {
+    case 'commerce':  return 'TEC Commerce';
+    case 'ecommerce': return 'TEC Ecommerce';
+    case 'assets':    return 'TEC Assets';
+    default:          return 'TEC Ecosystem';
+  }
+};
+
+export interface ExternalPayment {
+  amount:    number;
+  memo:      string;
+  productId: string;
+  returnUrl: string;
+  source:    string;
+}
+
+export function PaymentModal({
+  payment, onClose, onSuccess,
+}: {
+  payment:   ExternalPayment;
+  onClose:   () => void;
+  onSuccess: (txid: string, paymentId: string) => void;
+}) {
   const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
-  const router = useRouter();
+  const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  const [message, setMessage] = useState('');
+  const hasStarted = useRef(false);
 
-  const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
-  const userKyc = (user as { kycVerified?: boolean } | null)?.kycVerified ?? false;
+  const isReady = piReady && authReady;
 
-  const visibleLive = getVisibleDomains(userKyc, userPro)
-    .filter(d => d.status === 'live' && d.layer !== 'os')
-    .map(d => ({ slug: d.slug, name: d.name.en, emoji: d.emoji, href: d.route ?? `/${d.slug}`, desc: d.description.en }));
-
-  const { balance, assetCount, piPrice, notifCount, time, setNotifCount, refresh, refreshBalance } =
-    useHubData(user?.id);
-
-  const [carouselIdx,     setCarouselIdx]     = useState(0);
-  const [aiOpen,          setAiOpen]          = useState(false);
-  const [toasts,          setToasts]          = useState<Toast[]>([]);
-  const [pullProgress,    setPullProgress]    = useState(0);
-  const [isRefreshing,    setIsRefreshing]    = useState(false);
-  const [payAmount,       setPayAmount]       = useState(1);
-  const [externalPayment, setExternalPayment] = useState<ExternalPayment | null>(null);
-  const [pendingPayment,  setPendingPayment]  = useState<ExternalPayment | null>(null);
-
-  const pullStartY = useRef(0);
-  const isPulling  = useRef(false);
-
-  const showToast = useCallback((type: Toast['type'], message: string, txid?: string) => {
-    const id = Math.random().toString(36).slice(2);
-    setToasts(prev => [...prev, { id, type, message, txid }]);
-    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
-  }, []);
-
-  /* ── Step 1: قرا الـ URL params فوراً ──────────────── */
-  useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    if (p.get('pay') === '1') {
-      const amount = parseFloat(p.get('amount') ?? '0');
-      if (amount > 0) {
-        setPendingPayment({
-          amount,
-          memo:      decodeURIComponent(p.get('memo')       ?? 'TEC Payment'),
-          productId: p.get('product_id') ?? '',
-          returnUrl: decodeURIComponent(p.get('return_url') ?? COMMERCE_URL),
-          source:    p.get('source')     ?? 'commerce',
-        });
-        window.history.replaceState({}, '', '/hub');
-      }
-    }
-  }, []);
-
-  /* ── Step 2: لما piReady + authReady → اعرض Modal ──── */
-  useEffect(() => {
-    if (piReady && authReady && pendingPayment && !externalPayment) {
-      setExternalPayment(pendingPayment);
-      setPendingPayment(null);
-    }
-  }, [piReady, authReady, pendingPayment, externalPayment]);
-
-  const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
-    if (!externalPayment) return;
-    if (externalPayment.productId.startsWith('nft:')) {
-      try {
-        const nftMeta   = JSON.parse(atob(externalPayment.productId.slice(4)));
-        const csrfToken = document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
-        await fetch('/api/assets/provision', {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-          body: JSON.stringify({
-            slug:       `nft-${paymentId.slice(0,8)}-${Date.now()}`,
-            payment_id: paymentId,
-            category:   'NFT',
-            metadata:   { name: nftMeta.n, description: nftMeta.d ?? '', imageUrl: nftMeta.u, txid },
-          }),
-        });
-      } catch {}
-    }
-    setExternalPayment(null);
-    const ret = new URL(externalPayment.returnUrl);
-    ret.searchParams.set('payment_status', 'success');
-    ret.searchParams.set('txid',           txid);
-    ret.searchParams.set('payment_id',     paymentId);
-    ret.searchParams.set('product_id',     externalPayment.productId);
-    window.location.href = ret.toString();
-  }, [externalPayment]);
-
-  /* ── Pull to refresh ───────────────────────────────── */
-  const handlePullStart = (e: React.TouchEvent) => {
-    const el = e.currentTarget as HTMLElement;
-    if (el.scrollTop === 0) { pullStartY.current = e.touches[0].clientY; isPulling.current = true; }
-  };
-  const handlePullMove = (e: React.TouchEvent) => {
-    if (!isPulling.current) return;
-    const diff = e.touches[0].clientY - pullStartY.current;
-    if (diff > 0) setPullProgress(Math.min(diff / PULL_THRESHOLD, 1));
-  };
-  const handlePullEnd = async () => {
-    if (!isPulling.current) return;
-    isPulling.current = false;
-    if (pullProgress >= 1) {
-      haptic('medium'); setIsRefreshing(true); setPullProgress(0);
-      await refresh();
-      setIsRefreshing(false); showToast('info', 'Updated ✓');
-    } else { setPullProgress(0); }
-  };
-
-  /* ── Carousel ──────────────────────────────────────── */
-  useEffect(() => {
-    if (!piPrice) return;
-    const id = setInterval(() => setCarouselIdx(p => p === 2 ? 0 : p + 1), 5000);
-    return () => clearInterval(id);
-  }, [piPrice]);
-
-  /* ── Auth guard ✅ مش بيطرد لو فيه pending payment ── */
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated && !pendingPayment) {
-      router.replace('/');
-    }
-  }, [isLoading, isAuthenticated, pendingPayment, router]);
-
-  /* ── Realtime ──────────────────────────────────────── */
-  const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
-    userId: user?.id, token: getAccessToken(),
-    onWalletUpdate: () => setTimeout(refreshBalance, 500),
-  });
-
-  /* ── Pay ───────────────────────────────────────────── */
   const handlePay = useCallback(async () => {
-    sessionStorage.removeItem('post_pi_redirect');
-    if (!window.Pi) { haptic('heavy'); showToast('error', 'Open in Pi Browser'); return; }
-    if (!piReady)   { haptic('heavy'); showToast('warning', 'Pi SDK connecting...'); return; }
-    if (!payAmount || payAmount <= 0) { haptic('heavy'); showToast('warning', 'Enter a valid amount'); return; }
+    if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
+    if (!payment.amount || payment.amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
+
     const locked = await piSession.acquirePaymentLock();
-    if (!locked) { showToast('warning', 'Payment in progress'); return; }
+    if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
+
+    if (hasStarted.current) { piSession.releasePaymentLock(); return; }
+    hasStarted.current = true;
+
     haptic('medium');
     try {
-      if (!authReady) await ensurePiAuth();
-      const result = await createU2APayment(payAmount, `TEC Payment — ${payAmount}π`, { source: 'hub', amount: payAmount });
+      const authOk = await ensurePiAuth();
+      if (!authOk) {
+        setStatus('error');
+        setMessage('Pi authentication failed. Please try again.');
+        hasStarted.current = false;
+        return;
+      }
+
+      setStatus('paying');
+      const result = await createU2APayment(
+        payment.amount,
+        payment.memo,
+        { source: payment.source, product_id: payment.productId, version: '1.0' },
+      );
+
       if (result.success && result.status === 'completed') {
-        haptic('heavy'); showToast('success', `${payAmount}π paid! 🎉`, result.txid);
-        setTimeout(refreshBalance, 2000);
+        setStatus('success');
+        haptic('heavy');
+        setTimeout(() => onSuccess(result.txid ?? '', result.paymentId ?? ''), 1500);
       } else if (result.status === 'cancelled') {
-        haptic('light'); showToast('warning', 'Payment cancelled');
+        setStatus('cancelled');
+        hasStarted.current = false;
       } else {
-        haptic('heavy'); showToast('error', result.message ?? 'Payment failed');
+        setStatus('error');
+        setMessage(result.message ?? 'Payment failed');
+        hasStarted.current = false;
       }
     } catch (err) {
       haptic('heavy');
-      const msg = err instanceof Error ? err.message : 'Payment failed';
-      if (msg.includes('not initialized')) { window.location.reload(); return; }
-      showToast('error', msg);
+      setStatus('error');
+      setMessage(err instanceof Error ? err.message : 'Payment failed');
+      hasStarted.current = false;
     } finally {
       piSession.releasePaymentLock();
-      refreshBalance();
     }
-  }, [piReady, authReady, ensurePiAuth, payAmount, refreshBalance, showToast]);
-
-  /* ── ✅ لو مش authenticated وفيه pending payment → loading */
-  if (isLoading || (!isAuthenticated && !pendingPayment)) return <HubSkeleton />;
-
-  /* ── ✅ لو جاي للدفع وبس → وريه payment loading screen */
-  if (!isAuthenticated && pendingPayment) return (
-    <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
-      </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      {externalPayment && (
-        <PaymentModal
-          payment={externalPayment}
-          onClose={() => { setExternalPayment(null); window.location.href = externalPayment.returnUrl; }}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
-    </div>
-  );
-
-  const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
-  const goToAssets   = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
-  const goToCommerce = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
+  }, [payment, ensurePiAuth, onSuccess]);
 
   return (
-    <div
-      style={{ minHeight: '100vh', background: '#020205', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88, overflowY: 'auto', overscrollBehavior: 'none' }}
-      onTouchStart={handlePullStart}
-      onTouchMove={handlePullMove}
-      onTouchEnd={handlePullEnd}
-    >
-      {externalPayment && (
-        <PaymentModal
-          payment={externalPayment}
-          onClose={() => { setExternalPayment(null); window.location.href = externalPayment.returnUrl; }}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 999,
+      background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+    }}>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      <div style={{
+        width: '100%', maxWidth: 360, borderRadius: 28,
+        background: '#0d0d14', border: '1px solid #d4af3730',
+        padding: 32, textAlign: 'center',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+      }}>
+        <div style={{
+          width: 64, height: 64, borderRadius: 20,
+          background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800',
+        }}>T</div>
 
-      <ToastContainer toasts={toasts} onDismiss={id => setToasts(p => p.filter(t => t.id !== id))} />
-      <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
-      <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
+        <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
+          {getSourceLabel(payment.source)}
+        </div>
+        <div style={{ fontSize: 48, fontWeight: 900, color: '#d4af37', marginBottom: 4 }}>{payment.amount}π</div>
+        <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>{payment.memo}</div>
 
-      {!aiOpen && (
-        <button className="tec-float tec-btn"
-          onClick={() => { haptic('medium'); setAiOpen(true); }}
-          aria-label="Open AI assistant"
-          style={{
-            position: 'fixed', bottom: 100, right: 16, zIndex: 200,
-            width: 48, height: 48, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
-            border: 'none', boxShadow: '0 4px 20px rgba(212,175,55,0.35)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 20, cursor: 'pointer',
-          }}>🤖</button>
-      )}
-
-      <HubHeader
-        piUsername={user?.piUsername ?? ''}
-        time={time}
-        notifCount={totalNotif}
-        onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
-      />
-      <HubWalletCard balance={balance} piPrice={piPrice} />
-      <HubCarousel
-        carouselIdx={carouselIdx}
-        setCarouselIdx={setCarouselIdx}
-        assetCount={assetCount}
-        piPrice={piPrice}
-        goToAssets={goToAssets}
-        goToCommerce={goToCommerce}
-      />
-      <HubPayActions
-        payAmount={payAmount}
-        setPayAmount={setPayAmount}
-        piReady={piReady}
-        onPay={handlePay}
-      />
-      <HubAppsGrid apps={visibleLive} />
-      <HubComingSoon />
-
-      <nav aria-label="Main navigation"
-        style={{
-          position: 'fixed', bottom: 0, left: 0, right: 0,
-          background: 'rgba(5,5,10,0.92)',
-          backdropFilter: 'blur(24px) saturate(1.8)',
-          WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-          borderTop: '1px solid rgba(255,255,255,0.06)',
-          display: 'flex', padding: '10px 4px',
-          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
-          zIndex: 150,
-        }}>
-        {[
-          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
-          { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: '💎', label: 'Assets',   active: false, action: goToAssets },
-          { icon: '🛒', label: 'Commerce', active: false, action: goToCommerce },
-          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
-        ].map(item => (
-          <button key={item.label} className="tec-nav-btn" onClick={item.action}
-            aria-label={item.label}
-            aria-current={item.active ? 'page' : undefined}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
-            {item.active && (
-              <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'linear-gradient(90deg,#d4af37,#b8882a)', boxShadow: '0 0 8px rgba(212,175,55,0.6)' }} />
+        {status === 'idle' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {!isReady && (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
+                <div style={{ width: 16, height: 16, borderRadius: '50%',
+                  border: '2px solid #d4af3730', borderTop: '2px solid #d4af37',
+                  animation: 'spin 0.8s linear infinite' }} />
+                <span style={{ fontSize: 11, color: '#4a4a5a' }}>
+                  {!piReady ? 'Loading Pi SDK...' : 'Authenticating...'}
+                </span>
+              </div>
             )}
-            <span aria-hidden="true" style={{ fontSize: 20 }}>{item.icon}</span>
-            <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: item.active ? 700 : 400, color: item.active ? '#d4af37' : 'rgba(255,255,255,0.28)' }}>{item.label}</span>
-          </button>
-        ))}
-      </nav>
+            <button onClick={handlePay} disabled={!isReady} style={{
+              padding: '18px 48px', borderRadius: 20,
+              background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
+              border: 'none', color: isReady ? '#0a0800' : '#666',
+              fontSize: 18, fontWeight: 900, cursor: isReady ? 'pointer' : 'not-allowed',
+              boxShadow: isReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
+            }}>
+              {!piReady ? 'Loading Pi SDK...' : !authReady ? 'Authenticating...' : `Pay ${payment.amount}π`}
+            </button>
+            <button onClick={onClose} style={{
+              background: 'none', border: 'none',
+              color: '#4a4a5a', fontSize: 12, cursor: 'pointer',
+            }}>Cancel</button>
+          </div>
+        )}
+
+        {status === 'paying' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%',
+              border: '3px solid #d4af3730', borderTop: '3px solid #d4af37',
+              animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ fontSize: 14, color: '#6b6b7a' }}>Processing payment...</div>
+          </div>
+        )}
+
+        {status === 'success' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 48 }}>✅</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#7ee7c0' }}>Payment Successful!</div>
+            <div style={{ fontSize: 12, color: '#4a4a5a' }}>Redirecting back...</div>
+          </div>
+        )}
+
+        {status === 'cancelled' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 48 }}>⚠️</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>Cancelled</div>
+            <button onClick={onClose} style={{
+              marginTop: 8, padding: '12px 24px', borderRadius: 14,
+              background: '#ffffff10', border: '1px solid #ffffff20',
+              color: '#fff', fontSize: 13, cursor: 'pointer',
+            }}>Go Back</button>
+          </div>
+        )}
+
+        {status === 'error' && (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+            <div style={{ fontSize: 48 }}>❌</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
+            <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={handlePay} disabled={!isReady} style={{
+                padding: '12px 24px', borderRadius: 14,
+                background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
+                border: 'none', color: isReady ? '#0a0800' : '#666',
+                fontSize: 13, fontWeight: 700,
+                cursor: isReady ? 'pointer' : 'not-allowed',
+              }}>Try Again</button>
+              <button onClick={onClose} style={{
+                padding: '12px 24px', borderRadius: 14,
+                background: '#ffffff10', border: '1px solid #ffffff20',
+                color: '#fff', fontSize: 13, cursor: 'pointer',
+              }}>Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
-
-export default function HubPage() {
-  return <ErrorBoundary><HubPageInner /></ErrorBoundary>;
-                                     }

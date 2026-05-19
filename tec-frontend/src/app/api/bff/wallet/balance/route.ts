@@ -1,24 +1,51 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { NextResponse }  from 'next/server';
+
+const fetchWallet = async (token: string, userId: string, requestId: string, gatewayUrl: string) =>
+  fetch(`${gatewayUrl}/api/wallets?userId=${encodeURIComponent(userId)}`, {
+    headers: { 'Authorization': `Bearer ${token}`, 'x-request-id': requestId },
+    cache: 'no-store',
+  });
 
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
-    const token      = req.cookies.get('tec_access_token')?.value ?? '';
     const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+    let token        = req.cookies.get('tec_access_token')?.value ?? '';
 
-    // ✅ الـ path الصح — نفس الـ route القديم
-    const res = await fetch(
-      `${gatewayUrl}/api/wallets?userId=${encodeURIComponent(ctx.userId)}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'x-request-id':  ctx.requestId,
-        },
-        cache: 'no-store',
-      },
-    );
+    let res = await fetchWallet(token, ctx.userId, ctx.requestId, gatewayUrl);
+
+    // ✅ Token expired → auto refresh
+    if (res.status === 401) {
+      const errData = await res.json().catch(() => ({}));
+      if (errData?.error?.code === 'TOKEN_EXPIRED') {
+        const refreshRes = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
+          method:  'POST',
+          headers: {
+            'Cookie':        req.headers.get('cookie') ?? '',
+            'x-csrf-token':  req.cookies.get('tec_csrf')?.value ?? '',
+            'Content-Type':  'application/json',
+          },
+        });
+
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json().catch(() => ({}));
+          const newToken    = refreshData.token ?? '';
+          if (newToken) {
+            token = newToken;
+            res   = await fetchWallet(token, ctx.userId, ctx.requestId, gatewayUrl);
+          }
+        }
+      }
+    }
 
     if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      const code    = errData?.error?.code;
+      // ✅ ابعت 401 للـ client لو TOKEN_EXPIRED بعد الـ refresh
+      if (code === 'TOKEN_EXPIRED') {
+        return NextResponse.json({ error: 'TOKEN_EXPIRED' }, { status: 401 });
+      }
       return { balance: 0, currency: 'PI', address: null, walletId: null };
     }
 

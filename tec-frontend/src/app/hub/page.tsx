@@ -84,13 +84,13 @@ function HubPageInner() {
     }
   }, []);
 
-  /* ── Step 2: لما Pi SDK يجهز → اعرض الـ Modal ──────── */
-useEffect(() => {
-  if (piReady && pendingPayment && !externalPayment) {
-    setExternalPayment(pendingPayment);
-    setPendingPayment(null);
-  }
-}, [piReady, pendingPayment, externalPayment]);
+  /* ── Step 2: انتظر piReady + authReady → اعرض الـ Modal */
+  useEffect(() => {
+    if (piReady && authReady && pendingPayment && !externalPayment) {
+      setExternalPayment(pendingPayment);
+      setPendingPayment(null);
+    }
+  }, [piReady, authReady, pendingPayment, externalPayment]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
     if (!externalPayment) return;
@@ -213,7 +213,6 @@ useEffect(() => {
       <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
       <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
 
-      {/* AI FAB */}
       {!aiOpen && (
         <button className="tec-float tec-btn"
           onClick={() => { haptic('medium'); setAiOpen(true); }}
@@ -234,9 +233,7 @@ useEffect(() => {
         notifCount={totalNotif}
         onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
       />
-
       <HubWalletCard balance={balance} piPrice={piPrice} />
-
       <HubCarousel
         carouselIdx={carouselIdx}
         setCarouselIdx={setCarouselIdx}
@@ -245,16 +242,13 @@ useEffect(() => {
         goToAssets={goToAssets}
         goToCommerce={goToCommerce}
       />
-
       <HubPayActions
         payAmount={payAmount}
         setPayAmount={setPayAmount}
         piReady={piReady}
         onPay={handlePay}
       />
-
       <HubAppsGrid apps={visibleLive} />
-
       <HubComingSoon />
 
       <nav aria-label="Main navigation"
@@ -293,4 +287,4 @@ useEffect(() => {
 
 export default function HubPage() {
   return <ErrorBoundary><HubPageInner /></ErrorBoundary>;
-              }
+            }

@@ -36,13 +36,10 @@ export function PaymentModal({
   onClose:   () => void;
   onSuccess: (txid: string, paymentId: string) => void;
 }) {
-  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
+  const { piReady, ensurePiAuth } = usePiSdkReady();
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
-
-  // ✅ Ready لما الاثنين جاهزين
-  const isReady = piReady && authReady;
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
@@ -88,13 +85,6 @@ export function PaymentModal({
     }
   }, [payment, ensurePiAuth, onSuccess]);
 
-  // ✅ Button label حسب الحالة
-  const btnLabel = !piReady
-    ? 'Loading Pi SDK...'
-    : !authReady
-    ? 'Authenticating...'
-    : `Pay ${payment.amount}π`;
-
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 999,
@@ -115,7 +105,6 @@ export function PaymentModal({
           fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800',
         }}>T</div>
 
-        {/* ✅ Source label صح */}
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
           {getSourceLabel(payment.source)}
         </div>
@@ -124,25 +113,22 @@ export function PaymentModal({
 
         {status === 'idle' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {/* ✅ Loading indicator لما مش ready */}
-            {!isReady && (
+            {!piReady && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
                 <div style={{ width: 16, height: 16, borderRadius: '50%',
                   border: '2px solid #d4af3730', borderTop: '2px solid #d4af37',
                   animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 11, color: '#4a4a5a' }}>
-                  {!piReady ? 'Loading Pi SDK...' : 'Authenticating...'}
-                </span>
+                <span style={{ fontSize: 11, color: '#4a4a5a' }}>Loading Pi SDK...</span>
               </div>
             )}
-            <button onClick={handlePay} disabled={!isReady} style={{
+            <button onClick={handlePay} disabled={!piReady} style={{
               padding: '18px 48px', borderRadius: 20,
-              background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
-              border: 'none', color: isReady ? '#0a0800' : '#666',
-              fontSize: 18, fontWeight: 900, cursor: isReady ? 'pointer' : 'not-allowed',
-              boxShadow: isReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
+              background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
+              border: 'none', color: piReady ? '#0a0800' : '#666',
+              fontSize: 18, fontWeight: 900, cursor: piReady ? 'pointer' : 'not-allowed',
+              boxShadow: piReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
             }}>
-              {btnLabel}
+              {piReady ? `Pay ${payment.amount}π` : 'Loading Pi SDK...'}
             </button>
             <button onClick={onClose} style={{
               background: 'none', border: 'none',
@@ -186,13 +172,12 @@ export function PaymentModal({
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {/* ✅ Try Again بيتشيك على isReady */}
-              <button onClick={handlePay} disabled={!isReady} style={{
+              <button onClick={handlePay} disabled={!piReady} style={{
                 padding: '12px 24px', borderRadius: 14,
-                background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
-                border: 'none', color: isReady ? '#0a0800' : '#666',
+                background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
+                border: 'none', color: piReady ? '#0a0800' : '#666',
                 fontSize: 13, fontWeight: 700,
-                cursor: isReady ? 'pointer' : 'not-allowed',
+                cursor: piReady ? 'pointer' : 'not-allowed',
               }}>Try Again</button>
               <button onClick={onClose} style={{
                 padding: '12px 24px', borderRadius: 14,
@@ -205,4 +190,4 @@ export function PaymentModal({
       </div>
     </div>
   );
-        }
+}

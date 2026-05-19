@@ -28,6 +28,15 @@ export interface PaymentResult {
   message?:   string;
 }
 
+// ✅ CSRF token من الـ cookie
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie
+    .split('; ')
+    .find(r => r.startsWith('tec_csrf='))
+    ?.split('=')?.[1] ?? '';
+};
+
 const retryFetch = async (
   url:        string,
   options:    RequestInit,
@@ -66,6 +75,7 @@ export const createA2UPayment = async (data: A2UPaymentRequest): Promise<Payment
         'Content-Type':    'application/json',
         Authorization:     `Bearer ${token}`,
         'Idempotency-Key': idempotencyKey,
+        'x-csrf-token':    getCsrfToken(),
       },
       body: JSON.stringify(data),
     });
@@ -114,13 +124,9 @@ export const createU2APayment = async (
 ): Promise<PaymentResult> => {
   if (typeof window === 'undefined') throw new Error('Pi SDK not available - Open in Pi Browser');
 
-  // ✅ الخطوة 1: انتظر الـ SDK يـ load
   await waitForPiSDK();
-
-  // ✅ الخطوة 2: انتظر الـ init يكتمل
   await waitForPiInit();
 
-  // ✅ الخطوة 3: عمل الـ payment record في الـ backend
   let internalId: string | null = null;
   const storedUser = getStoredUser();
   const userId     = storedUser?.id ?? storedUser?.piId ?? null;
@@ -133,7 +139,8 @@ export const createU2APayment = async (
         credentials: 'include',
         headers: {
           ...buildHeaders(),
-          Authorization: `Bearer ${getAccessToken()}`,
+          Authorization:  `Bearer ${getAccessToken()}`,
+          'x-csrf-token': getCsrfToken(),             // ✅
         },
         body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata }),
       });
@@ -149,7 +156,6 @@ export const createU2APayment = async (
     }
   }
 
-  // ✅ الخطوة 4: createPayment
   return new Promise((resolve, reject) => {
     if (!window.Pi) { reject(new Error('Pi SDK not available - Open in Pi Browser')); return; }
 
@@ -200,7 +206,8 @@ export const createU2APayment = async (
               credentials: 'include',
               headers: {
                 ...buildHeaders(),
-                Authorization: `Bearer ${getAccessToken()}`,
+                Authorization:  `Bearer ${getAccessToken()}`,
+                'x-csrf-token': getCsrfToken(),       // ✅
               },
               body: JSON.stringify({ payment_id: internalId, pi_payment_id: piPaymentId }),
             });
@@ -240,7 +247,8 @@ export const createU2APayment = async (
               credentials: 'include',
               headers: {
                 ...buildHeaders(),
-                Authorization: `Bearer ${getAccessToken()}`,
+                Authorization:  `Bearer ${getAccessToken()}`,
+                'x-csrf-token': getCsrfToken(),       // ✅
               },
               body: JSON.stringify({ payment_id: internalId, transaction_id: txid }),
             });
@@ -266,13 +274,10 @@ export const createU2APayment = async (
 
         onError: (error: Error) => {
           onDiagnostic?.('error', `Pi SDK error: ${error.message}`);
-
-          // ✅ scope failure — reset عشان يعمل re-auth
           if (/scope|permission|payments/i.test(error.message)) {
             piSession.reset();
             window.dispatchEvent(new CustomEvent('tec:pi:scope:lost'));
           }
-
           clearPaymentTimer();
           reject(new Error(`Pi SDK error: ${error.message}`));
         },

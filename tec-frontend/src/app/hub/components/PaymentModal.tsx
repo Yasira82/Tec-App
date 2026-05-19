@@ -53,16 +53,10 @@ export function PaymentModal({
 
   haptic('medium');
   try {
-    // ✅ تحقق من الـ auth قبل ما تكمل
-    const authOk = await ensurePiAuth();
-    if (!authOk) {
-      setStatus('error');
-      setMessage('Authentication failed. Please try again.');
-      hasStarted.current = false;
-      return;
-    }
-
+    // ✅ call بدون check على return value
+    await ensurePiAuth();
     setStatus('paying');
+
     const result = await createU2APayment(
       payment.amount,
       payment.memo,

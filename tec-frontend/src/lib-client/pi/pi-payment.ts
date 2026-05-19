@@ -28,7 +28,6 @@ export interface PaymentResult {
   message?:   string;
 }
 
-// ✅ CSRF token من الـ cookie
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
   return document.cookie
@@ -60,13 +59,12 @@ const retryFetch = async (
   throw lastError ?? new Error('Request failed');
 };
 
-// ✅ A2U — App to User (عبر BFF)
+// ✅ A2U — App to User
 export const createA2UPayment = async (data: A2UPaymentRequest): Promise<PaymentResult> => {
   const token = getAccessToken();
   if (!token) throw new Error('Unauthorized - Please log in first');
 
   const idempotencyKey = crypto.randomUUID();
-
   try {
     const response = await retryFetch('/api/payment/a2u', {
       method:      'POST',
@@ -95,72 +93,31 @@ export type DiagnosticCallback = (type: string, message: string, data?: unknown)
 const PI_PAYMENT_ID_REGEX = /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/;
 const PI_TXID_REGEX       = /^[a-zA-Z0-9_-]{8,128}$/;
 
-// ✅ انتظر Pi SDK يكون initialized فعلاً
-const waitForPiInit = (): Promise<void> =>
-  new Promise<void>((resolve) => {
-    if (window.__TEC_PI_READY && typeof window.Pi !== 'undefined') {
-      resolve();
-      return;
-    }
-    const poll = setInterval(() => {
-      if (window.__TEC_PI_READY && typeof window.Pi !== 'undefined') {
-        clearInterval(poll);
-        clearTimeout(timeout);
-        resolve();
-      }
-    }, 200);
-    const timeout = setTimeout(() => {
-      clearInterval(poll);
-      resolve();
-    }, 15000);
-  });
-
 // ✅ U2A — User to App
+// internalId is now REQUIRED — pre-created by hub/page.tsx before modal opens
 export const createU2APayment = async (
   amount:        number,
   memo:          string,
   metadata:      Record<string, unknown> = {},
+  internalId:    string,                      // ✅ required — no backend call here
   onDiagnostic?: DiagnosticCallback,
 ): Promise<PaymentResult> => {
   if (typeof window === 'undefined') throw new Error('Pi SDK not available - Open in Pi Browser');
 
-  await waitForPiSDK();
-  await waitForPiInit();
+  // ✅ fail-fast
+  if (!internalId) throw new Error('Missing internalId — payment not pre-created');
 
-  let internalId: string | null = null;
-  const storedUser = getStoredUser();
-  const userId     = storedUser?.id ?? storedUser?.piId ?? null;
+  // ✅ unified gate: Pi.init() + Pi.authenticate() both done
+  await piSession.ensurePaymentsReady();
 
-  if (userId) {
-    try {
-      onDiagnostic?.('info', 'Creating payment record', { userId, amount });
-      const res = await fetch('/api/payment/create', {
-        method:      'POST',
-        credentials: 'include',
-        headers: {
-          ...buildHeaders(),
-          Authorization:  `Bearer ${getAccessToken()}`,
-          'x-csrf-token': getCsrfToken(),             // ✅
-        },
-        body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? null;
-        onDiagnostic?.('info', 'Backend record created', { internalId });
-      } else {
-        onDiagnostic?.('warn', `Backend create returned ${res.status} — proceeding`);
-      }
-    } catch {
-      onDiagnostic?.('warn', 'Backend create failed — proceeding without internalId');
-    }
-  }
+  const sandbox = (window as { __PI_SANDBOX?: boolean }).__PI_SANDBOX === true;
+  const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
 
   return new Promise((resolve, reject) => {
     if (!window.Pi) { reject(new Error('Pi SDK not available - Open in Pi Browser')); return; }
 
     let paymentTimedOut = false;
-    let paymentTimer: NodeJS.Timeout | null = null;
+    let paymentTimer: ReturnType<typeof setTimeout> | null = null;
 
     const startApprovalTimer = () => {
       if (paymentTimer) clearTimeout(paymentTimer);
@@ -182,107 +139,130 @@ export const createU2APayment = async (
       if (paymentTimer) { clearTimeout(paymentTimer); paymentTimer = null; }
     };
 
+    // ✅ defensive reInit + single retry on "not initialized"
+    const invoke = (attempt: number) => {
+      piSession.reInit(sandbox, appId);
+
+      try {
+        window.Pi!.createPayment(
+          { amount, memo, metadata },
+          {
+            onReadyForServerApproval: async (piPaymentId: string) => {
+              if (paymentTimedOut) return;
+              onDiagnostic?.('approval', `onReadyForServerApproval: ${piPaymentId}`, { piPaymentId, internalId });
+
+              if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
+                clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
+              }
+
+              startApprovalTimer();
+              try {
+                const res = await fetch('/api/payment/approve', {
+                  method:      'POST',
+                  credentials: 'include',
+                  headers: {
+                    ...buildHeaders(),
+                    Authorization:  `Bearer ${getAccessToken()}`,
+                    'x-csrf-token': getCsrfToken(),
+                  },
+                  body: JSON.stringify({ payment_id: internalId, pi_payment_id: piPaymentId }),
+                });
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}));
+                  throw new Error(err?.message ?? `Approval failed: ${res.status}`);
+                }
+                onDiagnostic?.('approval', 'Approval successful', { piPaymentId, internalId });
+                startCompletionTimer();
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : 'Approval failed';
+                onDiagnostic?.('error', `Approval failed: ${msg}`);
+                clearPaymentTimer(); reject(new Error(msg));
+              }
+            },
+
+            onReadyForServerCompletion: async (piPaymentId: string, txid: string) => {
+              if (paymentTimedOut) return;
+              onDiagnostic?.('completion', 'onReadyForServerCompletion', { piPaymentId, txid, internalId });
+
+              if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
+                clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
+              }
+              if (!PI_TXID_REGEX.test(txid)) {
+                clearPaymentTimer(); reject(new Error('Invalid transaction ID format')); return;
+              }
+
+              try {
+                const res = await fetch('/api/payment/complete', {
+                  method:      'POST',
+                  credentials: 'include',
+                  headers: {
+                    ...buildHeaders(),
+                    Authorization:  `Bearer ${getAccessToken()}`,
+                    'x-csrf-token': getCsrfToken(),
+                  },
+                  body: JSON.stringify({ payment_id: internalId, transaction_id: txid }),
+                });
+                if (!res.ok) {
+                  const err = await res.json().catch(() => ({}));
+                  throw new Error(err?.message ?? `Completion failed: ${res.status}`);
+                }
+                onDiagnostic?.('completion', 'Completion successful', { piPaymentId, internalId, txid });
+                clearPaymentTimer();
+                resolve({ success: true, paymentId: piPaymentId, txid, amount, memo, status: 'completed', message: 'Payment successful! 🎉' });
+              } catch (err) {
+                const msg = err instanceof Error ? err.message : 'Payment failed';
+                onDiagnostic?.('error', `Completion failed: ${msg}`);
+                clearPaymentTimer(); reject(new Error(msg));
+              }
+            },
+
+            onCancel: () => {
+              onDiagnostic?.('cancel', 'Payment cancelled by user');
+              clearPaymentTimer();
+              resolve({ success: false, status: 'cancelled', amount, memo, message: 'Payment cancelled' });
+            },
+
+            onError: (error: Error) => {
+              onDiagnostic?.('error', `Pi SDK error: ${error.message}`);
+              clearPaymentTimer();
+
+              // ✅ single retry on "not initialized"
+              if (attempt === 0 && /not initialized|init\(\)/i.test(error.message)) {
+                piSession.reset();
+                piSession.ensurePaymentsReady().then(ok => {
+                  if (ok) invoke(1);
+                  else    reject(new Error(`Pi SDK error: ${error.message}`));
+                });
+                return;
+              }
+
+              if (/scope|permission|payments/i.test(error.message)) {
+                piSession.reset();
+                window.dispatchEvent(new CustomEvent('tec:pi:scope:lost'));
+              }
+              reject(new Error(`Pi SDK error: ${error.message}`));
+            },
+          },
+        );
+      } catch (err) {
+        // synchronous throw from Pi SDK
+        const msg = err instanceof Error ? err.message : String(err);
+        clearPaymentTimer();
+
+        if (attempt === 0 && /not initialized|init\(\)/i.test(msg)) {
+          piSession.reset();
+          piSession.ensurePaymentsReady().then(ok => {
+            if (ok) invoke(1);
+            else    reject(new Error(msg));
+          });
+          return;
+        }
+        reject(err instanceof Error ? err : new Error(msg));
+      }
+    };
+
     startApprovalTimer();
-
-    window.Pi.createPayment(
-      { amount, memo, metadata },
-      {
-        onReadyForServerApproval: async (piPaymentId: string) => {
-          if (paymentTimedOut) return;
-          onDiagnostic?.('approval', `onReadyForServerApproval: ${piPaymentId}`, { piPaymentId, internalId });
-
-          if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
-            clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
-          }
-
-          if (!internalId) {
-            onDiagnostic?.('error', 'No internalId — cannot approve payment');
-            clearPaymentTimer(); reject(new Error('Payment setup failed. Please try again.')); return;
-          }
-
-          try {
-            const res = await fetch('/api/payment/approve', {
-              method:      'POST',
-              credentials: 'include',
-              headers: {
-                ...buildHeaders(),
-                Authorization:  `Bearer ${getAccessToken()}`,
-                'x-csrf-token': getCsrfToken(),       // ✅
-              },
-              body: JSON.stringify({ payment_id: internalId, pi_payment_id: piPaymentId }),
-            });
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err?.message ?? `Approval failed: ${res.status}`);
-            }
-            onDiagnostic?.('approval', 'Approval successful', { piPaymentId, internalId });
-            startCompletionTimer();
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Approval failed';
-            onDiagnostic?.('error', `Approval failed: ${msg}`);
-            clearPaymentTimer(); reject(new Error(msg));
-          }
-        },
-
-        onReadyForServerCompletion: async (piPaymentId: string, txid: string) => {
-          if (paymentTimedOut) return;
-          onDiagnostic?.('completion', 'onReadyForServerCompletion', { piPaymentId, txid, internalId });
-
-          if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
-            clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
-          }
-          if (!PI_TXID_REGEX.test(txid)) {
-            clearPaymentTimer(); reject(new Error('Invalid transaction ID format')); return;
-          }
-
-          if (!internalId) {
-            clearPaymentTimer();
-            resolve({ success: true, paymentId: piPaymentId, txid, status: 'completed', amount, memo });
-            return;
-          }
-
-          try {
-            const res = await fetch('/api/payment/complete', {
-              method:      'POST',
-              credentials: 'include',
-              headers: {
-                ...buildHeaders(),
-                Authorization:  `Bearer ${getAccessToken()}`,
-                'x-csrf-token': getCsrfToken(),       // ✅
-              },
-              body: JSON.stringify({ payment_id: internalId, transaction_id: txid }),
-            });
-            if (!res.ok) {
-              const err = await res.json().catch(() => ({}));
-              throw new Error(err?.message ?? `Completion failed: ${res.status}`);
-            }
-            onDiagnostic?.('completion', 'Completion successful', { piPaymentId, internalId, txid });
-            clearPaymentTimer();
-            resolve({ success: true, paymentId: piPaymentId, txid, amount, memo, status: 'completed', message: 'Payment successful! 🎉' });
-          } catch (err) {
-            const msg = err instanceof Error ? err.message : 'Payment failed';
-            onDiagnostic?.('error', `Completion failed: ${msg}`);
-            clearPaymentTimer(); reject(new Error(msg));
-          }
-        },
-
-        onCancel: () => {
-          onDiagnostic?.('cancel', 'Payment cancelled by user');
-          clearPaymentTimer();
-          resolve({ success: false, status: 'cancelled', amount, memo, message: 'Payment cancelled' });
-        },
-
-        onError: (error: Error) => {
-          onDiagnostic?.('error', `Pi SDK error: ${error.message}`);
-          if (/scope|permission|payments/i.test(error.message)) {
-            piSession.reset();
-            window.dispatchEvent(new CustomEvent('tec:pi:scope:lost'));
-          }
-          clearPaymentTimer();
-          reject(new Error(`Pi SDK error: ${error.message}`));
-        },
-      },
-    );
+    invoke(0);
   });
 };
 

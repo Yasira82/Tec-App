@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID }                from 'crypto';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
@@ -32,23 +33,34 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No token in response' }, { status: 502 });
     }
 
+    // ✅ جدد الـ CSRF مع كل refresh
+    const newCsrf = randomUUID();
+
+    const cookieOpts = {
+      secure:   true,
+      sameSite: 'none' as const,
+      path:     '/',
+    };
+
     const res = NextResponse.json({ token: newAccessToken });
 
     res.cookies.set('tec_access_token', newAccessToken, {
+      ...cookieOpts,
       httpOnly: false,
-      secure:   true,
-      sameSite: 'none',
       maxAge:   60 * 60 * 24,
-      path:     '/',
+    });
+
+    res.cookies.set('tec_csrf', newCsrf, {
+      ...cookieOpts,
+      httpOnly: false,
+      maxAge:   60 * 60 * 24,
     });
 
     if (newRefreshToken) {
       res.cookies.set('tec_refresh_token', newRefreshToken, {
+        ...cookieOpts,
         httpOnly: true,
-        secure:   true,
-        sameSite: 'none',
         maxAge:   60 * 60 * 24 * 7,
-        path:     '/',
       });
     }
 

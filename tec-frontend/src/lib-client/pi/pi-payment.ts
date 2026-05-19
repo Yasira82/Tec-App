@@ -1,6 +1,6 @@
 import { getAccessToken, getStoredUser, waitForPiSDK } from './pi-auth';
 import { piSession } from '@/lib-client/pi/pi-session';
-import sdk from '@/lib/sdk';
+import sdk           from '@/lib/sdk';
 import { buildHeaders } from '@/lib/request-id';
 import {
   APPROVAL_TIMEOUT_MS,
@@ -28,12 +28,11 @@ export interface PaymentResult {
   message?:   string;
 }
 
+export type DiagnosticCallback = (type: string, message: string, data?: unknown) => void;
+
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
-  return document.cookie
-    .split('; ')
-    .find(r => r.startsWith('tec_csrf='))
-    ?.split('=')?.[1] ?? '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
 
 const retryFetch = async (
@@ -77,7 +76,6 @@ export const createA2UPayment = async (data: A2UPaymentRequest): Promise<Payment
       },
       body: JSON.stringify(data),
     });
-
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: 'Unknown error' }));
       throw new Error(error?.error?.message || error?.message || 'Failed to create A2U payment');
@@ -88,27 +86,53 @@ export const createA2UPayment = async (data: A2UPaymentRequest): Promise<Payment
   }
 };
 
-export type DiagnosticCallback = (type: string, message: string, data?: unknown) => void;
-
 const PI_PAYMENT_ID_REGEX = /^[a-zA-Z0-9]+([._-][a-zA-Z0-9]+)*$/;
 const PI_TXID_REGEX       = /^[a-zA-Z0-9_-]{8,128}$/;
 
 // ✅ U2A — User to App
-// internalId is now REQUIRED — pre-created by hub/page.tsx before modal opens
+// internalId: optional — if pre-created by caller (PaymentModal), skip self-create.
+//             if omitted (direct callers), self-create internally.
 export const createU2APayment = async (
   amount:        number,
   memo:          string,
   metadata:      Record<string, unknown> = {},
-  internalId:    string,                      // ✅ required — no backend call here
+  internalId?:   string,           // ✅ optional — backward compat
   onDiagnostic?: DiagnosticCallback,
 ): Promise<PaymentResult> => {
   if (typeof window === 'undefined') throw new Error('Pi SDK not available - Open in Pi Browser');
 
-  // ✅ fail-fast
-  if (!internalId) throw new Error('Missing internalId — payment not pre-created');
-
-  // ✅ unified gate: Pi.init() + Pi.authenticate() both done
+  // ✅ unified gate: Pi.init() + Pi.authenticate()
   await piSession.ensurePaymentsReady();
+
+  // ✅ self-create if caller didn't pre-create
+  if (!internalId) {
+    const storedUser = getStoredUser();
+    const userId     = storedUser?.id ?? storedUser?.piId ?? null;
+    if (userId) {
+      try {
+        onDiagnostic?.('info', 'Creating payment record', { userId, amount });
+        const res = await fetch('/api/payment/create', {
+          method:      'POST',
+          credentials: 'include',
+          headers: {
+            ...buildHeaders(),
+            Authorization:  `Bearer ${getAccessToken()}`,
+            'x-csrf-token': getCsrfToken(),
+          },
+          body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? undefined;
+          onDiagnostic?.('info', 'Backend record created', { internalId });
+        } else {
+          onDiagnostic?.('warn', `Backend create returned ${res.status}`);
+        }
+      } catch {
+        onDiagnostic?.('warn', 'Backend create failed');
+      }
+    }
+  }
 
   const sandbox = (window as { __PI_SANDBOX?: boolean }).__PI_SANDBOX === true;
   const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
@@ -139,7 +163,7 @@ export const createU2APayment = async (
       if (paymentTimer) { clearTimeout(paymentTimer); paymentTimer = null; }
     };
 
-    // ✅ defensive reInit + single retry on "not initialized"
+    // ✅ retry wrapper — defensive reInit + single retry on "not initialized"
     const invoke = (attempt: number) => {
       piSession.reInit(sandbox, appId);
 
@@ -153,6 +177,13 @@ export const createU2APayment = async (
 
               if (!PI_PAYMENT_ID_REGEX.test(piPaymentId)) {
                 clearPaymentTimer(); reject(new Error('Invalid payment ID format')); return;
+              }
+              // ✅ fail-fast — no silent bypass
+              if (!internalId) {
+                onDiagnostic?.('error', 'No internalId — cannot approve payment');
+                clearPaymentTimer();
+                reject(new Error('Payment setup failed. Please try again.'));
+                return;
               }
 
               startApprovalTimer();
@@ -189,6 +220,12 @@ export const createU2APayment = async (
               }
               if (!PI_TXID_REGEX.test(txid)) {
                 clearPaymentTimer(); reject(new Error('Invalid transaction ID format')); return;
+              }
+              // ✅ removed: unsafe resolve without backend
+              if (!internalId) {
+                clearPaymentTimer();
+                reject(new Error('Payment setup failed — missing internalId'));
+                return;
               }
 
               try {
@@ -245,7 +282,6 @@ export const createU2APayment = async (
           },
         );
       } catch (err) {
-        // synchronous throw from Pi SDK
         const msg = err instanceof Error ? err.message : String(err);
         clearPaymentTimer();
 

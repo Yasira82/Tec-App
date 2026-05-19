@@ -1,43 +1,26 @@
 /**
  * PiSessionManager v4 Final — Pi Runtime Isolation Layer
- * Production-locked: self-healing lock + visibility resume + exposed errors + payment guard
  */
 
-const RESOLVE_TIMEOUT_MS   = 30000; // ✅ من 12000 لـ 30000
+const RESOLVE_TIMEOUT_MS   = 30000;
 const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;
 const PAYMENT_LOCK_TIMEOUT = 20000;
 
 declare global {
-  interface Window {
-    __TEC_PI_AUTHENTICATED?: boolean;
-  }
+  interface Window { __TEC_PI_AUTHENTICATED?: boolean; }
 }
 
 export type PiAuthError =
-  | 'SDK_MISSING'
-  | 'TIMEOUT'
-  | 'USER_CANCELLED'
-  | 'SCOPE_INVALID'
-  | 'OFFLINE'
-  | 'UNKNOWN';
+  | 'SDK_MISSING' | 'TIMEOUT' | 'USER_CANCELLED'
+  | 'SCOPE_INVALID' | 'OFFLINE' | 'UNKNOWN';
 
-interface PiAuthResult {
-  ok:     boolean;
-  error?: PiAuthError;
-}
+interface PiAuthResult { ok: boolean; error?: PiAuthError; }
 
 const withTimeout = <T>(promise: Promise<T>, ms: number): Promise<T> =>
-  Promise.race([
-    promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT')), ms)
-    ),
-  ]);
+  Promise.race([promise, new Promise<T>((_, reject) =>
+    setTimeout(() => reject(new Error('TIMEOUT')), ms))]);
 
-const retryFetch = async (
-  fn:      () => Promise<Response>,
-  attempts = 3,
-): Promise<Response> => {
+const retryFetch = async (fn: () => Promise<Response>, attempts = 3): Promise<Response> => {
   for (let i = 0; i < attempts; i++) {
     try { return await fn(); } catch (_e) {
       if (i === attempts - 1) throw _e;
@@ -48,37 +31,59 @@ const retryFetch = async (
 };
 
 class PiSessionManager {
-  private authPromise:      Promise<PiAuthResult> | null = null;
-  private authenticated:    boolean        = false;
-  private hasPaymentsScope: boolean        = false;
-  private authVersion:      number         = 0;
-  private lastAuthAt:       number         = 0;
-  private paymentInFlight:  boolean        = false;
-  private paymentLockAt:    number         = 0;
-  private _lastError:       PiAuthError | null = null;
+  private authPromise:          Promise<PiAuthResult> | null = null;
+  private paymentsReadyPromise: Promise<boolean> | null      = null; // ✅ NEW
+  private authenticated:        boolean           = false;
+  private hasPaymentsScope:     boolean           = false;
+  private authVersion:          number            = 0;
+  private lastAuthAt:           number            = 0;
+  private paymentInFlight:      boolean           = false;
+  private paymentLockAt:        number            = 0;
+  private _lastError:           PiAuthError | null = null;
+
+  // ✅ NEW: unified gate — Pi.init() + Pi.authenticate() both done
+  async ensurePaymentsReady(): Promise<boolean> {
+    if (this.paymentsReadyPromise) return this.paymentsReadyPromise;
+    this.paymentsReadyPromise = (async () => {
+      await this._waitForInit();
+      return this.ensureAuth();
+    })();
+    const ok = await this.paymentsReadyPromise;
+    if (!ok) this.paymentsReadyPromise = null;
+    return ok;
+  }
+
+  // ✅ NEW: wait for Pi.init() to complete
+  private _waitForInit(timeout = 15000): Promise<void> {
+    if (typeof window !== 'undefined' && window.__TEC_PI_READY && window.Pi) {
+      return Promise.resolve();
+    }
+    return new Promise(resolve => {
+      const done = () => { window.removeEventListener('tec-pi-ready', done); resolve(); };
+      window.addEventListener('tec-pi-ready', done, { once: true });
+      setTimeout(done, timeout);
+    });
+  }
+
+  // ✅ NEW: defensive re-init before Pi.createPayment
+  reInit(sandbox: boolean, appId?: string): void {
+    if (typeof window === 'undefined' || !window.Pi) return;
+    try { window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) }); }
+    catch { /* "already initialized" — fine */ }
+  }
 
   async ensureAuth(): Promise<boolean> {
     if (typeof window === 'undefined') return false;
-
-    if (!navigator.onLine) {
-      this._lastError = 'OFFLINE';
-      this._log('warn', 'auth:skip', 'offline');
-      return false;
-    }
+    if (!navigator.onLine) { this._lastError = 'OFFLINE'; return false; }
 
     if (this.authenticated && (!window.__TEC_PI_READY || !window.Pi)) {
-      this._log('warn', 'auth:drift', 'SDK lost — resetting');
-      this.reset();
+      this._log('warn', 'auth:drift', 'SDK lost — resetting'); this.reset();
     }
-
     if (this.authenticated && !this.hasPaymentsScope) {
-      this._log('warn', 'auth:scope', 'payments scope missing — resetting');
-      this.reset();
+      this._log('warn', 'auth:scope', 'payments scope missing — resetting'); this.reset();
     }
-
     if (this.authenticated && Date.now() - this.lastAuthAt > MAX_SESSION_AGE_MS) {
-      this._log('info', 'auth:revalidate', 'session expired — resetting');
-      this.reset();
+      this._log('info', 'auth:revalidate', 'session expired — resetting'); this.reset();
     }
 
     if (this.authenticated) return true;
@@ -113,7 +118,6 @@ class PiSessionManager {
   private async _doAuth(): Promise<PiAuthResult> {
     const currentVersion = ++this.authVersion;
     this._log('info', 'auth:start', `version=${currentVersion}`);
-
     try {
       const Pi = window.Pi;
       if (!Pi) return this._fail('SDK_MISSING');
@@ -125,10 +129,9 @@ class PiSessionManager {
           if (!p?.identifier) return;
           try {
             await retryFetch(() => fetch('/api/payment/resolve-incomplete', {
-              method:      'POST',
-              credentials: 'include',
-              headers:     { 'Content-Type': 'application/json' },
-              body:        JSON.stringify({ pi_payment_id: p.identifier }),
+              method: 'POST', credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ pi_payment_id: p.identifier }),
             }));
             this._log('info', 'payment:resolved', p.identifier);
           } catch { /* ignore */ }
@@ -154,18 +157,15 @@ class PiSessionManager {
       window.dispatchEvent(new CustomEvent('tec:pi:auth:success', {
         detail: { version: currentVersion, ts: Date.now() },
       }));
-
       return { ok: true };
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-
       let error: PiAuthError = 'UNKNOWN';
-      if (msg === 'TIMEOUT')                                      error = 'TIMEOUT';
-      else if (/cancel|denied|rejected|user.reject/i.test(msg))  error = 'USER_CANCELLED';
-      else if (/scope|permission/i.test(msg))                     error = 'SCOPE_INVALID';
-      else if (!window.Pi)                                        error = 'SDK_MISSING';
-
+      if (msg === 'TIMEOUT')                                     error = 'TIMEOUT';
+      else if (/cancel|denied|rejected|user.reject/i.test(msg)) error = 'USER_CANCELLED';
+      else if (/scope|permission/i.test(msg))                    error = 'SCOPE_INVALID';
+      else if (!window.Pi)                                       error = 'SDK_MISSING';
       return this._fail(error);
     } finally {
       this.authPromise = null;
@@ -173,28 +173,25 @@ class PiSessionManager {
   }
 
   private _fail(error: PiAuthError): PiAuthResult {
-    this.authenticated             = false;
-    this.hasPaymentsScope          = false;
-    this._lastError                = error;
-    window.__TEC_PI_AUTHENTICATED  = false;
-
+    this.authenticated            = false;
+    this.hasPaymentsScope         = false;
+    this._lastError               = error;
+    window.__TEC_PI_AUTHENTICATED = false;
     this._log('warn', 'auth:failed', error);
-    window.dispatchEvent(new CustomEvent('tec:pi:auth:failed', {
-      detail: { error, ts: Date.now() },
-    }));
-
+    window.dispatchEvent(new CustomEvent('tec:pi:auth:failed', { detail: { error, ts: Date.now() } }));
     return { ok: false, error };
   }
 
   reset(): void {
-    this.authenticated             = false;
-    this.hasPaymentsScope          = false;
-    this.authPromise               = null;
-    this.lastAuthAt                = 0;
-    this.paymentInFlight           = false;
-    this.paymentLockAt             = 0;
-    this._lastError                = null;
-    window.__TEC_PI_AUTHENTICATED  = false;
+    this.authenticated            = false;
+    this.hasPaymentsScope         = false;
+    this.authPromise              = null;
+    this.paymentsReadyPromise     = null; // ✅ NEW
+    this.lastAuthAt               = 0;
+    this.paymentInFlight          = false;
+    this.paymentLockAt            = 0;
+    this._lastError               = null;
+    window.__TEC_PI_AUTHENTICATED = false;
     this._log('info', 'auth:reset', 'session cleared');
   }
 

@@ -42,48 +42,54 @@ export function PaymentModal({
   const hasStarted = useRef(false);
 
   const handlePay = useCallback(async () => {
-    if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
-    if (!payment.amount || payment.amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
+  if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
+  if (!payment.amount || payment.amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-    const locked = await piSession.acquirePaymentLock();
-    if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
+  const locked = await piSession.acquirePaymentLock();
+  if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
-    if (hasStarted.current) { piSession.releasePaymentLock(); return; }
-    hasStarted.current = true;
+  if (hasStarted.current) { piSession.releasePaymentLock(); return; }
+  hasStarted.current = true;
 
-    haptic('medium');
-    try {
-      // ✅ دايماً نعمل ensurePiAuth قبل الـ payment
-      await ensurePiAuth();
-      setStatus('paying');
-
-      const result = await createU2APayment(
-        payment.amount,
-        payment.memo,
-        { source: payment.source, product_id: payment.productId, version: '1.0' },
-      );
-
-      if (result.success && result.status === 'completed') {
-        setStatus('success');
-        haptic('heavy');
-        setTimeout(() => onSuccess(result.txid ?? '', result.paymentId ?? ''), 1500);
-      } else if (result.status === 'cancelled') {
-        setStatus('cancelled');
-        hasStarted.current = false;
-      } else {
-        setStatus('error');
-        setMessage(result.message ?? 'Payment failed');
-        hasStarted.current = false;
-      }
-    } catch (err) {
-      haptic('heavy');
+  haptic('medium');
+  try {
+    // ✅ تحقق من الـ auth قبل ما تكمل
+    const authOk = await ensurePiAuth();
+    if (!authOk) {
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Payment failed');
+      setMessage('Authentication failed. Please try again.');
       hasStarted.current = false;
-    } finally {
-      piSession.releasePaymentLock();
+      return;
     }
-  }, [payment, ensurePiAuth, onSuccess]);
+
+    setStatus('paying');
+    const result = await createU2APayment(
+      payment.amount,
+      payment.memo,
+      { source: payment.source, product_id: payment.productId, version: '1.0' },
+    );
+
+    if (result.success && result.status === 'completed') {
+      setStatus('success');
+      haptic('heavy');
+      setTimeout(() => onSuccess(result.txid ?? '', result.paymentId ?? ''), 1500);
+    } else if (result.status === 'cancelled') {
+      setStatus('cancelled');
+      hasStarted.current = false;
+    } else {
+      setStatus('error');
+      setMessage(result.message ?? 'Payment failed');
+      hasStarted.current = false;
+    }
+  } catch (err) {
+    haptic('heavy');
+    setStatus('error');
+    setMessage(err instanceof Error ? err.message : 'Payment failed');
+    hasStarted.current = false;
+  } finally {
+    piSession.releasePaymentLock();
+  }
+}, [payment, ensurePiAuth, onSuccess]);
 
   return (
     <div style={{

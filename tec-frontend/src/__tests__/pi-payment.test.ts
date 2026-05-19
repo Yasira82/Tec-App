@@ -17,13 +17,15 @@ vi.mock('@/lib-client/pi/payment-timeouts', () => ({
 
 vi.mock('@/lib-client/pi/pi-session', () => ({
   piSession: {
-    isAuthenticated:    true,
-    hasScope:           true,
-    ensureAuth:         vi.fn(() => Promise.resolve(true)),
-    acquirePaymentLock: vi.fn(() => Promise.resolve(true)),
-    releasePaymentLock: vi.fn(),
-    reset:              vi.fn(),
-    lastError:          null,
+    isAuthenticated:      true,
+    hasScope:             true,
+    ensureAuth:           vi.fn(() => Promise.resolve(true)),
+    ensurePaymentsReady:  vi.fn(() => Promise.resolve(true)), // ✅ NEW
+    acquirePaymentLock:   vi.fn(() => Promise.resolve(true)),
+    releasePaymentLock:   vi.fn(),
+    reset:                vi.fn(),
+    reInit:               vi.fn(),                            // ✅ NEW
+    lastError:            null,
   },
 }));
 

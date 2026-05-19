@@ -30,6 +30,15 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
     const POLL_INTERVAL = 250;
     const startTime     = Date.now();
 
+    // ✅ mark ready بعد delay عشان Pi Browser يكمل native init
+    const markReady = () => {
+      setTimeout(() => {
+        window.__TEC_PI_READY = true;
+        window.dispatchEvent(new Event('tec-pi-ready'));
+        stableOnReady();
+      }, 1000);
+    };
+
     function tryInit(): boolean {
       if (typeof window.Pi === 'undefined') return false;
 
@@ -41,24 +50,19 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: PiSdkLoaderPr
         if (!appId) warn('[TEC] NEXT_PUBLIC_PI_APP_ID is not set — Pi.init() may fail');
 
         window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
-
         log(`[TEC] Pi SDK initialized (sandbox: ${sandbox})`);
-        window.__TEC_PI_READY = true;
-        window.dispatchEvent(new Event('tec-pi-ready'));
-        stableOnReady();
+
+        markReady();
         return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
 
         if (msg.toLowerCase().includes('already')) {
           log('[TEC] Pi SDK already initialized — marking as ready');
-          window.__TEC_PI_READY = true;
-          window.dispatchEvent(new Event('tec-pi-ready'));
-          stableOnReady();
+          markReady();
           return true;
         }
 
-        // ✅ لو فشل → متوقفش، الـ poll هيعيد المحاولة
         warn('[TEC] Pi.init() failed, will retry:', msg);
         return false;
       }

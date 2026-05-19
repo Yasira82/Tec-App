@@ -36,54 +36,61 @@ export function PaymentModal({
   onClose:   () => void;
   onSuccess: (txid: string, paymentId: string) => void;
 }) {
-  const { piReady, ensurePiAuth } = usePiSdkReady();
+  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
 
+  const isReady = piReady && authReady;
+
   const handlePay = useCallback(async () => {
-  if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
-  if (!payment.amount || payment.amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
+    if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
+    if (!payment.amount || payment.amount <= 0) { setStatus('error'); setMessage('Invalid amount'); return; }
 
-  const locked = await piSession.acquirePaymentLock();
-  if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
+    const locked = await piSession.acquirePaymentLock();
+    if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
 
-  if (hasStarted.current) { piSession.releasePaymentLock(); return; }
-  hasStarted.current = true;
+    if (hasStarted.current) { piSession.releasePaymentLock(); return; }
+    hasStarted.current = true;
 
-  haptic('medium');
-  try {
-    // ✅ call بدون check على return value
-    await ensurePiAuth();
-    setStatus('paying');
+    haptic('medium');
+    try {
+      const authOk = await ensurePiAuth();
+      if (!authOk) {
+        setStatus('error');
+        setMessage('Pi authentication failed. Please try again.');
+        hasStarted.current = false;
+        return;
+      }
 
-    const result = await createU2APayment(
-      payment.amount,
-      payment.memo,
-      { source: payment.source, product_id: payment.productId, version: '1.0' },
-    );
+      setStatus('paying');
+      const result = await createU2APayment(
+        payment.amount,
+        payment.memo,
+        { source: payment.source, product_id: payment.productId, version: '1.0' },
+      );
 
-    if (result.success && result.status === 'completed') {
-      setStatus('success');
+      if (result.success && result.status === 'completed') {
+        setStatus('success');
+        haptic('heavy');
+        setTimeout(() => onSuccess(result.txid ?? '', result.paymentId ?? ''), 1500);
+      } else if (result.status === 'cancelled') {
+        setStatus('cancelled');
+        hasStarted.current = false;
+      } else {
+        setStatus('error');
+        setMessage(result.message ?? 'Payment failed');
+        hasStarted.current = false;
+      }
+    } catch (err) {
       haptic('heavy');
-      setTimeout(() => onSuccess(result.txid ?? '', result.paymentId ?? ''), 1500);
-    } else if (result.status === 'cancelled') {
-      setStatus('cancelled');
-      hasStarted.current = false;
-    } else {
       setStatus('error');
-      setMessage(result.message ?? 'Payment failed');
+      setMessage(err instanceof Error ? err.message : 'Payment failed');
       hasStarted.current = false;
+    } finally {
+      piSession.releasePaymentLock();
     }
-  } catch (err) {
-    haptic('heavy');
-    setStatus('error');
-    setMessage(err instanceof Error ? err.message : 'Payment failed');
-    hasStarted.current = false;
-  } finally {
-    piSession.releasePaymentLock();
-  }
-}, [payment, ensurePiAuth, onSuccess]);
+  }, [payment, ensurePiAuth, onSuccess]);
 
   return (
     <div style={{
@@ -113,22 +120,24 @@ export function PaymentModal({
 
         {status === 'idle' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {!piReady && (
+            {!isReady && (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
                 <div style={{ width: 16, height: 16, borderRadius: '50%',
                   border: '2px solid #d4af3730', borderTop: '2px solid #d4af37',
                   animation: 'spin 0.8s linear infinite' }} />
-                <span style={{ fontSize: 11, color: '#4a4a5a' }}>Loading Pi SDK...</span>
+                <span style={{ fontSize: 11, color: '#4a4a5a' }}>
+                  {!piReady ? 'Loading Pi SDK...' : 'Authenticating...'}
+                </span>
               </div>
             )}
-            <button onClick={handlePay} disabled={!piReady} style={{
+            <button onClick={handlePay} disabled={!isReady} style={{
               padding: '18px 48px', borderRadius: 20,
-              background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
-              border: 'none', color: piReady ? '#0a0800' : '#666',
-              fontSize: 18, fontWeight: 900, cursor: piReady ? 'pointer' : 'not-allowed',
-              boxShadow: piReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
+              background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
+              border: 'none', color: isReady ? '#0a0800' : '#666',
+              fontSize: 18, fontWeight: 900, cursor: isReady ? 'pointer' : 'not-allowed',
+              boxShadow: isReady ? '0 8px 32px rgba(212,175,55,0.3)' : 'none',
             }}>
-              {piReady ? `Pay ${payment.amount}π` : 'Loading Pi SDK...'}
+              {!piReady ? 'Loading Pi SDK...' : !authReady ? 'Authenticating...' : `Pay ${payment.amount}π`}
             </button>
             <button onClick={onClose} style={{
               background: 'none', border: 'none',
@@ -172,12 +181,12 @@ export function PaymentModal({
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handlePay} disabled={!piReady} style={{
+              <button onClick={handlePay} disabled={!isReady} style={{
                 padding: '12px 24px', borderRadius: 14,
-                background: piReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
-                border: 'none', color: piReady ? '#0a0800' : '#666',
+                background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333',
+                border: 'none', color: isReady ? '#0a0800' : '#666',
                 fontSize: 13, fontWeight: 700,
-                cursor: piReady ? 'pointer' : 'not-allowed',
+                cursor: isReady ? 'pointer' : 'not-allowed',
               }}>Try Again</button>
               <button onClick={onClose} style={{
                 padding: '12px 24px', borderRadius: 14,
@@ -190,4 +199,4 @@ export function PaymentModal({
       </div>
     </div>
   );
-}
+        }

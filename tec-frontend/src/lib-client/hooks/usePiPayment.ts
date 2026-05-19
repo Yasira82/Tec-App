@@ -43,11 +43,12 @@ export const usePiPayment = (options?: UsePiPaymentOptions) => {
     setState(prev => ({ ...prev, isProcessing: true, error: null, errorType: null }));
     try {
       const result = await createU2APayment(
-        amount, 
-        `TEC Demo Payment - ${amount} Pi`, 
-        { type: 'demo' },
-        onDiagnostic
-      );
+  amount,
+  `TEC Demo Payment - ${amount} Pi`,
+  { type: 'demo' },
+  undefined,     // internalId — self-creates internally
+  onDiagnostic,
+);
       
       // Only update state if component is still mounted
       if (isMountedRef.current) {

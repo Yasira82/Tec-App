@@ -1,7 +1,7 @@
 'use client';
 
-import { useRouter }     from 'next/navigation';
-import { haptic }        from '@/lib/hub/utils';
+import { useRouter }      from 'next/navigation';
+import { haptic }         from '@/lib/hub/utils';
 import { AmountSelector } from '@/app/hub/components/AmountSelector';
 
 interface Props {
@@ -18,6 +18,7 @@ export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props
     <div style={{ padding: '16px 16px 0', animation: 'tec-fade-in 0.55s ease both' }}>
       <AmountSelector value={payAmount} onChange={setPayAmount} disabled={!piReady} />
       <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+
         <button className="tec-btn" onClick={onPay} disabled={!piReady}
           aria-label={`Pay ${payAmount} Pi`}
           style={{
@@ -31,7 +32,7 @@ export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props
           }}>
           {!piReady
             ? <><div className="tec-spin" style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'rgba(255,255,255,0.3)' }} /><span>Connecting…</span></>
-            : <><span style={{ fontFamily: 'Georgia,serif', fontSize: 17 }}>π</span><span>Pay {payAmount}π</span></>
+            : <><span style={{ fontFamily: 'Georgia,serif', fontSize: 17 }}>π</span><span>Pay</span></>
           }
         </button>
 
@@ -47,8 +48,9 @@ export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props
             boxShadow: '0 0 20px rgba(59,130,246,0.08)',
           }}>
           <span style={{ fontFamily: 'Georgia,serif', fontSize: 17 }}>π</span>
-          <span>Receive π</span>
+          <span>Receive</span>
         </button>
+
       </div>
     </div>
   );

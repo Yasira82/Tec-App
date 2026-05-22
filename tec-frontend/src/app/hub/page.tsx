@@ -105,16 +105,15 @@ function HubPageInner() {
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
-            userId,
-            amount:         pendingPayment.amount,
-            currency:       'PI',
-            payment_method: 'pi',
-            metadata: {
-              source:     pendingPayment.source,
-              product_id: pendingPayment.productId,
-            },
-          }),
-        });
+  amount:         pendingPayment.amount,
+  currency:       'PI',
+  payment_method: 'pi',
+  source:         'hub',
+  metadata: {
+    app_source: pendingPayment.source,
+    product_id: pendingPayment.productId,
+  },
+}),
 
         const data = await res.json().catch(() => ({}));
         const internalId =

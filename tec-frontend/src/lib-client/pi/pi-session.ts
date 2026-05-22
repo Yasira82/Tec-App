@@ -2,7 +2,7 @@
  * PiSessionManager v4 Final — Pi Runtime Isolation Layer
  */
 
-const RESOLVE_TIMEOUT_MS   = 30000;
+const RESOLVE_TIMEOUT_MS   = 15000;
 const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;
 const PAYMENT_LOCK_TIMEOUT = 20000;
 

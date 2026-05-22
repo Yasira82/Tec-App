@@ -142,30 +142,15 @@ function HubPageInner() {
   }, [piReady, pendingPayment, externalPayment, showToast]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
-    if (!externalPayment) return;
-    if (externalPayment.productId.startsWith('nft:')) {
-      try {
-        const nftMeta = JSON.parse(atob(externalPayment.productId.slice(4)));
-        await fetch('/api/assets/provision', {
-          method: 'POST', credentials: 'include',
-          headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
-          body: JSON.stringify({
-            slug:       `nft-${paymentId.slice(0, 8)}-${Date.now()}`,
-            payment_id: paymentId,
-            category:   'NFT',
-            metadata:   { name: nftMeta.n, description: nftMeta.d ?? '', imageUrl: nftMeta.u, txid },
-          }),
-        });
-      } catch {}
-    }
-    setExternalPayment(null);
-    const ret = new URL(externalPayment.returnUrl);
-    ret.searchParams.set('payment_status', 'success');
-    ret.searchParams.set('txid',           txid);
-    ret.searchParams.set('payment_id',     paymentId);
-    ret.searchParams.set('product_id',     externalPayment.productId);
-    window.location.href = ret.toString();
-  }, [externalPayment]);
+  if (!externalPayment) return;
+  setExternalPayment(null);
+  const ret = new URL(externalPayment.returnUrl);
+  ret.searchParams.set('payment_status', 'success');
+  ret.searchParams.set('txid',           txid);
+  ret.searchParams.set('payment_id',     paymentId);
+  ret.searchParams.set('product_id',     externalPayment.productId);
+  window.location.href = ret.toString();
+}, [externalPayment]);
 
   /* ── Pull to refresh ── */
   const handlePullStart = (e: React.TouchEvent) => {

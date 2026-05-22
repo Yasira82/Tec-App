@@ -33,7 +33,7 @@ const getCsrfToken = (): string => {
 
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady, authReady }               = usePiSdkReady();
+  const { piReady } = usePiSdkReady();
   const router = useRouter();
 
   const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
@@ -83,7 +83,7 @@ function HubPageInner() {
 
   /* ── Step 2: piReady + authReady → create record → show Modal ── */
   useEffect(() => {
-    if (!(piReady && authReady && pendingPayment && !externalPayment)) return;
+    if (!(piReady && pendingPayment && !externalPayment)) return;
     let cancelled = false;
 
     (async () => {

@@ -5,7 +5,6 @@ import { useRouter }                                 from 'next/navigation';
 import { usePiAuth }                                 from '@/lib-client/hooks/usePiAuth';
 import { usePiSdkReady }                             from '@/lib-client/hooks/usePiSdkReady';
 import { piSession }                                 from '@/lib-client/pi/pi-session';
-import { createU2APayment }                          from '@/lib-client/pi/pi-payment';
 import { useRealtimeNotifications }                  from '@/lib-client/hooks/useRealtimeNotifications';
 import { getAccessToken, getStoredUser }             from '@/lib-client/pi/pi-auth';
 import { getVisibleDomains }                         from '@/domains/_registry';
@@ -17,7 +16,7 @@ import { PullIndicator }                             from './components/PullIndi
 import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
 import {
   HubHeader, HubWalletCard, HubCarousel,
-  HubPayActions, HubAppsGrid, HubComingSoon,
+  HubAppsGrid, HubComingSoon,
 } from '@/components/hub';
 import { useHubData }  from '@/hooks/useHubData';
 import { haptic }      from '@/lib/hub/utils';
@@ -27,7 +26,6 @@ const ASSETS_URL     = 'https://assets.tecosystem.app';
 const COMMERCE_URL   = 'https://commerce.tecosystem.app';
 const PULL_THRESHOLD = 80;
 
-// ✅ inline getCsrfToken (export from pi-auth.ts when possible)
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
@@ -35,7 +33,7 @@ const getCsrfToken = (): string => {
 
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { piReady, authReady, ensurePiAuth } = usePiSdkReady();
+  const { piReady, authReady }               = usePiSdkReady();
   const router = useRouter();
 
   const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
@@ -53,7 +51,6 @@ function HubPageInner() {
   const [toasts,          setToasts]          = useState<Toast[]>([]);
   const [pullProgress,    setPullProgress]    = useState(0);
   const [isRefreshing,    setIsRefreshing]    = useState(false);
-  const [payAmount,       setPayAmount]       = useState(1);
   const [externalPayment, setExternalPayment] = useState<ExternalPayment | null>(null);
   const [pendingPayment,  setPendingPayment]  = useState<Omit<ExternalPayment, 'internalId'> | null>(null);
 
@@ -66,7 +63,7 @@ function HubPageInner() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   }, []);
 
-  /* ── Step 1: قرا الـ URL params فوراً ──────────────── */
+  /* ── Step 1: قرا الـ URL params فوراً ── */
   useEffect(() => {
     const p = new URLSearchParams(window.location.search);
     if (p.get('pay') === '1') {
@@ -84,7 +81,7 @@ function HubPageInner() {
     }
   }, []);
 
-  /* ── Step 2: piReady + authReady → pre-create record → show Modal ── */
+  /* ── Step 2: piReady + authReady → create record → show Modal ── */
   useEffect(() => {
     if (!(piReady && authReady && pendingPayment && !externalPayment)) return;
     let cancelled = false;
@@ -105,24 +102,23 @@ function HubPageInner() {
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
-  amount:         pendingPayment.amount,
-  currency:       'PI',
-  payment_method: 'pi',
-  source:         'hub',
-  metadata: {
-    app_source: pendingPayment.source,
-    product_id: pendingPayment.productId,
-  },
-}),
+            amount:         pendingPayment.amount,
+            currency:       'PI',
+            payment_method: 'pi',
+            source:         'hub',
+            metadata: {
+              app_source: pendingPayment.source,
+              product_id: pendingPayment.productId,
+            },
+          }),
+        });
 
-        const data = await res.json().catch(() => ({}));
-        const internalId =
-          data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? null;
+        const data       = await res.json().catch(() => ({}));
+        const internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? null;
 
         if (cancelled) return;
 
         if (!internalId) {
-          // pre-create failed → redirect back with error
           const ret = new URL(pendingPayment.returnUrl);
           ret.searchParams.set('payment_status', 'error');
           ret.searchParams.set('reason', 'create_failed');
@@ -154,7 +150,7 @@ function HubPageInner() {
           method: 'POST', credentials: 'include',
           headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
           body: JSON.stringify({
-            slug:       `nft-${paymentId.slice(0,8)}-${Date.now()}`,
+            slug:       `nft-${paymentId.slice(0, 8)}-${Date.now()}`,
             payment_id: paymentId,
             category:   'NFT',
             metadata:   { name: nftMeta.n, description: nftMeta.d ?? '', imageUrl: nftMeta.u, txid },
@@ -171,7 +167,7 @@ function HubPageInner() {
     window.location.href = ret.toString();
   }, [externalPayment]);
 
-  /* ── Pull to refresh ───────────────────────────────── */
+  /* ── Pull to refresh ── */
   const handlePullStart = (e: React.TouchEvent) => {
     const el = e.currentTarget as HTMLElement;
     if (el.scrollTop === 0) { pullStartY.current = e.touches[0].clientY; isPulling.current = true; }
@@ -197,7 +193,7 @@ function HubPageInner() {
     return () => clearInterval(id);
   }, [piPrice]);
 
-  /* ── Auth guard ✅ مش بيطرد لو فيه pending payment ── */
+  /* ── Auth guard ── */
   useEffect(() => {
     if (!isLoading && !isAuthenticated && !pendingPayment) router.replace('/');
   }, [isLoading, isAuthenticated, pendingPayment, router]);
@@ -207,73 +203,43 @@ function HubPageInner() {
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
-  /* ── Pay (Hub internal) ────────────────────────────── */
-  const handlePay = useCallback(async () => {
-    sessionStorage.removeItem('post_pi_redirect');
-    if (!window.Pi) { haptic('heavy'); showToast('error', 'Open in Pi Browser'); return; }
-    if (!piReady)   { haptic('heavy'); showToast('warning', 'Pi SDK connecting...'); return; }
-    if (!payAmount || payAmount <= 0) { haptic('heavy'); showToast('warning', 'Enter a valid amount'); return; }
-    const locked = await piSession.acquirePaymentLock();
-    if (!locked) { showToast('warning', 'Payment in progress'); return; }
-    haptic('medium');
-    try {
-      if (!authReady) await ensurePiAuth();
-      // Hub internal pay needs its own pre-create — keep old flow
-      const storedUser = getStoredUser();
-      const userId = (storedUser as { id?: string; piId?: string } | null)?.id ?? '';
-      const createRes = await fetch('/api/payment/create', {
-        method: 'POST', credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:  `Bearer ${getAccessToken()}`,
-          'x-csrf-token': getCsrfToken(),
-        },
-        body: JSON.stringify({ userId, amount: payAmount, currency: 'PI', payment_method: 'pi', metadata: { source: 'hub', amount: payAmount } }),
-      });
-      const createData = await createRes.json().catch(() => ({}));
-      const hubInternalId = createData?.data?.payment?.id ?? createData?.data?.id ?? null;
-      if (!hubInternalId) { showToast('error', 'Payment initialization failed'); return; }
-
-      const result = await createU2APayment(payAmount, `TEC Payment — ${payAmount}π`, { source: 'hub', amount: payAmount }, hubInternalId);
-      if (result.success && result.status === 'completed') {
-        haptic('heavy'); showToast('success', `${payAmount}π paid! 🎉`, result.txid);
-        setTimeout(refreshBalance, 2000);
-      } else if (result.status === 'cancelled') {
-        haptic('light'); showToast('warning', 'Payment cancelled');
-      } else {
-        haptic('heavy'); showToast('error', result.message ?? 'Payment failed');
-      }
-    } catch (err) {
-      haptic('heavy');
-      const msg = err instanceof Error ? err.message : 'Payment failed';
-      if (msg.includes('not initialized')) { window.location.reload(); return; }
-      showToast('error', msg);
-    } finally {
-      piSession.releasePaymentLock();
-      refreshBalance();
-    }
-  }, [piReady, authReady, ensurePiAuth, payAmount, refreshBalance, showToast]);
-
-  /* ── Early returns ─────────────────────────────────── */
+  /* ── Early returns ── */
   if (isLoading || (!isAuthenticated && !pendingPayment)) return <HubSkeleton />;
 
-  if (!isAuthenticated && pendingPayment) return (
-    <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-      <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
-        <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
+  // ✅ لو في pending Commerce payment → اعرض loading بس (مش Hub كامل)
+  if (isAuthenticated && pendingPayment && !externalPayment) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
+        </div>
       </div>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      {externalPayment && (
-        <PaymentModal
-          payment={externalPayment}
-          onClose={() => { setExternalPayment(null); window.location.href = externalPayment.returnUrl; }}
-          onSuccess={handlePaymentSuccess}
-        />
-      )}
-    </div>
-  );
+    );
+  }
+
+  // ✅ مش authenticated بس في pending payment (SSO لسه شغال)
+  if (!isAuthenticated && pendingPayment) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
+          <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
+        </div>
+        {externalPayment && (
+          <PaymentModal
+            payment={externalPayment}
+            onClose={() => { setExternalPayment(null); window.location.href = externalPayment.returnUrl; }}
+            onSuccess={handlePaymentSuccess}
+          />
+        )}
+      </div>
+    );
+  }
 
   const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
   const goToAssets   = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
@@ -286,6 +252,7 @@ function HubPageInner() {
       onTouchMove={handlePullMove}
       onTouchEnd={handlePullEnd}
     >
+      {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (
         <PaymentModal
           payment={externalPayment}
@@ -304,11 +271,24 @@ function HubPageInner() {
           style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', border: 'none', boxShadow: '0 4px 20px rgba(212,175,55,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer' }}>🤖</button>
       )}
 
-      <HubHeader piUsername={user?.piUsername ?? ''} time={time} notifCount={totalNotif}
-        onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }} />
+      <HubHeader
+        piUsername={user?.piUsername ?? ''}
+        time={time}
+        notifCount={totalNotif}
+        onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
+      />
       <HubWalletCard balance={balance} piPrice={piPrice} />
-      <HubCarousel carouselIdx={carouselIdx} setCarouselIdx={setCarouselIdx} assetCount={assetCount} piPrice={piPrice} goToAssets={goToAssets} goToCommerce={goToCommerce} />
-      <HubPayActions payAmount={payAmount} setPayAmount={setPayAmount} piReady={piReady} onPay={handlePay} />
+      <HubCarousel
+        carouselIdx={carouselIdx}
+        setCarouselIdx={setCarouselIdx}
+        assetCount={assetCount}
+        piPrice={piPrice}
+        goToAssets={goToAssets}
+        goToCommerce={goToCommerce}
+      />
+
+      {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
+
       <HubAppsGrid apps={visibleLive} />
       <HubComingSoon />
 
@@ -334,4 +314,4 @@ function HubPageInner() {
 
 export default function HubPage() {
   return <ErrorBoundary><HubPageInner /></ErrorBoundary>;
-                 }
+      }

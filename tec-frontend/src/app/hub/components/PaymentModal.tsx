@@ -43,12 +43,18 @@ export function PaymentModal({
 
   // ✅ unified gate — resolves only when Pi.init() + Pi.authenticate() both done
   useEffect(() => {
-    let cancelled = false;
-    piSession.ensurePaymentsReady().then(ok => {
-      if (!cancelled) setIsReady(ok);
-    });
-    return () => { cancelled = true; };
-  }, []);
+  let cancelled = false;
+  piSession.ensurePaymentsReady().then(ok => {
+    if (cancelled) return;
+    if (ok) {
+      setIsReady(true);
+    } else {
+      setStatus('error');
+      setMessage('Pi authentication failed. Please try again.');
+    }
+  });
+  return () => { cancelled = true; };
+}, []);
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }

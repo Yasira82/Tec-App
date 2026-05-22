@@ -139,7 +139,7 @@ function HubPageInner() {
     })();
 
     return () => { cancelled = true; };
-  }, [piReady, authReady, pendingPayment, externalPayment, showToast]);
+  }, [piReady, pendingPayment, externalPayment, showToast]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
     if (!externalPayment) return;

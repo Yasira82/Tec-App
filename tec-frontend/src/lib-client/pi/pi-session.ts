@@ -2,7 +2,7 @@
  * PiSessionManager v4 Final — Pi Runtime Isolation Layer
  */
 
-const RESOLVE_TIMEOUT_MS   = 15000;
+const RESOLVE_TIMEOUT_MS   = 25000;
 const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;
 const PAYMENT_LOCK_TIMEOUT = 20000;
 
@@ -32,7 +32,7 @@ const retryFetch = async (fn: () => Promise<Response>, attempts = 3): Promise<Re
 
 class PiSessionManager {
   private authPromise:          Promise<PiAuthResult> | null = null;
-  private paymentsReadyPromise: Promise<boolean> | null      = null; // ✅ NEW
+  private paymentsReadyPromise: Promise<boolean> | null      = null;
   private authenticated:        boolean           = false;
   private hasPaymentsScope:     boolean           = false;
   private authVersion:          number            = 0;
@@ -41,7 +41,6 @@ class PiSessionManager {
   private paymentLockAt:        number            = 0;
   private _lastError:           PiAuthError | null = null;
 
-  // ✅ NEW: unified gate — Pi.init() + Pi.authenticate() both done
   async ensurePaymentsReady(): Promise<boolean> {
     if (this.paymentsReadyPromise) return this.paymentsReadyPromise;
     this.paymentsReadyPromise = (async () => {
@@ -53,7 +52,6 @@ class PiSessionManager {
     return ok;
   }
 
-  // ✅ NEW: wait for Pi.init() to complete
   private _waitForInit(timeout = 15000): Promise<void> {
     if (typeof window !== 'undefined' && window.__TEC_PI_READY && window.Pi) {
       return Promise.resolve();
@@ -65,7 +63,6 @@ class PiSessionManager {
     });
   }
 
-  // ✅ NEW: defensive re-init before Pi.createPayment
   reInit(sandbox: boolean, appId?: string): void {
     if (typeof window === 'undefined' || !window.Pi) return;
     try { window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) }); }
@@ -186,7 +183,7 @@ class PiSessionManager {
     this.authenticated            = false;
     this.hasPaymentsScope         = false;
     this.authPromise              = null;
-    this.paymentsReadyPromise     = null; // ✅ NEW
+    this.paymentsReadyPromise     = null;
     this.lastAuthAt               = 0;
     this.paymentInFlight          = false;
     this.paymentLockAt            = 0;

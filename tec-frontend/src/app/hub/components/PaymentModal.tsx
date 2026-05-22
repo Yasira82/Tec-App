@@ -26,7 +26,7 @@ export interface ExternalPayment {
   productId:  string;
   returnUrl:  string;
   source:     string;
-  internalId: string; // ✅ pre-created — required
+  internalId: string;
 }
 
 export function PaymentModal({
@@ -41,20 +41,29 @@ export function PaymentModal({
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
 
-  // ✅ unified gate — resolves only when Pi.init() + Pi.authenticate() both done
+  // ✅ retry مرة تانية لو auth فشل (session switch من app تاني)
   useEffect(() => {
-  let cancelled = false;
-  piSession.ensurePaymentsReady().then(ok => {
-    if (cancelled) return;
-    if (ok) {
-      setIsReady(true);
-    } else {
-      setStatus('error');
-      setMessage('Pi authentication failed. Please try again.');
-    }
-  });
-  return () => { cancelled = true; };
-}, []);
+    let cancelled = false;
+
+    piSession.ensurePaymentsReady().then(ok => {
+      if (cancelled) return;
+      if (ok) { setIsReady(true); return; }
+
+      // ✅ retry بعد reset
+      piSession.reset();
+      piSession.ensurePaymentsReady().then(ok2 => {
+        if (cancelled) return;
+        if (ok2) {
+          setIsReady(true);
+        } else {
+          setStatus('error');
+          setMessage('Pi authentication failed. Please try again.');
+        }
+      });
+    });
+
+    return () => { cancelled = true; };
+  }, []);
 
   const handlePay = useCallback(async () => {
     if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
@@ -67,7 +76,6 @@ export function PaymentModal({
 
     haptic('medium');
     try {
-      // ✅ ensure ready before payment (idempotent if already done)
       const ready = await piSession.ensurePaymentsReady();
       if (!ready) {
         setStatus('error');
@@ -78,7 +86,6 @@ export function PaymentModal({
 
       setStatus('paying');
 
-      // ✅ no fetch here — internalId already pre-created by hub/page.tsx
       const result = await createU2APayment(
         payment.amount,
         payment.memo,
@@ -170,7 +177,10 @@ export function PaymentModal({
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={handlePay} disabled={!isReady} style={{ padding: '12px 24px', borderRadius: 14, background: isReady ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#333', border: 'none', color: isReady ? '#0a0800' : '#666', fontSize: 13, fontWeight: 700, cursor: isReady ? 'pointer' : 'not-allowed' }}>Try Again</button>
+              <button onClick={() => { setStatus('idle'); setMessage(''); hasStarted.current = false; piSession.reset(); setIsReady(false); piSession.ensurePaymentsReady().then(ok => { if (ok) setIsReady(true); }); }}
+                style={{ padding: '12px 24px', borderRadius: 14, background: 'linear-gradient(135deg,#d4af37,#b8882a)', border: 'none', color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                Try Again
+              </button>
               <button onClick={onClose} style={{ padding: '12px 24px', borderRadius: 14, background: '#ffffff10', border: '1px solid #ffffff20', color: '#fff', fontSize: 13, cursor: 'pointer' }}>Cancel</button>
             </div>
           </div>

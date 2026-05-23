@@ -84,7 +84,7 @@ export function PaymentModal({
       } else {
         setStatus('error');
         setMessage(
-          `Pi authentication failed (${piSession.lastError ?? 'UNKNOWN'}). Please try again.`,
+          `Pi auth (${piSession.lastError}): ${piSession.lastRawError ?? '?'}`,
         );
       }
     };

@@ -33,13 +33,14 @@ const retryFetch = async (fn: () => Promise<Response>, attempts = 3): Promise<Re
 class PiSessionManager {
   private authPromise:          Promise<PiAuthResult> | null = null;
   private paymentsReadyPromise: Promise<boolean> | null      = null;
-  private authenticated:        boolean           = false;
-  private hasPaymentsScope:     boolean           = false;
-  private authVersion:          number            = 0;
-  private lastAuthAt:           number            = 0;
-  private paymentInFlight:      boolean           = false;
-  private paymentLockAt:        number            = 0;
+  private authenticated:        boolean            = false;
+  private hasPaymentsScope:     boolean            = false;
+  private authVersion:          number             = 0;
+  private lastAuthAt:           number             = 0;
+  private paymentInFlight:      boolean            = false;
+  private paymentLockAt:        number             = 0;
   private _lastError:           PiAuthError | null = null;
+  private _lastRawError:        string | null      = null;  // ✅ الـ error الفعلي من Pi SDK
 
   async ensurePaymentsReady(): Promise<boolean> {
     if (this.paymentsReadyPromise) return this.paymentsReadyPromise;
@@ -148,6 +149,7 @@ class PiSessionManager {
       this.hasPaymentsScope = true;
       this.lastAuthAt       = Date.now();
       this._lastError       = null;
+      this._lastRawError    = null;
       window.__TEC_PI_AUTHENTICATED = true;
 
       this._log('info', 'auth:success', `version=${currentVersion}`);
@@ -158,6 +160,9 @@ class PiSessionManager {
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      this._lastRawError = msg;  // ✅ احفظ الـ error الفعلي
+      this._log('warn', 'auth:raw-error', msg);  // ✅ لوّغه كمان
+
       let error: PiAuthError = 'UNKNOWN';
       if (msg === 'TIMEOUT')                                     error = 'TIMEOUT';
       else if (/cancel|denied|rejected|user.reject/i.test(msg)) error = 'USER_CANCELLED';
@@ -188,6 +193,7 @@ class PiSessionManager {
     this.paymentInFlight          = false;
     this.paymentLockAt            = 0;
     this._lastError               = null;
+    this._lastRawError            = null;  // ✅
     window.__TEC_PI_AUTHENTICATED = false;
     this._log('info', 'auth:reset', 'session cleared');
   }
@@ -203,6 +209,7 @@ class PiSessionManager {
   get hasScope():         boolean            { return this.hasPaymentsScope; }
   get isPaymentLocked():  boolean            { return this.paymentInFlight; }
   get lastError():        PiAuthError | null { return this._lastError; }
+  get lastRawError():     string | null      { return this._lastRawError; }  // ✅
 }
 
 export const piSession = new PiSessionManager();

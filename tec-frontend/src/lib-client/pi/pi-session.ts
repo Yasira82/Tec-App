@@ -53,13 +53,22 @@ class PiSessionManager {
     return ok;
   }
 
-  private _waitForInit(timeout = 15000): Promise<void> {
+  // ✅ 30s بدل 15s + يسمع tec-pi-error عشان يفشل بسرعة
+  private _waitForInit(timeout = 30000): Promise<void> {
     if (typeof window !== 'undefined' && window.__TEC_PI_READY && window.Pi) {
       return Promise.resolve();
     }
+    if (typeof window !== 'undefined' && (window as any).__TEC_PI_ERROR) {
+      return Promise.resolve();
+    }
     return new Promise(resolve => {
-      const done = () => { window.removeEventListener('tec-pi-ready', done); resolve(); };
+      const done = () => {
+        window.removeEventListener('tec-pi-ready', done);
+        window.removeEventListener('tec-pi-error', done);
+        resolve();
+      };
       window.addEventListener('tec-pi-ready', done, { once: true });
+      window.addEventListener('tec-pi-error', done, { once: true });
       setTimeout(done, timeout);
     });
   }
@@ -120,7 +129,13 @@ class PiSessionManager {
       const Pi = window.Pi;
       if (!Pi) return this._fail('SDK_MISSING');
 
-      // ✅ لو Pi.init() لسه معملتش، اعملها مباشرةً من هنا
+      // ✅ PiSdkLoader فشل → فشل بسرعة
+      if ((window as any).__TEC_PI_ERROR) {
+        this._lastRawError = 'PiSdkLoader timeout';
+        return this._fail('SDK_MISSING');
+      }
+
+      // ✅ Pi مش ready لسه → جرّب Pi.init() مباشرةً (fallback)
       if (!window.__TEC_PI_READY) {
         const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';
         const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
@@ -131,16 +146,14 @@ class PiSessionManager {
           this._log('info', 'auth:init', 'Pi.init() called from _doAuth');
         } catch (initErr) {
           const initMsg = initErr instanceof Error ? initErr.message : String(initErr);
-          // "already initialized" = Pi.init() سبق اتعملت — تمام
-          if (/already|initialized/i.test(initMsg)) {
-            window.__TEC_PI_READY = true;
+          this._log('warn', 'auth:init-catch', initMsg);
+          if (initMsg.toLowerCase().includes('already')) {
+            window.__TEC_PI_READY = true; // already initialized — fine
           } else {
-            this._lastRawError = `init failed: ${initMsg}`;
-            this._log('warn', 'auth:init-failed', initMsg);
+            this._lastRawError = `Pi.init failed: ${initMsg}`;
             return this._fail('SDK_MISSING');
           }
         }
-        // ✅ استنى Pi يتعافى بعد الـ init
         await new Promise(r => setTimeout(r, 300));
       }
 

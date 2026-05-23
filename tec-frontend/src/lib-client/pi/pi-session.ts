@@ -40,7 +40,7 @@ class PiSessionManager {
   private paymentInFlight:      boolean            = false;
   private paymentLockAt:        number             = 0;
   private _lastError:           PiAuthError | null = null;
-  private _lastRawError:        string | null      = null;  // ✅ الـ error الفعلي من Pi SDK
+  private _lastRawError:        string | null      = null;
 
   async ensurePaymentsReady(): Promise<boolean> {
     if (this.paymentsReadyPromise) return this.paymentsReadyPromise;
@@ -120,6 +120,30 @@ class PiSessionManager {
       const Pi = window.Pi;
       if (!Pi) return this._fail('SDK_MISSING');
 
+      // ✅ لو Pi.init() لسه معملتش، اعملها مباشرةً من هنا
+      if (!window.__TEC_PI_READY) {
+        const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';
+        const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
+        try {
+          Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
+          window.__TEC_PI_READY = true;
+          window.dispatchEvent(new Event('tec-pi-ready'));
+          this._log('info', 'auth:init', 'Pi.init() called from _doAuth');
+        } catch (initErr) {
+          const initMsg = initErr instanceof Error ? initErr.message : String(initErr);
+          // "already initialized" = Pi.init() سبق اتعملت — تمام
+          if (/already|initialized/i.test(initMsg)) {
+            window.__TEC_PI_READY = true;
+          } else {
+            this._lastRawError = `init failed: ${initMsg}`;
+            this._log('warn', 'auth:init-failed', initMsg);
+            return this._fail('SDK_MISSING');
+          }
+        }
+        // ✅ استنى Pi يتعافى بعد الـ init
+        await new Promise(r => setTimeout(r, 300));
+      }
+
       const result = Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
@@ -160,13 +184,14 @@ class PiSessionManager {
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      this._lastRawError = msg;  // ✅ احفظ الـ error الفعلي
-      this._log('warn', 'auth:raw-error', msg);  // ✅ لوّغه كمان
+      this._lastRawError = msg;
+      this._log('warn', 'auth:raw-error', msg);
 
       let error: PiAuthError = 'UNKNOWN';
       if (msg === 'TIMEOUT')                                     error = 'TIMEOUT';
       else if (/cancel|denied|rejected|user.reject/i.test(msg)) error = 'USER_CANCELLED';
       else if (/scope|permission/i.test(msg))                    error = 'SCOPE_INVALID';
+      else if (/not.initialized|call.init/i.test(msg))          error = 'SDK_MISSING';
       else if (!window.Pi)                                       error = 'SDK_MISSING';
       return this._fail(error);
     } finally {
@@ -193,7 +218,7 @@ class PiSessionManager {
     this.paymentInFlight          = false;
     this.paymentLockAt            = 0;
     this._lastError               = null;
-    this._lastRawError            = null;  // ✅
+    this._lastRawError            = null;
     window.__TEC_PI_AUTHENTICATED = false;
     this._log('info', 'auth:reset', 'session cleared');
   }
@@ -209,7 +234,7 @@ class PiSessionManager {
   get hasScope():         boolean            { return this.hasPaymentsScope; }
   get isPaymentLocked():  boolean            { return this.paymentInFlight; }
   get lastError():        PiAuthError | null { return this._lastError; }
-  get lastRawError():     string | null      { return this._lastRawError; }  // ✅
+  get lastRawError():     string | null      { return this._lastRawError; }
 }
 
 export const piSession = new PiSessionManager();

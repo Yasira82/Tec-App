@@ -2,16 +2,20 @@ import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 
-const GATEWAY_URL = process.env.API_GATEWAY_URL!;
-const SERVICE_SECRET = process.env.SERVICE_SECRET!;
+// ✅ قراءة بس — مش throw على مستوى الـ module
+const GATEWAY_URL = process.env.API_GATEWAY_URL;
+const SERVICE_SECRET = process.env.SERVICE_SECRET;
 
-if (!GATEWAY_URL) throw new Error('API_GATEWAY_URL is not set');
-if (!SERVICE_SECRET) throw new Error('SERVICE_SECRET is not set');
+function getConfig(): { gatewayUrl: string; serviceSecret: string } {
+  if (!GATEWAY_URL) throw new Error('API_GATEWAY_URL is not set');
+  if (!SERVICE_SECRET) throw new Error('SERVICE_SECRET is not set');
+  return { gatewayUrl: GATEWAY_URL, serviceSecret: SERVICE_SECRET };
+}
 
 export interface BffFetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: Record<string, unknown>;
-  idempotencyKey?: string; // ← BFF يستقبله، مش يولده
+  idempotencyKey?: string;
   accessToken: string;
 }
 
@@ -27,12 +31,13 @@ export async function bffFetch<T = unknown>(
   path: string,
   options: BffFetchOptions,
 ): Promise<BffFetchResult<T>> {
+  const { gatewayUrl, serviceSecret } = getConfig(); // ✅ throws at request time only
   const { method = 'GET', body, idempotencyKey, accessToken } = options;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     Authorization: `Bearer ${accessToken}`,
-    'x-service-secret': SERVICE_SECRET,
+    'x-service-secret': serviceSecret,
     'x-request-id': randomUUID(),
   };
 
@@ -42,7 +47,7 @@ export async function bffFetch<T = unknown>(
 
   let res: Response;
   try {
-    res = await fetch(`${GATEWAY_URL}${path}`, {
+    res = await fetch(`${gatewayUrl}${path}`, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
@@ -79,17 +84,18 @@ export async function bffFetch<T = unknown>(
 }
 
 export async function attemptTokenRefresh(): Promise<string | null> {
+  const { gatewayUrl, serviceSecret } = getConfig();
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get('tec_refresh_token')?.value;
   if (!refreshToken) return null;
 
   let res: Response;
   try {
-    res = await fetch(`${GATEWAY_URL}/auth/refresh`, {
+    res = await fetch(`${gatewayUrl}/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-service-secret': SERVICE_SECRET,
+        'x-service-secret': serviceSecret,
       },
       body: JSON.stringify({ refreshToken }),
       cache: 'no-store',

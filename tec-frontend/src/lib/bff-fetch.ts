@@ -11,7 +11,7 @@ if (!SERVICE_SECRET) throw new Error('SERVICE_SECRET is not set');
 export interface BffFetchOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: Record<string, unknown>;
-  addIdempotencyKey?: boolean;
+  idempotencyKey?: string; // ← BFF يستقبله، مش يولده
   accessToken: string;
 }
 
@@ -23,17 +23,11 @@ export interface BffFetchResult<T = unknown> {
   tokenExpired?: boolean;
 }
 
-/**
- * Shared fetch wrapper for all BFF → Gateway calls.
- * - Adds Authorization + x-service-secret automatically
- * - Adds Idempotency-Key for payment routes (addIdempotencyKey: true)
- * - Returns structured result — never throws
- */
 export async function bffFetch<T = unknown>(
   path: string,
   options: BffFetchOptions,
 ): Promise<BffFetchResult<T>> {
-  const { method = 'GET', body, addIdempotencyKey = false, accessToken } = options;
+  const { method = 'GET', body, idempotencyKey, accessToken } = options;
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -42,8 +36,8 @@ export async function bffFetch<T = unknown>(
     'x-request-id': randomUUID(),
   };
 
-  if (addIdempotencyKey) {
-    headers['Idempotency-Key'] = randomUUID();
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = idempotencyKey;
   }
 
   let res: Response;
@@ -60,7 +54,6 @@ export async function bffFetch<T = unknown>(
     return { ok: false, status: 0, data: null, error: msg };
   }
 
-  // Token expired — caller handles redirect/refresh
   if (res.status === 401) {
     let errBody: { error?: { code?: string } } = {};
     try { errBody = await res.json(); } catch { /* ignore */ }
@@ -85,14 +78,9 @@ export async function bffFetch<T = unknown>(
   return { ok: true, status: res.status, data: json as T, error: null };
 }
 
-/**
- * Try to refresh the access token using the refresh cookie.
- * Returns the new access token or null if refresh failed.
- */
 export async function attemptTokenRefresh(): Promise<string | null> {
   const cookieStore = await cookies();
   const refreshToken = cookieStore.get('tec_refresh_token')?.value;
-
   if (!refreshToken) return null;
 
   let res: Response;
@@ -118,18 +106,13 @@ export async function attemptTokenRefresh(): Promise<string | null> {
   return json?.data?.accessToken ?? null;
 }
 
-/**
- * Returns a NextResponse that clears all auth cookies and redirects to /login.
- * Call this when token refresh fails (refresh token expired or invalid).
- */
 export function buildExpiredResponse(): NextResponse {
   const res = NextResponse.json(
     { success: false, error: { code: 'SESSION_EXPIRED', message: 'Session expired. Please log in again.' } },
     { status: 401 },
   );
-  // Clear all auth cookies
-  for (const cookieName of ['tec_access_token', 'tec_refresh_token', 'tec_user', 'tec_csrf']) {
-    res.cookies.set(cookieName, '', { maxAge: 0, path: '/' });
+  for (const name of ['tec_access_token', 'tec_refresh_token', 'tec_user', 'tec_csrf']) {
+    res.cookies.set(name, '', { maxAge: 0, path: '/' });
   }
   return res;
 }

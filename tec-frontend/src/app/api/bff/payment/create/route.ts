@@ -1,15 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { bffFetch, attemptTokenRefresh, buildExpiredResponse } from '@/lib/bff-fetch';
 
-// ─── Zod Validation ──────────────────────────────────────────────────────────
-
 const CreatePaymentSchema = z.object({
-  amount: z.number().positive('Amount must be positive'),
+  amount: z.number().positive(),
   currency: z.literal('PI'),
   payment_method: z.literal('pi'),
   source: z.string().min(1),
+  // Client يبعت idempotency key — أو BFF يولد واحد لو مجاش
+  idempotency_key: z.string().uuid().optional(),
   metadata: z
     .object({
       app_source: z.string().optional(),
@@ -37,15 +38,11 @@ interface PaymentResponse {
   };
 }
 
-// ─── Route Handler ────────────────────────────────────────────────────────────
-
 export async function POST(req: NextRequest): Promise<NextResponse> {
-  // 1. Extract cookies
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('tec_access_token')?.value;
   const csrfCookie = cookieStore.get('tec_csrf')?.value;
 
-  // 2. Auth check
   if (!accessToken) {
     return NextResponse.json(
       { success: false, error: { code: 'UNAUTHORIZED', message: 'Not authenticated' } },
@@ -53,7 +50,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 3. CSRF check (state-mutating POST — required per Kernel Spec)
   const csrfHeader = req.headers.get('x-csrf-token');
   if (!csrfHeader || csrfHeader !== csrfCookie) {
     return NextResponse.json(
@@ -62,7 +58,6 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // 4. Parse & validate body
   let rawBody: unknown;
   try {
     rawBody = await req.json();
@@ -88,41 +83,42 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const body: CreatePaymentBody = parsed.data;
+  const { idempotency_key, ...paymentBody }: CreatePaymentBody = parsed.data;
 
-  // 5. Call gateway (with idempotency key — VM-003 fix)
-  const result = await bffFetch<PaymentResponse>('/payments', {
-    method: 'POST',
-    body: body as Record<string, unknown>,
-    addIdempotencyKey: true, // ← generates UUID per request
+  // ✅ الصح: key جاي من الـ client، أو BFF يولده مرة واحدة هنا
+  // ويستخدم نفس الـ key في الـ retry — مش key جديد
+  const idempotencyKey = idempotency_key ?? randomUUID();
+
+  const fetchOptions = {
+    method: 'POST' as const,
+    body: paymentBody as Record<string, unknown>,
+    idempotencyKey, // ← نفس الـ key في كل المحاولات
     accessToken,
-  });
+  };
 
-  // 6. Handle token expiry — attempt silent refresh then retry once
+  const result = await bffFetch<PaymentResponse>('/payments', fetchOptions);
+
   if (result.tokenExpired) {
     const newToken = await attemptTokenRefresh();
     if (!newToken) return buildExpiredResponse();
 
+    // ✅ نفس idempotencyKey — مش جديد
     const retryResult = await bffFetch<PaymentResponse>('/payments', {
-      method: 'POST',
-      body: body as Record<string, unknown>,
-      addIdempotencyKey: true, // new key for retry — correct behavior
+      ...fetchOptions,
       accessToken: newToken,
     });
 
-    if (retryResult.tokenExpired || !retryResult.ok) {
-      return retryResult.tokenExpired
-        ? buildExpiredResponse()
-        : NextResponse.json(
-            { success: false, error: { code: 'GATEWAY_ERROR', message: retryResult.error } },
-            { status: retryResult.status || 502 },
-          );
+    if (retryResult.tokenExpired) return buildExpiredResponse();
+    if (!retryResult.ok) {
+      return NextResponse.json(
+        { success: false, error: { code: 'GATEWAY_ERROR', message: retryResult.error } },
+        { status: retryResult.status || 502 },
+      );
     }
 
     return NextResponse.json(retryResult.data, { status: 201 });
   }
 
-  // 7. Gateway non-200
   if (!result.ok) {
     return NextResponse.json(
       { success: false, error: { code: 'GATEWAY_ERROR', message: result.error } },

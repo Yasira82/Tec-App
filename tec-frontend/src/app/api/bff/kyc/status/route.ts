@@ -1,12 +1,16 @@
 import { createHandler } from '@/lib/bff/createHandler';
 
+const GW = process.env.API_GATEWAY_URL
+        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+        ?? '';
+
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/kyc/status?userId=${ctx.userId}`,
+      `${GW}/api/kyc/status?userId=${ctx.userId}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

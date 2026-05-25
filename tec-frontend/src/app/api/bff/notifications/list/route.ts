@@ -1,6 +1,10 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 
+const GW = process.env.API_GATEWAY_URL
+        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+        ?? '';
+
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
@@ -10,7 +14,7 @@ export const GET = createHandler({
     const page  = Math.max(Number(searchParams.get('page')  ?? 1),  1);
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/notification?userId=${ctx.userId}&limit=${limit}&page=${page}`,
+      `${GW}/api/notification?userId=${ctx.userId}&limit=${limit}&page=${page}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -35,7 +39,7 @@ export const PATCH = createHandler({
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/notification/read`,
+      `${GW}/api/notification/read`,
       {
         method:  'PATCH',
         headers: {

@@ -1,6 +1,10 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 
+const GW = process.env.API_GATEWAY_URL
+        ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+        ?? '';
+
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
@@ -10,7 +14,7 @@ export const GET = createHandler({
     const sort  = searchParams.get('sort') ?? 'desc';
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/commerce/orders?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
+      `${GW}/api/commerce/orders?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -39,7 +43,7 @@ export const POST = createHandler({
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
     const res = await fetch(
-      `${process.env.NEXT_PUBLIC_API_GATEWAY_URL}/api/commerce/orders`,
+      `${GW}/api/commerce/orders`,
       {
         method:  'POST',
         headers: {

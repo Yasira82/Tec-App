@@ -65,6 +65,9 @@ export function PaymentModal({
       await waitForPiReady();
       if (cancelled) return;
 
+await new Promise(r => setTimeout(r, 1000));
+      if (cancelled) return;
+
       const ok = await piSession.ensurePaymentsReady();
       if (cancelled) return;
       if (ok) { setIsReady(true); return; }

@@ -76,7 +76,7 @@ await new Promise(r => setTimeout(r, 1000));
       piSession.reset();
       piSession.reInit(process.env.NEXT_PUBLIC_PI_SANDBOX === 'true');
 
-      await new Promise(r => setTimeout(r, 2000));
+      await new Promise(r => setTimeout(r, 2500));
       if (cancelled) return;
 
       const ok2 = await piSession.ensurePaymentsReady();

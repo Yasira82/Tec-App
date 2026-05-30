@@ -135,18 +135,6 @@ class PiSessionManager {
         return this._fail('SDK_MISSING');
       }
 
-      // ✅ FOREIGN_SESSION → re-init بـ Hub App ID
-    if ((window as any).__TEC_PI_FOREIGN_SESSION) {
-      const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
-      const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true';
-      try {
-        Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
-        (window as any).__TEC_PI_FOREIGN_SESSION = false;
-      } catch (e) {
-        this._log('warn', 'auth:reinit-catch', String(e));
-      }
-      await new Promise(r => setTimeout(r, 2000));
-    }
       // ✅ Pi مش ready لسه → جرّب Pi.init() مباشرةً (fallback)
       if (!window.__TEC_PI_READY) {
         const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';

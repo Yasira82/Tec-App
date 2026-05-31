@@ -5,14 +5,23 @@ import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
 const GATEWAY = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
 
+function getUserIdFromCookie(req: NextRequest): string | null {
+  try {
+    const raw = req.cookies.get('tec_user')?.value;
+    if (!raw) return null;
+    const user = JSON.parse(decodeURIComponent(raw));
+    return user?.id ?? user?.uid ?? null;
+  } catch { return null; }
+}
+
 async function refreshToken(req: NextRequest): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(`${req.nextUrl.origin}/api/auth/refresh`, {
-      method:  'POST',
+      method: 'POST',
       headers: {
-        'Cookie':        req.headers.get('cookie') ?? '',
-        'x-csrf-token':  req.cookies.get('tec_csrf')?.value ?? '',
-        'Content-Type':  'application/json',
+        Cookie:         req.headers.get('cookie') ?? '',
+        'x-csrf-token': req.cookies.get('tec_csrf')?.value ?? '',
+        'Content-Type': 'application/json',
       },
     }, 10000);
     if (!res.ok) return null;
@@ -36,54 +45,106 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { payment_id, pi_payment_id } = body;
+    const { payment_id, paymentId, pi_payment_id } = body;
 
-    if (!payment_id) {
-      return NextResponse.json({ error: 'Missing payment_id' }, { status: 400 });
+    // ✅ لو payment_id موجود → approve بس (الـ flow القديم)
+    if (payment_id) {
+      if (isE2eMode()) {
+        return NextResponse.json({ success: true, data: { payment_id, status: 'approved' } });
+      }
+      let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: authHeader,
+          'Idempotency-Key': randomUUID(),
+        },
+        body: JSON.stringify({ payment_id, pi_payment_id }),
+      });
+      if (res.status === 401) {
+        const t = await refreshToken(req);
+        if (t) {
+          authHeader = `Bearer ${t}`;
+          res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: authHeader, 'Idempotency-Key': randomUUID() },
+            body: JSON.stringify({ payment_id, pi_payment_id }),
+          });
+        } else return NextResponse.json({ error: 'Session expired' }, { status: 401 });
+      }
+      const data = await res.json().catch(() => ({}));
+      return NextResponse.json(data, { status: res.status });
     }
+
+    // ✅ لو paymentId (Pi ID) بس — create + approve (Commerce pattern)
+    const piId = paymentId ?? pi_payment_id;
+    if (!piId) {
+      return NextResponse.json({ error: 'Missing payment_id or paymentId' }, { status: 400 });
+    }
+
+    const userId = getUserIdFromCookie(req);
+    const amount = body.amount ?? 1;
 
     if (isE2eMode()) {
-      return NextResponse.json(
-        { success: true, data: { payment_id, pi_payment_id, status: 'approved' } },
-        { status: 200 },
-      );
+      const fakeId = randomUUID();
+      return NextResponse.json({ success: true, data: { payment_id: fakeId, status: 'approved' }, payment_id: fakeId });
     }
 
-    const idempotencyKey = randomUUID();
-
-    let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
+    // Step 1: Create
+    let createRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
       method: 'POST',
       headers: {
-        'Content-Type':    'application/json',
-        Authorization:     authHeader,
-        'Idempotency-Key': idempotencyKey,
+        'Content-Type': 'application/json',
+        Authorization: authHeader,
+        'Idempotency-Key': `create-${piId}`,
       },
-      body: JSON.stringify({ payment_id, pi_payment_id }),
+      body: JSON.stringify({
+        userId,
+        amount,
+        currency: 'PI',
+        payment_method: 'pi',
+        metadata: { pi_payment_id: piId, source: body.source ?? 'hub' },
+      }),
     });
 
-    // ✅ Token expired → refresh وحاول تاني
-    if (res.status === 401) {
-      console.log('[approve] TOKEN_EXPIRED — refreshing...');
-      const newToken = await refreshToken(req);
-      if (newToken) {
-        authHeader = `Bearer ${newToken}`;
-        res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
+    if (createRes.status === 401) {
+      const t = await refreshToken(req);
+      if (t) {
+        authHeader = `Bearer ${t}`;
+        createRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
           method: 'POST',
-          headers: {
-            'Content-Type':    'application/json',
-            Authorization:     authHeader,
-            'Idempotency-Key': idempotencyKey,
-          },
-          body: JSON.stringify({ payment_id, pi_payment_id }),
+          headers: { 'Content-Type': 'application/json', Authorization: authHeader, 'Idempotency-Key': `create-${piId}` },
+          body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata: { pi_payment_id: piId, source: body.source ?? 'hub' } }),
         });
-      } else {
-        return NextResponse.json({ error: 'Session expired' }, { status: 401 });
-      }
+      } else return NextResponse.json({ error: 'Session expired' }, { status: 401 });
     }
 
-    const data = await res.json().catch(() => ({}));
-    console.log('[approve] gateway response:', res.status, JSON.stringify(data));
-    return NextResponse.json(data, { status: res.status });
+    const createData = await createRes.json().catch(() => ({}));
+    if (!createRes.ok) return NextResponse.json(createData, { status: createRes.status });
+
+    const dbPaymentId = createData?.data?.payment?.id
+      ?? createData?.data?.id
+      ?? createData?.payment?.id
+      ?? createData?.id;
+
+    if (!dbPaymentId) return NextResponse.json({ error: 'Failed to get payment ID' }, { status: 500 });
+
+    // Step 2: Approve
+    const approveRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: authHeader,
+        'Idempotency-Key': `approve-${piId}`,
+      },
+      body: JSON.stringify({ payment_id: dbPaymentId, pi_payment_id: piId }),
+    });
+
+    const approveData = await approveRes.json().catch(() => ({}));
+    return NextResponse.json(
+      { ...approveData, payment_id: dbPaymentId },
+      { status: approveRes.status },
+    );
   } catch (error) {
     console.error('[approve] error:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });

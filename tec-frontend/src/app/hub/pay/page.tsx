@@ -60,34 +60,6 @@ function HubPayInner() {
     if (!window.Pi)             { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount');     return; }
 
-    setStatus('auth');
-    try {
-      await window.Pi.authenticate(['username', 'payments'], () => {});
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (msg.toLowerCase().includes('not initialized')) {
-        sessionStorage.setItem('post_pi_redirect',
-          window.location.pathname + window.location.search);
-        window.location.href = `${HUB_ORIGIN}/hub`;
-        return;
-      }
-      setStatus('error'); setMessage(`Auth: ${msg}`); return;
-    }
-
-    try {
-      const r = await fetch('/api/auth/refresh', {
-        method: 'POST', credentials: 'include',
-        headers: { 'x-csrf-token': getCsrf() },
-      });
-      if (!r.ok) {
-        window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
-        return;
-      }
-    } catch {
-      window.location.href = `${HUB_ORIGIN}/?redirect=${encodeURIComponent(window.location.href)}`;
-      return;
-    }
-
     if (hasStarted.current) return;
     hasStarted.current = true;
 
@@ -96,7 +68,6 @@ function HubPayInner() {
 
     try {
       setStatus('paying');
-      // ✅ internalId omitted → self-creates internally
       const result = await createU2APayment(
         amount, memo,
         { source, product_id: productId, version: '1.0' },
@@ -117,20 +88,12 @@ function HubPayInner() {
         hasStarted.current = false;
       } else {
         setStatus('error');
-        const errMsg = result.message ?? 'Payment failed';
-        if (/scope|payments/i.test(errMsg)) piSession.reset();
-        setMessage(errMsg);
+        setMessage(result.message ?? 'Payment failed');
         hasStarted.current = false;
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Payment failed';
-      if (msg.includes('not initialized')) {
-        sessionStorage.setItem('post_pi_redirect',
-          window.location.pathname + window.location.search);
-        window.location.href = `${HUB_ORIGIN}/hub`;
-        return;
-      }
-      setStatus('error'); setMessage(msg);
+      setStatus('error');
+      setMessage(err instanceof Error ? err.message : 'Payment failed');
       hasStarted.current = false;
     } finally {
       piSession.releasePaymentLock();

@@ -55,8 +55,9 @@ export async function POST(req: NextRequest) {
       let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          Authorization: authHeader,
+          'Content-Type':    'application/json',
+          Authorization:     authHeader,
+          'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
           'Idempotency-Key': randomUUID(),
         },
         body: JSON.stringify({ payment_id, pi_payment_id }),
@@ -67,7 +68,12 @@ export async function POST(req: NextRequest) {
           authHeader = `Bearer ${t}`;
           res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: authHeader, 'Idempotency-Key': randomUUID() },
+            headers: {
+              'Content-Type':    'application/json',
+              Authorization:     authHeader,
+              'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+              'Idempotency-Key': randomUUID(),
+            },
             body: JSON.stringify({ payment_id, pi_payment_id }),
           });
         } else return NextResponse.json({ error: 'Session expired' }, { status: 401 });
@@ -76,7 +82,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(data, { status: res.status });
     }
 
-    // ✅ لو paymentId (Pi ID) بس — create + approve (Commerce pattern)
+    // ✅ لو paymentId (Pi ID) بس — create + approve
     const piId = paymentId ?? pi_payment_id;
     if (!piId) {
       return NextResponse.json({ error: 'Missing payment_id or paymentId' }, { status: 400 });
@@ -94,8 +100,9 @@ export async function POST(req: NextRequest) {
     let createRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
+        'Content-Type':    'application/json',
+        Authorization:     authHeader,
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
         'Idempotency-Key': `create-${piId}`,
       },
       body: JSON.stringify({
@@ -113,8 +120,16 @@ export async function POST(req: NextRequest) {
         authHeader = `Bearer ${t}`;
         createRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: authHeader, 'Idempotency-Key': `create-${piId}` },
-          body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata: { pi_payment_id: piId, source: body.source ?? 'hub' } }),
+          headers: {
+            'Content-Type':    'application/json',
+            Authorization:     authHeader,
+            'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+            'Idempotency-Key': `create-${piId}`,
+          },
+          body: JSON.stringify({
+            userId, amount, currency: 'PI', payment_method: 'pi',
+            metadata: { pi_payment_id: piId, source: body.source ?? 'hub' },
+          }),
         });
       } else return NextResponse.json({ error: 'Session expired' }, { status: 401 });
     }
@@ -133,8 +148,9 @@ export async function POST(req: NextRequest) {
     const approveRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        Authorization: authHeader,
+        'Content-Type':    'application/json',
+        Authorization:     authHeader,
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
         'Idempotency-Key': `approve-${piId}`,
       },
       body: JSON.stringify({ payment_id: dbPaymentId, pi_payment_id: piId }),

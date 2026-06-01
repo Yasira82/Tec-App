@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         amount,
         currency: 'PI',
         payment_method: 'pi',
-        metadata: { pi_payment_id: piId, source: body.source ?? 'hub' },
+        metadata: { pi_payment_id: piId, for_app: body.source ?? 'hub' },
       }),
     });
 

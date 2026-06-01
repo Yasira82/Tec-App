@@ -110,7 +110,7 @@ export async function POST(req: NextRequest) {
         amount,
         currency: 'PI',
         payment_method: 'pi',
-        metadata: { pi_payment_id: piId, source: 'hub', for_app: body.source ?? 'hub' },
+        metadata: { pi_payment_id: piId },
       }),
     });
 
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
           },
           body: JSON.stringify({
             userId, amount, currency: 'PI', payment_method: 'pi',
-            metadata: { pi_payment_id: piId, source: 'hub', for_app: body.source ?? 'hub' },
+            metadata: { pi_payment_id: piId },
           }),
         });
       } else return NextResponse.json({ error: 'Session expired' }, { status: 401 });

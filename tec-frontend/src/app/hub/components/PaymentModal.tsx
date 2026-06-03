@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { piSession }        from '@/lib-client/pi/pi-session';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
+import { PiRuntime }        from '@/lib-client/pi/PiRuntime';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -43,11 +44,7 @@ export function PaymentModal({
 
   // ✅ انتظر Pi SDK يكون جاهز فعلاً قبل Pi.authenticate
   const waitForPiReady = (): Promise<void> => {
-    if (
-      typeof window !== 'undefined' &&
-      (window as any).__TEC_PI_READY &&
-      window.Pi
-    ) {
+    if (PiRuntime.isReady()) {
       return Promise.resolve();
     }
     return new Promise<void>(resolve => {
@@ -97,7 +94,7 @@ await new Promise(r => setTimeout(r, 1000));
   }, []);
 
   const handlePay = useCallback(async () => {
-    if (!window.Pi) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
+    if (!PiRuntime.isAvailable()) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
 
     const locked = await piSession.acquirePaymentLock();
     if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }

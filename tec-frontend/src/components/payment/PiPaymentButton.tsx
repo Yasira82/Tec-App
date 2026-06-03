@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { loginWithPi } from '@/lib-client/pi/pi-auth';
+import { PiRuntime }  from '@/lib-client/pi/PiRuntime';
 
 export default function PiPaymentButton() {
   const [loading,  setLoading]  = useState(false);
@@ -23,7 +24,7 @@ export default function PiPaymentButton() {
 
     const timeout = setTimeout(() => {
       clearInterval(poll);
-      if (typeof window.Pi !== 'undefined') {
+      if (PiRuntime.isAvailable()) {
         setSdkReady(true);
       }
     }, 30000);
@@ -38,7 +39,7 @@ export default function PiPaymentButton() {
   const handleAuth = useCallback(async () => {
     if (!sdkReady) {
       if (window.__TEC_PI_READY) { setSdkReady(true); return; }
-      if (typeof window.Pi !== 'undefined') { setSdkReady(true); return; }
+      if (PiRuntime.isAvailable()) { setSdkReady(true); return; }
       setError('Please open in Pi Browser');
       return;
     }

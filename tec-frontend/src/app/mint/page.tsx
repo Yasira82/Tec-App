@@ -5,6 +5,7 @@ import { useSearchParams }                                      from 'next/navig
 import { usePiAuth }                                            from '@/lib-client/hooks/usePiAuth';
 import { usePiSdkReady }                                        from '@/lib-client/hooks/usePiSdkReady';
 import { piSession }                                            from '@/lib-client/pi/pi-session';
+import { PiRuntime }                                           from '@/lib-client/pi/PiRuntime';
 
 const HUB_ORIGIN = 'https://hub.tecosystem.app';
 
@@ -61,19 +62,13 @@ function MintPageInner() {
   }, [isLoading, isAuthenticated]);
 
   const startMint = useCallback(async () => {
-    if (!window.Pi) { setError('Open in Pi Browser'); setStatus('error'); return; }
+    if (!PiRuntime.isAvailable()) { setError('Open in Pi Browser'); setStatus('error'); return; }
     if (!assetId || !name) { setError('Invalid mint request'); setStatus('error'); return; }
 
-    try {
-      window.Pi.init({
-        version: '2.0',
-        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-        appId:   process.env.NEXT_PUBLIC_PI_APP_ID ?? '',
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      if (!msg.toLowerCase().includes('already')) console.warn('[Mint] Pi.init warning:', msg);
-    }
+    PiRuntime.init(
+      process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
+      process.env.NEXT_PUBLIC_PI_APP_ID ?? undefined,
+    );
 
     try {
       await fetch('/api/auth/refresh', {
@@ -125,7 +120,7 @@ function MintPageInner() {
 
       setStatus('payment');
       await new Promise<void>((resolve, reject) => {
-        window.Pi.createPayment(
+        PiRuntime.createPayment(
           {
             amount:   1,
             memo:     `Mint ${name} as NFT`,
@@ -219,7 +214,7 @@ function MintPageInner() {
           border: `1px solid ${tierColor}30`,
           borderRadius: 20, padding: '4px 14px', marginBottom: 32, letterSpacing: 1,
         }}>
-          ✦ {tier.toUpperCase()} DOMAIN
+          ❆ {tier.toUpperCase()} DOMAIN
         </div>
 
         {status === 'idle' && (

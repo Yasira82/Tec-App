@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { isPiBrowser, loginWithPi, getStoredUser, getAccessToken } from '@/lib-client/pi/pi-auth';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
+import { PiRuntime } from '@/lib-client/pi/PiRuntime';
 
 type LogEntry = { ts: string; type: 'info' | 'success' | 'error' | 'warn'; msg: string };
 
@@ -151,8 +152,8 @@ export function PiTestClient() {
   const handleCancelPending = useCallback(async () => {
     log('info', 'Checking for pending payments...');
     try {
-      if (!isPiBrowser() || !window.Pi) throw new Error('Not inside Pi Browser');
-      await window.Pi.authenticate(['username', 'payments'], async (payment: unknown) => {
+      if (!isPiBrowser() || !PiRuntime.isAvailable()) throw new Error('Not inside Pi Browser');
+      await window.Pi!.authenticate(['username', 'payments'], async (payment: unknown) => {
         const p   = payment as Record<string, unknown> | null;
         const pid = p?.identifier as string | undefined;
         if (!pid) { log('info', 'No pending payment ✅'); return; }
@@ -178,13 +179,16 @@ export function PiTestClient() {
     log('info', 'Creating payment (1π)…');
     setPayStatus('loading');
     try {
-      const result = await createU2APayment(1, 'TEC sandbox test', { source: 'pi-test-page' });
-      if (result.status === 'cancelled') {
-        setPayStatus('cancelled');
-        log('warn', `Cancelled (id: ${result.paymentId ?? 'n/a'})`);
-      } else {
+      const result = await createU2APayment(1, 'Test Payment from TEC Hub', { source: 'test' });
+      if (result.success) {
         setPayStatus('done');
-        log('success', `✅ Done! id=${result.paymentId} txid=${result.txid}`);
+        log('success', `💰 Payment done: ${result.paymentId} | txid: ${result.txid}`);
+      } else if (result.status === 'cancelled') {
+        setPayStatus('cancelled');
+        log('warn', 'Payment cancelled by user');
+      } else {
+        setPayStatus('error');
+        log('error', `Payment failed: ${result.message ?? result.status}`);
       }
     } catch (err) {
       setPayStatus('error');
@@ -192,133 +196,92 @@ export function PiTestClient() {
     }
   }, [authStatus, log]);
 
-  const clearLogs = () => setLogs([]);
+  const col = (ok: boolean | null) => ok === null ? '#6b6b7a' : ok ? '#7ee7c0' : '#e74c3c';
+  const statusDot = (ok: boolean | null) => (
+    <span style={{
+      display: 'inline-block', width: 8, height: 8, borderRadius: '50%',
+      background: col(ok), marginRight: 6,
+    }} />
+  );
 
-  const btn = (color = '#333'): React.CSSProperties => ({
-    padding: '8px 14px', borderRadius: 6, border: 'none',
-    background: color, color: '#fff', cursor: 'pointer',
-    fontSize: '0.82rem', fontWeight: 600,
-  });
+  const logColors: Record<LogEntry['type'], string> = {
+    info: '#9898a8', success: '#7ee7c0', error: '#e74c3c', warn: '#f0c040',
+  };
 
   return (
-    <main style={{ fontFamily: 'monospace', maxWidth: 800, margin: '32px auto', padding: '0 16px' }}>
-      <h1 style={{ fontSize: '1.4rem', marginBottom: 4 }}>🥧 TEC Diagnostic Page</h1>
-      <p style={{ fontSize: '0.82rem', color: '#666', marginBottom: 20 }}>
-        Open inside <strong>Pi Browser</strong> · appId: <code>{process.env.NEXT_PUBLIC_PI_APP_ID ?? '(not set)'}</code>
-      </p>
+    <div style={{
+      minHeight: '100vh', background: '#020205', color: '#fff',
+      fontFamily: 'monospace', padding: 24, maxWidth: 800, margin: '0 auto',
+    }}>
+      <h2 style={{ color: '#d4af37', marginBottom: 4 }}>🧪 TEC Pi Integration Test</h2>
+      <p style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 24 }}>Developer diagnostics — not visible in production</p>
 
-      {/* SDK Status */}
-      <div style={{
-        marginBottom: 16, padding: '10px 14px', borderRadius: 6,
-        background: sdkReady === null ? '#f5f5f5' : sdkReady ? '#e6f9ee' : '#fff0f0',
-        border: '1px solid ' + (sdkReady === null ? '#ddd' : sdkReady ? '#6dd68e' : '#f99'),
-      }}>
-        <strong>Pi SDK:</strong>{' '}
-        {sdkReady === null ? '⏳ waiting…' : sdkReady ? '✅ ready' : '❌ unavailable'}
-        <span style={{ marginLeft: 12, color: '#888', fontSize: '0.78rem' }}>
-          sandbox: {process.env.NEXT_PUBLIC_PI_SANDBOX ?? 'true'}
-        </span>
+      {/* Status row */}
+      <div style={{ display: 'flex', gap: 24, marginBottom: 24, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 12 }}>{statusDot(sdkReady)} Pi SDK</span>
+        <span style={{ fontSize: 12 }}>{statusDot(authStatus === 'done')} Auth {username ? `(@${username})` : ''}</span>
+        <span style={{ fontSize: 12 }}>{statusDot(payStatus === 'done')} Payment</span>
       </div>
 
-      {/* ── Services Status ── */}
-      <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #e74c3c', borderRadius: 8 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <h2 style={{ fontSize: '1rem', margin: 0, color: '#e74c3c' }}>🛰️ Services Health (12)</h2>
-          <button onClick={checkAllServices} disabled={checkingAll} style={btn('#e74c3c')}>
-            {checkingAll ? 'Checking...' : 'Check All Services'}
-          </button>
-        </div>
-        {services.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
+      {/* Buttons */}
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 24 }}>
+        {[
+          { label: '🔐 Authenticate',        fn: handleAuth,             disabled: authStatus === 'loading' },
+          { label: '💳 Test Payment (1π)',  fn: handlePayment,          disabled: payStatus === 'loading' },
+          { label: '📡 All Services',        fn: checkAllServices,       disabled: checkingAll },
+          { label: '🏥 BFF Health',          fn: handleCheckHealth,      disabled: false },
+          { label: '🔄 SSO Test',            fn: handleCheckSSO,         disabled: false },
+          { label: '⚠️ Cancel Pending',      fn: handleCancelPending,    disabled: false },
+          { label: '🍪 Show Cookies',        fn: handleShowCookies,      disabled: false },
+          { label: '👤 Show User',           fn: handleShowUser,         disabled: false },
+          { label: '🧹 Clear Logs',          fn: () => setLogs([]),      disabled: false },
+        ].map(({ label, fn, disabled }) => (
+          <button key={label} onClick={fn} disabled={disabled} style={{
+            padding: '8px 16px', borderRadius: 10,
+            background: disabled ? '#1a1a2a' : '#ffffff15',
+            border: '1px solid #ffffff15',
+            color: disabled ? '#3a3a4a' : '#fff',
+            fontSize: 12, cursor: disabled ? 'not-allowed' : 'pointer',
+          }}>{label}</button>
+        ))}
+      </div>
+
+      {/* Services */}
+      {services.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 8 }}>SERVICES</div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {services.map(s => (
               <div key={s.name} style={{
-                padding: '6px 10px', borderRadius: 6, fontSize: '0.78rem',
-                background: s.status === 'ok' ? '#e6f9ee' : s.status === 'error' ? '#fff0f0' : '#f5f5f5',
-                border: '1px solid ' + (s.status === 'ok' ? '#6dd68e' : s.status === 'error' ? '#f99' : '#ddd'),
+                fontSize: 11, padding: '4px 10px', borderRadius: 8,
+                background: s.status === 'ok' ? '#7ee7c020' : '#e74c3c20',
+                border: `1px solid ${s.status === 'ok' ? '#7ee7c040' : '#e74c3c40'}`,
+                color: s.status === 'ok' ? '#7ee7c0' : '#e74c3c',
               }}>
-                <span>{s.status === 'ok' ? '✅' : s.status === 'error' ? '❌' : '⏳'}</span>{' '}
-                <strong>{s.name}</strong>
-                {s.ms !== undefined && <span style={{ color: '#888', marginLeft: 4 }}>{s.ms}ms</span>}
+                {s.name} {s.ms !== undefined ? `${s.ms}ms` : ''}
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Log */}
+      <div style={{
+        background: '#0a0a12', borderRadius: 12,
+        border: '1px solid #ffffff10', padding: 16,
+        maxHeight: 400, overflowY: 'auto',
+        fontSize: 11, lineHeight: 1.6,
+      }}>
+        {logs.length === 0 && (
+          <div style={{ color: '#3a3a4a' }}>No logs yet — run a test above.</div>
         )}
-      </section>
-
-      {/* ── Debug Tools ── */}
-      <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #3498db', borderRadius: 8 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 10, color: '#3498db' }}>🔍 Debug Tools</h2>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button onClick={handleShowCookies}      style={btn('#3498db')}>🍪 Cookies</button>
-          <button onClick={handleShowUser}         style={btn('#8e44ad')}>👤 User</button>
-          <button onClick={handleCheckHealth}      style={btn('#27ae60')}>🏥 BFF Health</button>
-          <button onClick={handleCheckAuthService} style={btn('#16a085')}>🔐 Auth Test</button>
-          <button onClick={handleCheckSSO}         style={btn('#d35400')}>🔄 SSO Test</button>
-        </div>
-      </section>
-
-      {/* ── Auth ── */}
-      <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #2c3e50', borderRadius: 8 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>1. Authentication</h2>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button onClick={handleAuth} disabled={authStatus === 'loading'} style={btn('#2c3e50')}>
-            {authStatus === 'loading' ? 'Authenticating…' : 'Authenticate with Pi'}
-          </button>
-          {username          && <span style={{ color: '#2a9a4e' }}>✅ @{username}</span>}
-          {authStatus === 'error' && <span style={{ color: '#c0392b' }}>❌ Auth failed</span>}
-        </div>
-      </section>
-
-      {/* ── Pending Payments ── */}
-      <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #e67e22', borderRadius: 8 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 8, color: '#e67e22' }}>⚠️ Pending Payments</h2>
-        <button onClick={handleCancelPending} style={btn('#e67e22')}>Check & Resolve</button>
-      </section>
-
-      {/* ── Payment Test ── */}
-      <section style={{ marginBottom: 16, padding: '12px 16px', border: '1px solid #8e44ad', borderRadius: 8 }}>
-        <h2 style={{ fontSize: '1rem', marginBottom: 8 }}>2. Payment Test (1π)</h2>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            onClick={handlePayment}
-            disabled={authStatus !== 'done' || payStatus === 'loading'}
-            style={{ ...btn('#8e44ad'), opacity: authStatus !== 'done' ? 0.5 : 1 }}>
-            {payStatus === 'loading' ? 'Processing…' : 'Pay 1π (test)'}
-          </button>
-          {payStatus === 'done'      && <span style={{ color: '#2a9a4e' }}>✅ Complete!</span>}
-          {payStatus === 'cancelled' && <span style={{ color: '#e67e22' }}>⚠️ Cancelled</span>}
-          {payStatus === 'error'     && <span style={{ color: '#c0392b' }}>❌ Error</span>}
-        </div>
-      </section>
-
-      {/* ── Logs ── */}
-      <section>
-        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8, gap: 12 }}>
-          <h2 style={{ fontSize: '1rem', margin: 0 }}>📋 Logs ({logs.length})</h2>
-          <button onClick={clearLogs} style={{ fontSize: '0.75rem', padding: '2px 8px', cursor: 'pointer' }}>Clear</button>
-        </div>
-        <div style={{
-          background: '#1a1a1a', color: '#eee', padding: 14, borderRadius: 6,
-          minHeight: 120, maxHeight: 500, overflowY: 'auto',
-          fontSize: '0.76rem', lineHeight: 1.7,
-        }}>
-          {logs.length === 0 ? (
-            <span style={{ color: '#888' }}>— no events yet —</span>
-          ) : (
-            logs.map((e, i) => (
-              <div key={i} style={{
-                color: e.type === 'error'   ? '#ff6b6b'
-                     : e.type === 'warn'    ? '#ffd93d'
-                     : e.type === 'success' ? '#6bcb77'
-                     : '#ddd',
-                borderBottom: '1px solid #2a2a2a', paddingBottom: 2, marginBottom: 2,
-              }}>
-                <span style={{ color: '#888' }}>{e.ts}</span>{' '}{e.msg}
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-    </main>
+        {logs.map((entry, i) => (
+          <div key={i} style={{ display: 'flex', gap: 12, marginBottom: 2 }}>
+            <span style={{ color: '#3a3a4a', flexShrink: 0 }}>{entry.ts}</span>
+            <span style={{ color: logColors[entry.type], wordBreak: 'break-all' }}>{entry.msg}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
-        }
+}

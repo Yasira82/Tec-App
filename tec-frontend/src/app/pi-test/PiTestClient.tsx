@@ -10,21 +10,6 @@ function timestamp() {
   return new Date().toISOString().replace('T', ' ').slice(0, 23);
 }
 
-const SERVICES = [
-  { name: 'Gateway',      url: 'https://api-gateway-production-6a68.up.railway.app/health'              },
-  { name: 'Auth',         url: 'https://auth-service-pi.up.railway.app/health'                          },
-  { name: 'Wallet',       url: 'https://wallet-service-production-445d.up.railway.app/health'           },
-  { name: 'Payment',      url: 'https://payment-service-production-90e5.up.railway.app/health'          },
-  { name: 'Commerce',     url: 'https://commerce-service-production.up.railway.app/health'              },
-  { name: 'Asset',        url: 'https://asset-service-production-54c4.up.railway.app/health'            },
-  { name: 'Notification', url: 'https://notification-service-production-dc81.up.railway.app/health'     },
-  { name: 'KYC',          url: 'https://kyc-service-production-ba73.up.railway.app/health'              },
-  { name: 'Identity',     url: 'https://identity-service-production-fe57.up.railway.app/health'         },
-  { name: 'Storage',      url: 'https://storage-sevice-production.up.railway.app/health'                },
-  { name: 'Realtime',     url: 'https://realtime-service-production-9630.up.railway.app/health'         },
-  { name: 'Analytics',    url: 'https://analytics-service-production-c310.up.railway.app/health'        },
-];
-
 type ServiceStatus = { name: string; status: 'checking' | 'ok' | 'error'; ms?: number };
 
 export function PiTestClient() {
@@ -72,37 +57,24 @@ export function PiTestClient() {
     }
   }, [log]);
 
-  // ── Services Health Check ─────────────────────────────────
+  // ── Services Health Check (via BFF — no direct Railway URLs in browser) ────
   const checkAllServices = useCallback(async () => {
     setCheckingAll(true);
-    setServices(SERVICES.map(s => ({ name: s.name, status: 'checking' })));
-    log('info', 'Checking all 12 services...');
-
-    await Promise.all(SERVICES.map(async (s, i) => {
+    setServices([]);
+    log('info', 'Checking services via BFF...');
+    try {
       const start = Date.now();
-      try {
-        const res = await fetch(s.url, { cache: 'no-store', signal: AbortSignal.timeout(8000) });
-        const ms  = Date.now() - start;
-        const ok  = res.ok;
-        setServices(prev => {
-          const next = [...prev];
-          next[i] = { name: s.name, status: ok ? 'ok' : 'error', ms };
-          return next;
-        });
-        log(ok ? 'success' : 'error', `${s.name}: ${ok ? '✅' : '❌'} ${res.status} (${ms}ms)`);
-      } catch (err) {
-        const ms = Date.now() - start;
-        setServices(prev => {
-          const next = [...prev];
-          next[i] = { name: s.name, status: 'error', ms };
-          return next;
-        });
-        log('error', `${s.name}: ❌ ${String(err).slice(0, 50)} (${ms}ms)`);
+      const res   = await fetch('/api/health/services', { cache: 'no-store' });
+      const data  = await res.json() as { ok: boolean; services?: ServiceStatus[] };
+      const ms    = Date.now() - start;
+      if (data.services) {
+        setServices(data.services.map(s => ({ ...s, status: s.status as ServiceStatus['status'] })));
       }
-    }));
-
+      log(data.ok ? 'success' : 'warn', `Services check done (${ms}ms)`);
+    } catch (err) {
+      log('error', `Services check failed: ${String(err)}`);
+    }
     setCheckingAll(false);
-    log('info', 'Services check complete.');
   }, [log]);
 
   // ── Auth Test ─────────────────────────────────────────────

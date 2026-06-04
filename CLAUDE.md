@@ -61,23 +61,20 @@ if (isHubNavigation() || !window.Pi || !piReady) {
 
 | ID | Severity | Description | Status |
 |----|----------|-------------|--------|
-| NEW-A | SECURITY | Railway URLs in client bundle | ✅ CLOSED — hardcoded URLs removed, BFF proxy added, NEXT_PUBLIC_ replaced with API_GATEWAY_URL in 48 routes |
-| NEW-B | BLOCKING | payment-service INTERNAL_SECRET missing | ⚠️ OPS — code correct, set `INTERNAL_SECRET` env var on Railway for all 4 services simultaneously |
-| NEW-D | CRITICAL | tec-auth-service: zero tests | ✅ CLOSED — 95% stmt / 92.98% branch / 100% lines coverage added |
-| NEW-J | FEATURE | Ecommerce Cart Phase 2+3 | ✅ CLOSED — cart implemented (useCart hook, CartDrawer, ShopHeader badge) |
+| NEW-A | SECURITY | Railway URLs in client bundle | ✅ CLOSED — hardcoded URLs removed, BFF proxy added, NEXT_PUBLIC_ replaced with API_GATEWAY_URL |
+| NEW-B | BLOCKING | payment-service INTERNAL_SECRET missing | ⚠️ OPS ONLY — set `INTERNAL_SECRET` on Railway for all 4 services simultaneously |
+| NEW-D | CRITICAL | tec-auth-service: zero tests | ✅ CLOSED — 95% stmt / 92.98% branch / 100% lines coverage |
+| NEW-J | FEATURE | Ecommerce Cart Phase 2+3 | ✅ CLOSED — useCart hook + CartDrawer + ShopHeader badge |
 
-**Only NEW-B remains — it is a Railway ops task, not a code change.**
+**Only NEW-B remains — Railway ops task, not a code change.**
 
 ### NEW-B Resolution Steps
 ```bash
 # Generate a shared secret (run once, use same value for all 4 services)
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
-# Set on Railway for:
-# - tec-api-gateway
-# - tec-auth-service
-# - tec-payment-service
-# - tec-commerce-service
+# Set on Railway for: tec-api-gateway, tec-auth-service,
+# tec-payment-service, tec-commerce-service
 # Variable name: INTERNAL_SECRET
 ```
 
@@ -108,8 +105,8 @@ tec-frontend/
     lib/                  # Client utilities
     lib-client/
       pi/
-        PiRuntime.ts      # Pi Abstraction Layer (PAL) — use this, never window.Pi directly
-        PiCircuitBreaker.ts # Client-side circuit breaker (3 failures → OPEN 60s)
+        PiRuntime.ts      # Pi Abstraction Layer (PAL) — never call window.Pi directly
+        PiCircuitBreaker.ts # Circuit breaker: 3 failures → OPEN 60s → HALF_OPEN
     lib-server/           # Server-only utilities
 packages/
   tec-core-sdk/           # Browser Pi SDK hooks

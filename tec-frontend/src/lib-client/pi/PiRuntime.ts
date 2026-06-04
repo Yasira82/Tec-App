@@ -3,7 +3,11 @@
 import { piSession }                                             from './pi-session';
 import { createU2APayment, createA2UPayment, getPaymentStatus } from './pi-payment';
 import { loginWithPi, getAccessToken, getStoredUser, isPiBrowser } from './pi-auth';
+import { piCircuitBreaker }                                      from './PiCircuitBreaker';
 import type { PiPaymentData, PiPaymentCallbacks }                from '@/types/pi.types';
+import type { PaymentResult }                                    from './pi-payment';
+
+export { piCircuitBreaker };
 
 export const PiRuntime = {
   isAvailable: (): boolean =>
@@ -25,8 +29,29 @@ export const PiRuntime = {
     window.Pi.createPayment(data, callbacks);
   },
 
-  session:           piSession,
-  createU2APayment,
+  createU2APayment: async (
+    amount:        number,
+    memo:          string,
+    metadata:      Record<string, unknown> = {},
+    internalId?:   string,
+    onDiagnostic?: Parameters<typeof createU2APayment>[4],
+  ): Promise<PaymentResult> => {
+    if (!piCircuitBreaker.canAttempt()) {
+      const { secondsTillRecovery } = piCircuitBreaker.stats();
+      const msg = secondsTillRecovery > 0
+        ? `Pi payments temporarily unavailable — try again in ${secondsTillRecovery}s`
+        : 'Pi payments temporarily unavailable — please try again';
+      return { success: false, status: 'error', amount, memo, message: msg };
+    }
+
+    const result = await createU2APayment(amount, memo, metadata, internalId, onDiagnostic);
+    if (result.success && result.status === 'completed') piCircuitBreaker.onSuccess();
+    else if (result.status === 'error')                  piCircuitBreaker.onFailure();
+    return result;
+  },
+
+  circuitBreaker:  piCircuitBreaker,
+  session:         piSession,
   createA2UPayment,
   getPaymentStatus,
   loginWithPi,

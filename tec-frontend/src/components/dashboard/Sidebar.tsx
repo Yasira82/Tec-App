@@ -25,9 +25,10 @@ const NAV_GROUPS: NavGroup[] = [
   {
     label: 'Apps',
     items: [
-      { icon: '🧾', label: 'Orders',    href: '/dashboard/orders' },
-      { icon: '💎', label: 'Assets',    href: '/dashboard/assets' },
-      { icon: '📊', label: 'Analytics', href: '/dashboard/analytics' },
+      { icon: '🧾', label: 'Orders',        href: '/dashboard/orders' },
+      { icon: '💎', label: 'Assets',        href: '/dashboard/assets' },
+      { icon: '📊', label: 'Analytics',     href: '/dashboard/analytics' },
+      { icon: '📡', label: 'Observability', href: '/dashboard/observability' },
     ],
   },
   {

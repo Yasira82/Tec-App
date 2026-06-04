@@ -29,6 +29,9 @@ describe('GET /api/bff/metrics', () => {
   beforeAll(async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
     process.env.API_GATEWAY_URL = GATEWAY;
+    // Must be set before vi.resetModules() — Vitest 4 snapshots process.env
+    // at module-import time; changes after import don't reach the module.
+    process.env.INTERNAL_SECRET = 'test-secret-key';
     vi.resetModules();
     ({ GET } = await import('@/app/api/bff/metrics/route'));
   });
@@ -36,6 +39,7 @@ describe('GET /api/bff/metrics', () => {
   afterAll(() => {
     vi.restoreAllMocks();
     delete process.env.API_GATEWAY_URL;
+    delete process.env.INTERNAL_SECRET;
   });
 
   beforeEach(() => {
@@ -85,14 +89,12 @@ describe('GET /api/bff/metrics', () => {
     });
 
     it('sends x-internal-key to gateway', async () => {
-      process.env.INTERNAL_SECRET = 'test-secret-key';
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true, json: async () => ({ payments: [] }),
       } as unknown as Response);
       await GET(makeRequest('tok'));
       const [, opts] = fetchSpy.mock.calls[0];
       expect((opts?.headers as Record<string, string>)['x-internal-key']).toBe('test-secret-key');
-      delete process.env.INTERNAL_SECRET;
     });
   });
 

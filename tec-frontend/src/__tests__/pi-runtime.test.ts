@@ -1,4 +1,24 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// vi.mock is hoisted before module-level code — use vi.hoisted() so these
+// variables are initialised before the factory functions run.
+const { mockCanAttempt, mockOnSuccess, mockOnFailure, mockStats } = vi.hoisted(() => ({
+  mockCanAttempt: vi.fn().mockReturnValue(true),
+  mockOnSuccess:  vi.fn(),
+  mockOnFailure:  vi.fn(),
+  mockStats:      vi.fn().mockReturnValue({ state: 'CLOSED', failures: 0, secondsTillRecovery: 0 }),
+}));
+
+vi.mock('@/lib-client/pi/PiCircuitBreaker', () => ({
+  piCircuitBreaker: {
+    canAttempt:   mockCanAttempt,
+    onSuccess:    mockOnSuccess,
+    onFailure:    mockOnFailure,
+    stats:        mockStats,
+    currentState: 'CLOSED',
+    reset:        vi.fn(),
+  },
+}));
 
 vi.mock('@/lib-client/pi/pi-session', () => ({
   piSession: {
@@ -23,22 +43,6 @@ vi.mock('@/lib-client/pi/pi-payment', () => ({
   createU2APayment: vi.fn(),
   createA2UPayment: vi.fn(),
   getPaymentStatus: vi.fn(),
-}));
-
-const mockCanAttempt = vi.fn().mockReturnValue(true);
-const mockOnSuccess  = vi.fn();
-const mockOnFailure  = vi.fn();
-const mockStats      = vi.fn().mockReturnValue({ state: 'CLOSED', failures: 0, secondsTillRecovery: 0 });
-
-vi.mock('@/lib-client/pi/PiCircuitBreaker', () => ({
-  piCircuitBreaker: {
-    canAttempt:   mockCanAttempt,
-    onSuccess:    mockOnSuccess,
-    onFailure:    mockOnFailure,
-    stats:        mockStats,
-    currentState: 'CLOSED',
-    reset:        vi.fn(),
-  },
 }));
 
 import { PiRuntime }        from '@/lib-client/pi/PiRuntime';
@@ -67,7 +71,7 @@ describe('PiRuntime', () => {
     });
   });
 
-  // ── isReady() ────────────────────────────────────────────
+  // ── isReady() ───────────────────────────────────────────
   describe('isReady()', () => {
     afterEach(() => {
       delete (window as any).Pi;
@@ -122,7 +126,7 @@ describe('PiRuntime', () => {
       expect(createU2APayment).toHaveBeenCalledWith(1, 'test', {}, undefined, undefined);
     });
 
-    it('passes metadata, internalId through to underlying function', async () => {
+    it('passes metadata and internalId through to underlying function', async () => {
       vi.mocked(createU2APayment).mockResolvedValue({
         success: true, status: 'completed', amount: 5, memo: 'cart',
       });

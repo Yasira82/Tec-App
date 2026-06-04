@@ -1,14 +1,18 @@
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-import { NextRequest } from 'next/server';
+import type { NextRequest } from 'next/server';
 
 const GATEWAY = 'https://test-gateway.example.com';
 
-type GETHandler = (req: NextRequest) => Promise<Response>;
-
-const makeRequest = (hasCookie = true) =>
-  new NextRequest('https://hub.tecosystem.app/api/bff/metrics', {
-    headers: hasCookie ? { Cookie: 'tec_access_token=test-token-xyz' } : {},
-  });
+// NextRequest.cookies.get() requires Next.js internal machinery unavailable in
+// happy-dom. Mock only the interface the route handler actually calls.
+const makeRequest = (token?: string): NextRequest => ({
+  cookies: {
+    get: (name: string) =>
+      name === 'tec_access_token' && token
+        ? { name, value: token }
+        : undefined,
+  },
+} as unknown as NextRequest);
 
 const NOW_MS = new Date('2026-06-04T12:00:00.000Z').getTime();
 const makePayment = (status: string, hoursAgo: number, amount: number = 1) => ({
@@ -17,8 +21,10 @@ const makePayment = (status: string, hoursAgo: number, amount: number = 1) => ({
   amount,
 });
 
+type GETFn = (req: NextRequest) => Promise<Response>;
+
 describe('GET /api/bff/metrics', () => {
-  let GET: GETHandler;
+  let GET: GETFn;
 
   beforeAll(async () => {
     vi.spyOn(Date, 'now').mockReturnValue(NOW_MS);
@@ -41,59 +47,59 @@ describe('GET /api/bff/metrics', () => {
 
   // ── auth ─────────────────────────────────────────────────
   describe('authentication', () => {
-    it('returns 401 when tec_access_token cookie is absent', async () => {
-      const res  = await GET(makeRequest(false));
+    it('returns 401 when no token cookie', async () => {
+      const res  = await GET(makeRequest());      // no token → 401
       expect(res.status).toBe(401);
       const body = await res.json();
       expect(body.error).toBe('Unauthorized');
     });
 
-    it('forwards token as Authorization: Bearer to gateway', async () => {
+    it('sends Authorization: Bearer header to gateway', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true, json: async () => ({ payments: [] }),
       } as unknown as Response);
-      await GET(makeRequest());
-      const [, options] = fetchSpy.mock.calls[0];
-      const auth = (options?.headers as Record<string, string>).Authorization;
+      await GET(makeRequest('test-token-xyz'));
+      const [, opts] = fetchSpy.mock.calls[0];
+      const auth = (opts?.headers as Record<string, string>).Authorization;
       expect(auth).toBe('Bearer test-token-xyz');
     });
   });
 
   // ── gateway errors ───────────────────────────────────────
   describe('gateway error handling', () => {
-    it('returns 502 when gateway responds with non-ok status', async () => {
+    it('returns 502 when gateway responds non-ok', async () => {
       vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: false, status: 503, json: async () => ({}),
       } as unknown as Response);
-      const res = await GET(makeRequest());
+      const res = await GET(makeRequest('tok'));
       expect(res.status).toBe(502);
     });
 
-    it('returns 502 with error detail on network failure', async () => {
+    it('returns 502 with detail on network failure', async () => {
       vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network timeout'));
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       expect(res.status).toBe(502);
       const body = await res.json();
       expect(body.error).toBe('Metrics unavailable');
       expect(body.detail).toContain('Network timeout');
     });
 
-    it('sends x-internal-key header to gateway', async () => {
+    it('sends x-internal-key to gateway', async () => {
+      process.env.INTERNAL_SECRET = 'test-secret-key';
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok: true, json: async () => ({ payments: [] }),
       } as unknown as Response);
-      process.env.INTERNAL_SECRET = 'test-secret-key';
-      await GET(makeRequest());
-      const [, options] = fetchSpy.mock.calls[0];
-      expect((options?.headers as Record<string, string>)['x-internal-key']).toBe('test-secret-key');
+      await GET(makeRequest('tok'));
+      const [, opts] = fetchSpy.mock.calls[0];
+      expect((opts?.headers as Record<string, string>)['x-internal-key']).toBe('test-secret-key');
       delete process.env.INTERNAL_SECRET;
     });
   });
 
   // ── metric calculation ───────────────────────────────────
   describe('metric calculation', () => {
-    it('returns healthy: true and successRate: null when no payments', async () => {
-      const res  = await GET(makeRequest());
+    it('returns healthy: true and successRate: null with no payments', async () => {
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.successRate).toBeNull();
       expect(body.healthy).toBe(true);
@@ -113,7 +119,7 @@ describe('GET /api/bff/metrics', () => {
           ],
         }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.total).toBe(5);
       expect(body.completed).toBe(2);
@@ -127,12 +133,12 @@ describe('GET /api/bff/metrics', () => {
         ok:   true,
         json: async () => ({
           payments: [
-            makePayment('completed', 1),   // within 24h — included
-            makePayment('completed', 25),  // 25h ago — excluded
+            makePayment('completed', 1),   // included
+            makePayment('completed', 25),  // excluded — 25h ago
           ],
         }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.total).toBe(1);
       expect(body.completed).toBe(1);
@@ -150,7 +156,7 @@ describe('GET /api/bff/metrics', () => {
           ],
         }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.successRate).toBe(75);
     });
@@ -167,7 +173,7 @@ describe('GET /api/bff/metrics', () => {
           ],
         }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.successRate).toBe(25);
       expect(body.healthy).toBe(false);
@@ -186,7 +192,7 @@ describe('GET /api/bff/metrics', () => {
           ],
         }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.successRate).toBe(80);
       expect(body.healthy).toBe(true);
@@ -199,11 +205,11 @@ describe('GET /api/bff/metrics', () => {
           payments: [
             makePayment('completed', 1, 5),
             makePayment('completed', 2, 3.5),
-            makePayment('failed',    3, 100),
+            makePayment('failed',    3, 100),  // excluded from volume
           ],
         }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.volume).toBe(8.5);
     });
@@ -213,16 +219,16 @@ describe('GET /api/bff/metrics', () => {
         ok:   true,
         json: async () => ({ data: { payments: [makePayment('completed', 1)] } }),
       } as unknown as Response);
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body.total).toBe(1);
     });
   });
 
-  // ── response shape ────────────────────────────────────────
+  // ── response shape ───────────────────────────────────────
   describe('response shape', () => {
     it('includes all required fields', async () => {
-      const res  = await GET(makeRequest());
+      const res  = await GET(makeRequest('tok'));
       const body = await res.json();
       expect(body).toMatchObject({
         window:      '24h',

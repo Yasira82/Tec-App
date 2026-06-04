@@ -57,15 +57,29 @@ if (isHubNavigation() || !window.Pi || !piReady) {
 
 ---
 
-## Active P1 Violations — Fix These First
+## P1 Violations Status
 
-| ID | Severity | Description | Est. Fix |
-|----|----------|-------------|----------|
-| NEW-A | SECURITY | Railway URLs in client bundle | 1 day |
-| NEW-B | BLOCKING | payment-service INTERNAL_SECRET missing | 30 min |
-| NEW-D | CRITICAL | tec-auth-service: zero tests | 2 days |
+| ID | Severity | Description | Status |
+|----|----------|-------------|--------|
+| NEW-A | SECURITY | Railway URLs in client bundle | ✅ CLOSED — hardcoded URLs removed, BFF proxy added, NEXT_PUBLIC_ replaced with API_GATEWAY_URL in 48 routes |
+| NEW-B | BLOCKING | payment-service INTERNAL_SECRET missing | ⚠️ OPS — code correct, set `INTERNAL_SECRET` env var on Railway for all 4 services simultaneously |
+| NEW-D | CRITICAL | tec-auth-service: zero tests | ✅ CLOSED — 95% stmt / 92.98% branch / 100% lines coverage added |
+| NEW-J | FEATURE | Ecommerce Cart Phase 2+3 | ✅ CLOSED — cart implemented (useCart hook, CartDrawer, ShopHeader badge) |
 
-**No new features until P1 violations are closed.**
+**Only NEW-B remains — it is a Railway ops task, not a code change.**
+
+### NEW-B Resolution Steps
+```bash
+# Generate a shared secret (run once, use same value for all 4 services)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+
+# Set on Railway for:
+# - tec-api-gateway
+# - tec-auth-service
+# - tec-payment-service
+# - tec-commerce-service
+# Variable name: INTERNAL_SECRET
+```
 
 ---
 
@@ -89,8 +103,13 @@ tec-frontend/
     app/                  # Next.js App Router pages
       api/                # BFF routes (server-side only)
         bff/              # Backend-for-Frontend proxies
+          metrics/        # GET /api/bff/metrics — 24h payment observability
     components/           # React components
     lib/                  # Client utilities
+    lib-client/
+      pi/
+        PiRuntime.ts      # Pi Abstraction Layer (PAL) — use this, never window.Pi directly
+        PiCircuitBreaker.ts # Client-side circuit breaker (3 failures → OPEN 60s)
     lib-server/           # Server-only utilities
 packages/
   tec-core-sdk/           # Browser Pi SDK hooks
@@ -118,6 +137,12 @@ shared/                   # Shared types and contracts
 - window.__TEC_PI_FOREIGN_SESSION: true when Pi SDK already initialized by hub
 - Pi.init() throws "already initialized" in foreign session — handle gracefully
 - Pi.authenticate() throws "not initialized" in foreign session — DO NOT call
+
+### Payment Circuit Breaker (PiCircuitBreaker)
+- State machine: CLOSED → (3 failures) → OPEN → (60s) → HALF_OPEN → (success) → CLOSED
+- `PiRuntime.createU2APayment()` checks `canAttempt()` before calling Pi SDK
+- State persisted in localStorage key `tec_pi_cb`
+- `piCircuitBreaker.reset()` available for manual recovery in admin tools
 
 ---
 

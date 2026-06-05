@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const ASSET_SERVICE = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const ASSET_SERVICE = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL!;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;

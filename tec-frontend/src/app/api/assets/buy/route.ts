@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 
 const GATEWAY = process.env.API_GATEWAY_URL
-  ?? process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL;
+  ?? process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL;
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;

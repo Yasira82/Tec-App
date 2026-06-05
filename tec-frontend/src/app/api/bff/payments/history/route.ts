@@ -2,7 +2,7 @@ import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 
 const GW = process.env.API_GATEWAY_URL
-        ?? process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+        ?? process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL
         ?? '';
 
 const QuerySchema = z.object({

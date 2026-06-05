@@ -3,7 +3,7 @@ import { randomUUID }                from 'crypto';
 import { isE2eMode }                 from '@/lib/server/e2e-mode';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL!;
 
 const REQUIRED_FIELDS = ['amount', 'currency', 'payment_method'] as const;
 

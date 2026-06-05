@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL ?? '';
 
 type ServiceResult = { name: string; status: 'ok' | 'error'; ms: number };
 

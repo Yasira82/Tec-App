@@ -76,7 +76,7 @@ describe('pi-payment', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(TEST_UUID);
-    process.env.NEXT_PUBLIC_API_GATEWAY_URL = 'https://api.example.com';
+    process.env.API_GATEWAY_URL = 'https://api.example.com';
   });
 
   // ── testPiSDK ────────────────────────────────────────────

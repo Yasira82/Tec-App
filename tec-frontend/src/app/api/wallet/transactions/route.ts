@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL!;
 
 function getWalletIdFromCookie(_req: NextRequest): string | null {
   return null; // walletId بييجي من الـ query param

@@ -43,7 +43,7 @@ describe('pi-payment extended', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.NEXT_PUBLIC_API_GATEWAY_URL = 'https://api.example.com';
+    process.env.API_GATEWAY_URL = 'https://api.example.com';
   });
 
   // ── getPaymentStatus ────────────────────────────────────

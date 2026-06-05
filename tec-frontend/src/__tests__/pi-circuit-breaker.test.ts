@@ -25,7 +25,7 @@ describe('PiCircuitBreaker', () => {
     });
   });
 
-  // ── failure accumulation ─────────────────────────────
+  // ── failure accumulation ─────────────────────────────────
   describe('failure accumulation', () => {
     it('stays CLOSED after 1 failure', () => {
       piCircuitBreaker.onFailure();
@@ -76,7 +76,7 @@ describe('PiCircuitBreaker', () => {
     });
   });
 
-  // ── OPEN → HALF_OPEN via fake timers ───────────────────────
+  // ── OPEN → HALF_OPEN via fake timers ─────────────────────
   describe('OPEN → HALF_OPEN transition', () => {
     beforeEach(() => {
       vi.useFakeTimers();
@@ -111,7 +111,7 @@ describe('PiCircuitBreaker', () => {
     });
   });
 
-  // ── reset ──────────────────────────────────────────
+  // ── reset ────────────────────────────────────────────────
   describe('reset()', () => {
     it('clears OPEN state back to CLOSED', () => {
       piCircuitBreaker.onFailure();
@@ -123,7 +123,7 @@ describe('PiCircuitBreaker', () => {
     });
   });
 
-  // ── localStorage edge cases ─────────────────────────────
+  // ── localStorage edge cases ───────────────────────────────
   describe('localStorage resilience', () => {
     it('persists OPEN state across multiple reads', () => {
       piCircuitBreaker.onFailure();

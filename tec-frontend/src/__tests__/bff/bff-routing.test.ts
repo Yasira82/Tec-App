@@ -79,11 +79,11 @@ describe('VM-012 — Dashboard uses BFF routes', () => {
     expect(RAILWAY_PATTERN.test(url)).toBe(false);
   });
 
-  it('NEXT_PUBLIC_API_GATEWAY_URL is server-side only', () => {
-    // Client components must never use NEXT_PUBLIC_API_GATEWAY_URL directly
+  it('API_GATEWAY_URL is server-side only', () => {
+    // Client components must never use API_GATEWAY_URL directly
     // This env var should only appear in BFF /api/* routes
     const clientSideUsage = typeof window !== 'undefined'
-      ? process.env.NEXT_PUBLIC_API_GATEWAY_URL
+      ? process.env.API_GATEWAY_URL
       : undefined;
     // In test environment (Node), window is undefined
     expect(clientSideUsage).toBeUndefined();

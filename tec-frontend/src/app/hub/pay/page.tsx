@@ -5,6 +5,7 @@ import { useSearchParams }                                      from 'next/navig
 import { usePiAuth }                                            from '@/lib-client/hooks/usePiAuth';
 import { createU2APayment }                                     from '@/lib-client/pi/pi-payment';
 import { piSession }                                            from '@/lib-client/pi/pi-session';
+import { PiRuntime }                                           from '@/lib-client/pi/PiRuntime';
 import { ErrorBoundary }                                        from '@/components/ErrorBoundary';
 
 const HUB_ORIGIN = 'https://hub.tecosystem.app';
@@ -57,7 +58,7 @@ function HubPayInner() {
   }, [isLoading, isAuthenticated]);
 
   const handlePay = useCallback(async () => {
-    if (!window.Pi)             { setStatus('error'); setMessage('Open in Pi Browser'); return; }
+    if (!PiRuntime.isAvailable()) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
     if (!amount || amount <= 0) { setStatus('error'); setMessage('Invalid amount');     return; }
 
     if (hasStarted.current) return;

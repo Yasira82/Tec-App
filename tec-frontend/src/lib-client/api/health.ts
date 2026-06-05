@@ -1,4 +1,4 @@
-const GATEWAY_URL = process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GATEWAY_URL = process.env.API_GATEWAY_URL ?? '';
 
 export async function checkGatewayHealth(): Promise<{ online: boolean; services?: object }> {
   try {

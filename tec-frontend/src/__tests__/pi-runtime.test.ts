@@ -55,7 +55,7 @@ describe('PiRuntime', () => {
     mockStats.mockReturnValue({ state: 'CLOSED', failures: 0, secondsTillRecovery: 0 });
   });
 
-  // ── isAvailable() ──────────────────────────────────────────
+  // ── isAvailable() ────────────────────────────────────────
   describe('isAvailable()', () => {
     it('returns false when window.Pi is not defined', () => {
       const orig = (window as any).Pi;
@@ -97,7 +97,7 @@ describe('PiRuntime', () => {
     });
   });
 
-  // ── createU2APayment — circuit breaker integration ─────────
+  // ── createU2APayment — circuit breaker integration ───────
   describe('createU2APayment()', () => {
     it('returns error immediately when circuit is OPEN', async () => {
       mockCanAttempt.mockReturnValue(false);

@@ -10,7 +10,7 @@ const fetchWallet = async (token: string, userId: string, requestId: string, gat
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
-    const gatewayUrl = process.env.NEXT_PUBLIC_API_GATEWAY_URL!;
+    const gatewayUrl = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL!;
     let token        = req.cookies.get('tec_access_token')?.value ?? '';
 
     let res = await fetchWallet(token, ctx.userId, ctx.requestId, gatewayUrl);

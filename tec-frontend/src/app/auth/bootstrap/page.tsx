@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useEffect, useRef } from 'react';
 import { usePiSdkReady }     from '@/lib-client/hooks/usePiSdkReady';
 import { usePiAuth }         from '@/lib-client/hooks/usePiAuth';

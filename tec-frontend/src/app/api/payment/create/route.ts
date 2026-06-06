@@ -3,7 +3,7 @@ import { randomUUID }                from 'crypto';
 import { isE2eMode }                 from '@/lib/server/e2e-mode';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 const REQUIRED_FIELDS = ['amount', 'currency', 'payment_method'] as const;
 
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       if (newToken) {
         console.log('[create] Token refreshed — retrying...');
         authHeader = `Bearer ${newToken}`;
-        res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
+        res = await fetchWithTimeout(`${GATEWAY}/api/payment/create`, {
           method:  'POST',
           headers: {
             'Content-Type':    'application/json',

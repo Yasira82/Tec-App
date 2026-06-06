@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY   = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL ?? '';
+const GATEWAY   = process.env.API_GATEWAY_URL! ?? '';
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 interface RawPayment {

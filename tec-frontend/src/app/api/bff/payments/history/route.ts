@@ -1,8 +1,7 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 
-const GW = process.env.API_GATEWAY_URL!
-        ?? '';
+const GW = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 const QuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(10),

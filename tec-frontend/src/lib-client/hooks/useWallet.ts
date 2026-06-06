@@ -112,7 +112,7 @@ export function useWallet(): UseWalletReturn {
 
     try {
       // ── Balance + walletId ──────────────────────────────
-      const balanceRes = await fetch(`/api/wallet/balance?userId=${userId}`, {
+      const balanceRes = await fetch('/api/bff/wallet/balance', {
         credentials: 'include',
         headers:     { Authorization: `Bearer ${token}` },
         signal:      ctrl.signal,

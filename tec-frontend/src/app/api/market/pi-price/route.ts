@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL!;
+const GATEWAY = process.env.API_GATEWAY_URL!;
 
 // ✅ Simple in-memory rate limiter
 const rateMap = new Map<string, { count: number; reset: number }>();

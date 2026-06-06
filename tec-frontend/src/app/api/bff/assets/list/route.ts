@@ -9,7 +9,7 @@ interface RawAsset {
   createdAt: string;
 }
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.API_GATEWAY_URL ?? '';
+const GATEWAY = process.env.API_GATEWAY_URL! ?? '';
 
 export const GET = createHandler({
   requireAuth: true,

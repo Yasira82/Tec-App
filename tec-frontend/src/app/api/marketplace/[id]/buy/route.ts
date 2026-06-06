@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
+const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 export async function POST(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   // ✅ P2-1: auth إلزامي — مش اختياري

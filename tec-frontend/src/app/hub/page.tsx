@@ -260,7 +260,7 @@ function HubPageInner() {
         piUsername={user?.piUsername ?? ''}
         time={time}
         notifCount={totalNotif}
-        onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/dashboard/notifications'); }}
+        onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/hub/notifications'); }}
       />
       <HubWalletCard balance={balance} piPrice={piPrice} />
       <HubCarousel
@@ -283,7 +283,7 @@ function HubPageInner() {
           { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
           { icon: '💎', label: 'Assets',   active: false, action: goToAssets },
           { icon: '🛒', label: 'Commerce', active: false, action: goToCommerce },
-          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
+          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
         ].map(item => (
           <button key={item.label} className="tec-nav-btn" onClick={item.action} aria-label={item.label} aria-current={item.active ? 'page' : undefined}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>

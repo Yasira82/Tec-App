@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 const PROTECTED_ROUTES  = ['/hub', '/dashboard', '/profile', '/settings'];
-const PUBLIC_HUB_ROUTES = ['/hub/pay'];
+const PUBLIC_HUB_ROUTES: string[] = [];
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 
 const CSRF_PROTECTED = [

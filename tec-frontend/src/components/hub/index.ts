@@ -4,3 +4,4 @@ export { HubCarousel }    from './HubCarousel';
 export { HubPayActions }  from './HubPayActions';
 export { HubAppsGrid }    from './HubAppsGrid';
 export { HubComingSoon }  from './HubComingSoon';
+export { HubSubShell }    from './HubSubShell';

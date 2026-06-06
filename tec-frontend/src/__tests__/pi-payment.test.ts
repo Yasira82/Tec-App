@@ -143,7 +143,16 @@ describe('pi-payment', () => {
 
   // ── createU2APayment ──────────────────────────────────────
   describe('createU2APayment', () => {
+    const mockCreateSuccess = () =>
+      vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+        const u = String(url);
+        if (u.includes('payment/create'))
+          return { ok: true, status: 200, json: async () => ({ data: { id: 'internal-id' } }) } as Response;
+        return { ok: false, status: 404, json: async () => ({}) } as Response;
+      });
+
     it('returns error when SDK fails', async () => {
+      mockCreateSuccess();
       const mockCreatePayment = vi.fn((_data: unknown, callbacks: Record<string, (e: Error) => void>) => {
         callbacks.onError(new Error('Pi SDK unavailable'));
       });
@@ -152,6 +161,7 @@ describe('pi-payment', () => {
     });
 
     it('calls Pi.createPayment after SDK create', async () => {
+      mockCreateSuccess();
       const mock = setupWindow();
       const p = createU2APayment(1, 'Test');
       await vi.waitFor(() => expect(mock).toHaveBeenCalled());

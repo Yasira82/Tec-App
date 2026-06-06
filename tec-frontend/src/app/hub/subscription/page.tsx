@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useEffect, useCallback }  from 'react';
-import { getAccessToken }                    from '@/lib-client/pi/pi-auth';
-import { DashboardShell, DashboardCard }     from '@/components/dashboard';
+import { useState, useEffect, useCallback } from 'react';
+import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
+import { HubSubShell }                      from '@/components/hub';
+import { DashboardCard }                    from '@/components/dashboard';
 
-// ── Types ──────────────────────────────────────────────────────
 interface Plan {
   id:       string;
   name:     string;
@@ -22,7 +22,6 @@ interface Subscription {
   planDetails:        Plan;
 }
 
-// ── Plan config ────────────────────────────────────────────────
 const PLAN_CONFIG: Record<string, {
   color: string; bg: string; border: string; icon: string; popular?: boolean;
 }> = {
@@ -31,13 +30,11 @@ const PLAN_CONFIG: Record<string, {
   ENTERPRISE: { color: '#7eb8f7', bg: 'rgba(126,184,247,0.08)', border: 'rgba(126,184,247,0.25)', icon: '◉' },
 };
 
-// ── Current Plan Card ──────────────────────────────────────────
 function CurrentPlanCard({ sub, onCancel, cancelling }: {
   sub: Subscription; onCancel: () => void; cancelling: boolean;
 }) {
-  const cfg     = PLAN_CONFIG[sub.plan] ?? PLAN_CONFIG.FREE;
+  const cfg      = PLAN_CONFIG[sub.plan] ?? PLAN_CONFIG.FREE;
   const isActive = sub.status === 'ACTIVE';
-
   return (
     <div style={{
       padding: 'var(--sp-5)', marginBottom: 'var(--sp-5)',
@@ -45,7 +42,6 @@ function CurrentPlanCard({ sub, onCancel, cancelling }: {
       borderRadius: 'var(--radius-xl)', position: 'relative', overflow: 'hidden',
     }}>
       <div style={{ position: 'absolute', top: 0, right: 0, width: 120, height: 120, borderRadius: '50%', background: `${cfg.color}08`, transform: 'translate(30%,-30%)', pointerEvents: 'none' }} />
-
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--sp-4)' }}>
         <div>
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 6 }}>Current Plan</div>
@@ -63,20 +59,17 @@ function CurrentPlanCard({ sub, onCancel, cancelling }: {
           )}
         </div>
       </div>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: sub.current_period_end ? 'var(--sp-3)' : 0 }}>
         <span style={{ width: 7, height: 7, borderRadius: '50%', background: isActive ? '#10b981' : '#ef4444', display: 'inline-block' }} />
         <span style={{ fontSize: 'var(--text-sm)', color: isActive ? '#10b981' : '#ef4444', fontWeight: 600 }}>
           {isActive ? 'Active' : sub.status}
         </span>
       </div>
-
       {sub.current_period_end && (
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-4)' }}>
           Renews {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
         </div>
       )}
-
       {sub.plan !== 'FREE' && isActive && (
         <button onClick={onCancel} disabled={cancelling}
           style={{ padding: '7px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer', opacity: cancelling ? 0.6 : 1 }}>
@@ -87,14 +80,12 @@ function CurrentPlanCard({ sub, onCancel, cancelling }: {
   );
 }
 
-// ── Plan Card ──────────────────────────────────────────────────
 function PlanCard({ plan, isCurrent, isUpgrade, paying, onSubscribe }: {
   plan: Plan; isCurrent: boolean; isUpgrade: boolean;
   paying: string | null; onSubscribe: (id: string) => void;
 }) {
   const cfg       = PLAN_CONFIG[plan.id] ?? PLAN_CONFIG.FREE;
   const isLoading = paying === plan.id;
-
   return (
     <div style={{
       padding: 'var(--sp-5)', position: 'relative',
@@ -113,8 +104,6 @@ function PlanCard({ plan, isCurrent, isUpgrade, paying, onSubscribe }: {
           CURRENT
         </div>
       )}
-
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 'var(--sp-4)' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -129,8 +118,6 @@ function PlanCard({ plan, isCurrent, isUpgrade, paying, onSubscribe }: {
           </div>
         </div>
       </div>
-
-      {/* Features */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 'var(--sp-4)' }}>
         {plan.features.map((f, i) => (
           <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -139,8 +126,6 @@ function PlanCard({ plan, isCurrent, isUpgrade, paying, onSubscribe }: {
           </div>
         ))}
       </div>
-
-      {/* CTA */}
       {!isCurrent && plan.id !== 'FREE' && (
         <button onClick={() => onSubscribe(plan.id)} disabled={!!paying}
           style={{
@@ -163,22 +148,12 @@ function PlanCard({ plan, isCurrent, isUpgrade, paying, onSubscribe }: {
 }
 
 const STATIC_PLANS: Plan[] = [
-  {
-    id: 'FREE', name: 'Free', price: 0, currency: 'PI', duration: 0,
-    features: ['Up to 5 assets', 'Basic wallet', 'Community access'],
-  },
-  {
-    id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30,
-    features: ['Unlimited assets', 'Advanced wallet', 'Priority support', 'Analytics dashboard', 'Commerce store'],
-  },
-  {
-    id: 'ENTERPRISE', name: 'Enterprise', price: 50, currency: 'PI', duration: 30,
-    features: ['Everything in Pro', 'Custom domain', 'API access', 'Dedicated support', 'White-label options'],
-  },
+  { id: 'FREE',       name: 'Free',       price: 0,  currency: 'PI', duration: 0,  features: ['Up to 5 assets', 'Basic wallet', 'Community access'] },
+  { id: 'PRO',        name: 'Pro',        price: 10, currency: 'PI', duration: 30, features: ['Unlimited assets', 'Advanced wallet', 'Priority support', 'Analytics dashboard', 'Commerce store'] },
+  { id: 'ENTERPRISE', name: 'Enterprise', price: 50, currency: 'PI', duration: 30, features: ['Everything in Pro', 'Custom domain', 'API access', 'Dedicated support', 'White-label options'] },
 ];
 
-// ── Page ───────────────────────────────────────────────────────
-export default function SubscriptionPage() {
+export default function HubSubscriptionPage() {
   const [plans,      setPlans]      = useState<Plan[]>([]);
   const [sub,        setSub]        = useState<Subscription | null>(null);
   const [loading,    setLoading]    = useState(true);
@@ -188,25 +163,22 @@ export default function SubscriptionPage() {
   const [success,    setSuccess]    = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-  setLoading(true);
-  const token = getAccessToken();
-  setPlans(STATIC_PLANS);
-  try {
-    const subRes = await fetch('/api/subscriptions?endpoint=status', {
-      credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
-    if (subRes.ok) {
-      const subData = await subRes.json();
-      const s = subData?.data?.subscription ?? subData?.data ?? subData;
-      setSub(s?.plan ? s : null);
-    }
-  } catch {
-    // plans هتظهر على طول
-  } finally {
-    setLoading(false);
-  }
-}, []);
+    setLoading(true);
+    const token = getAccessToken();
+    setPlans(STATIC_PLANS);
+    try {
+      const subRes = await fetch('/api/subscriptions?endpoint=status', {
+        credentials: 'include',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (subRes.ok) {
+        const subData = await subRes.json();
+        const s = subData?.data?.subscription ?? subData?.data ?? subData;
+        setSub(s?.plan ? s : null);
+      }
+    } catch { /* plans show regardless */ }
+    finally { setLoading(false); }
+  }, []);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
@@ -246,7 +218,6 @@ export default function SubscriptionPage() {
   };
 
   const currentPlan = sub?.plan ?? 'FREE';
-
   const badge = currentPlan === 'ENTERPRISE'
     ? { text: 'ENTERPRISE', color: 'blue'  as const }
     : currentPlan === 'PRO'
@@ -254,19 +225,18 @@ export default function SubscriptionPage() {
     : { text: 'FREE',       color: 'blue'  as const };
 
   return (
-    <DashboardShell
+    <HubSubShell
       title="Subscription"
       subtitle="Manage your TEC plan"
       badge={badge}
       loading={loading}
       actions={
         <button onClick={fetchData}
-          style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
-          ↻ Refresh
+          style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', background: 'rgba(255,255,255,0.06)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+          ↻
         </button>
       }
     >
-      {/* ── Alerts ────────────────────────────── */}
       {error && (
         <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
           ⚠️ {error}
@@ -278,10 +248,8 @@ export default function SubscriptionPage() {
         </div>
       )}
 
-      {/* ── Current Plan ──────────────────────── */}
       {sub && <CurrentPlanCard sub={sub} onCancel={handleCancel} cancelling={cancelling} />}
 
-      {/* ── Plans ─────────────────────────────── */}
       <DashboardCard title="Available Plans" subtitle={`${plans.length} plans`}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-4)' }}>
           {plans.map(plan => (
@@ -296,6 +264,6 @@ export default function SubscriptionPage() {
           ))}
         </div>
       </DashboardCard>
-    </DashboardShell>
+    </HubSubShell>
   );
-          }
+}

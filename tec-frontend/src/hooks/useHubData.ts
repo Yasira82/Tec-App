@@ -23,10 +23,7 @@ export function useHubData(userId?: string): HubData {
   const refreshBalance = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`/api/wallet/balance?userId=${userId}`, {
-        credentials: 'include',
-        headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
-      });
+      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setBalance(`${Number(d.balance).toFixed(2)}`); }
     } catch {}
   }, [userId]);

@@ -3,7 +3,7 @@ import { randomUUID }                from 'crypto';
 import { isE2eMode }                 from '@/lib/server/e2e-mode';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? '';
+const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 function getUserIdFromCookie(req: NextRequest): string | null {
   try {
@@ -52,11 +52,12 @@ export async function POST(req: NextRequest) {
       if (isE2eMode()) {
         return NextResponse.json({ success: true, data: { payment_id, status: 'approved' } });
       }
-      let res = await fetchWithTimeout(`${GATEWAY}/api/payment/approve`, {
+      let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
         method: 'POST',
         headers: {
           'Content-Type':    'application/json',
           Authorization:     authHeader,
+          'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
           'Idempotency-Key': randomUUID(),
         },
         body: JSON.stringify({ payment_id, pi_payment_id }),
@@ -65,11 +66,12 @@ export async function POST(req: NextRequest) {
         const t = await refreshToken(req);
         if (t) {
           authHeader = `Bearer ${t}`;
-          res = await fetchWithTimeout(`${GATEWAY}/api/payment/approve`, {
+          res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
             method: 'POST',
             headers: {
               'Content-Type':    'application/json',
               Authorization:     authHeader,
+              'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
               'Idempotency-Key': randomUUID(),
             },
             body: JSON.stringify({ payment_id, pi_payment_id }),
@@ -95,11 +97,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Step 1: Create
-    let createRes = await fetchWithTimeout(`${GATEWAY}/api/payment/create`, {
+    let createRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',
         Authorization:     authHeader,
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
         'Idempotency-Key': `create-${piId}`,
       },
       body: JSON.stringify({
@@ -115,11 +118,12 @@ export async function POST(req: NextRequest) {
       const t = await refreshToken(req);
       if (t) {
         authHeader = `Bearer ${t}`;
-        createRes = await fetchWithTimeout(`${GATEWAY}/api/payment/create`, {
+        createRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
           method: 'POST',
           headers: {
             'Content-Type':    'application/json',
             Authorization:     authHeader,
+            'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
             'Idempotency-Key': `create-${piId}`,
           },
           body: JSON.stringify({
@@ -141,11 +145,12 @@ export async function POST(req: NextRequest) {
     if (!dbPaymentId) return NextResponse.json({ error: 'Failed to get payment ID' }, { status: 500 });
 
     // Step 2: Approve
-    const approveRes = await fetchWithTimeout(`${GATEWAY}/api/payment/approve`, {
+    const approveRes = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/approve`, {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',
         Authorization:     authHeader,
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
         'Idempotency-Key': `approve-${piId}`,
       },
       body: JSON.stringify({ payment_id: dbPaymentId, pi_payment_id: piId }),

@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       if (newToken) {
         console.log('[create] Token refreshed — retrying...');
         authHeader = `Bearer ${newToken}`;
-        res = await fetchWithTimeout(`${GATEWAY}/api/payment/create`, {
+        res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
           method:  'POST',
           headers: {
             'Content-Type':    'application/json',

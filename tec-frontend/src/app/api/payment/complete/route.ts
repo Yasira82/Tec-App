@@ -29,7 +29,7 @@ if (!authHeader?.startsWith('Bearer ')) {
     const body           = await req.json();
     const idempotencyKey = randomUUID();
 
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payment/complete`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/complete`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',

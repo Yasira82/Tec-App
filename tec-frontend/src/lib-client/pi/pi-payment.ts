@@ -126,12 +126,25 @@ export const createU2APayment = async (
           internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? undefined;
           onDiagnostic?.('info', 'Backend record created', { internalId });
         } else {
-          onDiagnostic?.('warn', `Backend create returned ${res.status}`);
+          const errStatus = res.status;
+          onDiagnostic?.('error', `Backend create returned ${errStatus} — aborting Pi call`);
+          const errMsg = errStatus === 401
+            ? 'Session expired — please log out and log in again, then retry.'
+            : `Payment setup failed (${errStatus}). Please try again.`;
+          throw new Error(errMsg);
         }
-      } catch {
-        onDiagnostic?.('warn', 'Backend create failed');
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : 'Backend create failed';
+        onDiagnostic?.('error', `Backend create failed: ${msg}`);
+        throw new Error(msg);
       }
     }
+  }
+
+  // C-76 ownership check: must have a valid internal payment record before calling Pi.
+  // If internalId is missing here, Pi was never called — safe to throw.
+  if (!internalId) {
+    throw new Error('Payment setup failed — please try again.');
   }
 
   const sandbox = (window as { __PI_SANDBOX?: boolean }).__PI_SANDBOX === true;

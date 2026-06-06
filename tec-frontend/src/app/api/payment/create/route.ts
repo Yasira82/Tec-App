@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
     const idempotencyKey = randomUUID();
 
     // ✅ URL موحد مع approve route
-    let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
+    let res = await fetchWithTimeout(`${GATEWAY}/api/payment/create`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',
@@ -133,7 +133,7 @@ export async function POST(req: NextRequest) {
       if (newToken) {
         console.log('[create] Token refreshed — retrying...');
         authHeader = `Bearer ${newToken}`;
-        res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
+        res = await fetchWithTimeout(`${GATEWAY}/api/payment/create`, {
           method:  'POST',
           headers: {
             'Content-Type':    'application/json',

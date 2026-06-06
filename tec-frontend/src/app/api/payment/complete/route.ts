@@ -3,7 +3,7 @@ import { randomUUID } from 'crypto';
 import { isE2eMode } from '@/lib/server/e2e-mode';
 import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
 
-const GATEWAY = process.env.API_GATEWAY_URL ?? '';
+const GATEWAY = process.env.API_GATEWAY_URL ?? process.env.NEXT_PUBLIC_API_GATEWAY_URL ?? '';
 
 export async function POST(req: NextRequest) {
   const authHeader =
@@ -29,11 +29,12 @@ if (!authHeader?.startsWith('Bearer ')) {
     const body           = await req.json();
     const idempotencyKey = randomUUID();
 
-    const res = await fetchWithTimeout(`${GATEWAY}/api/payment/complete`, {
+    const res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/complete`, {
       method:  'POST',
       headers: {
         'Content-Type':    'application/json',
         Authorization:     authHeader,
+        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
         'Idempotency-Key': idempotencyKey,
       },
       body: JSON.stringify(body),

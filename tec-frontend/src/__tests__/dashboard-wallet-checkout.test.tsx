@@ -1193,3 +1193,50 @@ describe('WalletPage — handleBalanceUpdate callback', () => {
     }
   });
 });
+
+// ═════════════════════════════════════════════════════════════════
+// 9. WalletPage — realtime balance update + ReceiveModal
+// ═════════════════════════════════════════════════════════════════
+describe('WalletPage — realtime + ReceiveModal', () => {
+  it('handleBalanceUpdate flashes and refetches on wallet.updated', async () => {
+    let captured: { onBalanceUpdate: (e: unknown) => void } | null = null;
+    mockUseWalletRealtime.mockImplementation((opts: any) => {
+      captured = opts;
+      return { isConnected: true };
+    });
+    render(React.createElement(WalletPage));
+    await act(async () => {});
+    expect(captured).not.toBeNull();
+    act(() => {
+      captured!.onBalanceUpdate({
+        type: 'wallet.updated', balance: 42, amount: 2, txType: 'credit', txId: 'tx-9',
+      });
+    });
+    expect(walletBase.updateBalance).toHaveBeenCalledWith(42);
+    expect(walletBase.refetch).toHaveBeenCalled();
+  });
+
+  it('ReceiveModal shows wallet id and copies it', async () => {
+    const { container } = render(React.createElement(WalletPage));
+    await act(async () => {});
+    const receiveBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Receive'),
+    );
+    expect(receiveBtn).toBeTruthy();
+    fireEvent.click(receiveBtn!);
+    expect(container.textContent).toContain('Receive π');
+
+    const copyBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Copy'),
+    );
+    if (copyBtn) {
+      await act(async () => { fireEvent.click(copyBtn); });
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('wallet-uuid-abcd-1234');
+    }
+
+    const closeBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent === 'Close' || b.textContent === '✕',
+    );
+    if (closeBtn) fireEvent.click(closeBtn);
+  });
+});

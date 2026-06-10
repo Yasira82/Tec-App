@@ -78,6 +78,20 @@ describe('usePiPayment errorType classification', () => {
     expect(result.current.errorType).toBe('sdk_error');
   });
 
+  it('testSDK updates sdkAvailable from testPiSDK result', async () => {
+    mockTestPiSDK.mockReturnValue(true);
+    const { result } = renderHook(() => usePiPayment());
+    let available: boolean | undefined;
+    act(() => { available = result.current.testSDK(); });
+    expect(available).toBe(true);
+    expect(result.current.sdkAvailable).toBe(true);
+
+    mockTestPiSDK.mockReturnValue(false);
+    act(() => { available = result.current.testSDK(); });
+    expect(available).toBe(false);
+    expect(result.current.sdkAvailable).toBe(false);
+  });
+
   it('resetPayment clears error state after a failure', async () => {
     mockCreateU2APayment.mockRejectedValue(new Error('boom'));
     const { result } = renderHook(() => usePiPayment());

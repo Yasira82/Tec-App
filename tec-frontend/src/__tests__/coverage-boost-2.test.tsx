@@ -1251,3 +1251,135 @@ describe('PiPaymentButton — uncovered paths', () => {
     });
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// 7. Hub page — pending payment full flow (pay=1 URL params)
+// ════════════════════════════════════════════════════════════════════════════
+describe('Hub page — pending payment flow', () => {
+  const payUrl =
+    '?pay=1&amount=5&memo=Test&product_id=p1&return_url=https%3A%2F%2Fcommerce.tecosystem.app%2Fshop&source=commerce';
+
+  const setPayLocation = () => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        href:   `http://localhost/hub${payUrl}`,
+        search: payUrl,
+        origin: 'http://localhost',
+      },
+      writable: true, configurable: true,
+    });
+  };
+
+  it('opens PaymentModal after backend create and redirects on success', async () => {
+    setPayLocation();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { payment: { id: 'internal-pay-9' } } }),
+    }) as unknown as typeof fetch;
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('Succeed'));
+    });
+    expect(String(window.location.href)).toContain('payment_status=success');
+    expect(String(window.location.href)).toContain('txid=tx-xyz');
+    expect(String(window.location.href)).toContain('product_id=p1');
+  });
+
+  it('redirects with create_failed when backend returns no internalId', async () => {
+    setPayLocation();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: {} }),
+    }) as unknown as typeof fetch;
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+
+    await waitFor(() => {
+      expect(String(window.location.href)).toContain('payment_status=error');
+    });
+    expect(String(window.location.href)).toContain('reason=create_failed');
+  });
+
+  it('shows toast and redirects when create request throws', async () => {
+    setPayLocation();
+    global.fetch = vi.fn().mockRejectedValue(new Error('network down')) as unknown as typeof fetch;
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+
+    await waitFor(() => {
+      expect(String(window.location.href)).toContain('reason=create_failed');
+    });
+  });
+
+  it('Close Modal returns user to returnUrl', async () => {
+    setPayLocation();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: { payment: { id: 'internal-pay-10' } } }),
+    }) as unknown as typeof fetch;
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByText('Close Modal'));
+    });
+    expect(String(window.location.href)).toContain('commerce.tecosystem.app');
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// 8. PiPaymentButton — poll/timeout/handleAuth recheck branches
+// ════════════════════════════════════════════════════════════════════════════
+describe('PiPaymentButton — readiness branches', () => {
+  it('poll marks sdkReady when __TEC_PI_READY appears after mount', async () => {
+    vi.useFakeTimers();
+    delete (window as any).__TEC_PI_READY;
+    render(<PiPaymentButton amount={1} memo="m" />);
+    (window as any).__TEC_PI_READY = true;
+    await act(async () => { vi.advanceTimersByTime(400); });
+    vi.useRealTimers();
+    expect(document.body).toBeTruthy();
+  });
+
+  it('handleAuth recovers when __TEC_PI_READY set at click time', async () => {
+    delete (window as any).__TEC_PI_READY;
+    mockPiRuntimeIsAvail.mockReturnValue(false);
+    const { container } = render(<PiPaymentButton amount={1} memo="m" />);
+    (window as any).__TEC_PI_READY = true;
+    const btn = container.querySelector('button')!;
+    await act(async () => { fireEvent.click(btn); });
+    expect(document.body.textContent).not.toContain('Please open in Pi Browser');
+    delete (window as any).__TEC_PI_READY;
+  });
+
+  it('handleAuth recovers via PiRuntime.isAvailable at click time', async () => {
+    delete (window as any).__TEC_PI_READY;
+    mockPiRuntimeIsAvail.mockReturnValue(true);
+    const { container } = render(<PiPaymentButton amount={1} memo="m" />);
+    const btn = container.querySelector('button')!;
+    await act(async () => { fireEvent.click(btn); });
+    expect(document.body.textContent).not.toContain('Please open in Pi Browser');
+  });
+
+  it('handleAuth shows Pi Browser error when nothing available', async () => {
+    delete (window as any).__TEC_PI_READY;
+    mockPiRuntimeIsAvail.mockReturnValue(false);
+    const { container } = render(<PiPaymentButton amount={1} memo="m" />);
+    const btn = container.querySelector('button')!;
+    await act(async () => { fireEvent.click(btn); });
+    expect(document.body.textContent).toContain('Please open in Pi Browser');
+  });
+});

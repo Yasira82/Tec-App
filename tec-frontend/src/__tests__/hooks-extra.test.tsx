@@ -112,6 +112,37 @@ describe('usePiBrowser', () => {
     });
     expect(result.current.isReady).toBe(true);
   });
+
+  it('returns isPiBrowser=true when UA contains PiBrowser', async () => {
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'PiBrowser/1.0 Mozilla/5.0',
+      writable: true, configurable: true,
+    });
+    const { usePiBrowser } = await import('@/lib-client/hooks/usePiBrowser');
+    const { result } = renderHook(() => usePiBrowser());
+    // UA matches Pi Browser pattern — waits for tec-pi-ready or tec-pi-error
+    act(() => { window.dispatchEvent(new CustomEvent('tec-pi-ready')); });
+    expect(result.current.isPiBrowser).toBe(true);
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0',
+      writable: true, configurable: true,
+    });
+  });
+
+  it('handles tec-pi-error in PiBrowser UA path', async () => {
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'MinePI/2.0 Browser',
+      writable: true, configurable: true,
+    });
+    const { usePiBrowser } = await import('@/lib-client/hooks/usePiBrowser');
+    const { result } = renderHook(() => usePiBrowser());
+    act(() => { window.dispatchEvent(new CustomEvent('tec-pi-error')); });
+    expect(result.current.isReady).toBe(true);
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0',
+      writable: true, configurable: true,
+    });
+  });
 });
 
 // ── useWallet ─────────────────────────────────────────────────────
@@ -367,5 +398,44 @@ describe('usePiSdkReady', () => {
       window.dispatchEvent(new Event('tec:pi:auth:success'));
     });
     expect(result.current.authReady).toBe(true);
+  });
+
+  it('handles tec:pi:auth:failed event', async () => {
+    const { usePiSdkReady } = await import('@/lib-client/hooks/usePiSdkReady');
+    const { result } = renderHook(() => usePiSdkReady());
+    act(() => {
+      window.dispatchEvent(new CustomEvent('tec:pi:auth:failed', { detail: { error: 'SCOPE_INVALID' } }));
+    });
+    expect(result.current.authReady).toBe(false);
+    expect(result.current.lastError).toBe('SCOPE_INVALID');
+  });
+
+  it('handles tec:pi:scope:lost event by re-authing', async () => {
+    const { piSession } = await import('@/lib-client/pi/pi-session');
+    vi.mocked(piSession.ensureAuth).mockResolvedValue(true);
+    (window as any).Pi = { init: vi.fn() };
+    const { usePiSdkReady } = await import('@/lib-client/hooks/usePiSdkReady');
+    const { result } = renderHook(() => usePiSdkReady());
+    await act(async () => {
+      window.dispatchEvent(new Event('tec:pi:scope:lost'));
+    });
+    await act(async () => {});
+    expect(piSession.ensureAuth).toHaveBeenCalled();
+  });
+
+  it('handles visibilitychange when page becomes visible', async () => {
+    const { piSession } = await import('@/lib-client/pi/pi-session');
+    vi.mocked(piSession.ensureAuth).mockResolvedValue(true);
+    (window as any).Pi = { init: vi.fn() };
+    (window as any).__TEC_PI_READY = true;
+    const { usePiSdkReady } = await import('@/lib-client/hooks/usePiSdkReady');
+    renderHook(() => usePiSdkReady());
+    await act(async () => {
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+    await act(async () => {});
+    // initSession was called; piReady should be true
+    expect(piSession.ensureAuth).toHaveBeenCalled();
   });
 });

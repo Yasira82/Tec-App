@@ -5,6 +5,28 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
+// Unmock sdk so we can test the real implementation (vitest.setup.ts mocks it globally)
+vi.unmock('@/lib/sdk');
+
+vi.mock('@/lib-client/pi/pi-auth', () => ({
+  getAccessToken: vi.fn(() => null),
+  getStoredUser:  vi.fn(() => null),
+  getCsrfToken:   vi.fn(() => ''),
+  ssoRedirect:    vi.fn(),
+  loginWithPi:    vi.fn(),
+  isPiBrowser:    vi.fn(() => false),
+  logout:         vi.fn(),
+}));
+
+vi.mock('@yasser172/tec-sdk', () => ({
+  TecSdk: class TecSdk {
+    constructor(_opts: any) {}
+    payment = {};
+    auth    = {};
+    commerce= {};
+  },
+}));
+
 // ── tec-ai-system-prompt (import alone covers the file) ──────────
 describe('tec-ai-system-prompt', () => {
   it('exports TEC_SYSTEM_PROMPT string', async () => {
@@ -212,5 +234,125 @@ describe('piClient', () => {
     (window as any).Pi = undefined;
     const result = initPi({ version: '2.0', sandbox: true });
     expect(result).toBeNull();
+  });
+
+  it('initPi calls Pi.init and returns Pi when window.Pi exists', async () => {
+    const mockInit = vi.fn();
+    (window as any).Pi = { init: mockInit, createPayment: vi.fn() };
+    const { initPi } = await import('@/lib-client/pi/piClient');
+    const result = initPi({ version: '2.0', sandbox: true });
+    expect(result).toBeDefined();
+    expect(mockInit).toHaveBeenCalledWith({ version: '2.0', sandbox: true });
+    (window as any).Pi = undefined;
+  });
+
+  it('initPi uses default options when none provided', async () => {
+    const mockInit = vi.fn();
+    (window as any).Pi = { init: mockInit };
+    const { initPi } = await import('@/lib-client/pi/piClient');
+    initPi();
+    expect(mockInit).toHaveBeenCalledWith({ version: '2.0', sandbox: true });
+    (window as any).Pi = undefined;
+  });
+});
+
+// ── sdk (identitySdk + getToken + getUserId) ──────────────────────
+describe('sdk', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('exports sdk instance', async () => {
+    const mod = await import('@/lib/sdk');
+    expect(mod.sdk).toBeDefined();
+    expect(mod.default).toBeDefined();
+  });
+
+  it('getToken returns access token from cookie', async () => {
+    const { getStoredUser, getAccessToken } = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(getAccessToken).mockReturnValue('my-token');
+    const { getToken } = await import('@/lib/sdk');
+    expect(getToken()).toBe('my-token');
+  });
+
+  it('getToken returns null when no token', async () => {
+    const { getAccessToken } = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(getAccessToken).mockReturnValue(null);
+    const { getToken } = await import('@/lib/sdk');
+    expect(getToken()).toBeNull();
+  });
+
+  it('getUserId returns user id from stored user', async () => {
+    const { getStoredUser } = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(getStoredUser).mockReturnValue({ id: 'user-123', username: 'alice' } as any);
+    const { getUserId } = await import('@/lib/sdk');
+    expect(getUserId()).toBe('user-123');
+  });
+
+  it('getUserId falls back to uid when no id', async () => {
+    const { getStoredUser } = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(getStoredUser).mockReturnValue({ uid: 'uid-456', username: 'bob' } as any);
+    const { getUserId } = await import('@/lib/sdk');
+    expect(getUserId()).toBe('uid-456');
+  });
+
+  it('getUserId returns null when no stored user', async () => {
+    const { getStoredUser } = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(getStoredUser).mockReturnValue(null);
+    const { getUserId } = await import('@/lib/sdk');
+    expect(getUserId()).toBeNull();
+  });
+
+  it('identitySdk.getMe calls /api/identity/me', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, json: async () => ({ id: 'u-1' }),
+    } as any);
+    const { identitySdk } = await import('@/lib/sdk');
+    const result = await identitySdk.getMe();
+    expect(fetchSpy).toHaveBeenCalledWith('/api/identity/me', expect.objectContaining({ credentials: 'include' }));
+    fetchSpy.mockRestore();
+  });
+
+  it('identitySdk.getProfile calls /api/identity/profile GET', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, json: async () => ({ displayName: 'Alice' }),
+    } as any);
+    const { identitySdk } = await import('@/lib/sdk');
+    await identitySdk.getProfile();
+    expect(fetchSpy).toHaveBeenCalledWith('/api/identity/profile', expect.objectContaining({ credentials: 'include' }));
+    fetchSpy.mockRestore();
+  });
+
+  it('identitySdk.updateProfile calls /api/identity/profile PATCH', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, json: async () => ({ success: true }),
+    } as any);
+    const { identitySdk } = await import('@/lib/sdk');
+    await identitySdk.updateProfile({ displayName: 'Bob' });
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/identity/profile',
+      expect.objectContaining({ method: 'PATCH', credentials: 'include' })
+    );
+    fetchSpy.mockRestore();
+  });
+
+  it('identitySdk.getKyc calls /api/identity/kyc', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, json: async () => ({ status: 'verified' }),
+    } as any);
+    const { identitySdk } = await import('@/lib/sdk');
+    await identitySdk.getKyc();
+    expect(fetchSpy).toHaveBeenCalledWith('/api/identity/kyc', expect.objectContaining({ credentials: 'include' }));
+    fetchSpy.mockRestore();
+  });
+
+  it('identitySdk.getRoles calls /api/identity/roles', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true, json: async () => ({ roles: ['user'] }),
+    } as any);
+    const { identitySdk } = await import('@/lib/sdk');
+    await identitySdk.getRoles();
+    expect(fetchSpy).toHaveBeenCalledWith('/api/identity/roles', expect.objectContaining({ credentials: 'include' }));
+    fetchSpy.mockRestore();
   });
 });

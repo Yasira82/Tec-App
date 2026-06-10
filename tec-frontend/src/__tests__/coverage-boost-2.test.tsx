@@ -1557,3 +1557,19 @@ describe('PayClient — redirect timers and back buttons', () => {
     expect(String(window.location.href)).toContain('tec-assets');
   });
 });
+
+describe('Hub page — touchEnd without touchStart is a no-op', () => {
+  it('does not refresh when pull was never started', async () => {
+    const refresh = vi.fn().mockResolvedValue(undefined);
+    mockUseHubData.mockReturnValue({
+      balance: '5.00', assetCount: 0, piPrice: 31.5, notifCount: 0, time: '12:00',
+      setNotifCount: vi.fn(), refresh, refreshBalance: vi.fn(),
+    });
+    const { default: HubPage } = await import('@/app/hub/page');
+    const { container } = render(<HubPage />);
+    await act(async () => {});
+    const scroller = container.firstElementChild as HTMLElement;
+    await act(async () => { fireEvent.touchEnd(scroller); });
+    expect(refresh).not.toHaveBeenCalled();
+  });
+});

@@ -1373,3 +1373,19 @@ describe('DashboardPage — click handlers', () => {
     expect(container).toBeTruthy();
   });
 });
+
+describe('WalletPage — tx icon fallback', () => {
+  it('renders bullet icon for unknown transaction types', async () => {
+    mockUseWallet.mockReturnValue({
+      ...walletBase,
+      transactions: [{
+        id: 'tx-odd', type: 'mystery' as any, status: 'completed',
+        amount: 1, currency: 'PI', createdAt: '2026-01-01T00:00:00Z',
+      }],
+      total: 1,
+    });
+    const { container } = render(React.createElement(WalletPage));
+    await act(async () => {});
+    expect(container.textContent).toContain('•');
+  });
+});

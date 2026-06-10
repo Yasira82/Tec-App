@@ -320,3 +320,19 @@ describe('usePiSdkReady visibility re-init', () => {
     expect(mockEnsureAuth.mock.calls.length).toBe(callsBefore);
   });
 });
+
+// ── useWalletRealtime — missing token guard ───────────────────────
+describe('useWalletRealtime token guard', () => {
+  it('does not open a socket when access token is missing', async () => {
+    // No tec_access_token cookie set (beforeEach clears cookies) → token null
+    const wsCtor = vi.fn();
+    (global as any).WebSocket = wsCtor;
+    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
+    const { result } = renderHook(() =>
+      useWalletRealtime({ onBalanceUpdate: vi.fn() }),
+    );
+    await act(async () => {});
+    expect(wsCtor).not.toHaveBeenCalled();
+    expect(result.current.isConnected).toBe(false);
+  });
+});

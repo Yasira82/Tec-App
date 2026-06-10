@@ -946,3 +946,45 @@ describe('MintPage — mint-as-nft failure', () => {
     }, { timeout: 5000 });
   });
 });
+
+describe('PaymentModal — double-click guard and Try Again recovery timer', () => {
+  it('second Pay click while first is in-flight releases the lock and returns', async () => {
+    let resolveGate!: (v: boolean) => void;
+    mockPiSessionEnsurePaymentsReady
+      .mockResolvedValueOnce(true) // tryAuth in useEffect
+      .mockImplementationOnce(() => new Promise<boolean>(r => { resolveGate = r; })); // 1st handlePay
+
+    renderModal();
+    await waitForReady();
+    const payBtn = screen.getByText(/^Pay \d+π$/);
+    fireEvent.click(payBtn);          // first click — hangs on gate
+    await act(async () => {});
+    fireEvent.click(payBtn);          // second click — hasStarted guard
+    await act(async () => {});
+    expect(mockPiSessionReleasePaymentLock).toHaveBeenCalled();
+
+    await act(async () => { resolveGate(true); });
+    await waitFor(() => expect(screen.getByText('Payment Successful!')).toBeTruthy());
+  });
+
+  it('Try Again re-enables Pay after the 2s recovery gate succeeds', async () => {
+    mockCreateU2APayment.mockResolvedValueOnce({
+      success: false, status: 'failed', message: 'flaky', amount: 5, memo: 'test',
+    });
+    renderModal();
+    await clickPay();
+    await waitFor(() => expect(screen.getByText('Payment Failed')).toBeTruthy());
+
+    mockPiSessionEnsurePaymentsReady.mockResolvedValue(true);
+    fireEvent.click(screen.getByText('Try Again'));
+
+    // recovery setTimeout(2000) → ensurePaymentsReady → setIsReady(true)
+    await waitFor(
+      () => {
+        const btn = screen.getByText(/^Pay \d+π$/) as HTMLButtonElement;
+        expect(btn.disabled).toBe(false);
+      },
+      { timeout: 4000 },
+    );
+  }, 10000);
+});

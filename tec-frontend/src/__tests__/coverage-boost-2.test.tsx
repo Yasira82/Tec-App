@@ -1383,3 +1383,70 @@ describe('PiPaymentButton — readiness branches', () => {
     expect(document.body.textContent).toContain('Please open in Pi Browser');
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// 9. Hub page — pending payment edge cases
+// ════════════════════════════════════════════════════════════════════════════
+describe('Hub page — pending payment edge cases', () => {
+  const payUrl =
+    '?pay=1&amount=5&memo=Test&product_id=p1&return_url=https%3A%2F%2Fcommerce.tecosystem.app%2Fshop&source=commerce';
+
+  const setPayLocation = () => {
+    Object.defineProperty(window, 'location', {
+      value: {
+        href:   `http://localhost/hub${payUrl}`,
+        search: payUrl,
+        origin: 'http://localhost',
+      },
+      writable: true, configurable: true,
+    });
+  };
+
+  it('skips create when stored user has no id', async () => {
+    setPayLocation();
+    mockGetStoredUser.mockReturnValue(null);
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ data: { payment: { id: 'x' } } }),
+    }) as unknown as typeof fetch;
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+
+    const calls = (global.fetch as any).mock.calls.map((c: any[]) => String(c[0]));
+    expect(calls.some((u: string) => u.includes('/api/payment/create'))).toBe(false);
+    expect(screen.queryByTestId('payment-modal')).toBeNull();
+  });
+
+  it('redirects with create_failed when create response is invalid JSON', async () => {
+    setPayLocation();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => { throw new Error('invalid json'); },
+    }) as unknown as typeof fetch;
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+
+    await waitFor(() => {
+      expect(String(window.location.href)).toContain('reason=create_failed');
+    });
+  });
+
+  it('ignores create result when unmounted mid-flight (cancelled guard)', async () => {
+    setPayLocation();
+    let resolveCreate!: (v: any) => void;
+    global.fetch = vi.fn().mockReturnValue(new Promise(r => { resolveCreate = r; }));
+
+    const { default: HubPage } = await import('@/app/hub/page');
+    let unmount!: () => void;
+    await act(async () => { ({ unmount } = render(<HubPage />)); });
+
+    unmount();
+    await act(async () => {
+      resolveCreate({ ok: true, json: async () => ({ data: { payment: { id: 'late-1' } } }) });
+    });
+    // No modal rendered, no redirect to success/error
+    expect(screen.queryByTestId('payment-modal')).toBeNull();
+    expect(String(window.location.href)).not.toContain('payment_status');
+  });
+});

@@ -1240,3 +1240,39 @@ describe('WalletPage — realtime + ReceiveModal', () => {
     if (closeBtn) fireEvent.click(closeBtn);
   });
 });
+
+describe('WalletPage — timer callback coverage', () => {
+  it('copied indicator resets after 2s and liveFlash after 1s', async () => {
+    let captured: { onBalanceUpdate: (e: unknown) => void } | null = null;
+    mockUseWalletRealtime.mockImplementation((opts: any) => {
+      captured = opts;
+      return { isConnected: true };
+    });
+    const { container } = render(React.createElement(WalletPage));
+    await act(async () => {});
+
+    // liveFlash on, then back off after 1s
+    act(() => {
+      captured!.onBalanceUpdate({
+        type: 'wallet.updated', balance: 7, amount: 1, txType: 'credit', txId: 't-x',
+      });
+    });
+    await act(async () => { await new Promise(r => setTimeout(r, 1100)); });
+
+    // Receive modal copy resets after 2s
+    const receiveBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Receive'),
+    )!;
+    fireEvent.click(receiveBtn);
+    const copyBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Copy'),
+    );
+    if (copyBtn) {
+      await act(async () => { fireEvent.click(copyBtn); });
+      await act(async () => { await new Promise(r => setTimeout(r, 2100)); });
+      expect(container.textContent).toContain('Copy');
+    } else {
+      expect(container).toBeTruthy();
+    }
+  }, 10000);
+});

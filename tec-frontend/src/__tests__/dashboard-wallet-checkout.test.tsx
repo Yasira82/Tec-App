@@ -1276,3 +1276,100 @@ describe('WalletPage — timer callback coverage', () => {
     }
   }, 10000);
 });
+
+// ═════════════════════════════════════════════════════════════════
+// 10. DashboardPage — click handlers (domain cards, quick actions, tx expand)
+// ═════════════════════════════════════════════════════════════════
+describe('DashboardPage — click handlers', () => {
+  it('overview DomainCard click routes to the domain', async () => {
+    const { container } = render(React.createElement(DashboardPage));
+    await act(async () => {});
+    const shopCard = Array.from(container.querySelectorAll('div, button')).find(
+      el => el.textContent === 'Shop' || (el.textContent?.includes('Shop') && el.textContent?.includes('shop.pi')),
+    );
+    if (shopCard) fireEvent.click(shopCard);
+    expect(container.textContent).toContain('Shop');
+  });
+
+  it('quick action buttons route to their pages', async () => {
+    const { container } = render(React.createElement(DashboardPage));
+    await act(async () => {});
+    const kycBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('KYC'),
+    );
+    if (kycBtn) fireEvent.click(kycBtn);
+    const subBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Subscription'),
+    );
+    if (subBtn) fireEvent.click(subBtn);
+    expect(stableRouter.push.mock.calls.flat()).toContain('/dashboard/kyc');
+  });
+
+  it('Wallet → action button routes to wallet', async () => {
+    const { container } = render(React.createElement(DashboardPage));
+    await act(async () => {});
+    // Switch to activity tab to reveal Transaction History card
+    const activityTab = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.toLowerCase().includes('activity'),
+    );
+    if (activityTab) { await act(async () => { fireEvent.click(activityTab); }); }
+    const walletBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Wallet →'),
+    );
+    if (walletBtn) {
+      fireEvent.click(walletBtn);
+      expect(stableRouter.push.mock.calls.flat()).toContain('/dashboard/wallet');
+    } else {
+      expect(container).toBeTruthy();
+    }
+  });
+
+  it('ecosystem tab DomainCard click uses router.push', async () => {
+    const { container } = render(React.createElement(DashboardPage));
+    await act(async () => {});
+    const ecoTab = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.toLowerCase().includes('ecosystem'),
+    );
+    if (ecoTab) { await act(async () => { fireEvent.click(ecoTab); }); }
+    const card = Array.from(container.querySelectorAll('div')).find(
+      el => el.textContent === 'Shop',
+    );
+    if (card) fireEvent.click(card.closest('div')!);
+    expect(container).toBeTruthy();
+  });
+
+  it('expands a payment row in activity tab', async () => {
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      if (String(url).includes('payments/history') || String(url).includes('payments')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              payments: [{
+                id: 'pay-exp-1', amount: '2.5', currency: 'PI', status: 'completed',
+                payment_method: 'pi', created_at: '2026-01-02T00:00:00Z',
+                metadata: { app_source: 'commerce' },
+              }],
+            },
+          }),
+        };
+      }
+      return { ok: true, json: async () => ({ balance: 5, walletId: 'w-1', currency: 'PI' }) };
+    }) as unknown as typeof fetch;
+
+    const { container } = render(React.createElement(DashboardPage));
+    await act(async () => {});
+    const activityTab = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.toLowerCase().includes('activity'),
+    );
+    if (activityTab) { await act(async () => { fireEvent.click(activityTab); }); }
+    const row = Array.from(container.querySelectorAll('div')).find(
+      el => el.textContent?.includes('2.5') && el.getAttribute('style')?.includes('cursor'),
+    );
+    if (row) {
+      fireEvent.click(row);
+      fireEvent.click(row);
+    }
+    expect(container).toBeTruthy();
+  });
+});

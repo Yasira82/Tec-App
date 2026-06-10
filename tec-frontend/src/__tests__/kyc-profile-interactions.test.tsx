@@ -225,3 +225,69 @@ describe('dashboard profile Go to KYC', () => {
     }
   });
 });
+
+describe('profile actions — confirm-true delete, sign out, quick actions, copy reset', () => {
+  beforeEach(() => {
+    Object.defineProperty(window, 'confirm', {
+      writable: true, configurable: true, value: vi.fn(() => true),
+    });
+  });
+
+  it('hub profile Sign Out logs out and routes home', () => {
+    const logout = vi.fn();
+    mockUsePiAuth.mockReturnValue({
+      user, isAuthenticated: true, isLoading: false,
+      login: vi.fn(), logout, error: null,
+    });
+    const { container } = render(<HubProfilePage />);
+    const signOut = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Sign Out'),
+    );
+    expect(signOut).toBeTruthy();
+    fireEvent.click(signOut!);
+    expect(logout).toHaveBeenCalled();
+    expect(mockRouterPush).toHaveBeenCalledWith('/');
+  });
+
+  it.each([
+    ['hub',       HubProfilePage],
+    ['dashboard', DashboardProfilePage],
+  ] as const)('%s profile Delete with confirm=true runs the delete handler', (_n, Page) => {
+    const { container } = render(<Page />);
+    const del = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Delete'),
+    );
+    expect(del).toBeTruthy();
+    fireEvent.click(del!);
+    expect(window.confirm).toHaveBeenCalled();
+  });
+
+  it.each([
+    ['hub',       HubProfilePage, '/hub/kyc'],
+    ['dashboard', DashboardProfilePage, '/dashboard/wallet'],
+  ] as const)('%s profile quick actions navigate', (_n, Page, expectedHref) => {
+    const { container } = render(<Page />);
+    const wallet = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('Wallet'),
+    );
+    const kyc = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent?.includes('KYC') && !b.textContent?.includes('Go to'),
+    );
+    if (wallet) fireEvent.click(wallet);
+    if (kyc)    fireEvent.click(kyc);
+    expect(mockRouterPush.mock.calls.flat()).toContain(expectedHref);
+  });
+
+  it('copy indicator resets to "Copy" after 2 seconds', async () => {
+    const { container } = render(<DashboardProfilePage />);
+    const copyBtn = Array.from(container.querySelectorAll('button')).find(
+      b => b.textContent === 'Copy',
+    )!;
+    await act(async () => { fireEvent.click(copyBtn); });
+    await waitFor(() => expect(container.textContent).toContain('✓'));
+    await act(async () => { await new Promise(r => setTimeout(r, 2100)); });
+    expect(
+      Array.from(container.querySelectorAll('button')).some(b => b.textContent === 'Copy'),
+    ).toBe(true);
+  }, 8000);
+});

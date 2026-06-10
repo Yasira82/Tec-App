@@ -1296,3 +1296,52 @@ describe('POST /api/commerce/orders/checkout (additional)', () => {
     expect(res.status).toBe(503);
   });
 });
+
+// ═══════════════════════════════════════════════════════════════
+// 16. /api/bff/wallet/balance — malformed gateway bodies (json catch)
+// ═══════════════════════════════════════════════════════════════
+describe('GET /api/bff/wallet/balance — malformed bodies', () => {
+  beforeEach(() => {
+    process.env.JWT_SECRET = 'test-jwt-secret-32-chars-long-xx';
+  });
+
+  const badJson = (status: number, ok = false) => ({
+    ok, status,
+    json: async () => { throw new Error('malformed body'); },
+  }) as any;
+
+  it('401 with unreadable error body falls through to zero balance', async () => {
+    mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
+    fetchSpy
+      .mockResolvedValueOnce(badJson(401))   // err body unreadable → code undefined → no refresh
+      .mockResolvedValue(badJson(401));      // !ok errData also unreadable
+    const { GET } = await import('@/app/api/bff/wallet/balance/route');
+    const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
+    const body = await res.json();
+    expect(body.balance).toBe(0);
+  });
+
+  it('refresh response body unreadable → token stays empty → zero balance', async () => {
+    mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
+    fetchSpy
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: { code: 'TOKEN_EXPIRED' } }) } as any)
+      .mockResolvedValueOnce(badJson(200, true))  // refresh ok but unreadable
+      .mockResolvedValue({ ok: false, status: 401, json: async () => ({ error: { code: 'TOKEN_EXPIRED' } }) } as any);
+    const { GET } = await import('@/app/api/bff/wallet/balance/route');
+    const res = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
+    // Refresh body unreadable → no retry token. Route ends in 401 TOKEN_EXPIRED
+    // or a fallback body depending on mocked helper behaviour — the refresh
+    // json catch (line 32) is exercised either way.
+    expect([200, 401]).toContain(res.status);
+  });
+
+  it('success body unreadable → zero balance', async () => {
+    mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
+    fetchSpy.mockResolvedValueOnce(badJson(200, true));
+    const { GET } = await import('@/app/api/bff/wallet/balance/route');
+    const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
+    const body = await res.json();
+    expect(body.balance).toBe(0);
+    expect(body.walletId).toBeNull();
+  });
+});

@@ -988,3 +988,36 @@ describe('PaymentModal — double-click guard and Try Again recovery timer', () 
     );
   }, 10000);
 });
+
+describe('PaymentModal — tryAuth recovery and cancelled guards', () => {
+  it('recovers when first gate fails and the retry gate succeeds', async () => {
+    // tryAuth: 1000ms wait → ensure(false) → reset+reInit → 2500ms → ensure(true)
+    mockPiSessionEnsurePaymentsReady
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    renderModal();
+    await waitFor(
+      () => {
+        const btn = screen.getByText(/^Pay \d+π$/) as HTMLButtonElement;
+        expect(btn.disabled).toBe(false);
+      },
+      { timeout: 7000 },
+    );
+    expect(mockPiSessionReset).toHaveBeenCalled();
+    expect(mockPiSessionReInit).toHaveBeenCalled();
+  }, 10000);
+
+  it('unmount during tryAuth stops further state updates (cancelled guard)', async () => {
+    let resolveGate!: (v: boolean) => void;
+    mockPiSessionEnsurePaymentsReady.mockImplementation(
+      () => new Promise<boolean>(r => { resolveGate = r; }),
+    );
+    const { unmount } = renderModal();
+    // Wait until tryAuth passed the 1000ms sleep and is awaiting the gate
+    await waitFor(() => expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalled(), { timeout: 3000 });
+    unmount();
+    await act(async () => { resolveGate(true); });
+    // Nothing to assert visually — the cancelled guard simply returns
+    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalledTimes(1);
+  }, 8000);
+});

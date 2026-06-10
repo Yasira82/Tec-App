@@ -1518,3 +1518,42 @@ describe('Hub page — pull to refresh', () => {
     vi.useRealTimers();
   });
 });
+
+// ════════════════════════════════════════════════════════════════════════════
+// 11. PayClient — success redirect timer + idle cancel + cancelled Go Back
+// ════════════════════════════════════════════════════════════════════════════
+describe('PayClient — redirect timers and back buttons', () => {
+  it('success state redirects to returnUrl after the 3s timer', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { href: 'http://localhost/pay' },
+      writable: true, configurable: true,
+    });
+    render(<PayClient />);
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Pay 5/));
+    });
+    await waitFor(() => {
+      expect(document.body.textContent).toContain('Payment Successful');
+    }, { timeout: 3000 });
+    // The page schedules window.location.href = returnUrl after 3000ms
+    await act(async () => { await new Promise(r => setTimeout(r, 3200)); });
+    expect(String(window.location.href)).toContain('tec-assets');
+  }, 12000);
+
+  it('cancelled state Go Back navigates to returnUrl', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { href: 'http://localhost/pay' },
+      writable: true, configurable: true,
+    });
+    mockCreateU2A.mockResolvedValue({ success: false, status: 'cancelled', amount: 5, memo: 'm' });
+    render(<PayClient />);
+    await act(async () => {
+      fireEvent.click(screen.getByText(/Pay 5/));
+    });
+    await waitFor(() => {
+      expect(document.body.textContent).toContain('Payment Cancelled');
+    }, { timeout: 3000 });
+    fireEvent.click(screen.getByText('Go Back'));
+    expect(String(window.location.href)).toContain('tec-assets');
+  });
+});

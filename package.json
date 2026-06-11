@@ -7,23 +7,24 @@
     "packages/*"
   ],
   "scripts": {
-    "dev":             "npm run dev --workspace=tec-frontend",
-    "build":           "npm run build --workspace=tec-frontend",
-    "lint":            "npm run lint --workspace=tec-frontend",
-    "typecheck":       "npm run typecheck --workspace=tec-frontend",
-    "test":            "npm run test --workspace=tec-frontend",
-    "prepare":         "",
+    "dev": "npm run dev --workspace=tec-frontend",
+    "build": "npm run build --workspace=tec-frontend",
+    "lint": "npm run lint --workspace=tec-frontend",
+    "typecheck": "npm run typecheck --workspace=tec-frontend",
+    "test": "npm run test --workspace=tec-frontend",
+    "prepare": "",
     "prisma:generate": "prisma generate",
-    "prisma:migrate":  "prisma migrate dev",
-    "prisma:deploy":   "prisma migrate deploy",
-    "prisma:studio":   "prisma studio"
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:deploy": "prisma migrate deploy",
+    "prisma:studio": "prisma studio"
   },
   "devDependencies": {
     "@types/node": "^20.19.33",
-    "husky":       "^9.1.7",
-    "prisma":      "^5.22.0",
-    "ts-node":     "^10.9.2",
-    "typescript":  "^5.9.3"
+    "@vitest/coverage-v8": "^4.0.18",
+    "husky": "^9.1.7",
+    "prisma": "^5.22.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.3"
   },
   "engines": {
     "node": ">=20.0.0"

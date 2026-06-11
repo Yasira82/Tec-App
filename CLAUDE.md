@@ -128,6 +128,21 @@ if (isHubNavigation() || !window.Pi || !piReady) {
 - NEVER localStorage, NEVER sessionStorage for tokens
 - CSRF token required on all POST/PUT/DELETE BFF routes
 
+### BFF-First Rule (enforced — learned from production bug NEW-L)
+All client-side data fetching MUST use `/api/bff/*` routes. Never call `/api/wallet/*`,
+`/api/payments/*`, or `/api/notifications/*` directly from client hooks.
+
+| Route | Status | Reason |
+|-------|--------|--------|
+| `/api/bff/wallet/balance` | ✅ USE | createHandler: cookie auth + token refresh |
+| `/api/wallet/balance` | ❌ AVOID | Authorization header only — silent 0 on token expiry |
+| `/api/bff/payment/*` | ✅ USE | Proper auth + audit |
+| `/api/payments/history` | ✅ OK | Fallback only — has Authorization header check |
+
+> Root cause of NEW-L: `useWallet` fetched from `/api/wallet/balance`. On token expiry,
+> the route silently returned `{balance:0, walletId:null}` — Hub card worked because it
+> used `/api/bff/wallet/balance` with `createHandler` and auto refresh.
+
 ---
 
 ## P1 Violations Status
@@ -138,6 +153,8 @@ if (isHubNavigation() || !window.Pi || !piReady) {
 | NEW-B | BLOCKING | payment-service INTERNAL_SECRET missing | ⚠️ OPS ONLY — set `INTERNAL_SECRET` on Railway for all 4 services |
 | NEW-D | CRITICAL | tec-auth-service: zero tests | ✅ CLOSED — 95% stmt / 92.98% branch / 100% lines coverage |
 | NEW-J | FEATURE | Ecommerce Cart Phase 2+3 | ✅ CLOSED — useCart + CartDrawer + ShopHeader badge |
+| NEW-K | HUB | Hub sub-pages missing | ✅ CLOSED — /hub/kyc + /hub/subscription + /hub/notifications + /hub/profile |
+| NEW-L | BUG | Wallet page shows zero balance + empty history | ✅ CLOSED — useWallet now uses /api/bff/wallet/balance (token refresh) |
 
 **Only NEW-B remains — Railway ops task, not a code change.**
 
@@ -168,15 +185,49 @@ npm test             # Jest tests
 tec-frontend/
   src/
     app/
-      api/bff/
-        metrics/        # GET /api/bff/metrics — 24h payment observability
+      hub/                       # Hub control plane pages
+        layout.tsx               # Imports tec-design-tokens.css for all hub sub-pages
+        page.tsx                 # Hub home — wallet card, apps grid, payment modal
+        kyc/page.tsx             # /hub/kyc — KYC verification flow
+        notifications/page.tsx   # /hub/notifications — notification center
+        subscription/page.tsx    # /hub/subscription — FREE/PRO/ENTERPRISE plans
+        profile/page.tsx         # /hub/profile — account info + quick actions
+        pay/page.tsx             # /hub/pay — redirects → /hub?pay=1 (governance: never process here)
+      api/
+        bff/
+          metrics/               # GET /api/bff/metrics — 24h payment observability
+          wallet/balance/        # GET — wallet balance with auto token refresh ✅ USE THIS
+          payment/               # approve / complete / resolve callbacks
+          payments/              # GET history
+          notifications/         # GET + mark-read
+        wallet/balance/          # ⚠️ LEGACY — no token refresh, use /api/bff/wallet/balance instead
+    components/
+      hub/
+        HubSubShell.tsx          # Shared shell for all hub sub-pages (back button + sticky header)
+        HubHeader.tsx            # Hub top bar (time, notifications bell)
+        HubWalletCard.tsx        # Balance card on hub home
+        HubCarousel.tsx          # Carousel (Pi price, assets, commerce)
+        HubAppsGrid.tsx          # App icons grid
+        HubComingSoon.tsx        # Coming soon section
+        index.ts                 # Barrel export
     lib-client/
       pi/
-        PiRuntime.ts      # Pi Abstraction Layer (PAL) — never call window.Pi directly
-        PiCircuitBreaker.ts # Circuit breaker: 3 failures → OPEN 60s → HALF_OPEN
+        PiRuntime.ts             # Pi Abstraction Layer (PAL) — never call window.Pi directly
+        PiCircuitBreaker.ts      # Circuit breaker: 3 failures → OPEN 60s → HALF_OPEN
+    styles/
+      tec-design-tokens.css      # CSS variables: --tec-gold, --tec-surface-*, --tec-text-*, etc.
 packages/
-  tec-core-sdk/           # Browser Pi SDK hooks
-  tec-ui/                 # Shared design system
+  tec-core-sdk/                  # Browser Pi SDK hooks (usePiAuth, useTecWallet)
+  tec-ui/                        # Shared design system (@yasser172/tec-ui)
+```
+
+### BFF Route Naming Convention
+```
+/api/bff/wallet/balance    ← data fetch (cookie auth + token refresh)  USE THIS
+/api/bff/payment/approve   ← Pi payment callback handler
+/api/bff/payment/complete  ← Pi payment callback handler
+/api/bff/payments/history  ← payment history list
+/api/wallet/balance        ← ⚠️ LEGACY — Authorization header only, no refresh, avoid
 ```
 
 ---
@@ -190,6 +241,8 @@ packages/
 - Do NOT add new apps or major features during Phase 0
 - Do NOT skip isHubNavigation() check before Pi payments
 - Do NOT weaken a downstream invariant from an upstream layer (P6)
+- Do NOT fetch data from `/api/wallet/*` or `/api/payments/*` in client hooks — use `/api/bff/*` (BFF-first rule)
+- Do NOT write payment tests without mocking `/api/.../payment/create` fetch first (C-76 backend-first flow)
 
 ---
 
@@ -276,10 +329,12 @@ After external audit:    9.5/10 ✅ → Submit to Pi Network
 
 **Hub Completion:**
 ```
-□ KYC UI — /hub/kyc
-□ Subscription UI — /hub/subscription (FREE/PRO/ENTERPRISE)
-□ Notifications Center — /hub/notifications
-□ Profile page completion
+✅ KYC UI — /hub/kyc
+✅ Subscription UI — /hub/subscription (FREE/PRO/ENTERPRISE)
+✅ Notifications Center — /hub/notifications
+✅ Profile page completion
+✅ HubSubShell — shared shell component for all hub sub-pages
+✅ hub/layout.tsx — design tokens CSS for all /hub/* routes
 ```
 
 **tec-ui Enhancement:**
@@ -341,9 +396,9 @@ ALLOWED:
 
 ```
 Security:
-  □ NEW-A: NEXT_PUBLIC_ fix across all BFF routes
-  □ NEW-B: INTERNAL_SECRET required startup guard
-  □ Zero P1 violations
+  ✅ NEW-A: Railway URLs removed — BFF proxy in place
+  ⚠️ NEW-B: INTERNAL_SECRET — set on Railway (ops task)
+  □ Zero P1 violations (only NEW-B remains — ops)
   □ External audit ≥ 9.5
 
 Infrastructure:
@@ -355,7 +410,7 @@ Infrastructure:
 
 Content:
   ✅ Commerce + Assets + Ecommerce shipped
-  □ Hub: KYC + Subscription + Notifications
+  ✅ Hub: KYC + Subscription + Notifications + Profile
   □ Tests coverage ≥ 60% (all repos)
   □ tec-ui v1.2.0 published with shared payment components
 
@@ -363,6 +418,62 @@ Final:
   □ External audit
   □ Fix any new audit findings
   □ Submit to Pi Network
+```
+
+---
+
+## Common Debug Patterns
+
+### "Page shows zero / blank data"
+```
+Symptom: Page renders but shows 0 balance or empty list.
+         A different page (Hub card) shows correct data.
+
+Cause:   Client hook uses /api/wallet/* or /api/payments/* directly.
+         These routes use Authorization header only — silent 0 on token expiry.
+
+Fix:     Switch hook to /api/bff/* equivalent.
+         /api/bff/wallet/balance has createHandler + auto token refresh.
+
+Example: NEW-L — useWallet /api/wallet/balance → /api/bff/wallet/balance (PR #13)
+```
+
+### "CI tests fail: Payment setup failed (422)"
+```
+Symptom: createU2APayment tests fail with "Payment setup failed (422)".
+         Tests that mock Pi.createPayment don't reach the callback.
+
+Cause:   C-76 backend-first flow: backend /payment/create is called BEFORE
+         Pi.createPayment. Tests missing a fetch mock get a 422 and throw early.
+
+Fix:     Add mockCreateSuccess() at top of each failing test to mock
+         fetch('/api/.../payment/create') → {ok:true, data:{id:'internal-id'}}.
+
+Example: Fixed in src/__tests__/pi-payment.test.ts (PR #12)
+```
+
+### "Hub sub-page CSS variables undefined (blank styles)"
+```
+Symptom: Hub sub-page renders but colors/fonts missing.
+         CSS vars like var(--tec-text-1) render as transparent.
+
+Cause:   hub/layout.tsx missing or not importing tec-design-tokens.css.
+         Sub-pages need this — hub/page.tsx imports it inline but sub-pages don't.
+
+Fix:     hub/layout.tsx must import '@/styles/tec-design-tokens.css'.
+         This file exists and is correct — do not remove it.
+```
+
+### "Pi payment throws before Pi.createPayment is called"
+```
+Symptom: onError fires immediately without Pi wallet opening.
+         Error: "Pi SDK error: scope permission denied" or similar.
+
+Cause:   ADR-007 — Pi SDK in foreign session (navigated from hub.tecosystem.app).
+         Or: piSession.ensurePaymentsReady() failed.
+
+Fix:     Check isHubNavigation() before any Pi call.
+         If true → redirect to /hub?pay=1&... (never attempt Pi directly).
 ```
 
 ---

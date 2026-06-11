@@ -1,0 +1,196 @@
+/**
+ * Smoke tests for components with 0% coverage.
+ */
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, act } from '@testing-library/react';
+
+vi.mock('next/navigation', () => ({
+  useRouter:       () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }),
+  usePathname:     () => '/dashboard',
+  useSearchParams: () => new URLSearchParams('amount=5&memo=Test&product_id=p1&return_url=https://commerce.tecosystem.app&source=commerce'),
+}));
+
+vi.mock('next/image', () => ({
+  default: ({ src, alt }: any) => <img src={src} alt={alt} />,
+}));
+
+vi.mock('@/lib-client/hooks/usePiAuth', () => ({
+  usePiAuth: () => ({
+    user:            { id: 'u1', piUsername: 'alice', role: 'user', subscriptionPlan: 'Free' },
+    isAuthenticated: true,
+    isLoading:       false,
+    login:           vi.fn(),
+    logout:          vi.fn(),
+    error:           null,
+  }),
+}));
+
+vi.mock('@/lib-client/hooks/usePiSdkReady', () => ({
+  usePiSdkReady: () => ({
+    piReady:      false,
+    authReady:    false,
+    lastError:    null,
+    ensurePiAuth: vi.fn().mockResolvedValue(false),
+  }),
+}));
+
+vi.mock('@/lib-client/pi/pi-session', () => ({
+  piSession: {
+    ensureAuth:          vi.fn().mockResolvedValue(true),
+    ensurePaymentsReady: vi.fn().mockResolvedValue(true),
+    reset:               vi.fn(),
+  },
+  PiAuthError: {},
+}));
+
+vi.mock('@/lib-client/pi/pi-payment', () => ({
+  createU2APayment:    vi.fn().mockResolvedValue({ success: true }),
+  createPaymentRecord: vi.fn().mockResolvedValue('payment-id-1'),
+}));
+
+vi.mock('@/lib-client/pi/PiRuntime', () => ({
+  PiRuntime: {
+    init:          vi.fn(),
+    authenticate:  vi.fn(),
+    createPayment: vi.fn(),
+    canAttempt:    vi.fn(() => true),
+  },
+}));
+
+vi.mock('@/lib/i18n', () => ({
+  useTranslation: () => ({
+    t: { common: { loading: 'Loading...', login: 'Login', appName: 'TEC' }, dashboard: {}, apps: {} },
+    locale: 'en',
+    setLanguage: vi.fn(),
+    dir: 'ltr',
+  }),
+  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  global.fetch = vi.fn().mockResolvedValue({
+    ok: true, json: async () => ({}),
+  }) as any;
+});
+
+// ── AIDrawer component ─────────────────────────────────────────────
+describe('AIDrawer', () => {
+  it('renders closed state', async () => {
+    const { AIDrawer } = await import('@/app/hub/components/AIDrawer');
+    const { container } = render(<AIDrawer open={false} onClose={vi.fn()} />);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders open state', async () => {
+    const { AIDrawer } = await import('@/app/hub/components/AIDrawer');
+    const { container } = render(<AIDrawer open={true} onClose={vi.fn()} />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── HubSkeleton component ──────────────────────────────────────────
+describe('HubSkeleton', () => {
+  it('renders without crash', async () => {
+    const { HubSkeleton } = await import('@/app/hub/components/HubSkeleton');
+    const { container } = render(<HubSkeleton />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── ToastContainer component ───────────────────────────────────────
+describe('ToastContainer', () => {
+  it('renders empty list', async () => {
+    const { ToastContainer } = await import('@/app/hub/components/ToastContainer');
+    const { container } = render(<ToastContainer toasts={[]} onRemove={vi.fn()} />);
+    expect(container).toBeTruthy();
+  });
+
+  it('renders with toasts', async () => {
+    const { ToastContainer } = await import('@/app/hub/components/ToastContainer');
+    const { container } = render(
+      <ToastContainer
+        toasts={[{ id: '1', type: 'success', message: 'Done!' }]}
+        onRemove={vi.fn()}
+      />
+    );
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── PullIndicator component ────────────────────────────────────────
+describe('PullIndicator', () => {
+  it('renders without crash', async () => {
+    const { PullIndicator } = await import('@/app/hub/components/PullIndicator');
+    const { container } = render(<PullIndicator progress={0} isRefreshing={false} />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── AiClient page — skipped: uses streaming SSE response ──────────
+// AiClient uses response.body.getReader() for SSE streaming, which hangs in happy-dom.
+// Coverage via integration test only.
+
+// ── Dashboard Sidebar component ────────────────────────────────────
+describe('Sidebar', () => {
+  it('renders without crash', async () => {
+    const { Sidebar } = await import('@/components/dashboard/Sidebar');
+    const { container } = render(<Sidebar />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── MobileTopbar component ─────────────────────────────────────────
+describe('MobileTopbar', () => {
+  it('renders without crash', async () => {
+    const { MobileTopbar } = await import('@/components/dashboard/MobileTopbar');
+    const { container } = render(<MobileTopbar />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── Hub WalletCard component ───────────────────────────────────────
+describe('Hub WalletCard', () => {
+  it('renders with userId', async () => {
+    const WalletCard = (await import('@/components/hub/WalletCard')).default;
+    const { container } = render(<WalletCard userId="u1" />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── Hub AppCard component ──────────────────────────────────────────
+describe('Hub AppCard', () => {
+  it('renders without crash', async () => {
+    const AppCard = (await import('@/components/hub/AppCard')).default;
+    const { container } = render(<AppCard name="Shop" emoji="🛒" href="/shop" />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── Hub AppsGrid component ─────────────────────────────────────────
+describe('Hub AppsGrid (standalone)', () => {
+  it('renders app grid', async () => {
+    const AppsGrid = (await import('@/components/hub/AppsGrid')).default;
+    const { container } = render(<AppsGrid />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── PiSdkLoader component ──────────────────────────────────────────
+describe('PiSdkLoader', () => {
+  it('renders without crash', async () => {
+    const mod = await import('@/components/PiSdkLoader');
+    const Component = mod.PiSdkLoader ?? mod.default;
+    if (!Component) return;
+    const { container } = render(<Component />);
+    expect(container).toBeTruthy();
+  });
+});
+
+// ── PayClient — import-only coverage ──────────────────────────────
+describe('PayClient module', () => {
+  it('module loads without error', async () => {
+    const mod = await import('@/app/pay/PayClient');
+    expect(mod).toBeTruthy();
+  });
+});

@@ -1,5 +1,16 @@
 const path = require('path');
 
+// ✅ PI_SANDBOX build-time guard — Mainnet checklist
+// Blocks the production build if sandbox mode is active.
+// Set NEXT_PUBLIC_PI_SANDBOX=false on Vercel before Mainnet deploy.
+if (process.env.NODE_ENV === 'production' && process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false') {
+  throw new Error(
+    'FATAL: NEXT_PUBLIC_PI_SANDBOX must be set to "false" for production builds. ' +
+    'Current value: "' + (process.env.NEXT_PUBLIC_PI_SANDBOX ?? 'undefined') + '". ' +
+    'Set NEXT_PUBLIC_PI_SANDBOX=false on Vercel before deploying to Mainnet.'
+  );
+}
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   eslint: {
@@ -79,7 +90,6 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              // ✅ VM-017 FIXED: connect-src explicit whitelist — no more https: wildcard
               "connect-src 'self' https: wss:",
               "img-src 'self' data: blob: *.railway.app *.vercel.app",
               "style-src 'self' 'unsafe-inline'",

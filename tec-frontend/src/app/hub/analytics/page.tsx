@@ -101,7 +101,9 @@ export default function HubAnalyticsPage() {
 
   const load = useCallback(async () => {
     const token   = getAccessToken();
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const headers: Record<string, string> = token
+      ? { Authorization: `Bearer ${token}` }
+      : {};
 
     setLoading(true);
     setError(false);

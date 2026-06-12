@@ -295,13 +295,52 @@ git status            # clean
 
 ## Knowledge Base Reference
 
-→ `yasira82/tec-knowledge-base` (branch: `main`)
+→ `yasira82/tec-knowledge-base` (branch: `claude/gifted-knuth-1yhom3`)
 → **Current State: `knowledge-base/C-02___CURRENT_STATE_.md`** — اقرأه أول كل session
 → Master index: `knowledge-base/C-57___MASTER_CONTENTS_INDEX.md`
-→ Strategic roadmap: `knowledge-base/C-77___STRATEGIC_ANALYSIS___RISK_ASSESSMENT.md`
-→ Operations + SLOs: `knowledge-base/C-78___PLATFORM_OPERATIONS___RELIABILITY_GOVERNANCE.md`
+→ Strategic roadmap + risk register: `knowledge-base/C-77___STRATEGIC_ANALYSIS___RISK_ASSESSMENT.md`
+→ Operations + SLOs + incidents: `knowledge-base/C-78___PLATFORM_OPERATIONS___RELIABILITY_GOVERNANCE.md`
 → ADR system: `knowledge-base/C-64___ADR_SYSTEM.md`
 → Payment ownership (ADR-007): `knowledge-base/C-76___ADR-007.md`
+
+---
+
+## Dynamic Orchestration
+
+### Ecosystem Role
+**Conductor** — SSO authority, payment orchestrator, app registry, and control plane for the TEC federated platform. Hub owns the identity contract that all other apps consume.
+
+### Dependency Map
+
+| Direction | Repos / Services |
+|-----------|----------------|
+| Upstream | `@yasser172/tec-auth` · `@yasser172/tec-ui` · `@yasser172/tec-sdk` · `tec-core-backend` (Gateway:4000) |
+| Downstream | `tec-ecommerce` · `tec-assets` · `tec-commerce` — all consume Hub SSO + `/hub?pay=1` |
+
+### Cross-Repo Workflow Triggers
+
+| Event | Coordinate With | Required Action |
+|-------|----------------|----------------|
+| SSO / cookie contract change | tec-ecommerce, tec-assets, tec-commerce, tec-auth | Platform-wide — all 4 apps + tec-auth package |
+| Hub payment URL change | tec-ecommerce, tec-assets, tec-commerce | `/hub?pay=1` LOCKED (C-76/ADR-007) — ADR required before change |
+| `@yasser172/tec-ui` version bump | tec-ecommerce, tec-assets, tec-commerce | Coordinated deploy — ALL 4 apps simultaneously |
+| New BFF route pattern | tec-commerce (reference impl) | Validate in tec-commerce first, then propagate |
+| tec-core-backend gateway change | tec-sdk | SDK must be updated before frontend routes |
+
+### Release Chain Position
+
+```
+tec-core-backend (deploy)
+  → tec-sdk (npm publish)
+    → tec-auth (npm publish)
+      → tec-ui (npm publish)
+        → tec-app + tec-ecommerce + tec-assets + tec-commerce  ← HERE (simultaneous)
+```
+
+### Orchestration Rules
+- Hub sub-pages (KYC, Subscription, Profile, Notifications) = sovereign — no cross-repo coordination needed
+- Any change to `/hub?pay=1` URL = P0 — requires ADR + coordination with all 4 apps
+- Cookie names (`tec_access_token`, `tec_csrf`, `tec_user`) = LOCKED — coordinate with tec-auth package + all 4 apps before any change
 
 ---
 

@@ -1,3 +1,11 @@
+if (process.env.VERCEL === '1' && process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false') {
+  throw new Error(
+    'FATAL: NEXT_PUBLIC_PI_SANDBOX must be set to "false" for Vercel production builds. ' +
+    'Current value: "' + (process.env.NEXT_PUBLIC_PI_SANDBOX ?? 'undefined') + '". ' +
+    'Set NEXT_PUBLIC_PI_SANDBOX=false on Vercel before deploying to Mainnet.'
+  );
+}
+
 const path = require('path');
 
 /** @type {import('next').NextConfig} */

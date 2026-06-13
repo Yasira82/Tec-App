@@ -381,7 +381,7 @@ describe('GET /api/wallet/balance (legacy)', () => {
     const res  = await GET(makeReq({ authHeader: 'Bearer tok' }));
     const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
   });
 
   it('returns 400 when userId cannot be resolved', async () => {
@@ -405,7 +405,7 @@ describe('GET /api/wallet/balance (legacy)', () => {
     const res  = await GET(makeReq({ authHeader: 'Bearer tok' }));
     const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body.balance).toBe(9.5);
+    expect(body.balance).toBe('9.5');
     expect(body.walletId).toBe('w1');
   });
 
@@ -415,6 +415,6 @@ describe('GET /api/wallet/balance (legacy)', () => {
     const res  = await GET(makeReq({ authHeader: 'Bearer tok' }));
     const body = await res.json();
     expect(res.status).toBe(200);
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
   });
 });

@@ -380,7 +380,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.balance).toBe(10.5);
+    expect(body.balance).toBe('10.5');
     expect(body.currency).toBe('PI');
     expect(body.walletId).toBe('w-1');
   });
@@ -391,7 +391,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
     expect(body.walletId).toBeNull();
   });
 
@@ -401,7 +401,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
   });
 
   it('attempts token refresh on TOKEN_EXPIRED 401 response', async () => {
@@ -418,7 +418,7 @@ describe('GET /api/bff/wallet/balance', () => {
       cookies: { tec_access_token: 'expired-tok', tec_csrf: 'csrf-val' },
     }));
     const body = await res.json();
-    expect(body.balance).toBe(5);
+    expect(body.balance).toBe('5');
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
@@ -440,7 +440,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
   });
 
   it('selects primary PI wallet when multiple wallets exist', async () => {
@@ -455,7 +455,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
     expect(body.walletId).toBe('w-2');
-    expect(body.balance).toBe(7);
+    expect(body.balance).toBe('7');
   });
 
   it('uses data.wallets nested path as fallback', async () => {
@@ -1318,7 +1318,7 @@ describe('GET /api/bff/wallet/balance — malformed bodies', () => {
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
   });
 
   it('refresh response body unreadable → token stays empty → zero balance', async () => {
@@ -1341,7 +1341,7 @@ describe('GET /api/bff/wallet/balance — malformed bodies', () => {
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
     expect(body.walletId).toBeNull();
   });
 });

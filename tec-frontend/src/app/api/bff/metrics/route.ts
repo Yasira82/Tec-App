@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
       cancelled,
       pending:     total - completed - failed - cancelled,
       successRate,
-      volume:      parseFloat(volume.toFixed(4)),
+      volume:      volume.toFixed(4),
       healthy:     successRate === null || successRate >= 80,
       generatedAt: new Date().toISOString(),
     });

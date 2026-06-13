@@ -213,7 +213,7 @@ describe('GET /api/bff/metrics', () => {
       } as unknown as Response);
       const res  = await GET(makeRequest('tok'));
       const body = await res.json();
-      expect(body.volume).toBe(8.5);
+      expect(body.volume).toBe('8.5000');
     });
 
     it('handles data.data.payments response envelope', async () => {
@@ -239,7 +239,7 @@ describe('GET /api/bff/metrics', () => {
         failed:      expect.any(Number),
         cancelled:   expect.any(Number),
         pending:     expect.any(Number),
-        volume:      expect.any(Number),
+        volume:      expect.any(String),
         healthy:     expect.any(Boolean),
         generatedAt: expect.any(String),
       });

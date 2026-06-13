@@ -14,7 +14,17 @@ const CSRF_PROTECTED = [
   '/api/marketplace',
   '/api/commerce',
   '/api/subscriptions',
+  '/api/bff/payment/create',
 ];
+
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  if (aBytes.length !== bBytes.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -39,7 +49,7 @@ export function middleware(req: NextRequest) {
     if (isCsrfProtected) {
       const csrfCookie = req.cookies.get('tec_csrf')?.value;
       const csrfHeader = req.headers.get('x-csrf-token');
-      if (!csrfCookie || !csrfHeader || csrfCookie !== csrfHeader) {
+      if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
           { status: 403 },
@@ -66,5 +76,6 @@ export const config = {
     '/api/marketplace/:path*',
     '/api/commerce/:path*',
     '/api/subscriptions/:path*',
+    '/api/bff/payment/create',
   ],
 };

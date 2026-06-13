@@ -4,8 +4,17 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { bffFetch, attemptTokenRefresh, buildExpiredResponse } from '@/lib/bff-fetch';
 
+function timingSafeStringEqual(a: string, b: string): boolean {
+  const aBytes = new TextEncoder().encode(a);
+  const bBytes = new TextEncoder().encode(b);
+  if (aBytes.length !== bBytes.length) return false;
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
+  return diff === 0;
+}
+
 const CreatePaymentSchema = z.object({
-  amount: z.number().positive(),
+  amount: z.string().regex(/^\d+(\.\d{1,8})?$/, 'amount must be a positive decimal string'),
   currency: z.literal('PI'),
   payment_method: z.literal('pi'),
   source: z.string().min(1),
@@ -51,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const csrfHeader = req.headers.get('x-csrf-token');
-  if (!csrfHeader || csrfHeader !== csrfCookie) {
+  if (!csrfHeader || !csrfCookie || !timingSafeStringEqual(csrfHeader, csrfCookie)) {
     return NextResponse.json(
       { success: false, error: { code: 'CSRF_INVALID', message: 'CSRF token mismatch' } },
       { status: 403 },

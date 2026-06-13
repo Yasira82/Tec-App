@@ -207,7 +207,7 @@ describe('/api/wallet/balance — malformed bodies and exception path', () => {
       cookies: { tec_user: encodeURIComponent(JSON.stringify({ id: 'u-1' })) },
     }));
     const data = await res.json();
-    expect(data.balance).toBe(0);
+    expect(data.balance).toBe('0');
     errSpy.mockRestore();
   });
 
@@ -219,7 +219,7 @@ describe('/api/wallet/balance — malformed bodies and exception path', () => {
       cookies: { tec_user: encodeURIComponent(JSON.stringify({ id: 'u-1' })) },
     }));
     const data = await res.json();
-    expect(data.balance).toBe(0);
+    expect(data.balance).toBe('0');
     expect(data.walletId).toBeNull();
   });
 
@@ -232,7 +232,7 @@ describe('/api/wallet/balance — malformed bodies and exception path', () => {
       cookies: { tec_user: encodeURIComponent(JSON.stringify({ id: 'u-1' })) },
     }));
     const data = await res.json();
-    expect(data.balance).toBe(0);
+    expect(data.balance).toBe('0');
     errSpy.mockRestore();
   });
 

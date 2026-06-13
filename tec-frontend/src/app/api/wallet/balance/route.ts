@@ -50,7 +50,7 @@ export async function GET(req: NextRequest) {
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
       console.error('[wallet/balance] Gateway error:', res.status, JSON.stringify(errBody));
-      return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
+      return NextResponse.json({ balance: '0', currency: 'PI', address: null, walletId: null });
     }
 
     const data    = await res.json().catch(() => ({}));
@@ -70,6 +70,6 @@ export async function GET(req: NextRequest) {
     });
   } catch (err) {
     console.error('[wallet/balance] Exception:', (err as Error).message);
-    return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
+    return NextResponse.json({ balance: '0', currency: 'PI', address: null, walletId: null });
   }
 }

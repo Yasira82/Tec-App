@@ -281,7 +281,7 @@ describe('GET /api/bff/wallet/balance', () => {
     gatewayFail(503);
     const res  = await GET(makeReq({ token: 'tok' }));
     const body = await res.json();
-    expect(body.balance).toBe(0);
+    expect(body.balance).toBe('0');
   });
 
   it('returns balance from PI wallet', async () => {

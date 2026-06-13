@@ -46,7 +46,7 @@ export const GET = createHandler({
       if (code === 'TOKEN_EXPIRED') {
         return NextResponse.json({ error: 'TOKEN_EXPIRED' }, { status: 401 });
       }
-      return { balance: 0, currency: 'PI', address: null, walletId: null };
+      return { balance: '0', currency: 'PI', address: null, walletId: null };
     }
 
     const data = await res.json().catch(() => ({}));
@@ -69,7 +69,7 @@ export const GET = createHandler({
       .find((w: Wallet) => w.is_primary) ?? piWallets[0] ?? wallets[0];
 
     return {
-      balance:  primary ? Number(primary.balance) : 0,
+      balance:  primary?.balance?.toString() ?? '0',
       currency: primary?.currency       ?? 'PI',
       address:  primary?.wallet_address ?? null,
       walletId: primary?.id             ?? null,

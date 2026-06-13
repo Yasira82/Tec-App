@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   }
 
   if (isE2eMode()) {
-    return NextResponse.json({ balance: 0, currency: 'PI', address: null, walletId: null });
+    return NextResponse.json({ balance: '0', currency: 'PI', address: null, walletId: null });
   }
 
   const userId = getUserIdFromCookie(req) || req.nextUrl.searchParams.get('userId');

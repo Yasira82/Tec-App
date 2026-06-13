@@ -275,6 +275,31 @@ function HubPageInner() {
       {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
 
       <HubAppsGrid apps={visibleLive} />
+
+      {/* ── Platform Tools ──────────────────────────────── */}
+      <div style={{ margin: '0 16px 8px', display: 'flex', gap: 8 }}>
+        {[
+          { icon: '📊', label: 'Analytics', route: '/hub/analytics' },
+          { icon: '🪪', label: 'KYC',        route: '/hub/kyc' },
+          { icon: '⭐', label: 'Plan',        route: '/hub/subscription' },
+        ].map(({ icon, label, route }) => (
+          <button
+            key={label}
+            onClick={() => { haptic('light'); router.push(route); }}
+            style={{
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              padding: '10px 0', borderRadius: 14,
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 600,
+              cursor: 'pointer', letterSpacing: 0.4,
+            }}
+          >
+            <span style={{ fontSize: 16 }}>{icon}</span>
+            {label}
+          </button>
+        ))}
+      </div>
+
       <HubComingSoon />
 
       <nav aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>

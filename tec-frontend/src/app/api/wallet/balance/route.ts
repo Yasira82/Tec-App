@@ -63,7 +63,7 @@ export async function GET(req: NextRequest) {
       .find(w => w.is_primary) ?? piWallets[0] ?? wallets[0];
 
     return NextResponse.json({
-      balance:  primary ? Number(primary.balance) : 0,
+      balance:  primary?.balance ?? '0',
       currency: primary?.currency       ?? 'PI',
       address:  primary?.wallet_address ?? null,
       walletId: primary?.id             ?? null,

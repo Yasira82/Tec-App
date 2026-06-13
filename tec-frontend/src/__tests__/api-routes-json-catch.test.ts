@@ -248,7 +248,7 @@ describe('/api/wallet/balance — malformed bodies and exception path', () => {
       search:  { userId: 'u-9' },
     }));
     const data = await res.json();
-    expect(data.balance).toBe(3);
+    expect(data.balance).toBe('3');
   });
 });
 

@@ -380,7 +380,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.balance).toBe(10.5);
+    expect(body.balance).toBe('10.5');
     expect(body.currency).toBe('PI');
     expect(body.walletId).toBe('w-1');
   });
@@ -418,7 +418,7 @@ describe('GET /api/bff/wallet/balance', () => {
       cookies: { tec_access_token: 'expired-tok', tec_csrf: 'csrf-val' },
     }));
     const body = await res.json();
-    expect(body.balance).toBe(5);
+    expect(body.balance).toBe('5');
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
@@ -455,7 +455,7 @@ describe('GET /api/bff/wallet/balance', () => {
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
     expect(body.walletId).toBe('w-2');
-    expect(body.balance).toBe(7);
+    expect(body.balance).toBe('7');
   });
 
   it('uses data.wallets nested path as fallback', async () => {

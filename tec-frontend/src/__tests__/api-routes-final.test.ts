@@ -294,7 +294,7 @@ describe('POST /api/bff/assets/mint-as-nft', () => {
 // ═══════════════════════════════════════════════════════════════
 describe('POST /api/bff/payment/create', () => {
   const validBody = {
-    amount:         5,
+    amount:         '5',
     currency:       'PI',
     payment_method: 'pi',
     source:         'shop',

@@ -896,7 +896,7 @@ describe('POST /api/payment/approve (remaining branches)', () => {
 // 7. POST /api/bff/payment/create — retry after tokenExpired (remaining)
 // ═══════════════════════════════════════════════════════════════
 describe('POST /api/bff/payment/create (remaining branches)', () => {
-  const validBody = { amount: 5, currency: 'PI', payment_method: 'pi', source: 'shop' };
+  const validBody = { amount: '5', currency: 'PI', payment_method: 'pi', source: 'shop' };
 
   it('returns 400 on invalid JSON body', async () => {
     const { POST } = await import('@/app/api/bff/payment/create/route');

@@ -115,13 +115,7 @@ beforeEach(() => {
 // 1. POST /api/ai/chat — rate limit, no messages, no keys, providers
 // ═══════════════════════════════════════════════════════════════
 describe('POST /api/ai/chat', () => {
-  // Save and restore env vars
-  const origAnthropicKey = process.env.ANTHROPIC_API_KEY;
-  const origGroqKey      = process.env.GROQ_API_KEY;
-  const origGeminiKey    = process.env.GEMINI_API_KEY;
-
   beforeEach(() => {
-    // Clear AI keys by default; each test sets what it needs
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.GEMINI_API_KEY;
@@ -140,9 +134,6 @@ describe('POST /api/ai/chat', () => {
 
   it('returns 429 when rate limit exceeded for same IP', async () => {
     const { POST } = await import('@/app/api/ai/chat/route');
-    // Send 20 requests (the limit) under the same IP — 21st should be rate-limited.
-    // Each request needs no keys set so they fail early at the "no keys" check,
-    // but the rate-limiter runs first.
     for (let i = 0; i < 20; i++) {
       await POST(makeReq({
         method:  'POST',
@@ -176,7 +167,6 @@ describe('POST /api/ai/chat', () => {
   });
 
   it('accepts body.message (singular) as fallback', async () => {
-    // No API keys → 503
     const { POST } = await import('@/app/api/ai/chat/route');
     const res = await POST(makeReq({
       method:  'POST',
@@ -184,7 +174,6 @@ describe('POST /api/ai/chat', () => {
       headers: { 'x-forwarded-for': '10.0.0.2' },
       body:    { message: 'hello' },
     }));
-    // No keys → 503 "AI service not configured"
     expect(res.status).toBe(503);
   });
 
@@ -203,7 +192,6 @@ describe('POST /api/ai/chat', () => {
 
   it('returns 502 when all AI providers fail', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
-    // Make fetch return a non-ok response from Claude
     fetchSpy.mockResolvedValue({ ok: false, status: 500, json: async () => ({}) } as any);
     const { POST } = await import('@/app/api/ai/chat/route');
     const res = await POST(makeReq({
@@ -215,7 +203,6 @@ describe('POST /api/ai/chat', () => {
     expect(res.status).toBe(502);
     const data = await res.json();
     expect(data.error).toMatch(/All AI providers failed/i);
-
     delete process.env.ANTHROPIC_API_KEY;
   });
 
@@ -230,7 +217,6 @@ describe('POST /api/ai/chat', () => {
       body:    { messages: [{ role: 'user', content: 'hello' }] },
     }));
     expect(res.status).toBe(502);
-
     delete process.env.ANTHROPIC_API_KEY;
   });
 
@@ -255,7 +241,6 @@ describe('POST /api/ai/chat', () => {
     expect(res.status).toBe(200);
     expect(res.headers.get('Content-Type')).toContain('text/event-stream');
     expect(res.headers.get('X-AI-Provider')).toBe('claude');
-
     delete process.env.ANTHROPIC_API_KEY;
   });
 
@@ -271,8 +256,8 @@ describe('POST /api/ai/chat', () => {
       },
     });
     fetchSpy
-      .mockResolvedValueOnce({ ok: false, status: 500, body: null, json: async () => ({}) } as any)  // Claude fails
-      .mockResolvedValueOnce({ ok: true, status: 200, body: mockBody, json: async () => ({}) } as any); // Groq succeeds
+      .mockResolvedValueOnce({ ok: false, status: 500, body: null, json: async () => ({}) } as any)
+      .mockResolvedValueOnce({ ok: true, status: 200, body: mockBody, json: async () => ({}) } as any);
     const { POST } = await import('@/app/api/ai/chat/route');
     const res = await POST(makeReq({
       method:  'POST',
@@ -282,7 +267,6 @@ describe('POST /api/ai/chat', () => {
     }));
     expect(res.status).toBe(200);
     expect(res.headers.get('X-AI-Provider')).toBe('groq');
-
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
   });
@@ -312,7 +296,6 @@ describe('POST /api/ai/chat', () => {
     }));
     expect(res.status).toBe(200);
     expect(res.headers.get('X-AI-Provider')).toBe('gemini');
-
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.GEMINI_API_KEY;
@@ -328,14 +311,11 @@ describe('POST /api/ai/chat', () => {
       headers: { 'x-forwarded-for': '10.0.0.9' },
       body:    { messages: [{ role: 'user', content: 'hello' }] },
     }));
-    // The catch may return 500 or 502 depending on which branch throws
     expect([500, 502]).toContain(res.status);
-
     delete process.env.ANTHROPIC_API_KEY;
   });
 
   it('passes userContext to system prompt (with username + balance + locale)', async () => {
-    // No keys → 503, but the branch is exercised
     const { POST } = await import('@/app/api/ai/chat/route');
     const res = await POST(makeReq({
       method:  'POST',
@@ -406,9 +386,6 @@ describe('GET /api/bff/wallet/balance', () => {
 
   it('attempts token refresh on TOKEN_EXPIRED 401 response', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
-    // 1st call: 401 with TOKEN_EXPIRED error code
-    // 2nd call (refresh): returns new token
-    // 3rd call: wallet data
     fetchSpy
       .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: { code: 'TOKEN_EXPIRED' } }) } as any)
       .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ token: 'new-tok' }) } as any)
@@ -430,7 +407,6 @@ describe('GET /api/bff/wallet/balance', () => {
       .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: { code: 'TOKEN_EXPIRED' } }) } as any);
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     await GET(makeReq({ cookies: { tec_access_token: 'expired-tok' } }));
-    // Verifies: initial wallet fetch → refresh → retry wallet fetch
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
@@ -524,7 +500,7 @@ describe('/api/bff/identity/profile', () => {
     const res = await PATCH(makeReq({
       method:  'PATCH',
       cookies: { tec_access_token: 'tok' },
-      body:    { bio: 'x'.repeat(201) }, // max is 200
+      body:    { bio: 'x'.repeat(201) },
     }));
     expect(res.status).toBe(400);
   });
@@ -546,7 +522,6 @@ describe('/api/bff/identity/profile', () => {
 // 4. GET + POST + PATCH /api/subscriptions
 // ═══════════════════════════════════════════════════════════════
 describe('/api/subscriptions', () => {
-  // GET — status endpoint
   it('GET status: returns 401 without Authorization header', async () => {
     const { GET } = await import('@/app/api/subscriptions/route');
     const res = await GET(makeReq({ search: { endpoint: 'status' } }));
@@ -604,7 +579,6 @@ describe('/api/subscriptions', () => {
     expect(mockFetchTimeout).toHaveBeenCalled();
   });
 
-  // POST
   it('POST returns 401 without Authorization header', async () => {
     const { POST } = await import('@/app/api/subscriptions/route');
     const res = await POST(makeReq({ method: 'POST', body: { planId: 'pro' } }));
@@ -662,7 +636,6 @@ describe('/api/subscriptions', () => {
     );
   });
 
-  // PATCH
   it('PATCH returns 401 without Authorization header', async () => {
     const { PATCH } = await import('@/app/api/subscriptions/route');
     const res = await PATCH(makeReq({ method: 'PATCH' }));
@@ -749,7 +722,6 @@ describe('GET /api/market/pi-price', () => {
 
   it('returns 429 when rate limit exceeded', async () => {
     const { GET } = await import('@/app/api/market/pi-price/route');
-    // Exhaust rate limit for this IP (60 req/min)
     for (let i = 0; i < 60; i++) {
       fetchSpy.mockResolvedValueOnce(gw({
         data: [{ last: '1', open24h: '1', vol24h: '1', high24h: '1', low24h: '1' }],
@@ -768,10 +740,10 @@ describe('GET /api/market/pi-price', () => {
 describe('POST /api/payment/approve (remaining branches)', () => {
   it('piId flow: 401 on create → refresh succeeds → retry create succeeds → approve', async () => {
     mockFetchTimeout
-      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })                                // create → 401
-      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ token: 'new-tok' }) })              // refresh
-      .mockResolvedValueOnce({ ok: true,  status: 201, json: async () => ({ data: { payment: { id: 'db-id' } } }) }) // retry create
-      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ success: true, status: 'approved' }) }); // approve
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ token: 'new-tok' }) })
+      .mockResolvedValueOnce({ ok: true,  status: 201, json: async () => ({ data: { payment: { id: 'db-id' } } }) })
+      .mockResolvedValueOnce({ ok: true,  status: 200, json: async () => ({ success: true, status: 'approved' }) });
 
     const { POST } = await import('@/app/api/payment/approve/route');
     const res  = await POST(makeReq({
@@ -786,8 +758,8 @@ describe('POST /api/payment/approve (remaining branches)', () => {
 
   it('piId flow: 401 on create → refresh fails → 401', async () => {
     mockFetchTimeout
-      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })    // create → 401
-      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });   // refresh fails
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) })
+      .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({}) });
 
     const { POST } = await import('@/app/api/payment/approve/route');
     const res = await POST(makeReq({
@@ -800,8 +772,8 @@ describe('POST /api/payment/approve (remaining branches)', () => {
 
   it('piId flow: uses data.id fallback for payment ID', async () => {
     mockFetchTimeout
-      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ data: { id: 'alt-id' } }) }) // create returns data.id
-      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });          // approve
+      .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ data: { id: 'alt-id' } }) })
+      .mockResolvedValueOnce({ ok: true, status: 200, json: async () => ({ success: true }) });
 
     const { POST } = await import('@/app/api/payment/approve/route');
     const res  = await POST(makeReq({
@@ -904,7 +876,6 @@ describe('POST /api/bff/payment/create (remaining branches)', () => {
       ...makeReq({ method: 'POST', body: null }),
       json: () => Promise.reject(new SyntaxError('bad json')),
     } as unknown as NextRequest;
-    // We need next/headers cookies to be correct
     mockCookies.mockResolvedValueOnce({
       get: vi.fn((name: string) => {
         if (name === 'tec_access_token') return { value: 'tok' };
@@ -912,7 +883,6 @@ describe('POST /api/bff/payment/create (remaining branches)', () => {
         return undefined;
       }),
     });
-    // Make x-csrf-token header match
     (req.headers as any).get = (name: string) =>
       name.toLowerCase() === 'x-csrf-token' ? 'csrf-header-value' : null;
     const res = await POST(req);
@@ -966,9 +936,10 @@ describe('POST /api/payment/create (remaining branches)', () => {
     mockFetchTimeout.mockRejectedValue(new Error('timeout'));
     const { POST } = await import('@/app/api/payment/create/route');
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ sub: 'u-1' })).toString('base64url')}.sig` },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer eyJhbGciOiJIUzI1NiJ9.${Buffer.from(JSON.stringify({ sub: 'u-1' })).toString('base64url')}.sig` },
+      cookies:  { tec_user: encodeURIComponent(JSON.stringify({ id: 'u-1' })) },
+      body:     validBody,
     }));
     expect(res.status).toBe(503);
   });
@@ -1071,7 +1042,7 @@ describe('/api/bff/commerce/orders', () => {
     const res = await POST(makeReq({
       method:  'POST',
       cookies: { tec_access_token: 'tok' },
-      body:    { items: [] }, // min(1) fails
+      body:    { items: [] },
     }));
     expect(res.status).toBe(400);
   });
@@ -1313,8 +1284,8 @@ describe('GET /api/bff/wallet/balance — malformed bodies', () => {
   it('401 with unreadable error body falls through to zero balance', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
     fetchSpy
-      .mockResolvedValueOnce(badJson(401))   // err body unreadable → code undefined → no refresh
-      .mockResolvedValue(badJson(401));      // !ok errData also unreadable
+      .mockResolvedValueOnce(badJson(401))
+      .mockResolvedValue(badJson(401));
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
     const body = await res.json();
@@ -1325,13 +1296,10 @@ describe('GET /api/bff/wallet/balance — malformed bodies', () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
     fetchSpy
       .mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: { code: 'TOKEN_EXPIRED' } }) } as any)
-      .mockResolvedValueOnce(badJson(200, true))  // refresh ok but unreadable
+      .mockResolvedValueOnce(badJson(200, true))
       .mockResolvedValue({ ok: false, status: 401, json: async () => ({ error: { code: 'TOKEN_EXPIRED' } }) } as any);
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
-    // Refresh body unreadable → no retry token. Route ends in 401 TOKEN_EXPIRED
-    // or a fallback body depending on mocked helper behaviour — the refresh
-    // json catch (line 32) is exercised either way.
     expect([200, 401]).toContain(res.status);
   });
 

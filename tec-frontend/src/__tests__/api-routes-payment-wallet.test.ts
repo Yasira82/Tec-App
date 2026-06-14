@@ -433,6 +433,7 @@ describe('/api/payment/create', () => {
   const validBody = { amount: 5, currency: 'PI', payment_method: 'pi_browser' };
   const userId    = 'user-123';
   const userJwt   = makeJwt({ sub: userId });
+  const userCookie = encodeURIComponent(JSON.stringify({ id: userId }));
 
   it('returns 401 when no auth', async () => {
     const { POST } = await import('@/app/api/payment/create/route');
@@ -442,7 +443,7 @@ describe('/api/payment/create', () => {
 
   it('returns 401 when userId cannot be resolved from token or cookie', async () => {
     const { POST } = await import('@/app/api/payment/create/route');
-    const badJwt = makeJwt({ foo: 'bar' }); // no sub / id field
+    const badJwt = makeJwt({ foo: 'bar' }); // no sub / id field, no tec_user cookie
     const res = await POST(makeReq({
       method:  'POST',
       headers: { authorization: `Bearer ${badJwt}` },
@@ -456,9 +457,10 @@ describe('/api/payment/create', () => {
   it('returns 400 when required fields missing', async () => {
     const { POST } = await import('@/app/api/payment/create/route');
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      body:    { amount: 5 }, // missing currency + payment_method
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_user: userCookie },
+      body:     { amount: 5 }, // missing currency + payment_method
     }));
     expect(res.status).toBe(400);
     const data = await res.json();
@@ -470,9 +472,10 @@ describe('/api/payment/create', () => {
     const { POST } = await import('@/app/api/payment/create/route');
     mockIsE2eMode.mockReturnValue(true);
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_user: userCookie },
+      body:     validBody,
     }));
     expect(res.status).toBe(201);
     const data = await res.json();
@@ -485,9 +488,10 @@ describe('/api/payment/create', () => {
     const { POST } = await import('@/app/api/payment/create/route');
     mockFetchTimeout.mockResolvedValue(gw({ payment_id: 'p-1' }, 201));
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_user: userCookie },
+      body:     validBody,
     }));
     expect(res.status).toBe(201);
   });
@@ -500,10 +504,10 @@ describe('/api/payment/create', () => {
       .mockResolvedValueOnce(gw({ payment_id: 'p-retry' }, 201));            // retry create
 
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      cookies: { tec_refresh_token: 'refresh-tok' },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_refresh_token: 'refresh-tok', tec_user: userCookie },
+      body:     validBody,
     }));
     expect(res.status).toBe(201);
     expect(mockFetchTimeout).toHaveBeenCalledTimes(3);
@@ -514,9 +518,10 @@ describe('/api/payment/create', () => {
     mockFetchTimeout.mockResolvedValue(gw({}, 401));
     // no tec_refresh_token cookie → refreshAccessToken returns null immediately
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_user: userCookie },
+      body:     validBody,
     }));
     expect(res.status).toBe(401);
     const data = await res.json();
@@ -530,10 +535,10 @@ describe('/api/payment/create', () => {
       .mockResolvedValueOnce(gwErr(400));     // refresh call fails
 
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      cookies: { tec_refresh_token: 'refresh-tok' },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_refresh_token: 'refresh-tok', tec_user: userCookie },
+      body:     validBody,
     }));
     expect(res.status).toBe(401);
   });
@@ -541,10 +546,10 @@ describe('/api/payment/create', () => {
   it('resolves userId from tec_user cookie when header auth used', async () => {
     const { POST } = await import('@/app/api/payment/create/route');
     mockFetchTimeout.mockResolvedValue(gw({ payment_id: 'p-cu' }, 201));
-    const userCookie = encodeURIComponent(JSON.stringify({ id: 'cookie-user' }));
+    const cookieUser = encodeURIComponent(JSON.stringify({ id: 'cookie-user' }));
     const res = await POST(makeReq({
       method:  'POST',
-      cookies: { tec_access_token: 'raw-tok', tec_user: userCookie },
+      cookies: { tec_access_token: 'raw-tok', tec_user: cookieUser },
       body:    validBody,
     }));
     expect(res.status).toBe(201);
@@ -554,9 +559,10 @@ describe('/api/payment/create', () => {
     const { POST } = await import('@/app/api/payment/create/route');
     mockFetchTimeout.mockRejectedValue(new Error('network fail'));
     const res = await POST(makeReq({
-      method:  'POST',
-      headers: { authorization: `Bearer ${userJwt}` },
-      body:    validBody,
+      method:   'POST',
+      headers:  { authorization: `Bearer ${userJwt}` },
+      cookies:  { tec_user: userCookie },
+      body:     validBody,
     }));
     expect(res.status).toBe(503);
   });
@@ -720,7 +726,7 @@ describe('/api/wallet/transactions', () => {
 
   it('proxies gateway response on success', async () => {
     const { GET } = await import('@/app/api/wallet/transactions/route');
-    mockFetchTimeout.mockResolvedValue(gw({ transactions: [{ id: 't1' }] }));
+    mockFetchTimeout.mockResolvedValueOnce(gw({ transactions: [{ id: 't1' }] }));
     const res = await GET(makeReq({
       cookies: { tec_access_token: 'tok' },
       search:  { walletId: 'w-1' },
@@ -732,7 +738,7 @@ describe('/api/wallet/transactions', () => {
 
   it('passes page and limit defaults to gateway URL', async () => {
     const { GET } = await import('@/app/api/wallet/transactions/route');
-    mockFetchTimeout.mockResolvedValue(gw({ transactions: [] }));
+    mockFetchTimeout.mockResolvedValueOnce(gw({ transactions: [] }));
     await GET(makeReq({
       cookies: { tec_access_token: 'tok' },
       search:  { walletId: 'w-1' },
@@ -745,7 +751,7 @@ describe('/api/wallet/transactions', () => {
 
   it('returns 503 on fetchWithTimeout network error', async () => {
     const { GET } = await import('@/app/api/wallet/transactions/route');
-    mockFetchTimeout.mockRejectedValue(new Error('timeout'));
+    mockFetchTimeout.mockRejectedValueOnce(new Error('timeout'));
     const res = await GET(makeReq({
       cookies: { tec_access_token: 'tok' },
       search:  { walletId: 'w-1' },

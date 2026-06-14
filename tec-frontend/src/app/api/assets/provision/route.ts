@@ -22,11 +22,6 @@ export async function POST(req: NextRequest) {
 
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // ✅ debug logs
-  console.log('[Provision] userId:', userId);
-  console.log('[Provision] token prefix:', token?.slice(0, 30));
-  console.log('[Provision] gateway:', GATEWAY);
-
   const body = await req.json();
 
   if (!body.slug || !body.payment_id) {
@@ -70,10 +65,7 @@ export async function POST(req: NextRequest) {
     }),
   });
 
-  // ✅ debug logs
-  console.log('[Provision] status:', res.status);
   const data = await res.json();
-  console.log('[Provision] response:', JSON.stringify(data));
 
   if (!res.ok) {
     console.error('[Provision] failed:', res.status, JSON.stringify(data));

@@ -65,9 +65,8 @@ jobs:
         run: npm run build
         working-directory: tec-frontend
         env:
-          NEXT_PUBLIC_PI_SANDBOX:      'true'
-          NEXT_PUBLIC_API_GATEWAY_URL: ${{ secrets.NEXT_PUBLIC_API_GATEWAY_URL || 'https://api-gateway-production-6a68.up.railway.app' }}
-          NEXT_PUBLIC_PI_APP_ID:       ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}
+          NEXT_PUBLIC_PI_SANDBOX: 'true'
+          NEXT_PUBLIC_PI_APP_ID:  ${{ secrets.NEXT_PUBLIC_PI_APP_ID || 'tec-app-923b947851f9dfe1' }}
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4

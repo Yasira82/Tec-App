@@ -3,7 +3,11 @@ import { NextResponse }  from 'next/server';
 
 const fetchWallet = async (token: string, userId: string, requestId: string, gatewayUrl: string) =>
   fetch(`${gatewayUrl}/api/wallets?userId=${encodeURIComponent(userId)}`, {
-    headers: { 'Authorization': `Bearer ${token}`, 'x-request-id': requestId },
+    headers: {
+      'Authorization':   `Bearer ${token}`,
+      'x-request-id':    requestId,
+      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+    },
     cache: 'no-store',
   });
 

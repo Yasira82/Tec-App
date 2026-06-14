@@ -1,3 +1,7 @@
+> ⚡ **SESSION START — أول حاجة:** اقرأ `knowledge-base/C-02___CURRENT_STATE_.md` من `yasira82/tec-knowledge-base` (branch: `claude/gifted-knuth-1yhom3`) — ده مصدر الحقيقة للوضع الحالي. لا تعتمد على الذاكرة أو الملخص.
+
+---
+
 # TEC App — Claude Code Instructions
 
 ## What This Repo Is
@@ -60,7 +64,7 @@ subscriptions, and ecosystem coordination.
 4.  Business logic inside API Gateway
 5.  Divergent SDK contracts vs backend behavior
 6.  Silent failure in financial flows
-7.  Reading another user's wallet/payment without authorization
+7.  Reading another user’s wallet/payment without authorization
 8.  Sensitive operation accepted with missing ActorContext
 9.  Transitioning from terminal payment states (completed/failed/cancelled)
 10. Ad-hoc system recovery without audit trail
@@ -287,7 +291,7 @@ chore(scope):  build/config
 Hub is the **Conductor**. Every other repo is an instrument.
 
 ```
-HUB (tec-app) ──────────── Control Plane / Conductor
+HUB (tec-app) ──────────────── Control Plane / Conductor
   │
   ├── @yasser172/tec-auth    ← Auth package — trust backbone for ALL apps
   ├── tec-core-backend       ← All backend microservices
@@ -587,6 +591,7 @@ tec-core-backend (deploy)
 
 ### Knowledge Base Reference
 → `yasira82/tec-knowledge-base` (branch: `claude/gifted-knuth-1yhom3`)
+→ **Current State: `knowledge-base/C-02___CURRENT_STATE_.md`** — اقرأه أول كل session
 → Master index: `knowledge-base/C-57___MASTER_CONTENTS_INDEX.md`
 → Strategic roadmap + risk register: `knowledge-base/C-77___STRATEGIC_ANALYSIS___RISK_ASSESSMENT.md`
 → Operations + SLOs + incidents: `knowledge-base/C-78___PLATFORM_OPERATIONS___RELIABILITY_GOVERNANCE.md`

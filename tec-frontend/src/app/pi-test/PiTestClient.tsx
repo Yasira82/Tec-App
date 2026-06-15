@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { isPiBrowser, loginWithPi, getStoredUser, getAccessToken } from '@/lib-client/pi/pi-auth';
-import { createU2APayment, createPaymentRecord } from '@/lib/pi-payment';
+import { createU2APayment } from '@/lib-client/pi/pi-payment';
 
 type LogEntry = { ts: string; type: 'info' | 'success' | 'error' | 'warn'; msg: string };
 
@@ -206,19 +206,13 @@ export function PiTestClient() {
     log('info', 'Creating payment (1π)…');
     setPayStatus('loading');
     try {
-      const internalId = await createPaymentRecord(1, 'test-product', 'TEC Ecommerce test — 1π');
-      if (!internalId) { setPayStatus('error'); log('error', 'Failed to create record'); return; }
-      log('info', `Record: ${internalId}`);
-      const result = await createU2APayment(1, 'TEC Ecommerce test — 1π', { source: 'ecommerce', test: true }, internalId);
+      const result = await createU2APayment(1, 'TEC sandbox test', { source: 'pi-test-page' });
       if (result.status === 'cancelled') {
         setPayStatus('cancelled');
         log('warn', `Cancelled (id: ${result.paymentId ?? 'n/a'})`);
-      } else if (result.status === 'completed') {
+      } else {
         setPayStatus('done');
         log('success', `✅ Done! id=${result.paymentId} txid=${result.txid}`);
-      } else {
-        setPayStatus('error');
-        log('error', `Failed: ${result.message ?? 'unknown'}`);
       }
     } catch (err) {
       setPayStatus('error');
@@ -355,4 +349,4 @@ export function PiTestClient() {
       </section>
     </main>
   );
-          }
+                                                                                                }

@@ -155,11 +155,11 @@ describe('middleware', () => {
     expect(res.status).toBe(200);
   });
 
-  it('allows POST to CSRF-protected route when CSRF cookie is absent (cross-domain SSO)', async () => {
+  it('blocks POST to CSRF-protected route without CSRF token', async () => {
     const { middleware } = await import('@/middleware');
     const req = makeMiddlewareReq({ pathname: '/api/kyc/start', method: 'POST' });
     const res = middleware(req);
-    expect(res.status).toBe(200);
+    expect(res.status).toBe(403);
   });
 
   it('allows POST with matching CSRF token', async () => {

@@ -25,6 +25,17 @@ const CSRF_PROTECTED = [
   '/api/bff/notifications',
 ];
 
+// Double-submit CSRF token cookie. Not a secret — same-origin policy stops
+// cross-origin attackers from reading it. httpOnly:false so client JS can
+// echo it back in the x-csrf-token header.
+const CSRF_COOKIE_OPTS = {
+  httpOnly: false,
+  secure:   true,
+  sameSite: 'none' as const,
+  path:     '/',
+  maxAge:   60 * 60 * 24,
+};
+
 function timingSafeStringEqual(a: string, b: string): boolean {
   const aBytes = new TextEncoder().encode(a);
   const bBytes = new TextEncoder().encode(b);
@@ -51,12 +62,14 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // ── CSRF verification ──────────────────────────────────────
+  // ── Unsafe method → strict CSRF double-submit ──────────────
+  // Safe to be strict: every safe-method request below self-mints the
+  // tec_csrf cookie, so by the time a POST happens the cookie always exists.
   if (!CSRF_SAFE_METHODS.has(method)) {
     const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
     if (isCsrfProtected) {
-      const csrfCookie = req.cookies.get('tec_csrf')?.value;
-      const csrfHeader = req.headers.get('x-csrf-token');
+      const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
+      const csrfHeader = req.headers.get('x-csrf-token') ?? '';
       if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
@@ -64,34 +77,19 @@ export function middleware(req: NextRequest) {
         );
       }
     }
+    return NextResponse.next();
   }
 
-  return NextResponse.next();
+  // ── Safe method → ensure a tec_csrf cookie exists ──────────
+  // Self-mints the double-submit token on any page load. Per-origin —
+  // no cross-domain cookie sharing required (apps are on separate domains).
+  const res = NextResponse.next();
+  if (!req.cookies.get('tec_csrf')?.value) {
+    res.cookies.set('tec_csrf', crypto.randomUUID(), CSRF_COOKIE_OPTS);
+  }
+  return res;
 }
 
 export const config = {
-  matcher: [
-    '/hub/:path*',
-    '/dashboard/:path*',
-    '/profile/:path*',
-    '/settings/:path*',
-    '/api/auth/logout',
-    '/api/auth/refresh',
-    '/api/wallet/:path*',
-    '/api/kyc/:path*',
-    '/api/notifications/:path*',
-    '/api/assets/:path*',
-    '/api/marketplace/:path*',
-    '/api/commerce/:path*',
-    '/api/subscriptions/:path*',
-    '/api/payment/:path*',
-    '/api/admin/:path*',
-    '/api/ai/:path*',
-    '/api/identity/:path*',
-    '/api/bff/payment/:path*',
-    '/api/bff/assets/:path*',
-    '/api/bff/commerce/:path*',
-    '/api/bff/identity/:path*',
-    '/api/bff/notifications/:path*',
-  ],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\..*).*)'],
 };

@@ -165,7 +165,12 @@ class PiSessionManager {
           try {
             await retryFetch(() => fetch('/api/payment/resolve-incomplete', {
               method: 'POST', credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                'x-csrf-token': (typeof document !== 'undefined'
+                  ? document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? ''
+                  : ''),
+              },
               body: JSON.stringify({ pi_payment_id: p.identifier }),
             }));
             this._log('info', 'payment:resolved', p.identifier);

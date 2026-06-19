@@ -2,6 +2,11 @@
 
 import { useState, useCallback } from 'react';
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [input,    setInput]    = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
@@ -15,7 +20,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
     setLoading(true);
     try {
       const res = await fetch('/api/ai/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         credentials: 'include',
         body: JSON.stringify({ messages: [{ role: 'user', content: text }] }),
       });

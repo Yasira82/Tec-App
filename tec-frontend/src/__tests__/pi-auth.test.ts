@@ -116,7 +116,11 @@ describe('logout', () => {
 
   it('calls /api/auth/logout and clears SDK token', async () => {
     await logout();
-    expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', { method: 'POST' });
+    expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'x-csrf-token': '' },
+    });
     expect(sdk.clearAuthToken).toHaveBeenCalled();
   });
 

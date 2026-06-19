@@ -5,6 +5,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { usePiAuth }     from '@/lib-client/hooks/usePiAuth';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 interface CartItem {
   product_id: string;
   title:      string;
@@ -51,6 +56,7 @@ export default function CheckoutPage() {
     const token = getAccessToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
+      'x-csrf-token': getCsrfToken(),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 

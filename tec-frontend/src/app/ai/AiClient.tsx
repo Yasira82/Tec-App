@@ -6,6 +6,11 @@ import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import Link                            from 'next/link';
 import styles                          from './ai.module.css';
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 interface Message {
   id:        string;
   role:      'user' | 'assistant';
@@ -87,7 +92,8 @@ export default function AiClient() {
     try {
       const response = await fetch('/api/ai/chat', {
         method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         body: JSON.stringify({
           messages: [...messages, userMessage]
             .filter(m => m.id !== 'welcome')

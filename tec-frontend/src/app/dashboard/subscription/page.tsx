@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback }  from 'react';
 import { getAccessToken }                    from '@/lib-client/pi/pi-auth';
 import { DashboardShell, DashboardCard }     from '@/components/dashboard';
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 // ── Types ──────────────────────────────────────────────────────
 interface Plan {
   id:       string;
@@ -217,7 +222,7 @@ export default function SubscriptionPage() {
     try {
       const res  = await fetch('/api/subscriptions?endpoint=subscribe', {
         method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-csrf-token': getCsrfToken() },
         body: JSON.stringify({ plan: planId }),
       });
       const data = await res.json();

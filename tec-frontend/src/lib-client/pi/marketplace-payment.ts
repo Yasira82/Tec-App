@@ -1,6 +1,11 @@
 import { createU2APayment, PaymentResult } from './pi-payment';
 import { getAccessToken } from './pi-auth';
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 export interface BuyAssetResult {
   success:    boolean;
   listing?:   Record<string, unknown>;
@@ -36,8 +41,10 @@ export const buyAsset = async (params: {
   try {
     const res = await fetch(`/api/marketplace/${listingId}/buy`, {
       method:  'POST',
+      credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        'x-csrf-token': getCsrfToken(),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: JSON.stringify({

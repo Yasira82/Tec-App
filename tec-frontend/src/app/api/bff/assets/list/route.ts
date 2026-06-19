@@ -22,7 +22,7 @@ export const GET = createHandler({
         headers: {
           Authorization:    `Bearer ${token}`,
           'x-request-id':   ctx.requestId,
-          'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
         },
         cache: 'no-store',
       },

@@ -25,7 +25,7 @@ export async function GET() {
       const t0 = Date.now();
       try {
         const res = await fetch(`${GATEWAY}${path}`, {
-          headers: { 'x-internal-key': process.env.INTERNAL_SECRET ?? '' },
+          headers: { ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }) },
           signal:  AbortSignal.timeout(4000),
           cache:   'no-store',
         });

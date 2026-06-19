@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
     const res = await fetch(`${GATEWAY}/api/payment/history?limit=100&sort=desc`, {
       headers: {
         Authorization:    `Bearer ${token}`,
-        'x-internal-key': process.env.INTERNAL_SECRET ?? '',
+        ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
       },
       cache:  'no-store',
       signal: AbortSignal.timeout(8000),

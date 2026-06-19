@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
         headers: {
           'Content-Type':    'application/json',
           Authorization:     authHeader,
-          'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+          ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
           'Idempotency-Key': randomUUID(),
         },
         body: JSON.stringify({ payment_id, pi_payment_id }),
@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
             headers: {
               'Content-Type':    'application/json',
               Authorization:     authHeader,
-              'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+              ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
               'Idempotency-Key': randomUUID(),
             },
             body: JSON.stringify({ payment_id, pi_payment_id }),
@@ -102,7 +102,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type':    'application/json',
         Authorization:     authHeader,
-        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+        ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
         'Idempotency-Key': `create-${piId}`,
       },
       body: JSON.stringify({
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
           headers: {
             'Content-Type':    'application/json',
             Authorization:     authHeader,
-            'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+            ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
             'Idempotency-Key': `create-${piId}`,
           },
           body: JSON.stringify({
@@ -150,7 +150,7 @@ export async function POST(req: NextRequest) {
       headers: {
         'Content-Type':    'application/json',
         Authorization:     authHeader,
-        'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+        ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
         'Idempotency-Key': `approve-${piId}`,
       },
       body: JSON.stringify({ payment_id: dbPaymentId, pi_payment_id: piId }),

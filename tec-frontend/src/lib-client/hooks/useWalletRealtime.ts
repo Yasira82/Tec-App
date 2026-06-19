@@ -2,8 +2,6 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getAccessToken, getStoredUser } from '@/lib-client/pi/pi-auth';
 
-const WS_URL = process.env.NEXT_PUBLIC_REALTIME_URL!;
-
 export interface WalletUpdatedEvent {
   type:    'wallet.updated';
   balance: number;
@@ -51,7 +49,7 @@ export function useWalletRealtime({
     setIsConnected(false);
   }, []);
 
-  const connect = useCallback(() => {
+  const connect = useCallback(async () => {
     if (!mountedRef.current) return;
     const token  = getToken();
     const userId = getUserId();
@@ -59,8 +57,20 @@ export function useWalletRealtime({
 
     cleanup();
 
+    // ✅ P1: fetch WebSocket URL from BFF — no NEXT_PUBLIC_ env var
+    let wsBaseUrl: string;
+    try {
+      const res = await fetch('/api/bff/realtime');
+      if (!res.ok) return;
+      const data = await res.json() as { url: string };
+      wsBaseUrl = data.url;
+    } catch {
+      return;
+    }
+    if (!mountedRef.current) return;
+
     // ✅ P1-7: token مش في الـ URL — بيتبعت كـ first message بعد الـ connect
-    const url = `${WS_URL}/wallet?userId=${userId}`;
+    const url = `${wsBaseUrl}/wallet?userId=${userId}`;
     const ws  = new WebSocket(url);
     wsRef.current = ws;
 

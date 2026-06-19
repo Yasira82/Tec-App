@@ -235,6 +235,7 @@ describe('useWallet', () => {
 // ── useWalletRealtime ─────────────────────────────────────────────
 describe('useWalletRealtime', () => {
   let mockWs: any;
+  let originalFetch: typeof global.fetch;
 
   beforeEach(() => {
     mockWs = {
@@ -248,10 +249,20 @@ describe('useWalletRealtime', () => {
     };
     // Use a proper constructor function so `new WebSocket()` works
     function MockWS() { Object.assign(this as any, mockWs); return mockWs; }
+    (MockWS as any).OPEN = 1;
     (global as any).WebSocket = MockWS;
+
+    // Mock fetch for /api/bff/realtime
+    originalFetch = global.fetch;
+    global.fetch = vi.fn(async (url: string) => {
+      if (String(url).includes('/api/bff/realtime')) {
+        return { ok: true, json: async () => ({ url: 'ws://test-realtime' }) } as Response;
+      }
+      return { ok: false, json: async () => ({}) } as Response;
+    }) as any;
   });
 
-  afterEach(() => { vi.restoreAllMocks(); });
+  afterEach(() => { global.fetch = originalFetch; vi.restoreAllMocks(); });
 
   it('starts disconnected before open event', async () => {
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
@@ -269,6 +280,7 @@ describe('useWalletRealtime', () => {
     renderHook(() =>
       useWalletRealtime({ onBalanceUpdate: vi.fn(), enabled: false })
     );
+    await act(async () => {});
     expect(wsConstructorCalls.length).toBe(0);
   });
 
@@ -277,11 +289,9 @@ describe('useWalletRealtime', () => {
     const { result } = renderHook(() =>
       useWalletRealtime({ onBalanceUpdate: vi.fn() })
     );
-    // Let the effect mount and set up ws handlers, then fire onopen
+    // Let the async connect resolve (fetch + WebSocket creation)
     await act(async () => {});
     act(() => { mockWs.onopen?.(); });
-    // isConnected is set via setIsConnected inside onopen callback
-    // The state update should be visible after act
     expect(typeof mockWs.onopen).toBe('function');
   });
 
@@ -289,6 +299,7 @@ describe('useWalletRealtime', () => {
     const onBalanceUpdate = vi.fn();
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
     renderHook(() => useWalletRealtime({ onBalanceUpdate }));
+    await act(async () => {});
     act(() => { mockWs.onopen?.(); });
     act(() => {
       mockWs.onmessage?.({
@@ -306,6 +317,7 @@ describe('useWalletRealtime', () => {
     const onBalanceUpdate = vi.fn();
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
     renderHook(() => useWalletRealtime({ onBalanceUpdate }));
+    await act(async () => {});
     act(() => { mockWs.onopen?.(); });
     act(() => { mockWs.onmessage?.({ data: 'not-json' }); });
     expect(onBalanceUpdate).not.toHaveBeenCalled();

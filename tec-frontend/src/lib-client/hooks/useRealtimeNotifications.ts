@@ -30,14 +30,18 @@ export function useRealtimeNotifications({
   const [unread,    setUnread]    = useState(0);
   const [connected, setConnected] = useState(false);
 
-  const REALTIME_URL = process.env.NEXT_PUBLIC_REALTIME_URL!;
-
   const connect = useCallback(() => {
     if (!userId || !token || socketRef.current) return;
 
-    import('socket.io-client')
-      .then(({ io }) => {
-        const socket = io(REALTIME_URL, {
+    // ✅ P1: fetch WebSocket URL from BFF — no NEXT_PUBLIC_ env var
+    fetch('/api/bff/realtime')
+      .then((res) => {
+        if (!res.ok) throw new Error(`BFF ${res.status}`);
+        return res.json() as Promise<{ url: string }>;
+      })
+      .then(({ url: realtimeUrl }) => import('socket.io-client').then(({ io }) => ({ io, realtimeUrl })))
+      .then(({ io, realtimeUrl }) => {
+        const socket = io(realtimeUrl, {
           auth:                { token },
           transports:          ['websocket', 'polling'],
           reconnectionAttempts: 5,
@@ -75,7 +79,7 @@ export function useRealtimeNotifications({
       .catch((err: Error) => {
         if (isDev) console.warn('[WS] socket.io-client not available:', err.message);
       });
-  }, [userId, token, REALTIME_URL, onNotification, onWalletUpdate]);
+  }, [userId, token, onNotification, onWalletUpdate]);
 
   useEffect(() => {
     connect();

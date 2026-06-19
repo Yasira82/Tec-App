@@ -236,7 +236,7 @@ describe('WalletCard', () => {
     await act(async () => {});
     expect(container.textContent).toContain('12.34');
     expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/wallet/balance?userId=u-1'),
+      '/api/bff/wallet/balance',
       expect.objectContaining({ credentials: 'include' }),
     );
   });
@@ -246,9 +246,10 @@ describe('WalletCard', () => {
     render(<WalletCard userId="u-2" />);
     await act(async () => {});
     const call = (globalThis.fetch as any).mock.calls.find((c: any[]) =>
-      String(c[0]).includes('u-2'),
+      String(c[0]).includes('/api/bff/wallet/balance'),
     );
-    expect(call[1].headers).toEqual({});
+    expect(call).toBeTruthy();
+    expect(call[1].credentials).toBe('include');
   });
 
   it('keeps placeholder on fetch failure', async () => {

@@ -362,10 +362,10 @@ const _registerFCMToken = async (accessToken: string): Promise<void> => {
     const fcmToken = await getFCMToken();
     if (!fcmToken) return;
 
-    await fetch('/api/notifications/device-tokens', {
+    await fetch('/api/bff/notifications/device-tokens', {
       method:      'POST',
       credentials: 'include',
-      headers:     { 'Content-Type': 'application/json' },
+      headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
       body:        JSON.stringify({ token: fcmToken, platform: 'web' }),
     });
   } catch (err: unknown) {

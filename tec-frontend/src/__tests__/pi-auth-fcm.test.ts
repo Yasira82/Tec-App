@@ -60,7 +60,7 @@ describe('loginWithPi FCM token registration', () => {
     // FCM registration is fire-and-forget — flush microtasks
     await new Promise(r => setTimeout(r, 10));
     const fcmCall = (global.fetch as any).mock.calls.find(
-      (c: any[]) => String(c[0]).includes('/api/notifications/device-tokens'),
+      (c: any[]) => String(c[0]).includes('/api/bff/notifications/device-tokens'),
     );
     expect(fcmCall).toBeTruthy();
     expect(JSON.parse(fcmCall[1].body)).toEqual({ token: 'fcm-tok-123', platform: 'web' });
@@ -71,7 +71,7 @@ describe('loginWithPi FCM token registration', () => {
     await loginWithPi();
     await new Promise(r => setTimeout(r, 10));
     const fcmCall = (global.fetch as any).mock.calls.find(
-      (c: any[]) => String(c[0]).includes('/api/notifications/device-tokens'),
+      (c: any[]) => String(c[0]).includes('/api/bff/notifications/device-tokens'),
     );
     expect(fcmCall).toBeUndefined();
   });

@@ -2,6 +2,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
+const getCsrfToken = (): string =>
+  (typeof document !== 'undefined'
+    ? document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1]
+    : '') ?? '';
+
 export type NotifType = 'PAYMENT' | 'WALLET' | 'KYC' | 'SECURITY' | 'SYSTEM';
 
 export interface Notification {
@@ -51,9 +56,8 @@ export function useNotifications(): UseNotificationsReturn {
 
     try {
       // ✅ P1-3: BFF /api/* بدل Gateway مباشرة
-      const res = await fetch('/api/notifications?limit=50', {
+      const res = await fetch('/api/bff/notifications/list?limit=50', {
         credentials: 'include',
-        headers:     { Authorization: `Bearer ${token}` },
         signal:      ctrl.signal,
       });
       if (!res.ok) throw new Error(`Notifications fetch failed: ${res.status}`);
@@ -77,10 +81,11 @@ export function useNotifications(): UseNotificationsReturn {
     const token = getAccessToken();
     if (!token) return;
     try {
-      await fetch(`/api/notifications/${id}/read`, {
+      await fetch('/api/bff/notifications/list', {
         method:      'PATCH',
         credentials: 'include',
-        headers:     { Authorization: `Bearer ${token}` },
+        headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+        body:        JSON.stringify({ notificationId: id }),
       });
       setNotifications(prev =>
         prev.map(n => n.id === id ? { ...n, read: true } : n)
@@ -93,10 +98,11 @@ export function useNotifications(): UseNotificationsReturn {
     const token = getAccessToken();
     if (!token) return;
     try {
-      await fetch('/api/notifications/read-all', {
+      await fetch('/api/bff/notifications/list', {
         method:      'PATCH',
         credentials: 'include',
-        headers:     { Authorization: `Bearer ${token}` },
+        headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
+        body:        JSON.stringify({ markAll: true }),
       });
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);

@@ -14,9 +14,8 @@ export default function WalletCard({ userId }: Props) {
     if (!userId) return;
     // ✅ P1-1: cookie بدل localStorage
     const token = getAccessToken();
-    fetch(`/api/wallet/balance?userId=${userId}`, {
+    fetch('/api/bff/wallet/balance', {
       credentials: 'include',
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
     })
       .then(r => r.ok ? r.json() : null)
       .then(d => d && setBalance(d.balance ?? 0))

@@ -14,7 +14,15 @@ const CSRF_PROTECTED = [
   '/api/marketplace',
   '/api/commerce',
   '/api/subscriptions',
-  '/api/bff/payment/create',
+  '/api/payment',
+  '/api/admin',
+  '/api/ai',
+  '/api/identity',
+  '/api/bff/payment',
+  '/api/bff/assets',
+  '/api/bff/commerce',
+  '/api/bff/identity',
+  '/api/bff/notifications',
 ];
 
 function timingSafeStringEqual(a: string, b: string): boolean {
@@ -76,6 +84,14 @@ export const config = {
     '/api/marketplace/:path*',
     '/api/commerce/:path*',
     '/api/subscriptions/:path*',
-    '/api/bff/payment/create',
+    '/api/payment/:path*',
+    '/api/admin/:path*',
+    '/api/ai/:path*',
+    '/api/identity/:path*',
+    '/api/bff/payment/:path*',
+    '/api/bff/assets/:path*',
+    '/api/bff/commerce/:path*',
+    '/api/bff/identity/:path*',
+    '/api/bff/notifications/:path*',
   ],
 };

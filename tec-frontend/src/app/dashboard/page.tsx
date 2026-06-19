@@ -301,7 +301,7 @@ export default function DashboardPage() {
     const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
 
     try {
-      const res = await fetch(`/api/wallet/balance?userId=${user.id}`, { credentials: 'include', headers, cache: 'no-store' });
+      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setBalance(Number(d.data?.balance ?? d.balance ?? 0)); }
     } catch {}
 

@@ -92,6 +92,14 @@ describe('useRealtimeNotifications (extended)', () => {
     const piAuth = await import('@/lib-client/pi/pi-auth');
     vi.mocked(piAuth.getAccessToken).mockReturnValue('tok-test');
     vi.mocked(piAuth.getStoredUser).mockReturnValue({ id: 'usr-1', piUsername: 'alice' } as any);
+
+    // Mock fetch for /api/bff/realtime (hook now fetches URL before connecting)
+    global.fetch = vi.fn(async (url: unknown) => {
+      if (String(url).includes('/api/bff/realtime')) {
+        return { ok: true, json: async () => ({ url: 'http://test-realtime' }) } as Response;
+      }
+      return { ok: false, json: async () => ({}) } as Response;
+    }) as any;
   });
 
   it('initial state: unread=0, connected=false', async () => {
@@ -704,6 +712,14 @@ describe('useWalletRealtime (extra coverage)', () => {
     }
     MockWS.OPEN = 1;
     (global as any).WebSocket = MockWS;
+
+    // Mock fetch for /api/bff/realtime
+    global.fetch = vi.fn(async (url: unknown) => {
+      if (String(url).includes('/api/bff/realtime')) {
+        return { ok: true, json: async () => ({ url: 'ws://test-realtime' }) } as Response;
+      }
+      return { ok: false, json: async () => ({}) } as Response;
+    }) as any;
   });
 
   afterEach(() => { vi.restoreAllMocks(); });

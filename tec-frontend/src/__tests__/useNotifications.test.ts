@@ -62,7 +62,7 @@ describe('useNotifications — success', () => {
     renderHook(() => useNotifications());
     await act(async () => {});
     expect(global.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/notifications'),
+      expect.stringContaining('/api/bff/notifications/list'),
       expect.objectContaining({ credentials: 'include' }),
     );
   });
@@ -88,8 +88,9 @@ describe('useNotifications — fetch error', () => {
 describe('useNotifications — markAsRead', () => {
   it('calls PATCH endpoint for single notification', async () => {
     let patchUrl = '';
+    let patchBody = '';
     global.fetch = vi.fn(async (url: string, opts?: RequestInit) => {
-      if (opts?.method === 'PATCH') { patchUrl = url as string; return { ok: true, json: async () => ({}) }; }
+      if (opts?.method === 'PATCH') { patchUrl = url as string; patchBody = opts?.body as string; return { ok: true, json: async () => ({}) }; }
       return {
         ok:   true,
         json: async () => ({
@@ -102,7 +103,8 @@ describe('useNotifications — markAsRead', () => {
     const { result } = renderHook(() => useNotifications());
     await act(async () => {});
     await act(async () => { await result.current.markAsRead('n1'); });
-    expect(patchUrl).toContain('n1');
+    expect(patchUrl).toContain('/api/bff/notifications/list');
+    expect(JSON.parse(patchBody)).toEqual({ notificationId: 'n1' });
   });
 });
 

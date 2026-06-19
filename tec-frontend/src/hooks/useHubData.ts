@@ -47,9 +47,8 @@ export function useHubData(userId?: string): HubData {
   const refreshNotifCount = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch(`/api/notifications/unread-count?userId=${userId}`, {
+      const res = await fetch('/api/bff/notifications/unread', {
         credentials: 'include',
-        headers: { Authorization: `Bearer ${getAccessToken() ?? ''}` },
       });
       if (res.ok) { const d = await res.json(); setNotifCount(d.count ?? 0); }
     } catch {}

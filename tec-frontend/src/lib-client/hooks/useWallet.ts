@@ -141,9 +141,8 @@ export function useWallet(): UseWalletReturn {
             ...(filterStatus !== 'all' && { status: filterStatus }),
           });
 
-          const txRes = await fetch(`/api/wallet/transactions?${params}`, {
+          const txRes = await fetch(`/api/bff/wallet/transactions?${params}`, {
             credentials: 'include',
-            headers:     { Authorization: `Bearer ${token}` },
             signal:      ctrl.signal,
           });
 
@@ -174,9 +173,8 @@ export function useWallet(): UseWalletReturn {
           ...(filterStatus !== 'all' && { status: filterStatus }),
         });
 
-        const txRes = await fetch(`/api/payments/history?${params}`, {
+        const txRes = await fetch(`/api/bff/payments/history?${params}`, {
           credentials: 'include',
-          headers:     { Authorization: `Bearer ${token}` },
           signal:      ctrl.signal,
         });
 

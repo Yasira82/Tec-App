@@ -30,11 +30,17 @@ interface UseKycReturn {
   reset:        () => void;
 }
 
+const getCsrfToken = (): string => {
+  if (typeof document === 'undefined') return '';
+  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
 // ✅ P1-1: cookie بدل localStorage
 // ✅ P1-3: BFF /api/* بدل Gateway مباشرة
 const makeHeaders = (): Record<string, string> => ({
-  'Content-Type': 'application/json',
-  Authorization:  `Bearer ${getAccessToken() ?? ''}`,
+  'Content-Type':  'application/json',
+  Authorization:   `Bearer ${getAccessToken() ?? ''}`,
+  'x-csrf-token':  getCsrfToken(),
 });
 
 export function useKyc(): UseKycReturn {

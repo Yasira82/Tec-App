@@ -38,7 +38,11 @@ describe('pi-auth extended', () => {
 
       expect(fetchSpy).toHaveBeenCalledWith(
         '/api/auth/logout',
-        { method: 'POST' },
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'x-csrf-token': '' },
+        },
       );
     });
 

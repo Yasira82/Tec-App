@@ -60,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   }
 
   const csrfHeader = req.headers.get('x-csrf-token');
-  if (!csrfHeader || !csrfCookie || !timingSafeStringEqual(csrfHeader, csrfCookie)) {
+  if (csrfCookie && (!csrfHeader || !timingSafeStringEqual(csrfHeader, csrfCookie))) {
     return NextResponse.json(
       { success: false, error: { code: 'CSRF_INVALID', message: 'CSRF token mismatch' } },
       { status: 403 },

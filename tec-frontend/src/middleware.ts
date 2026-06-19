@@ -55,9 +55,9 @@ export function middleware(req: NextRequest) {
   if (!CSRF_SAFE_METHODS.has(method)) {
     const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
     if (isCsrfProtected) {
-      const csrfCookie = req.cookies.get('tec_csrf')?.value;
-      const csrfHeader = req.headers.get('x-csrf-token');
-      if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
+      const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
+      const csrfHeader = req.headers.get('x-csrf-token') ?? '';
+      if (csrfCookie && !timingSafeStringEqual(csrfCookie, csrfHeader)) {
         return NextResponse.json(
           { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
           { status: 403 },

@@ -6,7 +6,7 @@ const fetchWallet = async (token: string, userId: string, requestId: string, gat
     headers: {
       'Authorization':   `Bearer ${token}`,
       'x-request-id':    requestId,
-      'x-internal-key':  process.env.INTERNAL_SECRET ?? '',
+      ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
     },
     cache: 'no-store',
   });

@@ -58,6 +58,11 @@ jobs:
         run: npm install --legacy-peer-deps
         working-directory: tec-frontend
 
+      - name: Security audit (advisory)
+        run: npm audit --audit-level=high
+        working-directory: tec-frontend
+        continue-on-error: true
+
       - name: Lint
         run: npm run lint
         working-directory: tec-frontend

@@ -11,15 +11,6 @@ import { z } from 'zod';
 //    "/payments" path) that 404'd against a host-root gateway. Single source of truth.
 const GW = process.env.API_GATEWAY_URL ?? '';
 
-function timingSafeStringEqual(a: string, b: string): boolean {
-  const aBytes = new TextEncoder().encode(a);
-  const bBytes = new TextEncoder().encode(b);
-  if (aBytes.length !== bBytes.length) return false;
-  let diff = 0;
-  for (let i = 0; i < aBytes.length; i++) diff |= aBytes[i] ^ bBytes[i];
-  return diff === 0;
-}
-
 const CreatePaymentSchema = z.object({
   amount:          z.coerce.number().positive('amount must be a positive number'),
   currency:        z.literal('PI').default('PI'),
@@ -38,7 +29,6 @@ const CreatePaymentSchema = z.object({
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const cookieStore = await cookies();
   const accessToken = cookieStore.get('tec_access_token')?.value;
-  const csrfCookie  = cookieStore.get('tec_csrf')?.value;
 
   if (!accessToken) {
     return NextResponse.json(
@@ -47,15 +37,9 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  // CSRF double-submit — strict when the cookie is present (middleware mints it
-  // on safe-method requests, so any page load guarantees it exists before a POST).
-  const csrfHeader = req.headers.get('x-csrf-token');
-  if (csrfCookie && (!csrfHeader || !timingSafeStringEqual(csrfHeader, csrfCookie))) {
-    return NextResponse.json(
-      { success: false, error: { code: 'CSRF_INVALID', message: 'CSRF token mismatch' } },
-      { status: 403 },
-    );
-  }
+  // CSRF enforced once in middleware (double-submit OR first-party Origin) —
+  // single source of truth (P2). A duplicate strict double-submit check here
+  // risked 403'ing legit payments in Pi Browser (sameSite=None cookie dropped).
 
   let rawBody: unknown;
   try {

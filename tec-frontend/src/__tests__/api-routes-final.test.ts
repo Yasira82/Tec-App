@@ -295,7 +295,9 @@ describe('POST /api/bff/payment/create', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns 403 on CSRF mismatch', async () => {
+  it('does NOT 403 on CSRF mismatch — CSRF is delegated to middleware', async () => {
+    // CSRF is enforced once in middleware (double-submit OR first-party Origin).
+    // The route no longer double-checks it (that risked 403'ing Pi-Browser payments).
     mockCookies.mockResolvedValueOnce({
       get: vi.fn((name: string) => {
         if (name === 'tec_access_token') return { value: 'test-tok' };
@@ -303,9 +305,13 @@ describe('POST /api/bff/payment/create', () => {
         return undefined;
       }),
     });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      gw({ success: true, data: { payment: { id: 'p1', status: 'created', amount: '5', currency: 'PI', user_id: 'u1' } } }, 201),
+    );
     const { POST } = await import('@/app/api/bff/payment/create/route');
     const res = await POST(makeReq({ method: 'POST', body: validBody, csrfHeader: 'csrf-wrong' }));
-    expect(res.status).toBe(403);
+    expect(res.status).not.toBe(403);   // mismatch no longer blocks at the route
+    fetchSpy.mockRestore();
   });
 
   it('returns 400 on invalid request body', async () => {

@@ -27,19 +27,11 @@ const mockIsE2eMode    = vi.hoisted(() => vi.fn(() => false));
 const mockFetchTimeout = vi.hoisted(() => vi.fn());
 const mockJwtVerify    = vi.hoisted(() => vi.fn());
 const mockCookies      = vi.hoisted(() => vi.fn());
-const mockBffFetch     = vi.hoisted(() => vi.fn());
-const mockAttemptRefresh = vi.hoisted(() => vi.fn());
-const mockBuildExpired   = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib/server/e2e-mode',           () => ({ isE2eMode:       mockIsE2eMode }));
 vi.mock('@/lib/server/fetch-with-timeout', () => ({ fetchWithTimeout: mockFetchTimeout }));
 vi.mock('jose',                            () => ({ jwtVerify:        mockJwtVerify }));
 vi.mock('next/headers',                    () => ({ cookies:          mockCookies }));
-vi.mock('@/lib/bff-fetch', () => ({
-  bffFetch:             mockBffFetch,
-  attemptTokenRefresh:  mockAttemptRefresh,
-  buildExpiredResponse: mockBuildExpired,
-}));
 
 // ── Mock NextRequest factory (matches the established codebase pattern) ──
 function makeReq({
@@ -105,10 +97,6 @@ beforeEach(() => {
       return undefined;
     }),
   });
-
-  mockBuildExpired.mockReturnValue(
-    new Response(JSON.stringify({ error: { code: 'SESSION_EXPIRED' } }), { status: 401 }),
-  );
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -921,24 +909,23 @@ describe('POST /api/bff/payment/create (remaining branches)', () => {
     expect(body.error.code).toBe('INVALID_JSON');
   });
 
-  it('returns 401 after tokenExpired and retry also expires', async () => {
-    mockBffFetch
-      .mockResolvedValueOnce({ ok: false, status: 401, data: null, error: null, tokenExpired: true })
-      .mockResolvedValueOnce({ ok: false, status: 401, data: null, error: null, tokenExpired: true });
-    mockAttemptRefresh.mockResolvedValueOnce('new-tok');
+  it('coerces a string amount to a number before forwarding', async () => {
+    mockCookies.mockResolvedValueOnce({
+      get: vi.fn((name: string) => {
+        if (name === 'tec_access_token') return { value: 'tok' };
+        if (name === 'tec_csrf')         return { value: 'csrf-test-value' };
+        return undefined;
+      }),
+    });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      gw({ success: true, data: { payment: { id: 'p1' } } }, 201),
+    );
     const { POST } = await import('@/app/api/bff/payment/create/route');
     const res = await POST(makeReq({ method: 'POST', body: validBody, headers: { 'x-csrf-token': 'csrf-test-value' } }));
-    expect(res.status).toBe(401);
-  });
-
-  it('returns 502 when retry after tokenExpired fails with non-expired error', async () => {
-    mockBffFetch
-      .mockResolvedValueOnce({ ok: false, status: 401, data: null, error: null, tokenExpired: true })
-      .mockResolvedValueOnce({ ok: false, status: 502, data: null, error: 'gateway error', tokenExpired: false });
-    mockAttemptRefresh.mockResolvedValueOnce('new-tok');
-    const { POST } = await import('@/app/api/bff/payment/create/route');
-    const res = await POST(makeReq({ method: 'POST', body: validBody, headers: { 'x-csrf-token': 'csrf-test-value' } }));
-    expect(res.status).toBe(502);
+    expect(res.status).toBe(201);
+    const sent = JSON.parse((fetchSpy.mock.calls[0][1] as RequestInit).body as string);
+    expect(sent.amount).toBe(5);
+    expect(typeof sent.amount).toBe('number');
   });
 });
 

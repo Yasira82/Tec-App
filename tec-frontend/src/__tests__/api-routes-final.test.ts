@@ -22,16 +22,6 @@ vi.mock('next/headers', () => ({
   cookies: mockCookies,
 }));
 
-const mockBffFetch      = vi.hoisted(() => vi.fn());
-const mockAttemptRefresh = vi.hoisted(() => vi.fn());
-const mockBuildExpired   = vi.hoisted(() => vi.fn());
-
-vi.mock('@/lib/bff-fetch', () => ({
-  bffFetch:             mockBffFetch,
-  attemptTokenRefresh:  mockAttemptRefresh,
-  buildExpiredResponse: mockBuildExpired,
-}));
-
 // ── Helpers ───────────────────────────────────────────────────
 type ReqOpts = {
   method?:     string;
@@ -96,10 +86,6 @@ beforeEach(() => {
       return undefined;
     }),
   });
-
-  mockBuildExpired.mockReturnValue(
-    new Response(JSON.stringify({ error: { code: 'SESSION_EXPIRED' } }), { status: 401 }),
-  );
 });
 
 // ═══════════════════════════════════════════════════════════════
@@ -328,38 +314,33 @@ describe('POST /api/bff/payment/create', () => {
     expect(res.status).toBe(400);
   });
 
-  it('returns 201 on successful payment creation', async () => {
-    const paymentData = { success: true, data: { payment: { id: 'p1', status: 'PENDING', amount: '5', currency: 'PI', user_id: 'u1', pi_payment_id: null, transaction_id: null, metadata: {}, created_at: '2024-01-01' } } };
-    mockBffFetch.mockResolvedValueOnce({ ok: true, status: 201, data: paymentData, error: null, tokenExpired: false });
+  it('forwards to canonical gateway path with number amount + x-internal-key, returns 201', async () => {
+    const paymentData = { success: true, data: { payment: { id: 'p1', status: 'created', amount: '5', currency: 'PI', user_id: 'u1' } } };
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(gw(paymentData, 201));
     const { POST } = await import('@/app/api/bff/payment/create/route');
     const res = await POST(makeReq({ method: 'POST', body: validBody, csrfHeader: 'csrf-test-value' }));
     expect(res.status).toBe(201);
+
+    const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://gw.test/api/payment/create');
+    expect((init.headers as Record<string, string>)['x-internal-key']).toBe('internal-secret-key');
+    const sent = JSON.parse(init.body as string);
+    expect(sent.amount).toBe(5);
+    expect(typeof sent.amount).toBe('number');
   });
 
-  it('returns 502 on gateway error', async () => {
-    mockBffFetch.mockResolvedValueOnce({ ok: false, status: 502, data: null, error: 'Bad Gateway', tokenExpired: false });
+  it('returns 502 when the gateway is unreachable', async () => {
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('Network'));
     const { POST } = await import('@/app/api/bff/payment/create/route');
     const res = await POST(makeReq({ method: 'POST', body: validBody, csrfHeader: 'csrf-test-value' }));
     expect(res.status).toBe(502);
   });
 
-  it('refreshes token and retries on tokenExpired', async () => {
-    const paymentData = { success: true, data: { payment: { id: 'p2', status: 'PENDING', amount: '5', currency: 'PI', user_id: 'u1', pi_payment_id: null, transaction_id: null, metadata: {}, created_at: '2024-01-01' } } };
-    mockBffFetch
-      .mockResolvedValueOnce({ ok: false, status: 401, data: null, error: null, tokenExpired: true })
-      .mockResolvedValueOnce({ ok: true,  status: 201, data: paymentData, error: null, tokenExpired: false });
-    mockAttemptRefresh.mockResolvedValueOnce('new-access-token');
+  it('propagates the gateway status on error', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(gwErr(409));
     const { POST } = await import('@/app/api/bff/payment/create/route');
     const res = await POST(makeReq({ method: 'POST', body: validBody, csrfHeader: 'csrf-test-value' }));
-    expect(res.status).toBe(201);
-  });
-
-  it('returns expired response when refresh fails', async () => {
-    mockBffFetch.mockResolvedValueOnce({ ok: false, status: 401, data: null, error: null, tokenExpired: true });
-    mockAttemptRefresh.mockResolvedValueOnce(null);
-    const { POST } = await import('@/app/api/bff/payment/create/route');
-    const res = await POST(makeReq({ method: 'POST', body: validBody, csrfHeader: 'csrf-test-value' }));
-    expect(res.status).toBe(401);
+    expect(res.status).toBe(409);
   });
 });
 

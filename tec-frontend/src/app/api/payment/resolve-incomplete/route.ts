@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isE2eMode } from '@/lib/server/e2e-mode';
-import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
-
-const GATEWAY = process.env.API_GATEWAY_URL ?? '';
+import { gatewayPost, getAccessToken } from '@/lib/server/payment-gateway';
 
 export async function POST(req: NextRequest) {
-  const authHeader = req.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) {
+  if (!getAccessToken(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -17,32 +14,21 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  try {
-    // ✅ قراءة من URL أو body
-    const piFromQuery   = req.nextUrl.searchParams.get('pi_payment_id');
-    const body          = await req.json().catch(() => ({})) as Record<string, unknown>;
-    const pi_payment_id = (piFromQuery ?? body?.pi_payment_id) as string | undefined;
+  const piFromQuery   = req.nextUrl.searchParams.get('pi_payment_id');
+  const body          = await req.json().catch(() => ({})) as Record<string, unknown>;
+  const pi_payment_id = (piFromQuery ?? body?.pi_payment_id) as string | undefined;
 
-    if (!pi_payment_id) {
-      return NextResponse.json({ error: 'pi_payment_id required' }, { status: 400 });
-    }
-
-    // ✅ بنبعت في الـ URL + الـ body للـ Gateway
-    const res = await fetchWithTimeout(
-      `${GATEWAY}/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pi_payment_id)}`,
-      {
-        method:  'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization:  authHeader,
-        },
-        body: JSON.stringify({ pi_payment_id }),
-      },
-    );
-
-    const data = await res.json().catch(() => ({}));
-    return NextResponse.json(data, { status: res.status });
-  } catch {
-    return NextResponse.json({ error: 'Service unavailable' }, { status: 503 });
+  if (!pi_payment_id) {
+    return NextResponse.json({ error: 'pi_payment_id required' }, { status: 400 });
   }
+
+  // Gateway reads pi_payment_id from the query; we also send it in the body.
+  // gatewayPost refreshes an expired token once so a stuck incomplete payment
+  // is always resolved instead of failing with TOKEN_EXPIRED.
+  const { status, data } = await gatewayPost(
+    req,
+    `/api/payment/resolve-incomplete?pi_payment_id=${encodeURIComponent(pi_payment_id)}`,
+    { pi_payment_id },
+  );
+  return NextResponse.json(data, { status });
 }

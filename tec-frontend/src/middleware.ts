@@ -45,6 +45,28 @@ function timingSafeStringEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// CSRF: a state-changing request is trusted if EITHER the double-submit token
+// matches OR it is first-party (same-origin / a *.tecosystem.app origin).
+// Pure double-submit proved unreliable across SSO domains and inside Pi Browser
+// (sameSite=None cookies get dropped) → legit payment POSTs 403'd. Verifying
+// the Origin is an OWASP-recommended, cookie-independent CSRF defense; a
+// cross-site attacker cannot forge the browser-set Origin header.
+function isTrustedCsrf(req: NextRequest): boolean {
+  const cookie = req.cookies.get('tec_csrf')?.value ?? '';
+  const header = req.headers.get('x-csrf-token') ?? '';
+  if (cookie && header && timingSafeStringEqual(cookie, header)) return true;
+
+  const host   = req.headers.get('host') ?? '';
+  const origin = req.headers.get('origin');
+  if (origin) {
+    try {
+      const oh = new URL(origin).host;
+      if (oh === host || oh.endsWith('.tecosystem.app')) return true;
+    } catch { /* malformed Origin → not trusted */ }
+  }
+  return false;
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const method       = req.method.toUpperCase();
@@ -62,20 +84,14 @@ export function middleware(req: NextRequest) {
     }
   }
 
-  // ── Unsafe method → strict CSRF double-submit ──────────────
-  // Safe to be strict: every safe-method request below self-mints the
-  // tec_csrf cookie, so by the time a POST happens the cookie always exists.
+  // ── Unsafe method → CSRF (double-submit OR first-party origin) ────────
   if (!CSRF_SAFE_METHODS.has(method)) {
     const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
-    if (isCsrfProtected) {
-      const csrfCookie = req.cookies.get('tec_csrf')?.value ?? '';
-      const csrfHeader = req.headers.get('x-csrf-token') ?? '';
-      if (!csrfCookie || !csrfHeader || !timingSafeStringEqual(csrfCookie, csrfHeader)) {
-        return NextResponse.json(
-          { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
-          { status: 403 },
-        );
-      }
+    if (isCsrfProtected && !isTrustedCsrf(req)) {
+      return NextResponse.json(
+        { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
+        { status: 403 },
+      );
     }
     return NextResponse.next();
   }

@@ -7,8 +7,8 @@ import { z } from 'zod';
 //    - Gateway path: ${GW}/api/payment/create  (gateway rewrites ^/api/payment → /payments)
 //    - Internal header: x-internal-key + INTERNAL_SECRET  (the ONLY header the gateway validates)
 //    - amount: number  (tec-payment-service stores DECIMAL; Zod coerces, we forward Number)
-//    Replaces the divergent bffFetch stack (x-service-secret / SERVICE_SECRET / bare "/payments")
-//    which 404'd against a bare-host gateway. Single source of truth.
+//    Replaces an earlier divergent bffFetch stack (wrong internal-auth header + a bare
+//    "/payments" path) that 404'd against a host-root gateway. Single source of truth.
 const GW = process.env.API_GATEWAY_URL ?? '';
 
 function timingSafeStringEqual(a: string, b: string): boolean {

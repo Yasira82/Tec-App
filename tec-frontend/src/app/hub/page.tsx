@@ -102,7 +102,9 @@ function HubPageInner() {
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
-            amount:         String(pendingPayment.amount),
+            // ✅ amount = number — يطابق tec-payment-service (DECIMAL/number) والتطبيقات الـ3.
+            // String() كان بيخلي الـ payment-service يرفض → internalId=null → modal flash.
+            amount:         pendingPayment.amount,
             currency:       'PI',
             payment_method: 'pi',
             source:         'hub',

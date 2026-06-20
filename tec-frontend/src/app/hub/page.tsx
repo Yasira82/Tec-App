@@ -102,7 +102,7 @@ function HubPageInner() {
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
-            amount:         pendingPayment.amount,
+            amount:         String(pendingPayment.amount),
             currency:       'PI',
             payment_method: 'pi',
             source:         'hub',

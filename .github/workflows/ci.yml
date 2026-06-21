@@ -41,6 +41,10 @@ jobs:
             echo "::error::ADR-009: payment amount must be a number — no z.string() for amount in payment routes"
             violations=1
           fi
+          if grep -rnE 'csrfCookie !== csrfHeader|csrfCookie === csrfHeader|CSRF validation failed|CSRF token mismatch' src/app/api 2>/dev/null; then
+            echo "::error::CSRF must be enforced ONLY in middleware (P2 single source of truth). Remove route-level CSRF checks — they 403 legit Pi-Browser payments."
+            violations=1
+          fi
           [ "$violations" -eq 0 ] && echo "payment contract policy OK" || exit 1
 
       - uses: actions/setup-node@v4

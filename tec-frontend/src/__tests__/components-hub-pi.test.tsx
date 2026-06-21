@@ -14,7 +14,9 @@ import { AIDrawer } from '@/app/hub/components/AIDrawer';
 import { PaymentModal } from '@/app/hub/components/PaymentModal';
 import { ToastProvider, useToast } from '@/components/ToastProvider';
 import { checkGatewayHealth } from '@/lib-client/api/health';
+import { checkBackendHealth } from '@/lib/health-check';
 import BackendStatus from '@/components/BackendStatus';
+import { PlatformHealthProvider } from '@/context/PlatformHealthContext';
 import { usePiBrowser } from '@/lib-client/hooks/usePiBrowser';
 import PiBrowserGuard from '@/components/PiBrowserGuard';
 import PaymentDiagnostics from '@/components/PaymentDiagnostics';
@@ -128,6 +130,12 @@ vi.mock('@/lib-client/pi/PiRuntime', () => ({
 
 vi.mock('@/lib-client/api/health', () => ({
   checkGatewayHealth: vi.fn(() => Promise.resolve({ online: true })),
+}));
+
+// BackendStatus now reads the centralized PlatformHealthContext (C-96),
+// whose single poller uses checkBackendHealth (/api/health BFF).
+vi.mock('@/lib/health-check', () => ({
+  checkBackendHealth: vi.fn(() => Promise.resolve({ online: true })),
 }));
 
 vi.mock('@/lib-client/hooks/usePiBrowser', () => ({
@@ -970,20 +978,28 @@ describe('ToastProvider', () => {
 // BackendStatus
 // ─────────────────────────────────────────────────────────────────────────────
 describe('BackendStatus', () => {
-  it('renders nothing when backend is online', async () => {
-    vi.mocked(checkGatewayHealth).mockResolvedValue({ online: true });
-
-    const { container } = await act(async () =>
-      render(<BackendStatus />)
+  // BackendStatus is a consumer of the single PlatformHealthContext poller (C-96).
+  // Drive its state via the provider's health source (checkBackendHealth);
+  // initialDelayMs={0} runs the first check immediately for deterministic tests.
+  const renderWithHealth = () =>
+    render(
+      <PlatformHealthProvider initialDelayMs={0} intervalMs={1_000_000}>
+        <BackendStatus />
+      </PlatformHealthProvider>
     );
+
+  it('renders nothing when backend is online', async () => {
+    vi.mocked(checkBackendHealth).mockResolvedValue({ online: true });
+
+    const { container } = await act(async () => renderWithHealth());
     expect(container.firstChild).toBeNull();
   });
 
   it('shows banner when backend is offline', async () => {
-    vi.mocked(checkGatewayHealth).mockResolvedValue({ online: false });
+    vi.mocked(checkBackendHealth).mockResolvedValue({ online: false });
 
     await act(async () => {
-      render(<BackendStatus />);
+      renderWithHealth();
     });
 
     await waitFor(() => {
@@ -994,10 +1010,10 @@ describe('BackendStatus', () => {
   });
 
   it('dismisses banner when × clicked', async () => {
-    vi.mocked(checkGatewayHealth).mockResolvedValue({ online: false });
+    vi.mocked(checkBackendHealth).mockResolvedValue({ online: false });
 
     await act(async () => {
-      render(<BackendStatus />);
+      renderWithHealth();
     });
 
     await waitFor(() => {
@@ -1016,13 +1032,11 @@ describe('BackendStatus', () => {
     });
   });
 
-  it('shows banner again when backend comes back online then goes offline', async () => {
-    vi.mocked(checkGatewayHealth)
-      .mockResolvedValueOnce({ online: false })
-      .mockResolvedValueOnce({ online: true });
+  it('shows banner when backend is offline on first check', async () => {
+    vi.mocked(checkBackendHealth).mockResolvedValue({ online: false });
 
     await act(async () => {
-      render(<BackendStatus />);
+      renderWithHealth();
     });
 
     await waitFor(() => {

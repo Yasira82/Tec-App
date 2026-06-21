@@ -4,6 +4,7 @@ import { Cormorant_Garamond, DM_Sans } from 'next/font/google';
 import { ClientProviders } from '@/components/ClientProviders';
 import PiSdkLoader from '@/components/PiSdkLoader';
 import { BackendOfflineBanner } from '@/components/BackendOfflineBanner';
+import { PlatformHealthProvider } from '@/context/PlatformHealthContext';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import PiBrowserGuard from '@/components/PiBrowserGuard';
 import type { Metadata, Viewport } from 'next';
@@ -105,14 +106,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
         <PiSdkLoader sandbox={piSandbox} timeout={sdkTimeout} />
-        <BackendOfflineBanner />
-        <ClientProviders>
-          <ErrorBoundary>
-            <PiBrowserGuard>
-              {children}
-            </PiBrowserGuard>
-          </ErrorBoundary>
-        </ClientProviders>
+        <PlatformHealthProvider>
+          <BackendOfflineBanner />
+          <ClientProviders>
+            <ErrorBoundary>
+              <PiBrowserGuard>
+                {children}
+              </PiBrowserGuard>
+            </ErrorBoundary>
+          </ClientProviders>
+        </PlatformHealthProvider>
       </body>
     </html>
   );

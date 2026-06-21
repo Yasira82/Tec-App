@@ -1,8 +1,9 @@
 'use client';
-import { useBackendHealth } from '../hooks/useBackendHealth';
+import { usePlatformHealth } from '../context/PlatformHealthContext';
 
 export function BackendOfflineBanner() {
-  const { online, isChecking, error, recheckHealth } = useBackendHealth(30000); // check every 30s
+  // Consumer of the single platform health runtime (C-96) — no own poller.
+  const { online, isChecking, error, recheck } = usePlatformHealth();
 
   if (!online && !isChecking)
     return (
@@ -27,7 +28,7 @@ export function BackendOfflineBanner() {
         </div>
         <button
           type="button"
-          onClick={recheckHealth}
+          onClick={recheck}
           disabled={isChecking}
           style={{
             background: '#dc2626',

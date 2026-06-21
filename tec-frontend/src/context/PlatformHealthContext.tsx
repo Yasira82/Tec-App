@@ -13,15 +13,9 @@
  * State). The canonical source is the /api/health BFF route (checkBackendHealth).
  */
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  useCallback,
-  type ReactNode,
-} from 'react';
-import { checkBackendHealth, type HealthStatus } from '../lib/health-check';
+import { createContext, useContext, type ReactNode } from 'react';
+import { useBackendHealth } from '../hooks/useBackendHealth';
+import { type HealthStatus } from '../lib/health-check';
 
 export interface PlatformHealth extends HealthStatus {
   /** true while a health check is in flight */
@@ -49,30 +43,18 @@ export function PlatformHealthProvider({
   intervalMs?: number;
   initialDelayMs?: number;
 }) {
-  // Start optimistic (online) + checking, so the banner never flashes on load.
-  const [health, setHealth] = useState<HealthStatus>({ online: true });
-  const [isChecking, setIsChecking] = useState(true);
-
-  const recheck = useCallback(async () => {
-    setIsChecking(true);
-    const result = await checkBackendHealth();
-    setHealth(result);
-    setIsChecking(false);
-    return result;
-  }, []);
-
-  useEffect(() => {
-    // Delay the first check (cold-start grace) then poll on a single interval.
-    const initial = setTimeout(recheck, initialDelayMs);
-    const id = setInterval(recheck, intervalMs);
-    return () => {
-      clearTimeout(initial);
-      clearInterval(id);
-    };
-  }, [recheck, intervalMs, initialDelayMs]);
+  // The SINGLE health poller for the whole app (C-96). useBackendHealth is the
+  // polling primitive; it is invoked here exactly once and shared via context.
+  // No component may run its own poll — they consume usePlatformHealth().
+  const { isChecking, recheckHealth, ...health } = useBackendHealth(
+    intervalMs,
+    initialDelayMs,
+  );
 
   return (
-    <PlatformHealthCtx.Provider value={{ ...health, isChecking, recheck }}>
+    <PlatformHealthCtx.Provider
+      value={{ ...(health as HealthStatus), isChecking, recheck: recheckHealth }}
+    >
       {children}
     </PlatformHealthCtx.Provider>
   );

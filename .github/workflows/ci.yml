@@ -29,10 +29,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Payment contract policy (ADR-009)
+      - name: Drift Detection — KB claims vs code
         working-directory: tec-frontend
+        # Asserts that code still matches the constitutional claims it is supposed
+        # to uphold. Each check maps to a specific C-doc; a violation = doc↔runtime
+        # drift. Authority: C-12 §11 (CSRF), C-47/ADR-009 (payment contract),
+        # C-96 (single health poller).
         run: |
           violations=0
+
+          # ── ADR-009: unified payment contract ───────────────────────────
           if grep -rniE 'x-service-secret|SERVICE_SECRET' src; then
             echo "::error::ADR-009: use x-internal-key / INTERNAL_SECRET (not x-service-secret / SERVICE_SECRET)"
             violations=1
@@ -41,11 +47,30 @@ jobs:
             echo "::error::ADR-009: payment amount must be a number — no z.string() for amount in payment routes"
             violations=1
           fi
+
+          # ── C-12 §11 / P2: CSRF enforced ONLY in middleware ─────────────
           if grep -rnE 'csrfCookie !== csrfHeader|csrfCookie === csrfHeader|CSRF validation failed|CSRF token mismatch' src/app/api 2>/dev/null; then
             echo "::error::CSRF must be enforced ONLY in middleware (P2 single source of truth). Remove route-level CSRF checks — they 403 legit Pi-Browser payments."
             violations=1
           fi
-          [ "$violations" -eq 0 ] && echo "payment contract policy OK" || exit 1
+
+          # ── C-96 / NEW-K: single health poller (no per-component polling) ─
+          # Components/pages must consume usePlatformHealth(); only the context
+          # may run a health poller (useBackendHealth / setInterval over health).
+          if grep -rnE 'useBackendHealth' src/components src/app 2>/dev/null; then
+            echo "::error::C-96: components/pages must use usePlatformHealth() — only PlatformHealthContext may call the useBackendHealth poller (single health runtime)."
+            violations=1
+          fi
+          poller_files=$(grep -rlE 'setInterval' src --include=*.ts --include=*.tsx 2>/dev/null \
+            | xargs grep -lE 'checkBackendHealth|checkGatewayHealth' 2>/dev/null \
+            | grep -vE 'context/PlatformHealthContext|hooks/useBackendHealth' || true)
+          if [ -n "$poller_files" ]; then
+            echo "::error::C-96: health polling found outside PlatformHealthContext — single health runtime only. Offending file(s):"
+            echo "$poller_files"
+            violations=1
+          fi
+
+          [ "$violations" -eq 0 ] && echo "Drift Detection OK — code matches KB claims" || exit 1
 
       - uses: actions/setup-node@v4
         with:

@@ -36,18 +36,23 @@ export const PATCH = createHandler({
   handler: async ({ input, ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const res = await fetch(
-      `${GW}/api/notification/read`,
-      {
-        method:  'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type':  'application/json',
-          'x-request-id':  ctx.requestId,
-        },
-        body: JSON.stringify({ ...input, userId: ctx.userId }),
+    // NEW-R: the service has NO /read route. Real routes are
+    // PATCH /notifications/:id/read (one) and PATCH /notifications/read-all (all).
+    if (!input.markAll && !input.notificationId) {
+      throw new Error('notificationId or markAll required');
+    }
+    const target = input.markAll
+      ? `${GW}/api/notification/read-all`
+      : `${GW}/api/notification/${encodeURIComponent(input.notificationId as string)}/read`;
+
+    const res = await fetch(target, {
+      method:  'PATCH',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type':  'application/json',
+        'x-request-id':  ctx.requestId,
       },
-    );
+    });
 
     if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();

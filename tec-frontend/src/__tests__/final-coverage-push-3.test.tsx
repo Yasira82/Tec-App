@@ -263,6 +263,28 @@ describe('useWallet tx mapping and filters', () => {
     });
   });
 
+  it('coerces a STRING balance to a number (ADR-009 string-in-API — NEW-P regression)', async () => {
+    setUserCookie();
+    // BFF returns balance as a string per ADR-009; the wallet page calls
+    // balance.toFixed() — a string would throw and crash into the ErrorBoundary.
+    global.fetch = vi.fn().mockImplementation(async (url: string) => {
+      const u = String(url);
+      if (u.includes('/api/bff/wallet/balance')) {
+        return { ok: true, json: async () => ({ balance: '12.5', currency: 'PI', walletId: 'w-1' }) };
+      }
+      if (u.includes('transactions')) {
+        return { ok: true, json: async () => ({ data: { transactions: [], pagination: { total: 0 } } }) };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+    const { result } = renderHook(() => useWallet());
+    await act(async () => {});
+    await vi.waitFor(() => expect(result.current.wallet?.balance).toBe(12.5));
+    expect(typeof result.current.wallet?.balance).toBe('number');
+    // the value must be safe to call .toFixed() on (what the page does)
+    expect(result.current.wallet!.balance.toFixed(2)).toBe('12.50');
+  });
+
   it('filterType narrows transactions to matching type', async () => {
     setUserCookie();
     mockWalletFetch();

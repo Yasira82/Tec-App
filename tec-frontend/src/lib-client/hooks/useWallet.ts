@@ -121,11 +121,14 @@ export function useWallet(): UseWalletReturn {
       if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
 
       const balanceData: {
-        balance: number; currency: string; address?: string; walletId?: string;
+        balance: number | string; currency: string; address?: string; walletId?: string;
       } = await balanceRes.json();
 
+      // ✅ ADR-009: API returns Pi amounts as STRINGS (DECIMAL in DB → string in API).
+      // Coerce to a finite number here so the UI (.toFixed) never crashes (NEW-P).
+      const numBalance = Number(balanceData.balance);
       setWallet({
-        balance:  balanceData.balance,
+        balance:  Number.isFinite(numBalance) ? numBalance : 0,
         currency: balanceData.currency,
         address:  balanceData.address,
         walletId: balanceData.walletId,
@@ -179,8 +182,10 @@ export function useWallet(): UseWalletReturn {
         });
 
         if (txRes.ok) {
-          const txData: { transactions: Transaction[]; total: number } = await txRes.json();
-          setTransactions(txData.transactions ?? []);
+          const txData: { transactions: (Transaction & { amount: number | string })[]; total: number } = await txRes.json();
+          // ✅ ADR-009: coerce amounts to numbers here too (fallback history path).
+          const list = (txData.transactions ?? []).map(t => ({ ...t, amount: Number(t.amount) }));
+          setTransactions(list);
           setTotal(txData.total ?? 0);
         }
       } catch { /* transactions مش إلزامية */ }
@@ -199,7 +204,9 @@ export function useWallet(): UseWalletReturn {
   const loadMore      = useCallback(() => fetchAll(page + 1, true), [fetchAll, page]);
   const setPage       = useCallback((p: number) => fetchAll(p),     [fetchAll]);
   const updateBalance = useCallback((newBalance: number) => {
-    setWallet(prev => prev ? { ...prev, balance: newBalance } : prev);
+    // ✅ Realtime payloads may also carry the balance as a string — coerce.
+    const n = Number(newBalance);
+    setWallet(prev => prev ? { ...prev, balance: Number.isFinite(n) ? n : prev.balance } : prev);
   }, []);
 
   useEffect(() => {

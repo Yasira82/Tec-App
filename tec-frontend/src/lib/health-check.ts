@@ -10,7 +10,7 @@ export async function checkBackendHealth(): Promise<HealthStatus> {
     // ✅ BFF — مش Gateway مباشرة
     const response = await fetch('/api/health', {
       method: 'GET',
-      signal: AbortSignal.timeout(5000),
+      signal: AbortSignal.timeout(12000),   // > BFF's 10s so the client never aborts before its own BFF returns
     });
 
     if (!response.ok) {

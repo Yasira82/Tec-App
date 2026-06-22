@@ -38,17 +38,21 @@ export function PlatformHealthProvider({
   children,
   intervalMs = 30_000,
   initialDelayMs = 3_000,
+  failureThreshold = 2,
 }: {
   children: ReactNode;
   intervalMs?: number;
   initialDelayMs?: number;
+  failureThreshold?: number;
 }) {
   // The SINGLE health poller for the whole app (C-96). useBackendHealth is the
   // polling primitive; it is invoked here exactly once and shared via context.
   // No component may run its own poll — they consume usePlatformHealth().
+  // failureThreshold (NEW-Q): tolerate transient blips before showing "offline".
   const { isChecking, recheckHealth, ...health } = useBackendHealth(
     intervalMs,
     initialDelayMs,
+    failureThreshold,
   );
 
   return (

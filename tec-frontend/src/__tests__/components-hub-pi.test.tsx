@@ -983,7 +983,9 @@ describe('BackendStatus', () => {
   // initialDelayMs={0} runs the first check immediately for deterministic tests.
   const renderWithHealth = () =>
     render(
-      <PlatformHealthProvider initialDelayMs={0} intervalMs={1_000_000}>
+      // failureThreshold={1}: one failed check flips offline (tests the consumer,
+      // not the threshold tolerance — that's covered in hooks-lib-coverage).
+      <PlatformHealthProvider initialDelayMs={0} intervalMs={1_000_000} failureThreshold={1}>
         <BackendStatus />
       </PlatformHealthProvider>
     );

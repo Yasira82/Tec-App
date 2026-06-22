@@ -7,8 +7,11 @@ export const GET = createHandler({
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
+    // NEW-R: the notification-service has NO /unread-count route (it 404'd).
+    // The base GET /notifications already returns { data: { notifications, unreadCount } }.
+    // Use it and surface just the count.
     const res = await fetch(
-      `${GW}/api/notification/unread-count?userId=${ctx.userId}`,
+      `${GW}/api/notification?userId=${ctx.userId}&limit=1`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -19,6 +22,8 @@ export const GET = createHandler({
     );
 
     if (!res.ok) throw new Error(`Gateway ${res.status}`);
-    return res.json();
+    const data = await res.json().catch(() => ({}));
+    const unreadCount = data?.data?.unreadCount ?? data?.unreadCount ?? 0;
+    return { success: true, data: { unreadCount } };
   },
 });

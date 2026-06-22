@@ -1089,25 +1089,60 @@ describe('useBackendHealth', () => {
     expect(result.current.isChecking).toBe(false);
   });
 
-  it('sets online=false when fetch returns non-ok', async () => {
+  it('sets online=false when fetch returns non-ok (failureThreshold=1)', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false, status: 503, json: async () => ({}),
     } as any);
     const { useBackendHealth } = await import('@/hooks/useBackendHealth');
-    const { result } = renderHook(() => useBackendHealth());
+    const { result } = renderHook(() => useBackendHealth(0, 3000, 1));
     await act(async () => { vi.advanceTimersByTime(3100); });
     await act(async () => {});
     expect(result.current.online).toBe(false);
   });
 
-  it('sets online=false on network error', async () => {
+  it('sets online=false on network error (failureThreshold=1)', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network failure'));
     const { useBackendHealth } = await import('@/hooks/useBackendHealth');
-    const { result } = renderHook(() => useBackendHealth());
+    const { result } = renderHook(() => useBackendHealth(0, 3000, 1));
     await act(async () => { vi.advanceTimersByTime(3100); });
     await act(async () => {});
     expect(result.current.online).toBe(false);
     expect(result.current.error).toContain('Network failure');
+  });
+
+  it('tolerates ONE failure (default threshold=2) and flips offline on the second (NEW-Q)', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: false, status: 503, json: async () => ({}),
+    } as any);
+    const { useBackendHealth } = await import('@/hooks/useBackendHealth');
+    const { result } = renderHook(() => useBackendHealth(5000)); // default threshold = 2
+    // initial check (fail #1) — must STAY online (transient blip tolerated)
+    await act(async () => { vi.advanceTimersByTime(3100); });
+    await act(async () => {});
+    expect(result.current.online).toBe(true);
+    // interval check (fail #2) — now flips offline
+    await act(async () => { vi.advanceTimersByTime(5100); });
+    await act(async () => {});
+    expect(result.current.online).toBe(false);
+  });
+
+  it('a success between failures resets the counter (NEW-Q)', async () => {
+    let ok = false;
+    global.fetch = vi.fn().mockImplementation(async () => ({
+      ok, status: ok ? 200 : 503, json: async () => ({ online: ok, status: ok ? 'ok' : undefined }),
+    } as any));
+    const { useBackendHealth } = await import('@/hooks/useBackendHealth');
+    const { result } = renderHook(() => useBackendHealth(5000));
+    await act(async () => { vi.advanceTimersByTime(3100); }); // fail #1 → stays online
+    await act(async () => {});
+    ok = true;
+    await act(async () => { vi.advanceTimersByTime(5100); }); // success → counter reset
+    await act(async () => {});
+    expect(result.current.online).toBe(true);
+    ok = false;
+    await act(async () => { vi.advanceTimersByTime(5100); }); // fail #1 again → still online (not #2)
+    await act(async () => {});
+    expect(result.current.online).toBe(true);
   });
 
   it('recheckHealth triggers immediate re-check', async () => {

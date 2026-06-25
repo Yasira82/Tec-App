@@ -37,10 +37,15 @@ export function useRealtimeNotifications({
     fetch('/api/bff/realtime')
       .then((res) => {
         if (!res.ok) throw new Error(`BFF ${res.status}`);
-        return res.json() as Promise<{ url: string }>;
+        return res.json() as Promise<{ url: string | null; enabled?: boolean }>;
       })
-      .then(({ url: realtimeUrl }) => import('socket.io-client').then(({ io }) => ({ io, realtimeUrl })))
-      .then(({ io, realtimeUrl }) => {
+      .then(({ url: realtimeUrl }) => {
+        if (!realtimeUrl) return null;   // realtime disabled — skip cleanly (no connect)
+        return import('socket.io-client').then(({ io }) => ({ io, realtimeUrl }));
+      })
+      .then((ctx) => {
+        if (!ctx) return;
+        const { io, realtimeUrl } = ctx;
         const socket = io(realtimeUrl, {
           auth:                { token },
           transports:          ['websocket', 'polling'],

@@ -356,3 +356,37 @@ describe('GET /api/bff/notifications/unread', () => {
     expect(res.status).toBe(200);
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// bff/realtime — graceful when REALTIME_URL unset (NEW-T)
+// ────────────────────────────────────────────────────────────────
+describe('GET /api/bff/realtime', () => {
+  type GETFn = (r: NextRequest) => Promise<Response>;
+
+  beforeEach(() => { process.env.JWT_SECRET = 'test-jwt-secret-32-chars-long-xx'; });
+
+  it('returns 200 enabled:false (NOT 500) when REALTIME_URL is unset', async () => {
+    delete process.env.REALTIME_URL;
+    vi.resetModules();
+    const { GET } = await import('@/app/api/bff/realtime/route') as { GET: GETFn };
+    authOk();
+    const res  = await GET(makeReq({ token: 'tok' }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.enabled).toBe(false);
+    expect(body.url ?? null).toBeNull();
+  });
+
+  it('returns the url when REALTIME_URL is set', async () => {
+    process.env.REALTIME_URL = 'wss://realtime.example';
+    vi.resetModules();
+    const { GET } = await import('@/app/api/bff/realtime/route') as { GET: GETFn };
+    authOk();
+    const res  = await GET(makeReq({ token: 'tok' }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.enabled).toBe(true);
+    expect(body.url).toBe('wss://realtime.example');
+    delete process.env.REALTIME_URL;
+  });
+});

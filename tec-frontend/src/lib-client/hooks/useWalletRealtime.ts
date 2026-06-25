@@ -62,7 +62,8 @@ export function useWalletRealtime({
     try {
       const res = await fetch('/api/bff/realtime');
       if (!res.ok) return;
-      const data = await res.json() as { url: string };
+      const data = await res.json() as { url: string | null; enabled?: boolean };
+      if (!data.url) return;   // realtime disabled (REALTIME_URL unset) — skip cleanly
       wsBaseUrl = data.url;
     } catch {
       return;

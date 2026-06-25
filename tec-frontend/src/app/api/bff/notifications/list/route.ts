@@ -45,11 +45,13 @@ export const PATCH = createHandler({
       ? `${GW}/api/notification/read-all`
       : `${GW}/api/notification/${encodeURIComponent(input.notificationId as string)}/read`;
 
+    // NEW-S: these endpoints take NO body (userId comes from the auth header).
+    // Do NOT send Content-Type: application/json with an empty body — Fastify
+    // rejects it ("Body cannot be empty when content-type is set to application/json") → 400.
     const res = await fetch(target, {
       method:  'PATCH',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type':  'application/json',
         'x-request-id':  ctx.requestId,
       },
     });

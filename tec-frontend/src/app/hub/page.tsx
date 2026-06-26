@@ -11,6 +11,7 @@ import { getVisibleDomains }                         from '@/domains/_registry';
 import { ErrorBoundary }                             from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }                     from './components/ToastContainer';
 import { AIDrawer }                                  from './components/AIDrawer';
+import { Icon }                                       from '@/components/ui/Icon';
 import { HubSkeleton }                               from './components/HubSkeleton';
 import { PullIndicator }                             from './components/PullIndicator';
 import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
@@ -255,7 +256,7 @@ function HubPageInner() {
       {!aiOpen && (
         <button className="tec-float tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label="Open AI assistant"
-          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 4px 20px rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer' }}>🤖</button>
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
       )}
 
       <HubHeader
@@ -305,17 +306,17 @@ function HubPageInner() {
       <HubComingSoon />
 
       <nav aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
-        {[
-          { icon: '⊞',  label: 'Hub',      active: true,  action: () => {} },
-          { icon: '💳', label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: '💎', label: 'Assets',   active: false, action: goToAssets },
-          { icon: '🛒', label: 'Commerce', active: false, action: goToCommerce },
-          { icon: '⚙️', label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
-        ].map(item => (
+        {([
+          { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
+          { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
+          { icon: 'gem'      as const, label: 'Assets',   active: false, action: goToAssets },
+          { icon: 'cart'     as const, label: 'Commerce', active: false, action: goToCommerce },
+          { icon: 'settings' as const, label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
+        ]).map(item => (
           <button key={item.label} className="tec-nav-btn" onClick={item.action} aria-label={item.label} aria-current={item.active ? 'page' : undefined}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
             {item.active && <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'linear-gradient(90deg,#FBBF24,#F59E0B)', boxShadow: '0 0 8px rgba(251,191,36,0.6)' }} />}
-            <span aria-hidden="true" style={{ fontSize: 20 }}>{item.icon}</span>
+            <Icon name={item.icon} size={21} color={item.active ? '#FBBF24' : 'rgba(255,255,255,0.4)'} strokeWidth={item.active ? 2.2 : 1.9} />
             <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: item.active ? 700 : 400, color: item.active ? '#FBBF24' : 'rgba(255,255,255,0.28)' }}>{item.label}</span>
           </button>
         ))}

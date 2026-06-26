@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
+import { Icon }      from '@/components/ui/Icon';
 
 interface Props {
   piUsername:  string;
@@ -49,9 +50,9 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             background: notifCount > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.06)',
             border: `1px solid ${notifCount > 0 ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 16, position: 'relative',
+            cursor: 'pointer', position: 'relative',
           }}>
-          🔔
+          <Icon name="bell" size={18} color={notifCount > 0 ? '#FBBF24' : 'rgba(255,255,255,0.6)'} />
           {notifCount > 0 && (
             <span style={{
               position: 'absolute', top: -4, right: -4,

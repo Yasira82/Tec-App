@@ -30,6 +30,14 @@ export function useRealtimeNotifications({
   const [unread,    setUnread]    = useState(0);
   const [connected, setConnected] = useState(false);
 
+  // Keep callbacks in refs so `connect` does NOT depend on them — otherwise
+  // inline callbacks from the caller recreate `connect` every render, re-running
+  // the effect and re-fetching /api/bff/realtime on every render (request storm).
+  const onNotificationRef = useRef(onNotification);
+  const onWalletUpdateRef = useRef(onWalletUpdate);
+  useEffect(() => { onNotificationRef.current = onNotification; }, [onNotification]);
+  useEffect(() => { onWalletUpdateRef.current = onWalletUpdate; }, [onWalletUpdate]);
+
   const connect = useCallback(() => {
     if (!userId || !token || socketRef.current) return;
 
@@ -66,12 +74,12 @@ export function useRealtimeNotifications({
 
         socket.on('notification.new', (data: RealtimeNotification) => {
           setUnread((prev) => prev + 1);
-          onNotification?.(data);
+          onNotificationRef.current?.(data);
           if (isDev) console.log('[WS] New notification:', data.title);
         });
 
         socket.on('wallet.updated', (data: { amount: number; currency: string }) => {
-          onWalletUpdate?.(data);
+          onWalletUpdateRef.current?.(data);
           if (isDev) console.log('[WS] Wallet updated:', data);
         });
 
@@ -84,7 +92,7 @@ export function useRealtimeNotifications({
       .catch((err: Error) => {
         if (isDev) console.warn('[WS] socket.io-client not available:', err.message);
       });
-  }, [userId, token, onNotification, onWalletUpdate]);
+  }, [userId, token]);
 
   useEffect(() => {
     connect();

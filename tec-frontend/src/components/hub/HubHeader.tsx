@@ -38,8 +38,8 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       </div>
 
       {/* Right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time}</span>
 
         {/* Notifications */}
         <button className="tec-btn" onClick={onNotifClick}
@@ -83,7 +83,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600 }}>@{piUsername}</span>
+          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
         </button>
       </div>
     </header>

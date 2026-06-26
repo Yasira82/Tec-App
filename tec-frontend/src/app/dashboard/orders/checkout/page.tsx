@@ -115,19 +115,19 @@ export default function CheckoutPage() {
 
   if (step === 'success') {
     return (
-      <div style={s({ minHeight: '100vh', background: '#020205', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 })}>
+      <div style={s({ minHeight: '100vh', background: '#050816', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 })}>
         <div style={s({ textAlign: 'center', maxWidth: 400 })}>
           <div style={s({ fontSize: 64, marginBottom: 16 })}>✅</div>
           <h2 style={s({ fontSize: 24, fontWeight: 800, color: '#7ee7c0', marginBottom: 8 })}>Order Confirmed!</h2>
           <p style={s({ color: '#6b6b7a', fontSize: 14, marginBottom: 8 })}>
-            Order ID: <span style={s({ color: '#d4af37', fontFamily: 'monospace' })}>{orderId.slice(0, 8).toUpperCase()}</span>
+            Order ID: <span style={s({ color: '#FBBF24', fontFamily: 'monospace' })}>{orderId.slice(0, 8).toUpperCase()}</span>
           </p>
           <p style={s({ color: '#4a4a5a', fontSize: 13, marginBottom: 24 })}>
             Total paid: {total.toFixed(2)} {currency === 'PI' ? 'π' : currency}
           </p>
           <button
             onClick={() => router.push('/dashboard/orders')}
-            style={s({ padding: '12px 32px', background: '#d4af3715', border: '1px solid #d4af3740', borderRadius: 14, color: '#d4af37', fontWeight: 700, fontSize: 14, cursor: 'pointer' })}
+            style={s({ padding: '12px 32px', background: '#FBBF2415', border: '1px solid #FBBF2440', borderRadius: 14, color: '#FBBF24', fontWeight: 700, fontSize: 14, cursor: 'pointer' })}
           >
             View Orders →
           </button>
@@ -137,7 +137,7 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div style={s({ minHeight: '100vh', background: '#020205', color: '#fff', padding: '24px 16px', fontFamily: 'system-ui, sans-serif' })}>
+    <div style={s({ minHeight: '100vh', background: '#050816', color: '#fff', padding: '24px 16px', fontFamily: 'system-ui, sans-serif' })}>
       <div style={s({ maxWidth: 480, margin: '0 auto' })}>
 
         <div style={s({ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 })}>
@@ -145,7 +145,7 @@ export default function CheckoutPage() {
           <h1 style={s({ fontSize: 22, fontWeight: 800, margin: 0 })}>Checkout</h1>
         </div>
 
-        <div style={s({ background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 18, padding: 20, marginBottom: 16 })}>
+        <div style={s({ background: '#0B1020', border: '1px solid #ffffff10', borderRadius: 18, padding: 20, marginBottom: 16 })}>
           <div style={s({ fontSize: 11, color: '#6b6b7a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 12 })}>Order Summary</div>
           {items.length === 0 ? (
             <p style={s({ color: '#4a4a5a', fontSize: 13 })}>No items in cart</p>
@@ -156,15 +156,15 @@ export default function CheckoutPage() {
                   <div style={s({ fontSize: 14, fontWeight: 600, color: '#fff' })}>{item.title}</div>
                   <div style={s({ fontSize: 12, color: '#6b6b7a' })}>Qty: {item.quantity}</div>
                 </div>
-                <div style={s({ fontSize: 14, fontWeight: 700, color: '#d4af37' })}>
+                <div style={s({ fontSize: 14, fontWeight: 700, color: '#FBBF24' })}>
                   {(item.price * item.quantity).toFixed(2)} {item.currency === 'PI' ? 'π' : item.currency}
                 </div>
               </div>
             ))
           )}
-          <div style={s({ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #d4af3720' })}>
+          <div style={s({ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #FBBF2420' })}>
             <span style={s({ fontWeight: 700, color: '#fff' })}>Total</span>
-            <span style={s({ fontSize: 18, fontWeight: 900, color: '#d4af37' })}>
+            <span style={s({ fontSize: 18, fontWeight: 900, color: '#FBBF24' })}>
               {total.toFixed(2)} {currency === 'PI' ? 'π' : currency}
             </span>
           </div>

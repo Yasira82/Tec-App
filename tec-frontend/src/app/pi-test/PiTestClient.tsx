@@ -210,10 +210,10 @@ export function PiTestClient() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#020205', color: '#fff',
+      minHeight: '100vh', background: '#050816', color: '#fff',
       fontFamily: 'monospace', padding: 24, maxWidth: 800, margin: '0 auto',
     }}>
-      <h2 style={{ color: '#d4af37', marginBottom: 4 }}>🧪 TEC Pi Integration Test</h2>
+      <h2 style={{ color: '#FBBF24', marginBottom: 4 }}>🧪 TEC Pi Integration Test</h2>
       <p style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 24 }}>Developer diagnostics — not visible in production</p>
 
       {/* Status row */}
@@ -267,7 +267,7 @@ export function PiTestClient() {
 
       {/* Log */}
       <div style={{
-        background: '#0a0a12', borderRadius: 12,
+        background: '#0B1020', borderRadius: 12,
         border: '1px solid #ffffff10', padding: 16,
         maxHeight: 400, overflowY: 'auto',
         fontSize: 11, lineHeight: 1.6,

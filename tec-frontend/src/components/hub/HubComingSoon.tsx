@@ -3,12 +3,12 @@
 import { COMING_SOON } from '@/domains/_registry';
 
 const GROUPS = [
-  { group: 'finance',      label: '💰 Finance',    color: '#d4af37' },
+  { group: 'finance',      label: '💰 Finance',    color: '#FBBF24' },
   { group: 'commerce',     label: '🛒 Commerce',   color: '#7eb8f7' },
-  { group: 'real_world',   label: '🏙️ Real World', color: '#10b981' },
+  { group: 'real_world',   label: '🏙️ Real World', color: '#22C55E' },
   { group: 'social',       label: '🌍 Social',     color: '#8b5cf6' },
   { group: 'tech',         label: '⚡ Tech',       color: '#f59e0b' },
-  { group: 'monetization', label: '🏆 Membership', color: '#d4af37' },
+  { group: 'monetization', label: '🏆 Membership', color: '#FBBF24' },
 ] as const;
 
 export function HubComingSoon() {

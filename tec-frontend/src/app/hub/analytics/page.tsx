@@ -129,7 +129,7 @@ export default function HubAnalyticsPage() {
   useEffect(() => { load(); }, [load]);
 
   const successColor = (r: number | null) =>
-    r === null ? 'var(--tec-text-3)' : r >= 80 ? '#10b981' : r >= 60 ? '#f0c040' : '#ef4444';
+    r === null ? 'var(--tec-text-3)' : r >= 80 ? '#22C55E' : r >= 60 ? '#f0c040' : '#ef4444';
 
   return (
     <HubSubShell title="Analytics" subtitle="Platform performance overview">
@@ -161,7 +161,7 @@ export default function HubAnalyticsPage() {
       {/* ── 24h Payments ────────────────────────────────── */}
       <DashboardCard title="Payments — last 24h" glass>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--sp-3)', padding: 'var(--sp-5)' }}>
-          <StatTile label="Completed" value={loading ? '…' : (metrics?.completed ?? '—')} accent="#10b981" />
+          <StatTile label="Completed" value={loading ? '…' : (metrics?.completed ?? '—')} accent="#22C55E" />
           <StatTile label="Failed"    value={loading ? '…' : (metrics?.failed ?? '—')}    accent="#ef4444" />
           <StatTile label="Cancelled" value={loading ? '…' : (metrics?.cancelled ?? '—')} accent="#f0c040" />
         </div>
@@ -169,7 +169,7 @@ export default function HubAnalyticsPage() {
           <StatTile
             label="Volume"
             value={loading ? '…' : metrics ? `${metrics.volume.toFixed(4)} π` : '—'}
-            accent="#d4af37"
+            accent="#FBBF24"
           />
           <StatTile
             label="Success Rate"

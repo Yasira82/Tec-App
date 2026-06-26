@@ -14,7 +14,7 @@ export default function Header() {
       alignItems:     'center',
       justifyContent: 'space-between',
       padding:        'var(--sp-4) var(--sp-6)',
-      background:     'rgba(2,2,5,0.85)',
+      background:     'rgba(5,8,22,0.85)',
       backdropFilter: 'blur(24px) saturate(1.8)',
       WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
       borderBottom:   '1px solid var(--tec-border)',
@@ -26,10 +26,10 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 32, height: 32, borderRadius: 10,
-          background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+          background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: '#0a0800',
-          boxShadow: '0 2px 10px rgba(212,175,55,0.25)',
+          boxShadow: '0 2px 10px rgba(251,191,36,0.25)',
         }}>T</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>
@@ -53,7 +53,7 @@ export default function Header() {
             }}>
               <div style={{
                 width: 22, height: 22, borderRadius: '50%',
-                background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+                background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 800, color: '#0a0800',
               }}>

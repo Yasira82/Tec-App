@@ -37,8 +37,8 @@ export default function AppsGrid() {
             className={[
               'relative flex flex-col items-center justify-center gap-2 p-5 rounded-2xl border transition-all duration-200 w-full',
               app.live
-                ? 'border-[#d4af3730] bg-[#0d0d14] hover:border-[#d4af37] hover:bg-[#1a1208] cursor-pointer'
-                : 'border-white/10 bg-[#0d0d14] opacity-40 cursor-default',
+                ? 'border-[#FBBF2430] bg-[#0B1020] hover:border-[#FBBF24] hover:bg-[#1a1208] cursor-pointer'
+                : 'border-white/10 bg-[#0B1020] opacity-40 cursor-default',
             ].join(' ')}
           >
             <span className="text-3xl">{app.emoji}</span>

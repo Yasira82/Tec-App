@@ -94,7 +94,7 @@ if (result?.success) {
           background:    'transparent',
           border:        'none',
           letterSpacing: '0.25em',
-          color:         sdkReady ? '#d4af37' : '#4a4a5a',
+          color:         sdkReady ? '#FBBF24' : '#4a4a5a',
           fontSize:      '11px',
           fontWeight:    400,
           cursor:        loading ? 'not-allowed' : 'pointer',

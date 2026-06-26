@@ -47,7 +47,7 @@ const CATEGORIES = [
 
 const CATEGORY_COLORS: Record<string, string> = {
   Finance:       '#f0c040',
-  Premium:       '#d4af37',
+  Premium:       '#FBBF24',
   Business:      '#7eb8f7',
   Tech:          '#7ee7c0',
   Personal:      '#f09898',
@@ -266,7 +266,7 @@ export default function HomePage() {
                   className={styles.appCard}
                   style={{
                     animationDelay: `${i * 0.05}s`,
-                    '--cat-color': CATEGORY_COLORS[app.category] ?? '#d4af37',
+                    '--cat-color': CATEGORY_COLORS[app.category] ?? '#FBBF24',
                     ...(isLive ? { border: '1px solid #7ee7c040' } : {}),
                   } as React.CSSProperties}
                   onClick={(e) => { createRipple(e); openApp(app); }}
@@ -280,7 +280,7 @@ export default function HomePage() {
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
                       <span
                         className={styles.appCategory}
-                        style={{ color: CATEGORY_COLORS[app.category] ?? '#d4af37' }}
+                        style={{ color: CATEGORY_COLORS[app.category] ?? '#FBBF24' }}
                       >
                         {app.category}
                       </span>

@@ -259,15 +259,15 @@ export default function PayClient() {
 
 const styles: Record<string, React.CSSProperties> = {
   container: {
-    minHeight: '100vh', background: '#020205',
+    minHeight: '100vh', background: '#050816',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     fontFamily: '-apple-system, BlinkMacSystemFont, system-ui, sans-serif',
     padding: '20px',
   },
   card: {
     width: '100%', maxWidth: 400,
-    background: '#0d0d14', borderRadius: 28,
-    border: '1px solid #d4af3720', padding: '32px 24px',
+    background: '#0B1020', borderRadius: 28,
+    border: '1px solid #FBBF2420', padding: '32px 24px',
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
   },
   assetBox: {
@@ -283,7 +283,7 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'uppercase', marginBottom: 8,
   },
   price: {
-    color: '#d4af37', display: 'flex',
+    color: '#FBBF24', display: 'flex',
     alignItems: 'baseline', justifyContent: 'center', gap: 4,
   },
   warning: {
@@ -293,7 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btn: {
     width: '100%', padding: '16px',
-    background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+    background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
     border: 'none', borderRadius: 16,
     color: '#0a0800', fontSize: 16, fontWeight: 800, cursor: 'pointer',
   },
@@ -312,8 +312,8 @@ const styles: Record<string, React.CSSProperties> = {
   sub:        { fontSize: 13, color: '#4a4a5a' },
   spinner: {
     width: 48, height: 48, borderRadius: '50%',
-    border: '3px solid #d4af3730',
-    borderTop: '3px solid #d4af37',
+    border: '3px solid #FBBF2430',
+    borderTop: '3px solid #FBBF24',
     animation: 'spin 0.8s linear infinite',
   },
 };

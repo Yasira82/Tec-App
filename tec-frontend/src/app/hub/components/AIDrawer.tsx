@@ -51,13 +51,13 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0a0a12', borderTop: '1px solid #d4af3720', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0B1020', borderTop: '1px solid #FBBF2420', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>TEC AI</div>
               <div style={{ fontSize: 10, color: '#4a4a5a' }}>Powered by tec.pi</div>
@@ -74,7 +74,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
               <div style={{
                 maxWidth: '80%', padding: '10px 14px',
                 borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-                background: m.role === 'user' ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#0d0d1a',
+                background: m.role === 'user' ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#0d0d1a',
                 border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
                 fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
               }}>{m.text}</div>
@@ -82,16 +82,16 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
           ))}
           {loading && (
             <div style={{ display: 'flex', gap: 4, padding: '8px 0' }}>
-              {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#d4af37', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />)}
+              {[0,1,2].map(i => <div key={i} style={{ width: 6, height: 6, borderRadius: '50%', background: '#FBBF24', animation: `pulse 1.2s ${i * 0.2}s infinite` }} />)}
             </div>
           )}
         </div>
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
             placeholder="اسأل TEC AI..."
-            style={{ flex: 1, background: '#0d0d14', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }} />
+            style={{ flex: 1, background: '#0B1020', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }} />
           <button onClick={send} disabled={loading || !input.trim()}
-            style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#d4af37,#b8882a)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
+            style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
         </div>
       </div>
     </>

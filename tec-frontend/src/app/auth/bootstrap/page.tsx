@@ -42,21 +42,21 @@ export default function AuthBootstrapPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#020205',
+      minHeight: '100vh', background: '#050816',
       display: 'flex', flexDirection: 'column',
       alignItems: 'center', justifyContent: 'center', gap: 16,
     }}>
       <div style={{
         width: 56, height: 56, borderRadius: 16,
-        background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+        background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 24, fontWeight: 900, color: '#0a0800',
       }}>T</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
           width: 20, height: 20, borderRadius: '50%',
-          border: '2px solid rgba(212,175,55,0.2)',
-          borderTopColor: '#d4af37',
+          border: '2px solid rgba(251,191,36,0.2)',
+          borderTopColor: '#FBBF24',
           animation: 'spin 0.8s linear infinite',
         }} />
         <span style={{ fontSize: 13, color: '#4a4a5a' }}>

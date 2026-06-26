@@ -24,11 +24,11 @@ export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props
           style={{
             flex: 1, padding: '15px 12px', borderRadius: 18,
             background: piReady ? 'linear-gradient(135deg,#0a2218,#06180e)' : 'rgba(255,255,255,0.04)',
-            border: `1px solid ${piReady ? 'rgba(16,185,129,0.3)' : 'rgba(255,255,255,0.08)'}`,
-            color: piReady ? '#10b981' : 'rgba(255,255,255,0.2)',
+            border: `1px solid ${piReady ? 'rgba(34,197,94,0.3)' : 'rgba(255,255,255,0.08)'}`,
+            color: piReady ? '#22C55E' : 'rgba(255,255,255,0.2)',
             fontWeight: 700, fontSize: 13, cursor: piReady ? 'pointer' : 'not-allowed',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            boxShadow: piReady ? '0 0 20px rgba(16,185,129,0.1)' : 'none',
+            boxShadow: piReady ? '0 0 20px rgba(34,197,94,0.1)' : 'none',
           }}>
           {!piReady
             ? <><div className="tec-spin" style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'rgba(255,255,255,0.3)' }} /><span>Connecting…</span></>

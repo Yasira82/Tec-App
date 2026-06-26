@@ -42,19 +42,19 @@ export function AmountSelector({ value, onChange, disabled }: {
           const active = value === p && isPreset;
           return (
             <button key={p} onClick={() => handlePreset(p)} disabled={disabled}
-              style={{ flex: 1, padding: '11px 0', borderRadius: 14, background: active ? '#d4af3718' : '#0d0d14', border: `1px solid ${active ? '#d4af3760' : '#ffffff10'}`, color: active ? '#d4af37' : '#6b6b7a', fontWeight: 700, fontSize: 13, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}>
+              style={{ flex: 1, padding: '11px 0', borderRadius: 14, background: active ? '#FBBF2418' : '#0B1020', border: `1px solid ${active ? '#FBBF2460' : '#ffffff10'}`, color: active ? '#FBBF24' : '#6b6b7a', fontWeight: 700, fontSize: 13, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}>
               {p}π
             </button>
           );
         })}
         <button onClick={toggleCustom} disabled={disabled}
-          style={{ flex: 1, padding: '11px 0', borderRadius: 14, background: showCustom ? '#d4af3718' : '#0d0d14', border: `1px solid ${showCustom ? '#d4af3760' : '#ffffff10'}`, color: showCustom ? '#d4af37' : '#6b6b7a', fontWeight: 700, fontSize: 13, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}>
+          style={{ flex: 1, padding: '11px 0', borderRadius: 14, background: showCustom ? '#FBBF2418' : '#0B1020', border: `1px solid ${showCustom ? '#FBBF2460' : '#ffffff10'}`, color: showCustom ? '#FBBF24' : '#6b6b7a', fontWeight: 700, fontSize: 13, cursor: disabled ? 'not-allowed' : 'pointer', transition: 'all 0.2s' }}>
           ✏️
         </button>
       </div>
       {showCustom && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0d0d14', border: '1px solid #d4af3740', borderRadius: 14, padding: '12px 16px' }}>
-          <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#d4af37' }}>π</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0B1020', border: '1px solid #FBBF2440', borderRadius: 14, padding: '12px 16px' }}>
+          <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#FBBF24' }}>π</span>
           <input type="number" min="0.01" step="0.01" value={customRaw} onChange={e => handleCustomChange(e.target.value)}
             placeholder="Enter amount" autoFocus
             style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }} />

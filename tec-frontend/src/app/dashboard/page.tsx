@@ -36,13 +36,13 @@ function DomainCard({ emoji, name, domain, status, onClick }: {
   const isLive = status === 'live';
   return (
     <div onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-2)', border: `1px solid ${isLive ? 'rgba(16,185,129,0.15)' : 'var(--tec-border)'}`, borderRadius: 'var(--radius-md)', cursor: onClick ? 'pointer' : 'default', transition: 'border-color 0.2s ease' }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isLive ? 'rgba(16,185,129,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isLive ? 'rgba(16,185,129,0.2)' : 'var(--tec-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{emoji}</div>
+      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-2)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.15)' : 'var(--tec-border)'}`, borderRadius: 'var(--radius-md)', cursor: onClick ? 'pointer' : 'default', transition: 'border-color 0.2s ease' }}>
+      <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isLive ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.2)' : 'var(--tec-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{emoji}</div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
         <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{domain}</div>
       </div>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: isLive ? 'rgba(16,185,129,0.1)' : 'rgba(255,255,255,0.05)', color: isLive ? '#10b981' : 'var(--tec-text-3)', border: `1px solid ${isLive ? 'rgba(16,185,129,0.2)' : 'var(--tec-border)'}` }}>
+      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)', color: isLive ? '#22C55E' : 'var(--tec-text-3)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.2)' : 'var(--tec-border)'}` }}>
         {isLive ? 'LIVE' : 'SOON'}
       </span>
     </div>
@@ -151,13 +151,13 @@ function BalanceChart({ payments }: { payments: Payment[] }) {
           <polygon points={area} fill="url(#gold-grad)" opacity={0.15} />
 
           {/* Line */}
-          <polyline points={polyline} fill="none" stroke="#d4af37" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={polyline} fill="none" stroke="#FBBF24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Gradient */}
           <defs>
             <linearGradient id="gold-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d4af37" stopOpacity={1} />
-              <stop offset="100%" stopColor="#d4af37" stopOpacity={0} />
+              <stop offset="0%" stopColor="#FBBF24" stopOpacity={1} />
+              <stop offset="100%" stopColor="#FBBF24" stopOpacity={0} />
             </linearGradient>
           </defs>
 
@@ -166,8 +166,8 @@ function BalanceChart({ payments }: { payments: Payment[] }) {
             <g key={i}>
               {p.amount > 0 && (
                 <>
-                  <circle cx={p.x} cy={p.y} r={4} fill="#d4af37" />
-                  <circle cx={p.x} cy={p.y} r={7} fill="#d4af37" opacity={0.2} />
+                  <circle cx={p.x} cy={p.y} r={4} fill="#FBBF24" />
+                  <circle cx={p.x} cy={p.y} r={7} fill="#FBBF24" opacity={0.2} />
                 </>
               )}
               <text x={p.x} y={H - 4} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.4)">
@@ -183,14 +183,14 @@ function BalanceChart({ payments }: { payments: Payment[] }) {
 
 // ── Transaction Type Config ────────────────────────────────
 const TX_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  payment:   { icon: '💳', color: '#d4af37', label: 'Payment'   },
-  receive:   { icon: '📥', color: '#10b981', label: 'Received'  },
-  credit:    { icon: '📥', color: '#10b981', label: 'Credit'    },
+  payment:   { icon: '💳', color: '#FBBF24', label: 'Payment'   },
+  receive:   { icon: '📥', color: '#22C55E', label: 'Received'  },
+  credit:    { icon: '📥', color: '#22C55E', label: 'Credit'    },
   debit:     { icon: '📤', color: '#ef4444', label: 'Debit'     },
   transfer:  { icon: '↔️', color: '#3b82f6', label: 'Transfer'  },
   refund:    { icon: '↩️', color: '#8b5cf6', label: 'Refund'    },
   withdraw:  { icon: '📤', color: '#f59e0b', label: 'Withdraw'  },
-  deposit:   { icon: '📥', color: '#10b981', label: 'Deposit'   },
+  deposit:   { icon: '📥', color: '#22C55E', label: 'Deposit'   },
 };
 
 // ── Transaction Row (Enhanced) ─────────────────────────────
@@ -200,7 +200,7 @@ function TxRow({ payment }: { payment: Payment }) {
   const cfg     = TX_CONFIG[type] ?? { icon: '🔄', color: 'var(--tec-text-3)', label: payment.type };
   const positive = ['credit', 'receive', 'refund', 'deposit'].includes(type);
 
-  const statusColor = payment.status === 'completed' ? '#10b981'
+  const statusColor = payment.status === 'completed' ? '#22C55E'
     : payment.status === 'failed'    ? '#ef4444' : '#f59e0b';
 
   return (
@@ -231,7 +231,7 @@ function TxRow({ payment }: { payment: Payment }) {
 
         {/* Amount */}
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: positive ? '#10b981' : 'var(--tec-text-1)', lineHeight: 1 }}>
+          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: positive ? '#22C55E' : 'var(--tec-text-1)', lineHeight: 1 }}>
             {positive ? '+' : '-'}{Number(payment.amount).toFixed(2)}π
           </div>
           <div style={{ fontSize: 10, color: 'var(--tec-text-3)', marginTop: 2 }}>
@@ -335,7 +335,7 @@ export default function DashboardPage() {
 
       {/* ── Welcome Banner ─────────────────────────────── */}
       {isNewUser && (
-        <div className="tec-fade-in" style={{ padding: 'var(--sp-4) var(--sp-5)', background: 'linear-gradient(135deg, rgba(212,175,55,0.1), rgba(212,175,55,0.05))', border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--sp-6)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="tec-fade-in" style={{ padding: 'var(--sp-4) var(--sp-5)', background: 'linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.05))', border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--sp-6)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 24 }}>🎉</span>
           <div>
             <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--tec-gold)' }}>Welcome to TEC Ecosystem</div>
@@ -349,7 +349,7 @@ export default function DashboardPage() {
         <div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 4 }}>{t.dashboard.greeting}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800' }}>
               {user?.piUsername?.[0]?.toUpperCase()}
             </div>
             <div>
@@ -363,7 +363,7 @@ export default function DashboardPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {kycVerified !== null && (
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: kycVerified ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${kycVerified ? 'rgba(16,185,129,0.25)' : 'rgba(239,68,68,0.25)'}`, color: kycVerified ? '#10b981' : '#ef4444' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: kycVerified ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${kycVerified ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, color: kycVerified ? '#22C55E' : '#ef4444' }}>
               {kycVerified ? '✓ KYC Verified' : '! KYC Pending'}
             </span>
           )}
@@ -381,7 +381,7 @@ export default function DashboardPage() {
       <div className="tec-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 'var(--sp-3)', marginBottom: 'var(--sp-6)' }}>
         <StatCard icon="π"  label="Pi Balance" value={balance !== null ? `${balance.toFixed(2)}π` : '—π'} sub="Wallet balance"         accent="var(--tec-gold)"     />
         <StatCard icon="📤" label="Pi Spent"   value={`${totalPiSpent.toFixed(2)}π`}                    sub={`${completedPayments.length} transactions`} accent="var(--tec-text-1)" />
-        <StatCard icon="🚀" label="Live Apps"  value={`${LIVE_APPS.length}`}                             sub={`of ${LIVE_DOMAINS.length + COMING_SOON.length} total`} accent="#10b981" />
+        <StatCard icon="🚀" label="Live Apps"  value={`${LIVE_APPS.length}`}                             sub={`of ${LIVE_DOMAINS.length + COMING_SOON.length} total`} accent="#22C55E" />
         <StatCard icon="◈"  label="Plan"       value={user?.subscriptionPlan ?? 'Free'}                  sub={userPro ? 'Active subscription' : 'Upgrade available'} accent={userPro ? '#8b5cf6' : 'var(--tec-text-2)'} />
       </div>
 
@@ -413,7 +413,7 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 'var(--sp-3)' }}>
               {[
                 { label: 'Wallet',        icon: '💳', href: '/dashboard/wallet',        color: '#3b82f6' },
-                { label: 'KYC',           icon: '🪪', href: '/dashboard/kyc',           color: '#10b981' },
+                { label: 'KYC',           icon: '🪪', href: '/dashboard/kyc',           color: '#22C55E' },
                 { label: 'Subscription',  icon: '◈',  href: '/dashboard/subscription',  color: '#8b5cf6' },
                 { label: 'Notifications', icon: '🔔', href: '/dashboard/notifications', color: '#f59e0b' },
               ].map(a => (
@@ -511,7 +511,7 @@ export default function DashboardPage() {
           >
             {historyLoading ? (
               <div style={{ padding: 'var(--sp-8)', display: 'flex', justifyContent: 'center' }}>
-                <div className="tec-spin" style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.15)', borderTopColor: 'var(--tec-gold)' }} />
+                <div className="tec-spin" style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.15)', borderTopColor: 'var(--tec-gold)' }} />
               </div>
             ) : payments.length === 0 ? (
               <div style={{ padding: 'var(--sp-8)', textAlign: 'center', color: 'var(--tec-text-3)' }}>
@@ -524,7 +524,7 @@ export default function DashboardPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'var(--tec-border)', marginBottom: 1 }}>
                   {[
                     { label: 'Total',     value: payments.length,                                      color: 'var(--tec-text-1)' },
-                    { label: 'Completed', value: completedPayments.length,                             color: '#10b981'           },
+                    { label: 'Completed', value: completedPayments.length,                             color: '#22C55E'           },
                     { label: 'Volume',    value: `${totalPiSpent.toFixed(1)}π`,                        color: 'var(--tec-gold)'   },
                   ].map(s => (
                     <div key={s.label} style={{ padding: 'var(--sp-3)', background: 'var(--tec-surface-2)', textAlign: 'center' }}>

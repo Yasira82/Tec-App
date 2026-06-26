@@ -85,7 +85,7 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <div style={s({ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' })}>
-        <div style={s({ width: 36, height: 36, border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', borderRadius: '50%', animation: 'spin 0.8s linear infinite' })} />
+        <div style={s({ width: 36, height: 36, border: '2px solid #FBBF2430', borderTop: '2px solid #FBBF24', borderRadius: '50%', animation: 'spin 0.8s linear infinite' })} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -101,7 +101,7 @@ export default function MarketplacePage() {
           <p style={s({ fontSize: 13, color: '#6b6b7a', marginTop: 4 })}>{total} assets for sale</p>
         </div>
         <button onClick={() => fetchListings(true)} disabled={isRefreshing}
-          style={s({ background: '#d4af3715', border: '1px solid #d4af3730', borderRadius: 10, padding: '8px 14px', color: '#d4af37', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}>
+          style={s({ background: '#FBBF2415', border: '1px solid #FBBF2430', borderRadius: 10, padding: '8px 14px', color: '#FBBF24', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}>
           {isRefreshing ? '⟳ ...' : '⟳ Refresh'}
         </button>
       </div>
@@ -120,7 +120,7 @@ export default function MarketplacePage() {
 
       {/* Sell CTA */}
       <button onClick={() => router.push('/dashboard/assets')}
-        style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#0d0d14)', border: '1px solid #d4af3730', color: '#d4af37', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
+        style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#0B1020)', border: '1px solid #FBBF2430', color: '#FBBF24', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
         <span>💎</span>
         <span>List Your Asset for Sale</span>
         <span>→</span>
@@ -128,7 +128,7 @@ export default function MarketplacePage() {
 
       {/* Empty State */}
       {listings.length === 0 && !error && (
-        <div style={s({ textAlign: 'center', padding: '60px 20px', background: '#0d0d14', border: '1px solid #ffffff08', borderRadius: 18 })}>
+        <div style={s({ textAlign: 'center', padding: '60px 20px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 18 })}>
           <div style={s({ fontSize: 48, marginBottom: 16 })}>🏪</div>
           <p style={s({ fontSize: 16, fontWeight: 600, color: '#6b6b7a' })}>No listings yet</p>
           <p style={s({ fontSize: 13, color: '#4a4a5a', marginTop: 4 })}>Be the first to list an asset</p>
@@ -145,9 +145,9 @@ export default function MarketplacePage() {
 
             return (
               <div key={listing.id}
-                style={s({ background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 18, padding: '16px 20px' })}>
+                style={s({ background: '#0B1020', border: '1px solid #FBBF2420', borderRadius: 18, padding: '16px 20px' })}>
                 <div style={s({ display: 'flex', alignItems: 'center', gap: 14 })}>
-                  <div style={s({ width: 48, height: 48, borderRadius: 14, background: '#d4af3710', border: '1px solid #d4af3720', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 })}>
+                  <div style={s({ width: 48, height: 48, borderRadius: 14, background: '#FBBF2410', border: '1px solid #FBBF2420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 })}>
                     {emoji}
                   </div>
                   <div style={s({ flex: 1, minWidth: 0 })}>
@@ -164,7 +164,7 @@ export default function MarketplacePage() {
                     )}
                   </div>
                   <div style={s({ textAlign: 'right', minWidth: 80 })}>
-                    <div style={s({ fontSize: 20, fontWeight: 900, color: '#d4af37' })}>{listing.price}</div>
+                    <div style={s({ fontSize: 20, fontWeight: 900, color: '#FBBF24' })}>{listing.price}</div>
                     <div style={s({ fontSize: 10, color: '#4a4a5a' })}>π</div>
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function MarketplacePage() {
                 )}
 
                 {isOwn && (
-                  <div style={s({ marginTop: 12, padding: '8px 14px', borderRadius: 10, background: '#d4af3710', border: '1px solid #d4af3720', fontSize: 11, color: '#d4af37', textAlign: 'center' })}>
+                  <div style={s({ marginTop: 12, padding: '8px 14px', borderRadius: 10, background: '#FBBF2410', border: '1px solid #FBBF2420', fontSize: 11, color: '#FBBF24', textAlign: 'center' })}>
                     Your listing
                   </div>
                 )}

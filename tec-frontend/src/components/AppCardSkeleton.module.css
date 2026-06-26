@@ -30,9 +30,9 @@
 .arrow {
   background: linear-gradient(
     90deg,
-    rgba(212,175,55,0.04) 0%,
-    rgba(212,175,55,0.10) 40%,
-    rgba(212,175,55,0.04) 100%
+    rgba(251,191,36,0.04) 0%,
+    rgba(251,191,36,0.10) 40%,
+    rgba(251,191,36,0.04) 100%
   );
   background-size: 200% 100%;
   animation: shimmer 1.6s ease-in-out infinite;

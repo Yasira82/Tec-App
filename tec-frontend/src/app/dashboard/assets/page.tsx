@@ -61,7 +61,7 @@ export default function AssetsPage() {
   if (isLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ width: 36, height: 36, border: '2px solid #d4af3730', borderTop: '2px solid #d4af37', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 36, height: 36, border: '2px solid #FBBF2430', borderTop: '2px solid #FBBF24', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -79,7 +79,7 @@ export default function AssetsPage() {
         <button
           onClick={() => fetchAssets(true)}
           disabled={isRefreshing}
-          style={{ background: '#d4af3715', border: '1px solid #d4af3730', borderRadius: 10, padding: '8px 14px', color: '#d4af37', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          style={{ background: '#FBBF2415', border: '1px solid #FBBF2430', borderRadius: 10, padding: '8px 14px', color: '#FBBF24', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
         >
           {isRefreshing ? '⟳ ...' : '⟳ Refresh'}
         </button>
@@ -88,9 +88,9 @@ export default function AssetsPage() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
         {['DOMAIN', 'REAL_ESTATE', 'DIGITAL_ASSET'].map(cat => (
-          <div key={cat} style={{ padding: '12px', background: '#0d0d14', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
+          <div key={cat} style={{ padding: '12px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
             <div style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_EMOJI[cat]}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#d4af37' }}>
+            <div style={{ fontSize: 18, fontWeight: 800, color: '#FBBF24' }}>
               {assets.filter(a => a.category === cat).length}
             </div>
             <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 0.5 }}>
@@ -124,8 +124,8 @@ export default function AssetsPage() {
           </div>
           {assets.map(asset => (
             <div key={asset.id}
-              style={{ padding: '16px 20px', background: '#0d0d14', border: '1px solid #d4af3720', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#d4af3710', border: '1px solid #d4af3720', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 }}>
+              style={{ padding: '16px 20px', background: '#0B1020', border: '1px solid #FBBF2420', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#FBBF2410', border: '1px solid #FBBF2420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 }}>
                 {CATEGORY_EMOJI[asset.category] ?? '📦'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>

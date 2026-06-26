@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
 import { PiPrice }   from '@/lib/hub/types';
+import { CountUp }   from '@/components/ui/CountUp';
 
 interface Props {
   balance:  string;
@@ -25,10 +26,10 @@ export function HubWalletCard({ balance, piPrice }: Props) {
           boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
           position: 'relative',
         }}>
-        {/* Glow */}
+        {/* Glow — dual-tone EVL (WEALTH gold + a cool accent) for depth */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 80% 60% at 20% 50%, rgba(251,191,36,0.06) 0%, transparent 70%)',
+          background: 'radial-gradient(ellipse 80% 60% at 18% 35%, rgba(251,191,36,0.09) 0%, transparent 62%), radial-gradient(ellipse 70% 60% at 95% 100%, rgba(6,182,212,0.07) 0%, transparent 60%)',
         }} />
 
         <div style={{ position: 'relative' }}>
@@ -41,7 +42,11 @@ export function HubWalletCard({ balance, piPrice }: Props) {
               <div className="tec-skeleton" style={{ width: 120, height: 44 }} />
             ) : (
               <>
-                <span style={{ fontSize: 42, fontWeight: 900, color: '#FBBF24', letterSpacing: -2, lineHeight: 1 }}>{balance}</span>
+                <CountUp
+                  value={parseFloat(balance) || 0}
+                  decimals={2}
+                  style={{ fontSize: 42, fontWeight: 900, color: '#FBBF24', letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+                />
                 <span style={{ fontSize: 22, color: 'rgba(251,191,36,0.6)', fontWeight: 300 }}>π</span>
               </>
             )}

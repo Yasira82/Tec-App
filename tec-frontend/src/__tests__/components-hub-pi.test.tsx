@@ -1712,7 +1712,8 @@ describe('HubCarousel (src/components/hub)', () => {
 
   it('renders pi price data', () => {
     render(<HubCarousel {...baseProps} />);
-    expect(screen.getByText('$1.2300')).toBeInTheDocument();
+    // Price is now rendered as "$" + an animated <CountUp> span (counts to value).
+    expect(screen.getByText('1.2300')).toBeInTheDocument();
   });
 
   it('renders null piPrice skeleton', () => {

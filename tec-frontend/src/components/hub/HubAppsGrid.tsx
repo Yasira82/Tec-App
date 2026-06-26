@@ -1,8 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { haptic }    from '@/lib/hub/utils';
-import { HubApp }    from '@/lib/hub/types';
+import { useRouter }    from 'next/navigation';
+import { haptic }       from '@/lib/hub/utils';
+import { HubApp }       from '@/lib/hub/types';
+import { appAccentRgba } from '@/lib/hub/appAccent';
 
 interface Props {
   apps: HubApp[];
@@ -38,8 +39,9 @@ export function HubAppsGrid({ apps }: Props) {
             }}>
             <div style={{
               width: 42, height: 42, borderRadius: 14,
-              background: 'rgba(251,191,36,0.08)',
-              border: '1px solid rgba(251,191,36,0.15)',
+              background: `linear-gradient(135deg, ${appAccentRgba(app.slug, 0.16)}, ${appAccentRgba(app.slug, 0.05)})`,
+              border: `1px solid ${appAccentRgba(app.slug, 0.30)}`,
+              boxShadow: `0 4px 14px ${appAccentRgba(app.slug, 0.10)}`,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 20, minWidth: 42,
             }}>

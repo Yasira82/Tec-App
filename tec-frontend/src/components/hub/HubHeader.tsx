@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
+import { Icon }      from '@/components/ui/Icon';
 
 interface Props {
   piUsername:  string;
@@ -38,8 +39,8 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       </div>
 
       {/* Right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums' }}>{time}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
+        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time}</span>
 
         {/* Notifications */}
         <button className="tec-btn" onClick={onNotifClick}
@@ -49,9 +50,9 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             background: notifCount > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.06)',
             border: `1px solid ${notifCount > 0 ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', fontSize: 16, position: 'relative',
+            cursor: 'pointer', position: 'relative',
           }}>
-          🔔
+          <Icon name="bell" size={18} color={notifCount > 0 ? '#FBBF24' : 'rgba(255,255,255,0.6)'} />
           {notifCount > 0 && (
             <span style={{
               position: 'absolute', top: -4, right: -4,
@@ -83,7 +84,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600 }}>@{piUsername}</span>
+          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
         </button>
       </div>
     </header>

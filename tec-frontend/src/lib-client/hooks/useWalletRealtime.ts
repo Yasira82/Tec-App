@@ -32,6 +32,16 @@ export function useWalletRealtime({
   const pingRef    = useRef<ReturnType<typeof setInterval> | null>(null);
   const mountedRef = useRef(true);
 
+  // Keep callbacks in refs so `connect` does NOT depend on them. Callers
+  // commonly pass inline functions; if `connect` depended on them it would be
+  // recreated every render, re-running the connect effect every render and
+  // re-fetching /api/bff/realtime on every render (a request storm that piles
+  // load onto the gateway). Refs make connect stable across renders.
+  const onBalanceUpdateRef = useRef(onBalanceUpdate);
+  const onNewTxRef         = useRef(onNewTx);
+  useEffect(() => { onBalanceUpdateRef.current = onBalanceUpdate; }, [onBalanceUpdate]);
+  useEffect(() => { onNewTxRef.current = onNewTx; }, [onNewTx]);
+
   // ✅ P1-2: من الـ cookie مش localStorage
   const getToken  = (): string | null => getAccessToken();
   const getUserId = (): string | null => {
@@ -93,8 +103,8 @@ export function useWalletRealtime({
       try {
         const data = JSON.parse(e.data) as WalletUpdatedEvent | { type: 'pong' };
         if (data.type === 'wallet.updated') {
-          onBalanceUpdate(data);
-          onNewTx?.();
+          onBalanceUpdateRef.current(data);
+          onNewTxRef.current?.();
         }
       } catch {
         /* ignore */
@@ -115,7 +125,7 @@ export function useWalletRealtime({
         setTimeout(connect, delay);
       }
     };
-  }, [onBalanceUpdate, onNewTx, cleanup]);
+  }, [cleanup]);
 
   useEffect(() => {
     mountedRef.current = true;

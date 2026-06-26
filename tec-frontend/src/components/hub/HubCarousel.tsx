@@ -3,6 +3,7 @@
 import { useRef }  from 'react';
 import { haptic }  from '@/lib/hub/utils';
 import { PiPrice } from '@/lib/hub/types';
+import { CountUp } from '@/components/ui/CountUp';
 
 interface Props {
   carouselIdx:    number;
@@ -77,7 +78,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, 
                 </div>
                 {piPrice
                   ? <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: '#FBBF24' }}>${piPrice.price.toFixed(4)}</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: '#FBBF24', fontVariantNumeric: 'tabular-nums' }}>$<CountUp value={piPrice.price} decimals={4} duration={700} /></div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: priceUp ? '#22C55E' : '#ef4444' }}>{priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%</div>
                     </div>
                   : <div className="tec-skeleton" style={{ width: 80, height: 40 }} />

@@ -27,7 +27,7 @@ export default function OGImage() {
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'linear-gradient(rgba(212,175,55,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(212,175,55,0.06) 1px, transparent 1px)',
+              'linear-gradient(rgba(251,191,36,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(251,191,36,0.06) 1px, transparent 1px)',
             backgroundSize: '80px 80px',
             display: 'flex',
           }}
@@ -42,7 +42,7 @@ export default function OGImage() {
             transform: 'translateX(-50%)',
             width: '800px',
             height: '400px',
-            background: 'radial-gradient(ellipse, rgba(212,175,55,0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(251,191,36,0.12) 0%, transparent 70%)',
             display: 'flex',
           }}
         />
@@ -67,9 +67,9 @@ export default function OGImage() {
             alignItems: 'center',
             gap: '8px',
             padding: '6px 20px',
-            border: '1px solid rgba(212,175,55,0.25)',
+            border: '1px solid rgba(251,191,36,0.25)',
             borderRadius: '100px',
-            background: 'rgba(212,175,55,0.06)',
+            background: 'rgba(251,191,36,0.06)',
             marginBottom: '40px',
           }}
         >
@@ -78,8 +78,8 @@ export default function OGImage() {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: '#d4af37',
-              boxShadow: '0 0 8px #d4af37',
+              background: '#FBBF24',
+              boxShadow: '0 0 8px #FBBF24',
             }}
           />
           <span
@@ -87,7 +87,7 @@ export default function OGImage() {
               fontSize: '14px',
               letterSpacing: '0.2em',
               textTransform: 'uppercase',
-              color: 'rgba(212,175,55,0.7)',
+              color: 'rgba(251,191,36,0.7)',
             }}
           >
             Pi Network Ecosystem
@@ -119,7 +119,7 @@ export default function OGImage() {
             style={{
               fontSize: '96px',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #f5d060, #d4af37, #a08020)',
+              background: 'linear-gradient(135deg, #f5d060, #FBBF24, #a08020)',
               backgroundClip: 'text',
               color: 'transparent',
               letterSpacing: '-0.02em',
@@ -148,10 +148,10 @@ export default function OGImage() {
             display: 'flex',
             alignItems: 'center',
             gap: '0',
-            border: '1px solid rgba(212,175,55,0.1)',
+            border: '1px solid rgba(251,191,36,0.1)',
             borderRadius: '16px',
             overflow: 'hidden',
-            background: 'rgba(212,175,55,0.02)',
+            background: 'rgba(251,191,36,0.02)',
           }}
         >
           {[
@@ -165,7 +165,7 @@ export default function OGImage() {
                   style={{
                     width: '1px',
                     height: '40px',
-                    background: 'rgba(212,175,55,0.12)',
+                    background: 'rgba(251,191,36,0.12)',
                   }}
                 />
               )}
@@ -182,7 +182,7 @@ export default function OGImage() {
                   style={{
                     fontSize: '40px',
                     fontWeight: 600,
-                    color: '#d4af37',
+                    color: '#FBBF24',
                     lineHeight: '1',
                   }}
                 >
@@ -210,7 +210,7 @@ export default function OGImage() {
             bottom: '32px',
             right: '40px',
             fontSize: '13px',
-            color: 'rgba(212,175,55,0.3)',
+            color: 'rgba(251,191,36,0.3)',
             letterSpacing: '0.1em',
           }}
         >

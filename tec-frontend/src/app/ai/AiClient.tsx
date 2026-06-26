@@ -43,7 +43,7 @@ const POPULAR_TOPICS = [
 const SUPPORT_LINKS = [
   { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201115141346',      color: '#25D366' },
   { emoji: '✈️', label: 'Telegram', href: 'https://t.me/Yasira17',           color: '#229ED9' },
-  { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: '#d4af37' },
+  { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: '#FBBF24' },
   { emoji: '📞', label: 'Call',     href: 'tel:+201115141346',               color: '#7ee7c0' },
 ];
 

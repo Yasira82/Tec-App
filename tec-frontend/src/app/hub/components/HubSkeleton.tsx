@@ -2,11 +2,11 @@
 
 export function HubSkeleton() {
   return (
-    <div style={{ minHeight: '100vh', background: '#020205', padding: '0 0 90px' }}>
-      <style>{`@keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.8}}.sk{animation:shimmer 1.4s ease infinite;background:#0d0d14;border-radius:18px}`}</style>
+    <div style={{ minHeight: '100vh', background: '#050816', padding: '0 0 90px' }}>
+      <style>{`@keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.8}}.sk{animation:shimmer 1.4s ease infinite;background:#0B1020;border-radius:18px}`}</style>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 10, background: '#d4af3730' }} />
+          <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FBBF2430' }} />
           <div style={{ width: 60, height: 20, borderRadius: 6, background: '#ffffff08' }} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>

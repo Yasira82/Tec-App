@@ -196,11 +196,11 @@ function HubPageInner() {
   // ✅ لو في pending Commerce payment → اعرض loading بس (مش Hub كامل)
   if (isAuthenticated && pendingPayment && !externalPayment) {
     return (
-      <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <div style={{ minHeight: '100vh', background: '#050816', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
           <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
         </div>
       </div>
@@ -210,11 +210,11 @@ function HubPageInner() {
   // ✅ مش authenticated بس في pending payment (SSO لسه شغال)
   if (!isAuthenticated && pendingPayment) {
     return (
-      <div style={{ minHeight: '100vh', background: '#020205', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+      <div style={{ minHeight: '100vh', background: '#050816', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#d4af37,#b8882a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
+        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(212,175,55,0.2)', borderTopColor: '#d4af37', animation: 'spin 0.8s linear infinite' }} />
+          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
           <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
         </div>
         {externalPayment && (
@@ -234,7 +234,7 @@ function HubPageInner() {
 
   return (
     <div
-      style={{ minHeight: '100vh', background: '#020205', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88, overflowY: 'auto', overscrollBehavior: 'none' }}
+      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88, overflowY: 'auto', overscrollBehavior: 'none' }}
       onTouchStart={handlePullStart}
       onTouchMove={handlePullMove}
       onTouchEnd={handlePullEnd}
@@ -255,7 +255,7 @@ function HubPageInner() {
       {!aiOpen && (
         <button className="tec-float tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label="Open AI assistant"
-          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg,#d4af37,#b8882a)', border: 'none', boxShadow: '0 4px 20px rgba(212,175,55,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer' }}>🤖</button>
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 48, height: 48, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 4px 20px rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, cursor: 'pointer' }}>🤖</button>
       )}
 
       <HubHeader
@@ -314,9 +314,9 @@ function HubPageInner() {
         ].map(item => (
           <button key={item.label} className="tec-nav-btn" onClick={item.action} aria-label={item.label} aria-current={item.active ? 'page' : undefined}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
-            {item.active && <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'linear-gradient(90deg,#d4af37,#b8882a)', boxShadow: '0 0 8px rgba(212,175,55,0.6)' }} />}
+            {item.active && <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'linear-gradient(90deg,#FBBF24,#F59E0B)', boxShadow: '0 0 8px rgba(251,191,36,0.6)' }} />}
             <span aria-hidden="true" style={{ fontSize: 20 }}>{item.icon}</span>
-            <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: item.active ? 700 : 400, color: item.active ? '#d4af37' : 'rgba(255,255,255,0.28)' }}>{item.label}</span>
+            <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: item.active ? 700 : 400, color: item.active ? '#FBBF24' : 'rgba(255,255,255,0.28)' }}>{item.label}</span>
           </button>
         ))}
       </nav>

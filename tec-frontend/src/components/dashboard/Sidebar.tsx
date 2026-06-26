@@ -70,10 +70,10 @@ export function Sidebar({ user, onLogout }: Props) {
         <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div style={{
             width: 36, height: 36, borderRadius: 11,
-            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: 14, color: '#0a0800',
-            boxShadow: '0 2px 12px rgba(212,175,55,0.3)',
+            boxShadow: '0 2px 12px rgba(251,191,36,0.3)',
           }}>T</div>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
@@ -86,7 +86,7 @@ export function Sidebar({ user, onLogout }: Props) {
       <div style={{ padding: 'var(--sp-3) var(--sp-4)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 34, height: 34, borderRadius: '50%',
-          background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+          background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 13, fontWeight: 800, color: '#0a0800', flexShrink: 0,
         }}>
@@ -129,8 +129,8 @@ export function Sidebar({ user, onLogout }: Props) {
                     display: 'flex', alignItems: 'center', gap: 10,
                     padding: '9px 10px', borderRadius: 'var(--radius-md)', marginBottom: 1,
                     textDecoration: 'none',
-                    background: active ? 'rgba(212,175,55,0.1)' : 'transparent',
-                    border: `1px solid ${active ? 'rgba(212,175,55,0.2)' : 'transparent'}`,
+                    background: active ? 'rgba(251,191,36,0.1)' : 'transparent',
+                    border: `1px solid ${active ? 'rgba(251,191,36,0.2)' : 'transparent'}`,
                     color: active ? 'var(--tec-gold)' : 'var(--tec-text-2)',
                   }}>
                   <span aria-hidden="true" style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>

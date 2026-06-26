@@ -22,7 +22,7 @@ const STATUS_CONFIG: Record<KycStatus, {
   VERIFIED: {
     icon: '✅', label: 'Verified',
     desc: 'Your identity has been successfully verified.',
-    bg: 'rgba(16,185,129,0.08)', border: 'rgba(16,185,129,0.25)', color: '#10b981',
+    bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: '#22C55E',
   },
   REJECTED: {
     icon: '❌', label: 'Rejected',
@@ -80,13 +80,13 @@ function StepIndicator({ step }: { step: 'docs' | 'review' }) {
                 width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 11, fontWeight: 700,
-                background: isDone  ? 'rgba(16,185,129,0.15)'
+                background: isDone  ? 'rgba(34,197,94,0.15)'
                           : isActive ? 'var(--tec-gold-dim)'
                           : 'var(--tec-surface-2)',
-                border: `1px solid ${isDone  ? 'rgba(16,185,129,0.4)'
+                border: `1px solid ${isDone  ? 'rgba(34,197,94,0.4)'
                                     : isActive ? 'var(--tec-border-gold)'
                                     : 'var(--tec-border)'}`,
-                color: isDone ? '#10b981' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
+                color: isDone ? '#22C55E' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
               }}>
                 {isDone ? '✓' : i + 1}
               </div>
@@ -130,7 +130,7 @@ function Field({ label, required, value, onChange, placeholder }: {
           fontFamily: 'var(--font-sans)',
           transition: 'border-color 0.2s ease',
         }}
-        onFocus={e => { e.target.style.borderColor = 'rgba(212,175,55,0.4)'; }}
+        onFocus={e => { e.target.style.borderColor = 'rgba(251,191,36,0.4)'; }}
         onBlur={e  => { e.target.style.borderColor = 'var(--tec-border)'; }}
       />
     </div>
@@ -195,7 +195,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={handleUpload} disabled={uploading || !idFrontUrl || !selfieUrl}
               style={{
                 padding: '12px 28px', borderRadius: 'var(--radius-md)',
-                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,#d4af37,#b8882a)',
+                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,#FBBF24,#F59E0B)',
                 border: 'none', color: '#0a0800', fontWeight: 700, fontSize: 'var(--text-sm)',
                 cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
                 opacity: uploading ? 0.6 : 1,
@@ -223,7 +223,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{item.label}</span>
                 <span style={{
                   fontSize: 'var(--text-sm)', fontWeight: 600,
-                  color: item.value ? '#10b981' : item.required ? '#ef4444' : 'var(--tec-text-3)',
+                  color: item.value ? '#22C55E' : item.required ? '#ef4444' : 'var(--tec-text-3)',
                 }}>
                   {item.value ? '✓ Uploaded' : item.required ? '✗ Missing' : '— Optional'}
                 </span>
@@ -233,7 +233,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
 
           <div style={{
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
-            background: 'rgba(212,175,55,0.05)', border: '1px solid var(--tec-border-gold)',
+            background: 'rgba(251,191,36,0.05)', border: '1px solid var(--tec-border-gold)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
           }}>
             ℹ️ By submitting, you confirm these documents are authentic and belong to you.
@@ -247,7 +247,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={onSubmit} disabled={isSubmitting}
               style={{
                 padding: '11px 28px', borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+                background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
                 border: 'none', color: '#0a0800', fontWeight: 700,
                 fontSize: 'var(--text-sm)', cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
@@ -275,7 +275,7 @@ function PendingState() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240, margin: 'var(--sp-6) auto 0' }}>
           {['Documents submitted', 'Manual review in progress', 'Decision notification'].map((s, i) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#10b981' : i === 1 ? '#f59e0b' : 'var(--tec-text-3)' }}>
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#22C55E' : i === 1 ? '#f59e0b' : 'var(--tec-text-3)' }}>
               <span>{i === 0 ? '✓' : i === 1 ? '◉' : '○'}</span>
               <span>{s}</span>
             </div>
@@ -292,7 +292,7 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
         <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>✅</div>
-        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#10b981', marginBottom: 'var(--sp-3)' }}>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#22C55E', marginBottom: 'var(--sp-3)' }}>
           Identity Verified
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, marginBottom: 'var(--sp-6)' }}>
@@ -341,7 +341,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
         <button onClick={onReset} disabled={isSubmitting}
           style={{
             padding: '12px 32px', borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg,#d4af37,#b8882a)',
+            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
             border: 'none', color: '#0a0800', fontWeight: 700,
             fontSize: 'var(--text-sm)', cursor: 'pointer',
             opacity: isSubmitting ? 0.6 : 1,

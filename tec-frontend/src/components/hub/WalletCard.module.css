@@ -3,13 +3,13 @@
   margin: 20px 16px;
   padding: 24px;
   background: linear-gradient(135deg, #1a1208, #2a1e0a);
-  border: 1px solid #d4af3740;
+  border: 1px solid #FBBF2440;
   border-radius: 20px;
   text-decoration: none;
   transition: border-color 0.2s;
 }
 
-.card:hover { border-color: #d4af37; }
+.card:hover { border-color: #FBBF24; }
 
 .label {
   font-size: 12px;
@@ -22,7 +22,7 @@
 .balance {
   font-size: 40px;
   font-weight: 800;
-  color: #d4af37;
+  color: #FBBF24;
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -36,5 +36,5 @@
 .action {
   margin-top: 12px;
   font-size: 13px;
-  color: #d4af3780;
+  color: #FBBF2480;
 }

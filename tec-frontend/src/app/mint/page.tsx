@@ -17,10 +17,10 @@ const goBack = (returnUrl: string) => {
 };
 
 const Spinner = () => (
-  <div style={{ minHeight: '100vh', background: '#020205',
+  <div style={{ minHeight: '100vh', background: '#050816',
     display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <div style={{ width: 48, height: 48, borderRadius: '50%',
-      border: '3px solid #ffffff10', borderTopColor: '#d4af37',
+      border: '3px solid #ffffff10', borderTopColor: '#FBBF24',
       animation: 'spin 0.8s linear infinite' }} />
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
@@ -45,7 +45,7 @@ function MintPageInner() {
                   : tier === 'Ultra Rare' ? '#b39ddb'
                   : tier === 'Rare'       ? '#7eb8f7'
                   : tier === 'Uncommon'   ? '#7ee7c0'
-                  : '#d4af37';
+                  : '#FBBF24';
 
   useEffect(() => {
     const onReady = () => setSdkReady(true);
@@ -194,7 +194,7 @@ function MintPageInner() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: '#020205', color: '#fff',
+      minHeight: '100vh', background: '#050816', color: '#fff',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       fontFamily: '-apple-system, BlinkMacSystemFont, sans-serif',
       padding: 24,

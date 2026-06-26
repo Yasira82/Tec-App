@@ -27,8 +27,8 @@ function Skeleton() {
 }
 
 const BADGE_COLORS = {
-  gold:  { bg: 'rgba(212,175,55,0.1)',  border: 'rgba(212,175,55,0.25)',  color: '#d4af37' },
-  green: { bg: 'rgba(16,185,129,0.1)',  border: 'rgba(16,185,129,0.25)',  color: '#10b981' },
+  gold:  { bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.25)',  color: '#FBBF24' },
+  green: { bg: 'rgba(34,197,94,0.1)',  border: 'rgba(34,197,94,0.25)',  color: '#22C55E' },
   red:   { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)',   color: '#ef4444' },
   blue:  { bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)',  color: '#3b82f6' },
 };

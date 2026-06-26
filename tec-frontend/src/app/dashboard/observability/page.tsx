@@ -147,7 +147,7 @@ export default function ObservabilityPage() {
           disabled={refreshing}
           style={{
             background: 'transparent',
-            border: '1px solid rgba(212,175,55,0.25)',
+            border: '1px solid rgba(251,191,36,0.25)',
             borderRadius: 'var(--radius-md)',
             color: refreshing ? 'var(--tec-text-3)' : 'var(--tec-gold)',
             padding: '7px 14px', fontSize: 'var(--text-sm)',
@@ -177,9 +177,9 @@ export default function ObservabilityPage() {
             gap: 12, marginBottom: 'var(--sp-5)',
           }}>
             <StatCard label="Total Tx"  value={metrics.total}                   color="var(--tec-text-1)" sub="last 24h" />
-            <StatCard label="Completed" value={metrics.completed}               color="#10b981"           sub="successful" />
+            <StatCard label="Completed" value={metrics.completed}               color="#22C55E"           sub="successful" />
             <StatCard label="Failed"    value={metrics.failed}                  color="#ef4444"           sub="errored" />
-            <StatCard label="Volume"    value={`${metrics.volume.toFixed(2)}π`} color="#d4af37"           sub="completed value" />
+            <StatCard label="Volume"    value={`${metrics.volume.toFixed(2)}π`} color="#FBBF24"           sub="completed value" />
           </div>
 
           {/* ── Success Rate ── */}
@@ -189,7 +189,7 @@ export default function ObservabilityPage() {
             action={
               <span style={{
                 fontSize: 'var(--text-2xl)', fontWeight: 800,
-                color: metrics.healthy ? '#10b981' : '#ef4444',
+                color: metrics.healthy ? '#22C55E' : '#ef4444',
               }}>
                 {metrics.successRate === null ? '—' : `${metrics.successRate}%`}
               </span>
@@ -203,7 +203,7 @@ export default function ObservabilityPage() {
                 width: `${metrics.successRate ?? 0}%`,
                 height: '100%',
                 background: metrics.healthy
-                  ? 'linear-gradient(90deg,#10b981,#34d399)'
+                  ? 'linear-gradient(90deg,#22C55E,#34d399)'
                   : 'linear-gradient(90deg,#ef4444,#f87171)',
                 borderRadius: 6,
                 transition: 'width 0.7s ease',
@@ -219,7 +219,7 @@ export default function ObservabilityPage() {
           {/* ── Breakdown ── */}
           <div style={{ marginTop: 'var(--sp-4)' }}>
             <DashboardCard title="Breakdown" subtitle="transaction status distribution">
-              <BarRow label="Completed" value={metrics.completed} total={metrics.total} color="#10b981" />
+              <BarRow label="Completed" value={metrics.completed} total={metrics.total} color="#22C55E" />
               <BarRow label="Cancelled" value={metrics.cancelled} total={metrics.total} color="#f59e0b" />
               <BarRow label="Failed"    value={metrics.failed}    total={metrics.total} color="#ef4444" />
               <BarRow label="Pending"   value={metrics.pending}   total={metrics.total} color="#6366f1" />

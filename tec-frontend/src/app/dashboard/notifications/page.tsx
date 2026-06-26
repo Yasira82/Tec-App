@@ -18,7 +18,7 @@ function formatDate(iso: string) {
 
 const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }> = {
   PAYMENT:  { icon: '💳', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)'  },
-  WALLET:   { icon: '💰', color: '#d4af37', bg: 'rgba(212,175,55,0.1)'  },
+  WALLET:   { icon: '💰', color: '#FBBF24', bg: 'rgba(251,191,36,0.1)'  },
   KYC:      { icon: '🪪', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)'  },
   SECURITY: { icon: '🔒', color: '#ef4444', bg: 'rgba(239,68,68,0.1)'   },
   SYSTEM:   { icon: '⚙️', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
@@ -37,7 +37,7 @@ function NotifCard({ notif, onRead }: {
         display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)',
         padding: 'var(--sp-4) var(--sp-5)',
         borderBottom: '1px solid var(--tec-border)',
-        background: notif.read ? 'transparent' : 'rgba(212,175,55,0.03)',
+        background: notif.read ? 'transparent' : 'rgba(251,191,36,0.03)',
         cursor: notif.read ? 'default' : 'pointer',
         transition: 'background 0.15s ease',
       }}>

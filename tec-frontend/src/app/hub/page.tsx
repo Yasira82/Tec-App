@@ -25,6 +25,7 @@ import '@/styles/tec-design-tokens.css';
 
 const ASSETS_URL     = 'https://assets.tecosystem.app';
 const COMMERCE_URL   = 'https://commerce.tecosystem.app';
+const ANALYTICS_URL  = 'https://analytics.tecosystem.app';
 const PULL_THRESHOLD = 80;
 
 const getCsrfToken = (): string => {
@@ -230,8 +231,9 @@ function HubPageInner() {
   }
 
   const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
-  const goToAssets   = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
-  const goToCommerce = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
+  const goToAssets    = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
+  const goToCommerce  = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
+  const goToAnalytics = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ANALYTICS_URL); };
 
   return (
     <div
@@ -273,6 +275,7 @@ function HubPageInner() {
         piPrice={piPrice}
         goToAssets={goToAssets}
         goToCommerce={goToCommerce}
+        goToAnalytics={goToAnalytics}
       />
 
       {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}

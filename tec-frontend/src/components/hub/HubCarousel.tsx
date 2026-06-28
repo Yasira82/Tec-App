@@ -12,11 +12,13 @@ interface Props {
   piPrice:        PiPrice | null;
   goToAssets:     () => void;
   goToCommerce:   () => void;
+  goToAnalytics:  () => void;
 }
 
-export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, goToAssets, goToCommerce }: Props) {
+export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, goToAssets, goToCommerce, goToAnalytics }: Props) {
   const touchStartX = useRef(0);
   const priceUp     = (piPrice?.change24h ?? 0) >= 0;
+  const SLIDES      = 4;
 
   return (
     <div style={{ padding: '14px 16px 0', animation: 'tec-fade-in 0.5s ease both' }}>
@@ -24,7 +26,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, 
         onTouchStart={e => { touchStartX.current = e.targetTouches[0].clientX; }}
         onTouchEnd={e => {
           const diff = touchStartX.current - e.changedTouches[0].clientX;
-          if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? Math.min(carouselIdx + 1, 2) : Math.max(carouselIdx - 1, 0)); }
+          if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? Math.min(carouselIdx + 1, SLIDES - 1) : Math.max(carouselIdx - 1, 0)); }
         }}
         style={{ overflow: 'hidden', borderRadius: 20 }}>
         <div style={{ display: 'flex', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
@@ -62,6 +64,21 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, 
                 </div>
               </div>
               <div style={{ fontSize: 9, color: 'rgba(59,130,246,0.8)', letterSpacing: 1.5 }}>OPEN →</div>
+            </button>
+          </div>
+
+          {/* Analytics */}
+          <div style={{ minWidth: '100%' }}>
+            <button className="tec-btn" onClick={goToAnalytics}
+              style={{ width: '100%', borderRadius: 20, background: '#111627', border: '1px solid rgba(6,182,212,0.15)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#06222b,#111627)', border: '1px solid rgba(6,182,212,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📊</div>
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Analytics</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Ecosystem intelligence · metrics</div>
+                </div>
+              </div>
+              <div style={{ fontSize: 9, color: 'rgba(6,182,212,0.85)', letterSpacing: 1.5 }}>OPEN →</div>
             </button>
           </div>
 
@@ -108,7 +125,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, 
 
       {/* Dots */}
       <div style={{ display: 'flex', justifyContent: 'center', gap: 5, marginTop: 10 }}>
-        {[0, 1, 2].map(i => (
+        {Array.from({ length: SLIDES }, (_, i) => i).map(i => (
           <button key={i} onClick={() => { haptic('light'); setCarouselIdx(i); }}
             aria-label={`Slide ${i + 1}`}
             style={{

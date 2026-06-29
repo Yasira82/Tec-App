@@ -7,6 +7,9 @@ vi.mock('@/lib-client/pi/pi-auth', () => ({
   loginWithPi:    vi.fn(),
   logout:         vi.fn(),
   isPiBrowser:    vi.fn(() => false),
+  // useHubData now calls fetchWithAuth (401 → refresh → retry). In tests it just
+  // delegates to the mocked global.fetch so the existing assertions still hold.
+  fetchWithAuth:  vi.fn((url: string, opts?: RequestInit) => (global.fetch as typeof fetch)(url, opts)),
 }));
 
 import { useHubData } from '@/hooks/useHubData';

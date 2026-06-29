@@ -24,13 +24,31 @@ export const usePiAuth = () => {
   });
 
   useEffect(() => {
+    let cancelled = false;
+
+    // 1) Fast path: read the tec_user cookie from the client.
     const stored = getStoredUser();
-    setState(prev => ({
-      ...prev,
-      user:            stored,
-      isAuthenticated: !!stored,
-      isLoading:       false,
-    }));
+    if (stored) {
+      setState(prev => ({ ...prev, user: stored, isAuthenticated: true, isLoading: false }));
+      return;
+    }
+
+    // 2) Robust fallback: Pi Browser may hide the cookie from JS even though it
+    // sends it to the server. Ask the server who we are — it can always read the
+    // request cookie. This is what stops the /hub → / login loop in Pi Browser.
+    fetch('/api/auth/me', { credentials: 'include' })
+      .then(res => (res.ok ? res.json() : null))
+      .then(data => {
+        if (cancelled) return;
+        const user = (data?.user ?? null) as TecUser | null;
+        setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false }));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setState(prev => ({ ...prev, user: null, isAuthenticated: false, isLoading: false }));
+      });
+
+    return () => { cancelled = true; };
   }, []);
 
   const login = useCallback(async () => {

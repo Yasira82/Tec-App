@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import { fetchWithAuth }                    from '@/lib-client/pi/pi-auth';
 import { PiPrice }                          from '@/lib/hub/types';
 
 interface HubData {
@@ -20,13 +19,15 @@ export function useHubData(userId?: string): HubData {
   const [notifCount, setNotifCount] = useState(0);
   const [time,       setTime]       = useState('');
 
-  // fetchWithAuth: the access token lives ~1h; on a 401 it refreshes via
-  // /api/auth/refresh (7-day refresh token) and retries once. Plain fetch left
-  // the wallet/assets blank the moment the token expired (UNAUTHORIZED).
+  // Plain fetch (cookie auth). NOTE: fetchWithAuth was tried but its refresh
+  // path calls logout() on failure — and /api/auth/refresh is currently 401ing,
+  // so it logged the user out in a loop. Reverted to a non-destructive fetch
+  // until the refresh endpoint is fixed; the wallet just shows its error state
+  // on a 401 instead of thrashing the session.
   const refreshBalance = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetchWithAuth('/api/bff/wallet/balance', { cache: 'no-store' });
+      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setBalance(`${Number(d.balance).toFixed(2)}`); }
     } catch {}
   }, [userId]);
@@ -34,7 +35,7 @@ export function useHubData(userId?: string): HubData {
   const refreshAssets = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetchWithAuth('/api/bff/assets/list', { cache: 'no-store' });
+      const res = await fetch('/api/bff/assets/list', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setAssetCount(d.count ?? d.data?.length ?? 0); }
     } catch {}
   }, [userId]);
@@ -50,7 +51,7 @@ export function useHubData(userId?: string): HubData {
   const refreshNotifCount = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetchWithAuth('/api/bff/notifications/unread');
+      const res = await fetch('/api/bff/notifications/unread', { credentials: 'include' });
       if (res.ok) { const d = await res.json(); setNotifCount(d.count ?? 0); }
     } catch {}
   }, [userId]);

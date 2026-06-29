@@ -2,7 +2,7 @@
  * Smoke tests for usePiAuth hook with mocked Pi SDK.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 
 // ---- mock next/navigation ----
 vi.mock('next/navigation', () => ({
@@ -23,17 +23,45 @@ import * as piAuth    from '@/lib-client/pi/pi-auth';
 describe('usePiAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // When the client can't read the cookie, usePiAuth asks the server
+    // (GET /api/auth/me). Default it to "no session" for these tests.
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok:   false,
+      status: 401,
+      json: async () => ({ authenticated: false, user: null }),
+    }));
   });
 
-  it('starts with unauthenticated, not-loading state', () => {
+  it('ends unauthenticated when neither cookie nor server has a session', async () => {
     vi.mocked(piAuth.getStoredUser).mockReturnValue(null);
 
     const { result } = renderHook(() => usePiAuth());
 
+    // It starts loading (it's now checking the server), then settles unauthenticated.
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.isAuthenticated).toBe(false);
-    expect(result.current.isLoading).toBe(false);
     expect(result.current.user).toBeNull();
     expect(result.current.error).toBeNull();
+  });
+
+  it('falls back to the server (/api/auth/me) when the client cookie is unreadable', async () => {
+    // Pi Browser hides the cookie from JS → getStoredUser returns null, but the
+    // server can read it and returns the user. The hook must trust the server.
+    vi.mocked(piAuth.getStoredUser).mockReturnValue(null);
+    const serverUser = {
+      id: '9', piId: 'uid-9', piUsername: 'pi_user',
+      role: 'user', subscriptionPlan: null, createdAt: new Date().toISOString(),
+    };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true, status: 200,
+      json: async () => ({ authenticated: true, user: serverUser }),
+    }));
+
+    const { result } = renderHook(() => usePiAuth());
+
+    await waitFor(() => expect(result.current.isAuthenticated).toBe(true));
+    expect(result.current.user).toEqual(serverUser);
+    expect(result.current.isLoading).toBe(false);
   });
 
   it('restores stored user on mount', async () => {

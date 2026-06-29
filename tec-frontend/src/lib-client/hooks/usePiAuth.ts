@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { loginWithPi, getStoredUser, logout as piLogout } from '@/lib-client/pi/pi-auth';
 import { TecUser } from '@/types/pi.types';
 
@@ -23,12 +23,17 @@ export const usePiAuth = () => {
     errorType:       null,
   });
 
+  // Once login() (or a client-cookie read) establishes auth, a late
+  // /api/auth/me response must NOT clobber it back to unauthenticated.
+  const authSettledRef = useRef(false);
+
   useEffect(() => {
     let cancelled = false;
 
     // 1) Fast path: read the tec_user cookie from the client.
     const stored = getStoredUser();
     if (stored) {
+      authSettledRef.current = true;
       setState(prev => ({ ...prev, user: stored, isAuthenticated: true, isLoading: false }));
       return;
     }
@@ -39,12 +44,13 @@ export const usePiAuth = () => {
     fetch('/api/auth/me', { credentials: 'include' })
       .then(res => (res.ok ? res.json() : null))
       .then(data => {
-        if (cancelled) return;
+        if (cancelled || authSettledRef.current) return;
         const user = (data?.user ?? null) as TecUser | null;
+        if (user) authSettledRef.current = true;
         setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false }));
       })
       .catch(() => {
-        if (cancelled) return;
+        if (cancelled || authSettledRef.current) return;
         setState(prev => ({ ...prev, user: null, isAuthenticated: false, isLoading: false }));
       });
 
@@ -59,6 +65,7 @@ export const usePiAuth = () => {
       // ✅ بعد الـ cookie migration — الـ user بييجي من response مش من cookie
       const user = result.user ?? getStoredUser();
 
+      if (user) authSettledRef.current = true;
       setState(prev => ({
         ...prev,
         user,
@@ -91,6 +98,7 @@ export const usePiAuth = () => {
 
   const logout = useCallback(async () => {
     await piLogout();
+    authSettledRef.current = false;
     setState(prev => ({
       ...prev,
       user:            null,

@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
+import { fetchWithAuth }                    from '@/lib-client/pi/pi-auth';
 import { PiPrice }                          from '@/lib/hub/types';
 
 interface HubData {
@@ -20,10 +20,13 @@ export function useHubData(userId?: string): HubData {
   const [notifCount, setNotifCount] = useState(0);
   const [time,       setTime]       = useState('');
 
+  // fetchWithAuth: the access token lives ~1h; on a 401 it refreshes via
+  // /api/auth/refresh (7-day refresh token) and retries once. Plain fetch left
+  // the wallet/assets blank the moment the token expired (UNAUTHORIZED).
   const refreshBalance = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store' });
+      const res = await fetchWithAuth('/api/bff/wallet/balance', { cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setBalance(`${Number(d.balance).toFixed(2)}`); }
     } catch {}
   }, [userId]);
@@ -31,7 +34,7 @@ export function useHubData(userId?: string): HubData {
   const refreshAssets = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/assets/list', { credentials: 'include', cache: 'no-store' });
+      const res = await fetchWithAuth('/api/bff/assets/list', { cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setAssetCount(d.count ?? d.data?.length ?? 0); }
     } catch {}
   }, [userId]);
@@ -47,9 +50,7 @@ export function useHubData(userId?: string): HubData {
   const refreshNotifCount = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/notifications/unread', {
-        credentials: 'include',
-      });
+      const res = await fetchWithAuth('/api/bff/notifications/unread');
       if (res.ok) { const d = await res.json(); setNotifCount(d.count ?? 0); }
     } catch {}
   }, [userId]);

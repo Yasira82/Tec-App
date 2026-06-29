@@ -28,10 +28,12 @@ const CSRF_PROTECTED = [
 // Double-submit CSRF token cookie. Not a secret — same-origin policy stops
 // cross-origin attackers from reading it. httpOnly:false so client JS can
 // echo it back in the x-csrf-token header.
+// sameSite:'lax' (NOT 'none'): Pi Browser drops sameSite=None cookies. These are
+// first-party Hub cookies (same-origin only) so 'lax' is correct and reliable.
 const CSRF_COOKIE_OPTS = {
   httpOnly: false,
   secure:   true,
-  sameSite: 'none' as const,
+  sameSite: 'lax' as const,
   path:     '/',
   maxAge:   60 * 60 * 24,
 };

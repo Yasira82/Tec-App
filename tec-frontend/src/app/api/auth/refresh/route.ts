@@ -36,9 +36,12 @@ export async function POST(req: NextRequest) {
     // ✅ جدد الـ CSRF مع كل refresh
     const newCsrf = randomUUID();
 
+    // sameSite:'lax' (NOT 'none'): Pi Browser drops sameSite=None cookies. Keep in
+    // sync with pi-login — a refresh must not downgrade the session cookies back
+    // to 'none' (that would re-introduce the /hub login loop in Pi Browser).
     const cookieOpts = {
       secure:   true,
-      sameSite: 'none' as const,
+      sameSite: 'lax' as const,
       path:     '/',
     };
 

@@ -59,10 +59,13 @@ export async function GET(req: NextRequest) {
   // ✅ روح لـ redirect path بعد الـ SSO
   const res = NextResponse.redirect(new URL(redirect, req.url));
 
+  // sameSite:'lax' (NOT 'none'): Pi Browser drops sameSite=None cookies. The SSO
+  // token arrives in the URL and we set first-party cookies on a top-level
+  // redirect to /hub, so 'lax' is sent correctly and reliably in Pi Browser.
   const cookieOpts = {
     httpOnly: false,
     secure:   true,
-    sameSite: 'none' as const,
+    sameSite: 'lax' as const,
     path:     '/',
     maxAge:   60 * 60 * 24,
   };

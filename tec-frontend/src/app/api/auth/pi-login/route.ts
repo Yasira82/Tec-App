@@ -52,10 +52,16 @@ export async function POST(req: NextRequest) {
     const maxAge     = 60 * 60 * 24;
     const refreshAge = 60 * 60 * 24 * 7;
 
+    // sameSite:'lax' (NOT 'none'): Pi Browser drops sameSite=None cookies, which
+    // broke the /hub session (login succeeded but /hub saw no tec_user → bounced
+    // to login in a loop). These are first-party Hub cookies — only read by
+    // hub.tecosystem.app and its same-origin /api/* routes — so 'lax' is correct
+    // and is sent on the top-level navigation to /hub. SSO is unaffected (token
+    // travels in the URL to the target app, not via a cross-domain cookie).
     res.cookies.set('tec_access_token', data.tokens.accessToken, {
       httpOnly: false,
       secure:   true,
-      sameSite: 'none',
+      sameSite: 'lax',
       maxAge,
       path:     '/',
     });
@@ -63,7 +69,7 @@ export async function POST(req: NextRequest) {
     res.cookies.set('tec_refresh_token', data.tokens.refreshToken, {
       httpOnly: true,
       secure:   true,
-      sameSite: 'none',
+      sameSite: 'lax',
       maxAge:   refreshAge,
       path:     '/',
     });
@@ -71,7 +77,7 @@ export async function POST(req: NextRequest) {
     res.cookies.set('tec_user', JSON.stringify(data.user), {
       httpOnly: false,
       secure:   true,
-      sameSite: 'none',
+      sameSite: 'lax',
       maxAge,
       path:     '/',
     });
@@ -79,7 +85,7 @@ export async function POST(req: NextRequest) {
     res.cookies.set('tec_csrf', randomUUID(), {
       httpOnly: false,
       secure:   true,
-      sameSite: 'none',
+      sameSite: 'lax',
       maxAge,
       path:     '/',
     });

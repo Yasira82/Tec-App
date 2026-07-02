@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { tecSession }                       from '@/lib-client/pi/tec-session';
+import { bffFetch }                         from '@/lib-client/pi/bff-client';
 import { PiPrice }                          from '@/lib/hub/types';
 
 interface HubData {
@@ -20,13 +20,13 @@ export function useHubData(userId?: string): HubData {
   const [notifCount, setNotifCount] = useState(0);
   const [time,       setTime]       = useState('');
 
-  // Cookie + Authorization header (C-123 §7): tecSession.authHeaders() carries
-  // the in-memory token, so data loads even in Pi Browser contexts that refuse
-  // cookies entirely. Failures stay non-destructive (blank value, no logout).
+  // bffFetch (C-123 §7): Authorization header from the in-memory session + one
+  // silent Pi re-auth on 401 — data loads and SELF-HEALS mid-session even in
+  // Pi Browser contexts that refuse cookies. Failures stay non-destructive.
   const refreshBalance = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store', headers: tecSession.authHeaders() });
+      const res = await bffFetch('/api/bff/wallet/balance', { cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setBalance(`${Number(d.balance).toFixed(2)}`); }
     } catch {}
   }, [userId]);
@@ -34,7 +34,7 @@ export function useHubData(userId?: string): HubData {
   const refreshAssets = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/assets/list', { credentials: 'include', cache: 'no-store', headers: tecSession.authHeaders() });
+      const res = await bffFetch('/api/bff/assets/list', { cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setAssetCount(d.count ?? d.data?.length ?? 0); }
     } catch {}
   }, [userId]);
@@ -50,7 +50,7 @@ export function useHubData(userId?: string): HubData {
   const refreshNotifCount = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/notifications/unread', { credentials: 'include', headers: tecSession.authHeaders() });
+      const res = await bffFetch('/api/bff/notifications/unread');
       if (res.ok) { const d = await res.json(); setNotifCount(d.count ?? 0); }
     } catch {}
   }, [userId]);

@@ -1,5 +1,6 @@
 import { PiAuthResult, TecAuthResponse, PiPaymentData, PiPaymentCallbacks } from '@/types/pi.types';
 import sdk from '@/lib/sdk';
+import { tecSession } from '@/lib-client/pi/tec-session';
 
 declare global {
   interface Window {
@@ -62,6 +63,7 @@ export const getStoredUser = () => {
 };
 
 export const logout = async () => {
+  tecSession.clear();
   try {
     await fetch('/api/auth/logout', {
       method: 'POST',
@@ -336,6 +338,13 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
 
   const data = await res.json();
 
+  // C-123 §7 — hold the session in MEMORY: the cookie-independent transport.
+  // BFF calls attach it as an Authorization header, so the app works even in
+  // Pi Browser contexts that refuse cookies entirely.
+  if (data?.accessToken && data?.user) {
+    tecSession.set(data.accessToken, data.user);
+  }
+
   // ✅ الآن فيه cookie + CSRF — نعالج الـ incomplete payment
   if (_pendingPaymentId) {
     void resolveIncompleteAfterLogin(_pendingPaymentId);
@@ -356,7 +365,7 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
       createdAt:        data.user.createdAt,
     },
     tokens: {
-      accessToken:  '',
+      accessToken:  data.accessToken ?? '',
       refreshToken: '',
     },
     // Present when the server minted a one-time token: the button finishes

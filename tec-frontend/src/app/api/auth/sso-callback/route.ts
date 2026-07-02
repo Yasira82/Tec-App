@@ -132,12 +132,17 @@ export async function GET(req: NextRequest) {
         setDocCookies();
         sessionVisible(function (ok2) {
           if (ok2) { location.replace(redirect); return; }
+          // Cookies refused by this context (C-123 LAW 3 variants). PROCEED
+          // ANYWAY: /hub renders without cookies and the client re-establishes
+          // the session in memory via a silent Pi auth (C-123 §7). Bouncing
+          // back to the login page here is what used to look like "hub won't
+          // open". Report first so the failure mode stays visible in logs.
           report({
             headerCookiesVisible: false,
             afterJsWriteVisible:  false,
             docCookies:           docCookieNames(),
             ua:                   navigator.userAgent,
-          }, function () { location.replace('/?login=failed'); });
+          }, function () { location.replace(redirect); });
         });
       });
     }, 350);

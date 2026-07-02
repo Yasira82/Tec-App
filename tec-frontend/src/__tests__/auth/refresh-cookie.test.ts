@@ -31,10 +31,10 @@ describe('VM-001 — refresh route cookie consistency', () => {
 
     expect(accessCookie).toBeDefined();
     expect(accessCookie?.httpOnly).toBe(false);
-    // sameSite must be 'lax', NOT 'none': Pi Browser drops sameSite=None cookies,
-    // which broke the /hub session loop. A refresh must not downgrade it back to
-    // 'none'. These are first-party Hub cookies, so 'lax' is correct.
-    expect(accessCookie?.sameSite).toBe('lax');
+    // sameSite MUST be 'none' + secure: embedded Pi Browser contexts reject
+    // 'lax' cookies entirely (July 2026 login outage — Runtime Verified).
+    // 'none' is the original platform contract; never downgrade to 'lax'.
+    expect(accessCookie?.sameSite).toBe('none');
     expect(accessCookie?.secure).toBe(true);
   });
 

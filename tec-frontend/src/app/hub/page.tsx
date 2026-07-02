@@ -35,6 +35,10 @@ const getCsrfToken = (): string => {
 
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
+
+  // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup):
+  // wake the gateway while auth resolves so wallet/apps data lands warm.
+  useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
   const { piReady } = usePiSdkReady();
   const router = useRouter();
 

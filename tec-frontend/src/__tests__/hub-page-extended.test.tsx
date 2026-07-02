@@ -607,6 +607,9 @@ describe('HubPage — URL params payment flow', () => {
 
     mockUsePiSdkReady.mockReturnValue({ ...defaultSdkReady, piReady: true });
 
+    // /api/warmup fires first on mount (backend keep-warm) — absorb it so the
+    // payment-flow mocks below keep their positions.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) } as unknown as Response);
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok:   true,
       json: async () => ({ data: { payment: { id: 'internal-id-1' } } }),
@@ -636,6 +639,9 @@ describe('HubPage — URL params payment flow', () => {
 
     mockUsePiSdkReady.mockReturnValue({ ...defaultSdkReady, piReady: true });
 
+    // /api/warmup fires first on mount (backend keep-warm) — absorb it so the
+    // payment-flow mocks below keep their positions.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) } as unknown as Response);
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok:   true,
       json: async () => ({ data: { payment: { id: 'internal-id-1' } } }),
@@ -662,6 +668,9 @@ describe('HubPage — URL params payment flow', () => {
 
     mockUsePiSdkReady.mockReturnValue({ ...defaultSdkReady, piReady: true });
 
+    // /api/warmup fires first on mount (backend keep-warm) — absorb it so the
+    // payment-flow mocks below keep their positions.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) } as unknown as Response);
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok:   true,
       json: async () => ({ data: null }),
@@ -716,6 +725,9 @@ describe('HubPage — PaymentModal interaction', () => {
 
     mockUsePiSdkReady.mockReturnValue({ ...defaultSdkReady, piReady: true });
 
+    // /api/warmup fires first on mount (backend keep-warm) — absorb it so the
+    // payment-flow mocks below keep their positions.
+    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({ ok: true, json: async () => ({ ok: true }) } as unknown as Response);
     vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
       ok:   true,
       json: async () => ({ data: { payment: { id: 'internal-id-1' } } }),

@@ -65,7 +65,7 @@ describe('pi-auth extended', () => {
       expect(token).toBe('new-access-token');
     });
 
-    it('returns null and calls logout on 401', async () => {
+    it('returns null WITHOUT logging out on 401 (refresh failure must not destroy the session)', async () => {
       const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
         ok:   false,
         status: 401,
@@ -75,11 +75,13 @@ describe('pi-auth extended', () => {
       const token = await refreshAccessToken();
 
       expect(token).toBeNull();
-      // logout بيبعت POST /api/auth/logout
+      // A failed refresh used to call logout() — that turned transient refresh
+      // failures (single-use token rotation + Pi Browser cookie quirks) into a
+      // production logout→login loop. It must fail QUIET now.
       const logoutCall = fetchSpy.mock.calls.find(([url]) =>
         String(url).includes('/api/auth/logout')
       );
-      expect(logoutCall).toBeDefined();
+      expect(logoutCall).toBeUndefined();
     });
 
     it('returns null on network error', async () => {

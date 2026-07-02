@@ -74,5 +74,17 @@ export async function GET(req: NextRequest) {
   res.cookies.set('tec_user',         JSON.stringify(user), cookieOpts);
   res.cookies.set('tec_csrf',         crypto.randomUUID(),  cookieOpts);
 
+  // Hub self-login lands here too (top-level nav — the cookie path Pi Browser
+  // persists). Its token carries the refresh token; store it so the BFF's
+  // server-side refresh can renew the session every hour.
+  const refreshToken = payload.refreshToken as string | undefined;
+  if (refreshToken) {
+    res.cookies.set('tec_refresh_token', refreshToken, {
+      ...cookieOpts,
+      httpOnly: true,
+      maxAge:   60 * 60 * 24 * 7,
+    });
+  }
+
   return res;
 }

@@ -54,12 +54,24 @@ if (result?.success) {
   const returnTo = params.get('returnTo');
   const redirect = params.get('redirect'); // ✅ للـ hub/pay
 
-  if (redirect) {
-    window.location.href = redirect;
-  } else if (returnTo) {
-    window.location.href = `/api/auth/sso?target=${encodeURIComponent(returnTo)}`;
+  // Where to land after the session is established.
+  const dest = redirect
+    ? redirect
+    : returnTo
+      ? `/api/auth/sso?target=${encodeURIComponent(returnTo)}`
+      : '/hub';
+
+  if (result.ssoToken) {
+    // Finish login on a TOP-LEVEL navigation: sso-callback re-sets the session
+    // cookies on a navigation response — the only cookie path Pi Browser
+    // persists reliably (XHR Set-Cookie from pi-login was getting dropped,
+    // which caused the /hub → login loop).
+    const cb = new URL('/api/auth/sso-callback', window.location.origin);
+    cb.searchParams.set('token',    result.ssoToken);
+    cb.searchParams.set('redirect', dest);
+    window.location.href = cb.toString();
   } else {
-    window.location.href = '/hub';
+    window.location.href = dest;
   }
 }
     } catch (err) {

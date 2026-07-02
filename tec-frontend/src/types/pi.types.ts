@@ -25,6 +25,10 @@ export interface TecAuthResponse {
     accessToken: string;
     refreshToken: string;
   };
+  /** One-time signed token: lets the client finish login via a top-level
+   *  navigation to /api/auth/sso-callback, which sets the session cookies on a
+   *  navigation response — the only path Pi Browser persists reliably. */
+  ssoToken?: string;
 }
 
 export interface PiPaymentData {

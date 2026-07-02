@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const PROTECTED_ROUTES  = ['/hub', '/dashboard', '/profile', '/settings'];
+// '/hub' is CLIENT-guarded (C-123 §7): its shell must always render so the
+// client can resolve the session cookie-independently (memory → /api/auth/me →
+// silent Pi re-auth). A middleware cookie check here turned every cookie-less
+// context into a hard "hub won't open". Data stays protected — every BFF route
+// still fail-closes without a valid token (P6).
+const PROTECTED_ROUTES  = ['/dashboard', '/profile', '/settings'];
 const PUBLIC_HUB_ROUTES: string[] = [];
 const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 

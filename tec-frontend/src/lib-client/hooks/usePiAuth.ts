@@ -1,8 +1,28 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { loginWithPi, getStoredUser, logout as piLogout } from '@/lib-client/pi/pi-auth';
+import { loginWithPi, getStoredUser, isPiBrowser, logout as piLogout } from '@/lib-client/pi/pi-auth';
+import { tecSession } from '@/lib-client/pi/tec-session';
 import { TecUser } from '@/types/pi.types';
+
+// One silent auto-auth attempt per page load (module-level so parallel hook
+// instances don't each trigger Pi.authenticate).
+let autoAuthAttempted = false;
+let autoAuthPromise: Promise<TecUser | null> | null = null;
+
+async function silentPiAuth(): Promise<TecUser | null> {
+  if (autoAuthPromise) return autoAuthPromise;
+  autoAuthAttempted = true;
+  autoAuthPromise = (async () => {
+    try {
+      const result = await loginWithPi();
+      return result?.user ?? null;
+    } catch {
+      return null;
+    }
+  })();
+  return autoAuthPromise;
+}
 
 interface AuthState {
   user:            TecUser | null;
@@ -30,29 +50,42 @@ export const usePiAuth = () => {
   useEffect(() => {
     let cancelled = false;
 
+    const settle = (user: TecUser | null) => {
+      if (cancelled || authSettledRef.current) return;
+      if (user) authSettledRef.current = true;
+      setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false }));
+    };
+
+    // 0) In-memory session survives client-side navigation regardless of cookies.
+    if (tecSession.user) { settle(tecSession.user); return; }
+
     // 1) Fast path: read the tec_user cookie from the client.
     const stored = getStoredUser();
-    if (stored) {
-      authSettledRef.current = true;
-      setState(prev => ({ ...prev, user: stored, isAuthenticated: true, isLoading: false }));
-      return;
-    }
+    if (stored) { settle(stored); return; }
 
-    // 2) Robust fallback: Pi Browser may hide the cookie from JS even though it
-    // sends it to the server. Ask the server who we are — it can always read the
-    // request cookie. This is what stops the /hub → / login loop in Pi Browser.
-    fetch('/api/auth/me', { credentials: 'include' })
-      .then(res => (res.ok ? res.json() : null))
-      .then(data => {
-        if (cancelled || authSettledRef.current) return;
+    // 2) Server resolver: Pi Browser may hide the cookie from JS while still
+    // sending it — the server can always read the request cookie.
+    // 3) LAST RESORT — the cookie-independent path (C-123 §7): in Pi Browser,
+    // silently re-authenticate ONCE per page load. The session then lives in
+    // memory and BFF calls carry it as an Authorization header, so the app
+    // works even when the browser context refuses cookies entirely.
+    (async () => {
+      try {
+        const res  = await fetch('/api/auth/me', { credentials: 'include' });
+        const data = res.ok ? await res.json() : null;
         const user = (data?.user ?? null) as TecUser | null;
-        if (user) authSettledRef.current = true;
-        setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false }));
-      })
-      .catch(() => {
-        if (cancelled || authSettledRef.current) return;
-        setState(prev => ({ ...prev, user: null, isAuthenticated: false, isLoading: false }));
-      });
+        if (user || cancelled || authSettledRef.current) { settle(user); return; }
+
+        if (isPiBrowser() && !autoAuthAttempted) {
+          const autoUser = await silentPiAuth();
+          settle(autoUser);
+          return;
+        }
+        settle(null);
+      } catch {
+        settle(null);
+      }
+    })();
 
     return () => { cancelled = true; };
   }, []);

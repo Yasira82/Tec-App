@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { tecSession }                       from '@/lib-client/pi/tec-session';
 import { PiPrice }                          from '@/lib/hub/types';
 
 interface HubData {
@@ -19,15 +20,13 @@ export function useHubData(userId?: string): HubData {
   const [notifCount, setNotifCount] = useState(0);
   const [time,       setTime]       = useState('');
 
-  // Plain fetch (cookie auth). NOTE: fetchWithAuth was tried but its refresh
-  // path calls logout() on failure — and /api/auth/refresh is currently 401ing,
-  // so it logged the user out in a loop. Reverted to a non-destructive fetch
-  // until the refresh endpoint is fixed; the wallet just shows its error state
-  // on a 401 instead of thrashing the session.
+  // Cookie + Authorization header (C-123 §7): tecSession.authHeaders() carries
+  // the in-memory token, so data loads even in Pi Browser contexts that refuse
+  // cookies entirely. Failures stay non-destructive (blank value, no logout).
   const refreshBalance = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store' });
+      const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store', headers: tecSession.authHeaders() });
       if (res.ok) { const d = await res.json(); setBalance(`${Number(d.balance).toFixed(2)}`); }
     } catch {}
   }, [userId]);
@@ -35,7 +34,7 @@ export function useHubData(userId?: string): HubData {
   const refreshAssets = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/assets/list', { credentials: 'include', cache: 'no-store' });
+      const res = await fetch('/api/bff/assets/list', { credentials: 'include', cache: 'no-store', headers: tecSession.authHeaders() });
       if (res.ok) { const d = await res.json(); setAssetCount(d.count ?? d.data?.length ?? 0); }
     } catch {}
   }, [userId]);
@@ -51,7 +50,7 @@ export function useHubData(userId?: string): HubData {
   const refreshNotifCount = useCallback(async () => {
     if (!userId) return;
     try {
-      const res = await fetch('/api/bff/notifications/unread', { credentials: 'include' });
+      const res = await fetch('/api/bff/notifications/unread', { credentials: 'include', headers: tecSession.authHeaders() });
       if (res.ok) { const d = await res.json(); setNotifCount(d.count ?? 0); }
     } catch {}
   }, [userId]);

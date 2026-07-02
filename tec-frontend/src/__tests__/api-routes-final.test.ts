@@ -122,14 +122,23 @@ describe('middleware', () => {
 
   it('redirects unauthenticated access to protected route', async () => {
     const { middleware } = await import('@/middleware');
-    const req = makeMiddlewareReq({ pathname: '/hub' });
+    const req = makeMiddlewareReq({ pathname: '/dashboard' });
     const res = middleware(req);
     expect(res.status).toBe(307);
   });
 
+  it('renders /hub WITHOUT a cookie — client-guarded, cookie-independent entry (C-123 §7)', async () => {
+    const { middleware } = await import('@/middleware');
+    const req = makeMiddlewareReq({ pathname: '/hub' });
+    const res = middleware(req);
+    // The hub shell must always render so the client can resolve the session
+    // in memory (silent Pi re-auth). A cookie check here caused "hub won't open".
+    expect(res.status).toBe(200);
+  });
+
   it('allows authenticated access to protected route', async () => {
     const { middleware } = await import('@/middleware');
-    const req = makeMiddlewareReq({ pathname: '/hub', token: 'my-token' });
+    const req = makeMiddlewareReq({ pathname: '/dashboard', token: 'my-token' });
     const res = middleware(req);
     expect(res.status).toBe(200);
   });

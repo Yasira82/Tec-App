@@ -73,9 +73,20 @@ async function contextFromToken(token: string, req: NextRequest): Promise<BFFCon
 }
 
 async function extractContext(req: NextRequest): Promise<BFFContext> {
-  const token = req.cookies.get('tec_access_token')?.value;
+  // Cookie-independent session transport (C-123 §7): an Authorization header
+  // takes precedence — Pi Browser contexts that refuse cookies entirely still
+  // authenticate via the in-memory token. Verified with the same JWT_SECRET
+  // path as the cookie, so no trust difference.
+  const bearer = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim();
+  const cookie = req.cookies.get('tec_access_token')?.value;
+  const token  = bearer || cookie;
   if (!token) throw new UnauthorizedError();
-  return contextFromToken(token, req);
+
+  const ctx = await contextFromToken(token, req);
+  // Handlers read the token from req.cookies to call the gateway — make the
+  // header-supplied token visible to them the same way the refresh path does.
+  if (bearer && !cookie) req.cookies.set('tec_access_token', bearer);
+  return ctx;
 }
 
 // ─── Server-side token refresh ────────────────────────────────

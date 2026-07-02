@@ -91,6 +91,10 @@ export async function POST(req: NextRequest) {
       success:   data.success,
       isNewUser: data.isNewUser,
       user:      data.user,
+      // In-memory session transport (C-123 §7): the client holds this token in
+      // memory and sends it as an Authorization header — the cookie-independent
+      // path. Same exposure as the non-httpOnly cookie + ssoToken below.
+      accessToken: data.tokens.accessToken,
       ...(ssoToken ? { ssoToken } : {}),
     });
 

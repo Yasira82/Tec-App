@@ -172,6 +172,7 @@ vi.mock('@/components/dashboard', () => ({
 
 vi.mock('@/domains/_registry', () => ({
   getVisibleDomains: vi.fn(() => []),
+  LIVE_DOMAINS:      [],
 }));
 
 vi.mock('@/components/ErrorBoundary', () => ({

@@ -29,7 +29,16 @@ export function HubAppsGrid({ apps }: Props) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
         {apps.map((app, idx) => (
           <button key={app.slug} className="tec-app-card"
-            onClick={() => { haptic('light'); router.push(app.href); }}
+            onClick={() => {
+              haptic('light');
+              // SSO/external hrefs are server endpoints or full URLs — the Next
+              // router can't client-navigate them; use a real navigation.
+              if (app.href.startsWith('/api/') || app.href.startsWith('http')) {
+                window.location.href = app.href;
+              } else {
+                router.push(app.href);
+              }
+            }}
             style={{
               display: 'flex', alignItems: 'center', gap: 12,
               padding: '14px 16px', background: '#111627',

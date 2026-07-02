@@ -8,6 +8,7 @@ export async function GET(req: NextRequest) {
     httpOnly: false,
     secure:   true,
     sameSite: 'none' as const,
+    partitioned: true,
     path:     '/',
     maxAge:   0,
   };

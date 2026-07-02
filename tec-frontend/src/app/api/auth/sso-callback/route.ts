@@ -69,6 +69,7 @@ export async function GET(req: NextRequest) {
     httpOnly: false,
     secure:   true,
     sameSite: 'none' as const,
+    partitioned: true,
     path:     '/',
     maxAge:   60 * 60 * 24,
   };
@@ -106,12 +107,40 @@ export async function GET(req: NextRequest) {
       .then(function (r) { cb(r.ok); })
       .catch(function () { cb(false); });
   }
+  // On failure, report exactly what THIS browser context can see — it shows up
+  // in the server logs so the failure mode is diagnosable without guessing.
+  function report(data, done) {
+    try {
+      fetch('/api/auth/landing-report', {
+        method: 'POST', credentials: 'include', keepalive: true,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }).then(function () { done(); }).catch(function () { done(); });
+    } catch (e) { done(); }
+  }
+  function docCookieNames() {
+    try {
+      return (document.cookie || '').split('; ').map(function (c) { return c.split('=')[0]; }).filter(Boolean);
+    } catch (e) { return ['<unreadable>']; }
+  }
   sessionVisible(function (ok) {
     if (ok) { location.replace(redirect); return; }
-    setDocCookies();
-    sessionVisible(function (ok2) {
-      location.replace(ok2 ? redirect : '/?login=failed');
-    });
+    // Small delay: give the cookie store a beat to commit, then retry once.
+    setTimeout(function () {
+      sessionVisible(function (okDelayed) {
+        if (okDelayed) { location.replace(redirect); return; }
+        setDocCookies();
+        sessionVisible(function (ok2) {
+          if (ok2) { location.replace(redirect); return; }
+          report({
+            headerCookiesVisible: false,
+            afterJsWriteVisible:  false,
+            docCookies:           docCookieNames(),
+            ua:                   navigator.userAgent,
+          }, function () { location.replace('/?login=failed'); });
+        });
+      });
+    }, 350);
   });
 })();
 </script></body></html>`;

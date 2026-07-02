@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
 
 // ══════════════════════════════════════════════════════════════
@@ -42,10 +42,11 @@ export interface BFFContext {
 
 // ─── Auth Extractor ───────────────────────────────────────────
 
-async function extractContext(req: NextRequest): Promise<BFFContext> {
-  const token = req.cookies.get('tec_access_token')?.value;
-  if (!token) throw new UnauthorizedError();
+class TokenExpiredError extends AppError {
+  constructor() { super('Token expired', 401, 'TOKEN_EXPIRED'); }
+}
 
+async function contextFromToken(token: string, req: NextRequest): Promise<BFFContext> {
   const secret = process.env.JWT_SECRET;
   if (!secret) throw new Error('JWT_SECRET not configured');
 
@@ -65,7 +66,77 @@ async function extractContext(req: NextRequest): Promise<BFFContext> {
     };
   } catch (err) {
     if (err instanceof AppError) throw err;
+    // Expired is recoverable (server-side refresh below); anything else is not.
+    if ((err as { code?: string })?.code === 'ERR_JWT_EXPIRED') throw new TokenExpiredError();
     throw new UnauthorizedError();
+  }
+}
+
+async function extractContext(req: NextRequest): Promise<BFFContext> {
+  const token = req.cookies.get('tec_access_token')?.value;
+  if (!token) throw new UnauthorizedError();
+  return contextFromToken(token, req);
+}
+
+// ─── Server-side token refresh ────────────────────────────────
+// The access token lives ~1h and the backend rotates refresh tokens
+// (single-use). Refreshing from the BROWSER proved fragile in Pi Browser
+// (the rotated cookie didn't persist → "Refresh token already used" → dead
+// session). So the BFF refreshes HERE: gateway refresh → run the handler with
+// the new token → set the rotated cookies on THIS response, which the browser
+// stores because it accompanies a normal same-origin request.
+
+interface RefreshedTokens { token: string; refreshToken: string | null }
+
+// Single-flight per refresh-token value: the Hub fires several BFF calls at
+// once on mount; without this, each would race to consume the SAME single-use
+// refresh token and all but one would burn as "Refresh token already used".
+const inflightRefresh = new Map<string, Promise<RefreshedTokens | null>>();
+
+async function refreshAtGateway(req: NextRequest): Promise<RefreshedTokens | null> {
+  const refresh = req.cookies.get('tec_refresh_token')?.value;
+  const gateway = process.env.API_GATEWAY_URL ?? '';
+  if (!refresh || !gateway) return null;
+
+  const existing = inflightRefresh.get(refresh);
+  if (existing) return existing;
+
+  const attempt = (async (): Promise<RefreshedTokens | null> => {
+    try {
+      const res = await fetch(`${gateway}/api/v1/auth/refresh`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refresh}` },
+        cache:   'no-store',
+      });
+      if (!res.ok) return null;
+
+      const data  = await res.json().catch(() => ({}));
+      const token = data.token ?? data.accessToken ?? data.data?.token ?? data.data?.accessToken ?? null;
+      if (!token) return null;
+
+      return { token, refreshToken: data.refreshToken ?? data.data?.refreshToken ?? null };
+    } catch {
+      return null;
+    }
+  })();
+
+  inflightRefresh.set(refresh, attempt);
+  // Keep the resolved promise for 5s so stragglers reuse the result instead of
+  // re-consuming the (now rotated) token, then clean up.
+  attempt.finally(() => { setTimeout(() => inflightRefresh.delete(refresh), 5000); });
+  return attempt;
+}
+
+// sameSite:'lax' — matches pi-login/refresh routes (Pi Browser drops 'none').
+function setRefreshedCookies(res: NextResponse, refreshed: RefreshedTokens): void {
+  const base = { secure: true, sameSite: 'lax' as const, path: '/' };
+  res.cookies.set('tec_access_token', refreshed.token, {
+    ...base, httpOnly: false, maxAge: 60 * 60 * 24,
+  });
+  if (refreshed.refreshToken) {
+    res.cookies.set('tec_refresh_token', refreshed.refreshToken, {
+      ...base, httpOnly: true, maxAge: 60 * 60 * 24 * 7,
+    });
   }
 }
 
@@ -91,10 +162,28 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
     const startMs = Date.now();
     let ctx: BFFContext = { userId: 'anonymous', kycVerified: false, requestId: crypto.randomUUID() };
 
+    // Set when the access token expired and the gateway gave us a new pair;
+    // every response path below must carry these cookies back to the browser.
+    let refreshed: RefreshedTokens | null = null;
+    const respond = (body: unknown, init: { status?: number; headers?: Record<string, string> } = {}): Response => {
+      const res = NextResponse.json(body, init);
+      if (refreshed) setRefreshedCookies(res, refreshed);
+      return res;
+    };
+
     try {
-      // 1) Auth
+      // 1) Auth — expired token → refresh at the gateway and continue
       if (config.requireAuth !== false) {
-        ctx = await extractContext(req);
+        try {
+          ctx = await extractContext(req);
+        } catch (authErr) {
+          if (!(authErr instanceof TokenExpiredError)) throw authErr;
+          refreshed = await refreshAtGateway(req);
+          if (!refreshed) throw authErr; // no refresh possible → 401 TOKEN_EXPIRED
+          ctx = await contextFromToken(refreshed.token, req);
+          // Handlers read the token from req.cookies — give them the fresh one.
+          req.cookies.set('tec_access_token', refreshed.token);
+        }
       }
 
       // 2) KYC guard
@@ -123,7 +212,7 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
         status:    200,
       });
 
-      return Response.json(result, {
+      return respond(result, {
         headers: { 'X-Request-Id': ctx.requestId },
       });
 
@@ -135,7 +224,7 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
           requestId: ctx.requestId,
           errors:    err.flatten(),
         });
-        return Response.json(
+        return respond(
           { error: 'VALIDATION_ERROR', details: err.flatten() },
           { status: 400, headers: { 'X-Request-Id': ctx.requestId } },
         );
@@ -149,7 +238,7 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
           code:      err.code,
           message:   err.message,
         });
-        return Response.json(
+        return respond(
           { error: err.code, message: err.message },
           { status: err.status, headers: { 'X-Request-Id': ctx.requestId } },
         );
@@ -161,7 +250,7 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
         requestId: ctx.requestId,
         err,
       });
-      return Response.json(
+      return respond(
         { error: 'INTERNAL_ERROR', message: 'Something went wrong' },
         { status: 500, headers: { 'X-Request-Id': ctx.requestId } },
       );

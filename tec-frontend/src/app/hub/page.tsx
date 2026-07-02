@@ -7,7 +7,7 @@ import { usePiSdkReady }                             from '@/lib-client/hooks/us
 import { piSession }                                 from '@/lib-client/pi/pi-session';
 import { useRealtimeNotifications }                  from '@/lib-client/hooks/useRealtimeNotifications';
 import { getAccessToken, getStoredUser }             from '@/lib-client/pi/pi-auth';
-import { getVisibleDomains }                         from '@/domains/_registry';
+import { LIVE_DOMAINS }                              from '@/domains/_registry';
 import { ErrorBoundary }                             from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }                     from './components/ToastContainer';
 import { AIDrawer }                                  from './components/AIDrawer';
@@ -38,12 +38,19 @@ function HubPageInner() {
   const { piReady } = usePiSdkReady();
   const router = useRouter();
 
-  const userPro = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
-  const userKyc = (user as { kycVerified?: boolean } | null)?.kycVerified ?? false;
-
-  const visibleLive = getVisibleDomains(userKyc, userPro)
-    .filter(d => d.status === 'live' && d.layer !== 'os')
-    .map(d => ({ slug: d.slug, name: d.name.en, emoji: d.emoji, href: d.route ?? `/${d.slug}`, desc: d.description.en }));
+  // LIVE NOW shows every live app: visibility is not authorization — KYC/role
+  // gating stays enforced by each app and its services (P6). Filtering live
+  // apps by the KYC flag made Assets/Commerce invisible to non-KYC users.
+  // External apps are entered through Hub SSO so they land with a session.
+  const visibleLive = LIVE_DOMAINS
+    .filter(d => d.layer !== 'os')
+    .map(d => {
+      const route = d.route ?? `/${d.slug}`;
+      const href  = route.startsWith('http')
+        ? `/api/auth/sso?target=${encodeURIComponent(route)}`
+        : route;
+      return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description.en };
+    });
 
   const { balance, assetCount, piPrice, notifCount, time, setNotifCount, refresh, refreshBalance } =
     useHubData(user?.id);

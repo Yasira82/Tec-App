@@ -588,7 +588,7 @@ describe('GET /api/auth/sso-callback', () => {
     mockJwtVerify.mockReset();
   });
 
-  it('sets cookies and redirects on valid SSO token', async () => {
+  it('sets cookies and returns the 200 HTML landing page on valid SSO token', async () => {
     const jti = `jti-fresh-${Date.now()}-${Math.random()}`;
     mockJwtVerify
       .mockRejectedValueOnce(new Error('wrong audience'))
@@ -601,9 +601,16 @@ describe('GET /api/auth/sso-callback', () => {
       });
     const { GET } = await import('@/app/api/auth/sso-callback/route');
     const res = await GET(makeCallbackReq({ token: 'valid-sso-tok', redirect: '/hub' }));
-    expect(res.status).toBe(307);
+    // 200 HTML landing (NOT a 3xx): Pi Browser drops Set-Cookie on redirect
+    // responses, so the callback sets cookies on a plain HTML response and its
+    // script verifies the session via /api/auth/me before entering the app.
+    expect(res.status).toBe(200);
+    expect(res.headers.get('content-type')).toContain('text/html');
     const cookieHeader = res.headers.get('set-cookie') ?? '';
     expect(cookieHeader).toContain('tec_access_token');
+    const body = await res.text();
+    expect(body).toContain('/api/auth/me');
+    expect(body).toContain('"/hub"');
   });
 
   it('returns 401 when JTI is replayed', async () => {

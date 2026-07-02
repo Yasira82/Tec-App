@@ -129,7 +129,7 @@ async function refreshAtGateway(req: NextRequest): Promise<RefreshedTokens | nul
 
 // sameSite:'none' — matches pi-login/refresh (embedded Pi Browser rejects 'lax').
 function setRefreshedCookies(res: NextResponse, refreshed: RefreshedTokens): void {
-  const base = { secure: true, sameSite: 'none' as const, path: '/' };
+  const base = { secure: true, sameSite: 'none' as const, partitioned: true, path: '/' };
   res.cookies.set('tec_access_token', refreshed.token, {
     ...base, httpOnly: false, maxAge: 60 * 60 * 24,
   });

@@ -107,6 +107,7 @@ export async function POST(req: NextRequest) {
       httpOnly: false,
       secure:   true,
       sameSite: 'none',
+      partitioned: true,
       maxAge,
       path:     '/',
     });
@@ -115,6 +116,7 @@ export async function POST(req: NextRequest) {
       httpOnly: true,
       secure:   true,
       sameSite: 'none',
+      partitioned: true,
       maxAge:   refreshAge,
       path:     '/',
     });
@@ -123,6 +125,7 @@ export async function POST(req: NextRequest) {
       httpOnly: false,
       secure:   true,
       sameSite: 'none',
+      partitioned: true,
       maxAge,
       path:     '/',
     });
@@ -131,6 +134,7 @@ export async function POST(req: NextRequest) {
       httpOnly: false,
       secure:   true,
       sameSite: 'none',
+      partitioned: true,
       maxAge,
       path:     '/',
     });

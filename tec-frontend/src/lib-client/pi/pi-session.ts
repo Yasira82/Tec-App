@@ -137,7 +137,10 @@ class PiSessionManager {
 
       // ✅ Pi مش ready لسه → جرّب Pi.init() مباشرةً (fallback)
       if (!window.__TEC_PI_READY) {
-        const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';
+        // Mainnet unless explicitly opted in — same polarity as PiSdkLoader and
+        // PaymentModal (`=== 'true'`). The old `!== 'false'` initialized in
+        // SANDBOX whenever the env var was unset → authenticate then failed.
+        const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true';
         const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
         try {
           Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });

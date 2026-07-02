@@ -7,6 +7,7 @@ import { usePiSdkReady }                             from '@/lib-client/hooks/us
 import { piSession }                                 from '@/lib-client/pi/pi-session';
 import { useRealtimeNotifications }                  from '@/lib-client/hooks/useRealtimeNotifications';
 import { getAccessToken, getStoredUser }             from '@/lib-client/pi/pi-auth';
+import { tecSession }                                from '@/lib-client/pi/tec-session';
 import { LIVE_DOMAINS }                              from '@/domains/_registry';
 import { ErrorBoundary }                             from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }                     from './components/ToastContainer';
@@ -97,10 +98,16 @@ function HubPageInner() {
   /* ── Step 2: piReady + authReady → create record → show Modal ── */
   useEffect(() => {
     if (!(piReady && pendingPayment && !externalPayment)) return;
+    // C-123 §7: wait for auth resolution to settle. This (a) serializes the
+    // silent re-auth's Pi.authenticate against the PaymentModal's — Pi Browser
+    // breaks on concurrent authenticate calls — and (b) makes the in-memory
+    // session available in cookie-refusing contexts, where the old cookie-only
+    // read left this flow stuck on "Preparing payment…" forever.
+    if (isLoading) return;
     let cancelled = false;
 
     (async () => {
-      const storedUser = getStoredUser();
+      const storedUser = user ?? tecSession.user ?? getStoredUser();
       const userId = (storedUser as { id?: string; piId?: string } | null)?.id
                   ?? (storedUser as { id?: string; piId?: string } | null)?.piId;
       if (!userId) return;
@@ -111,7 +118,7 @@ function HubPageInner() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization:  `Bearer ${getAccessToken()}`,
+            Authorization:  `Bearer ${tecSession.token ?? getAccessToken()}`,
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
@@ -154,7 +161,7 @@ function HubPageInner() {
     })();
 
     return () => { cancelled = true; };
-  }, [piReady, pendingPayment, externalPayment, showToast]);
+  }, [piReady, pendingPayment, externalPayment, showToast, isLoading, user]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
   if (!externalPayment) return;

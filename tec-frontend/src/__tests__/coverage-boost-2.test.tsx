@@ -1405,6 +1405,9 @@ describe('Hub page — pending payment edge cases', () => {
 
   it('skips create when stored user has no id', async () => {
     setPayLocation();
+    // C-123 §7: identity resolves hook user → tecSession → cookie. The skip
+    // path needs ALL sources empty, not just the cookie.
+    mockUsePiAuth.mockReturnValue({ ...defaultPiAuth, user: null });
     mockGetStoredUser.mockReturnValue(null);
     global.fetch = vi.fn().mockResolvedValue({
       ok: true, json: async () => ({ data: { payment: { id: 'x' } } }),

@@ -3,26 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { loginWithPi, getStoredUser, isPiBrowser, logout as piLogout } from '@/lib-client/pi/pi-auth';
 import { tecSession } from '@/lib-client/pi/tec-session';
+import { silentReauth } from '@/lib-client/pi/bff-client';
 import { TecUser } from '@/types/pi.types';
-
-// One silent auto-auth attempt per page load (module-level so parallel hook
-// instances don't each trigger Pi.authenticate).
-let autoAuthAttempted = false;
-let autoAuthPromise: Promise<TecUser | null> | null = null;
-
-async function silentPiAuth(): Promise<TecUser | null> {
-  if (autoAuthPromise) return autoAuthPromise;
-  autoAuthAttempted = true;
-  autoAuthPromise = (async () => {
-    try {
-      const result = await loginWithPi();
-      return result?.user ?? null;
-    } catch {
-      return null;
-    }
-  })();
-  return autoAuthPromise;
-}
 
 interface AuthState {
   user:            TecUser | null;
@@ -76,8 +58,10 @@ export const usePiAuth = () => {
         const user = (data?.user ?? null) as TecUser | null;
         if (user || cancelled || authSettledRef.current) { settle(user); return; }
 
-        if (isPiBrowser() && !autoAuthAttempted) {
-          const autoUser = await silentPiAuth();
+        if (isPiBrowser()) {
+          // Shared single-flight + cooldown lives in bff-client — parallel hook
+          // instances and 401-healing BFF calls all reuse one attempt.
+          const autoUser = await silentReauth();
           settle(autoUser);
           return;
         }

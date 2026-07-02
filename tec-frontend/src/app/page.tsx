@@ -1,7 +1,7 @@
 'use client';
 
 import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
-import { useState, useMemo }     from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Link                      from 'next/link';
 import { useTranslation }        from '@/lib/i18n';
 import LanguageSwitcher          from '@/components/LanguageSwitcher';
@@ -58,6 +58,9 @@ const CATEGORY_COLORS: Record<string, string> = {
 };
 
 export default function HomePage() {
+  // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
+  useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
+
   const { t, dir }                          = useTranslation();
   const [activeCategory, setActiveCategory] = useState('All');
   const [searchQuery,    setSearchQuery]    = useState('');

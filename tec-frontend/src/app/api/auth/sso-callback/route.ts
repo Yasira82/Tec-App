@@ -68,7 +68,7 @@ export async function GET(req: NextRequest) {
   const cookieOpts = {
     httpOnly: false,
     secure:   true,
-    sameSite: 'lax' as const,
+    sameSite: 'none' as const,
     path:     '/',
     maxAge:   60 * 60 * 24,
   };
@@ -98,7 +98,7 @@ export async function GET(req: NextRequest) {
     for (var i = 0; i < cookies.length; i++) {
       var c = cookies[i];
       document.cookie = c.name + '=' + encodeURIComponent(c.value) +
-        '; path=/; max-age=' + c.maxAge + '; secure; samesite=lax';
+        '; path=/; max-age=' + c.maxAge + '; secure; samesite=none';
     }
   }
   function sessionVisible(cb) {

@@ -89,7 +89,10 @@ export const refreshAccessToken = async (): Promise<string | null> => {
       headers:     { 'x-csrf-token': getCsrfToken() },
     });
     if (!res.ok) {
-      await logout();
+      // Do NOT logout here. Refresh can fail transiently (rotated token racing,
+      // Pi Browser cookie quirks) — destroying the whole session turned that
+      // into a logout→login loop in production. Fail quiet; the BFF's
+      // server-side refresh is the authoritative renewal path.
       refreshQueue.forEach(cb => cb(null));
       refreshQueue = [];
       return null;
@@ -100,7 +103,6 @@ export const refreshAccessToken = async (): Promise<string | null> => {
     return data.token ?? null;
   } catch (err) {
     console.error('[Pi Auth] Refresh failed:', err);
-    await logout();
     refreshQueue.forEach(cb => cb(null));
     refreshQueue = [];
     return null;
@@ -357,6 +359,9 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
       accessToken:  '',
       refreshToken: '',
     },
+    // Present when the server minted a one-time token: the button finishes
+    // login by top-level navigating to /api/auth/sso-callback (see pi-login).
+    ssoToken: data.ssoToken,
   };
 };
 

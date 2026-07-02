@@ -42,6 +42,10 @@ export async function GET(req: NextRequest) {
     const user = JSON.parse(decodeURIComponent(userCookie));
 
     let validToken = accessToken;
+    // Rotated cookies from an internal refresh MUST be forwarded to the browser
+    // — refresh tokens are single-use; dropping the rotation here silently
+    // killed the session ("Refresh token already used" on the next refresh).
+    let rotatedCookies: string[] = [];
     try {
       const encoded = new TextEncoder().encode(jwtSecret);
       await jwtVerify(accessToken, encoded, { algorithms: ['HS256'] });
@@ -57,7 +61,8 @@ export async function GET(req: NextRequest) {
       });
       if (refreshRes.ok) {
         const refreshData = await refreshRes.json();
-        validToken = refreshData.token ?? accessToken;
+        validToken     = refreshData.token ?? accessToken;
+        rotatedCookies = refreshRes.headers?.getSetCookie?.() ?? [];
       }
     }
 
@@ -83,7 +88,9 @@ export async function GET(req: NextRequest) {
       callbackUrl.searchParams.set('redirect', targetPath);
     }
 
-    return NextResponse.redirect(callbackUrl.toString());
+    const res = NextResponse.redirect(callbackUrl.toString());
+    for (const c of rotatedCookies) res.headers.append('Set-Cookie', c);
+    return res;
   } catch {
     return NextResponse.json({ error: 'sso_failed' }, { status: 500 });
   }

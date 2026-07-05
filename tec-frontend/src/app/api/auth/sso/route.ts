@@ -19,6 +19,8 @@ const ALLOWED_TARGETS = [
   'https://tec-life.vercel.app',
   'https://connection.tecosystem.app',
   'https://tec-connection.vercel.app',
+  'https://zone.tecosystem.app',
+  'https://tec-zone.vercel.app',
 ];
 
 export async function GET(req: NextRequest) {

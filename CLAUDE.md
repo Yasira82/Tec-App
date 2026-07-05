@@ -295,7 +295,7 @@ git status            # clean
 
 ## Knowledge Base Reference
 
-→ `yasira82/tec-knowledge-base` (branch: `claude/gifted-knuth-1yhom3`)
+→ `yasira82/tec-knowledge-base` (branch: `main`)
 → **Current State: `knowledge-base/C-02___CURRENT_STATE_.md`** — اقرأه أول كل session
 → Master index: `knowledge-base/C-57___MASTER_CONTENTS_INDEX.md`
 → Strategic roadmap + risk register: `knowledge-base/C-77___STRATEGIC_ANALYSIS___RISK_ASSESSMENT.md`

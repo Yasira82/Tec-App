@@ -87,8 +87,11 @@ function HubPageInner() {
           amount,
           memo:      decodeURIComponent(p.get('memo')       ?? 'TEC Payment'),
           productId: p.get('product_id') ?? '',
-          returnUrl: decodeURIComponent(p.get('return_url') ?? COMMERCE_URL),
-          source:    p.get('source')     ?? 'commerce',
+          // No return_url (template apps like Nexus/Zone don't send one) → come
+          // back to the Hub, NOT Commerce. The old COMMERCE_URL default dumped
+          // every template-app Mode-1 payment onto Commerce after "Close".
+          returnUrl: decodeURIComponent(p.get('return_url') ?? `${window.location.origin}/hub`),
+          source:    p.get('source')     ?? 'hub',
         });
         window.history.replaceState({}, '', '/hub');
       }

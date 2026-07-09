@@ -14,10 +14,15 @@ const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
 
 const getSourceLabel = (source: string) => {
   switch (source) {
-    case 'commerce':  return 'TEC Commerce';
-    case 'ecommerce': return 'TEC Ecommerce';
-    case 'assets':    return 'TEC Assets';
-    default:          return 'TEC Ecosystem';
+    case 'commerce':   return 'TEC Commerce';
+    case 'ecommerce':  return 'TEC Ecommerce';
+    case 'assets':     return 'TEC Assets';
+    case 'analytics':  return 'TEC Analytics';
+    case 'life':       return 'TEC Life';
+    case 'connection': return 'TEC Connection';
+    case 'zone':       return 'TEC Zone';
+    case 'nexus':      return 'TEC Nexus';
+    default:           return 'TEC Ecosystem';
   }
 };
 

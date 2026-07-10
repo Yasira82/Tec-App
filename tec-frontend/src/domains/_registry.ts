@@ -111,18 +111,20 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
 
   fundx: {
     slug:             'fundx',
-    name:             { en: 'Fundx', ar: 'فاندكس' },
+    name:             { en: 'FundX', ar: 'فاندكس' },
     piDomain:         'fundx.pi',
-    emoji:            '📊',
-    description:      { en: 'Investment & Funding Platform', ar: 'منصة الاستثمار' },
-    status:           'coming_soon',
+    emoji:            '📈',
+    description:      { en: 'Capital Coordination — Pools · Charters · Co-invest', ar: 'تنسيق رأس المال — تجميعات وحوكمة' },
+    // Shipped July 2026 (tec-fundx — C-113 Capital Coordination; V0 scaffold + FundX Pro +
+    // read-only educational pool charters. Real contributions hard-gated: legal + KYC + SYSTEM, §11)
+    status:           'live',
     layer:            'domain',
     group:            'finance',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'fundx-bff', paymentMode: 'pi-platform' },
+    route:            'https://fundx.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'fundx-bff', paymentMode: 'none' },
     capabilities:     ['wallet', 'payments', 'kyc'],
-    dependsOnDomains: ['assets', 'commerce'],
+    dependsOnDomains: [],
     sdk:              { scopes: ['investments:manage', 'wallet:read', 'payments:write'] },
     order:            10,
     ownership:        { team: 'finance' },

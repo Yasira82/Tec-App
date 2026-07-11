@@ -363,16 +363,22 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:         'system',
     name:         { en: 'System', ar: 'النظام' },
     piDomain:     'system.pi',
-    emoji:        '⚙️',
-    description:  { en: 'System Settings — Config · Preferences', ar: 'إعدادات النظام' },
-    status:       'coming_soon',
+    emoji:        '⚖️',
+    description:  { en: 'Constitution Runtime — Policies · Tiers · Capabilities', ar: 'زمن الدستور — سياسات وطبقات وقدرات' },
+    // Shipped July 2026 (tec-system — C-110 Institutional Authority / Constitution
+    // Runtime: makes C-47 rules queryable + governs subscription tiers + certifies
+    // capabilities (C-94). V0/V1 read-only Governance Console. SYSTEM defines +
+    // audits policy; it never enforces (services self-enforce) or takes payments
+    // (§4). Admin writes need an AdminActor + audit trail (backend, not the frontend).
+    // Note: this slug was previously a "System Settings" placeholder; realigned to C-110.
+    status:       'live',
     layer:        'domain',
     group:        'tech',
-    route:        null,
-    features:     { hasNotifications: false, hasAnalytics: false, requiresKYC: false, requiresPro: false },
+    route:        'https://system.tecosystem.app/app',
+    features:     { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: false },
     api:          { bff: 'system-bff', paymentMode: 'none' },
-    capabilities: ['auth'],
-    sdk:          { scopes: ['config:manage', 'preferences:write'] },
+    capabilities: ['auth', 'identity'],
+    sdk:          { scopes: ['policies:read', 'governance:read'] },
     order:        52,
     ownership:    { team: 'platform' },
   },

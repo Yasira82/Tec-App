@@ -236,17 +236,23 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'explorer',
     name:             { en: 'Explorer', ar: 'المستكشف' },
     piDomain:         'explorer.pi',
-    emoji:            '✈️',
-    description:      { en: 'Travel & Booking — Flights · Hotels · Experiences', ar: 'سفر وحجز' },
-    status:           'coming_soon',
+    emoji:            '🧭',
+    description:      { en: 'Discovery — Find Pi-accepting businesses & opportunities', ar: 'اكتشاف — ابحث عن الأنشطة والفرص التي تقبل باي' },
+    // Shipped July 2026 (tec-explorer — C-108 Economic Discovery Infrastructure:
+    // search Pi-accepting businesses/services/opportunities, trust-first ranking;
+    // V0/V1 scaffold + Explorer Business Pro + read-only sample directory. Explorer
+    // indexes + ranks — it never mints verification (kyc), trust (Connection), or
+    // processes merchant payments (payment-service) (C-108 §4). Note: this slug was
+    // previously a Travel/Booking placeholder; realigned to the C-108 charter.
+    status:           'live',
     layer:            'domain',
     group:            'real_world',
-    route:            null,
+    route:            'https://explorer.tecosystem.app/app',
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
-    api:              { bff: 'explorer-bff', paymentMode: 'pi-platform' },
+    api:              { bff: 'explorer-bff', paymentMode: 'none' },
     capabilities:     ['payments', 'identity'],
     dependsOnDomains: ['commerce'],
-    sdk:              { scopes: ['booking:manage', 'payments:write'] },
+    sdk:              { scopes: ['discovery:read', 'listings:manage'] },
     order:            32,
     ownership:        { team: 'real-world' },
   },

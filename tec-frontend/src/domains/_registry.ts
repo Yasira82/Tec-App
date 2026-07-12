@@ -325,14 +325,18 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'dx',
     name:             { en: 'DX', ar: 'تجربة المطور' },
     piDomain:         'dx.pi',
-    emoji:            '🧪',
-    description:      { en: 'Developer Portal — APIs · SDKs · Docs', ar: 'بوابة المطورين' },
-    status:           'coming_soon',
+    emoji:            '🛠️',
+    description:      { en: 'Developer Platform — SDKs · Templates · Capabilities · Guides', ar: 'منصّة المطورين — SDKs وقوالب وقدرات وأدلّة' },
+    // Shipped July 2026 (tec-dx — C-115 System of Construction: distributes the
+    // SDKs, starter templates, certified capabilities (from SYSTEM/C-94) + guides.
+    // V0/V1 read-only Developer Portal + DX Builder Pro. DX distributes — it never
+    // certifies capabilities (SYSTEM does) or secures the gateway (§4).
+    status:           'live',
     layer:            'domain',
     group:            'tech',
-    route:            null,
-    features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: true },
-    api:              { bff: 'dx-bff', paymentMode: 'pi-platform' },
+    route:            'https://dx.tecosystem.app/app',
+    features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'dx-bff', paymentMode: 'none' },
     capabilities:     ['auth', 'identity'],
     dependsOnDomains: ['tec'],
     sdk:              { scopes: ['api-keys:manage', 'docs:read'] },

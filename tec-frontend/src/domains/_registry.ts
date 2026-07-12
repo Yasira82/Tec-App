@@ -391,12 +391,17 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'alert',
     name:             { en: 'Alert', ar: 'التنبيهات' },
     piDomain:         'alert.pi',
-    emoji:            '🚨',
-    description:      { en: 'Smart Alerts — Rules · Triggers · Notifications', ar: 'تنبيهات ذكية' },
-    status:           'coming_soon',
+    emoji:            '🔔',
+    description:      { en: 'Smart inbox — TEC activity + Pi community, classified', ar: 'صندوق ذكي — نشاط TEC + مجتمع باي' },
+    // Shipped July 2026 (tec-alert — C-111 extended: one smart inbox that
+    // aggregates + classifies + routes signals from every TEC app AND a curated
+    // Pi-community feed. V0/V1 read-only inbox + Alert Pro. Alert presents + routes;
+    // it never resolves the incident (owning app), enforces security (NX), or acts
+    // in governance (SYSTEM) — §4.
+    status:           'live',
     layer:            'domain',
     group:            'tech',
-    route:            null,
+    route:            'https://alert.tecosystem.app/app',
     features:         { hasNotifications: true, hasAnalytics: false, requiresKYC: false, requiresPro: false },
     api:              { bff: 'alert-bff', paymentMode: 'none' },
     capabilities:     ['notifications', 'realtime'],

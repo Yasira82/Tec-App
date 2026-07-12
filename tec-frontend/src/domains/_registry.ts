@@ -348,17 +348,22 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'nx',
     name:             { en: 'NX', ar: 'إن إكس' },
     piDomain:         'nx.pi',
-    emoji:            '🔧',
-    description:      { en: 'Network Infrastructure — Nodes · Routing', ar: 'بنية الشبكة' },
-    status:           'coming_soon',
+    emoji:            '🧩',
+    description:      { en: 'Opportunity Exchange — Jobs · Partnerships · Grants · Hackathons', ar: 'بورصة الفرص — وظائف وشراكات ومِنَح' },
+    // Shipped July 2026 (tec-nx — C-112 repurposed by ADR-010: NX = Network /
+    // Opportunity Exchange, the Pi economy's unified opportunity marketplace. V0/V1
+    // read-only board + NX Pro. NX matches + presents — it never moves capital
+    // (payment-service + FundX), verifies (Zone/kyc), or owns the graph (Connection).
+    // The old NX cyber-security role moved to System's Security Center (ADR-010).
+    status:           'live',
     layer:            'domain',
     group:            'tech',
-    route:            null,
-    features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: true },
+    route:            'https://nx.tecosystem.app/app',
+    features:         { hasNotifications: false, hasAnalytics: true, requiresKYC: false, requiresPro: false },
     api:              { bff: 'nx-bff', paymentMode: 'none' },
-    capabilities:     ['realtime', 'auth'],
-    dependsOnDomains: ['nexus'],
-    sdk:              { scopes: ['nodes:manage', 'routing:read'] },
+    capabilities:     ['identity', 'notifications'],
+    dependsOnDomains: ['connection'],
+    sdk:              { scopes: ['opportunities:read', 'postings:manage'] },
     order:            51,
     ownership:        { team: 'platform' },
   },

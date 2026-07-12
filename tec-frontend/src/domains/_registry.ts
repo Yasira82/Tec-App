@@ -479,17 +479,24 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'titan',
     name:             { en: 'Titan', ar: 'تيتان' },
     piDomain:         'titan.pi',
-    emoji:            '⚔️',
-    description:      { en: 'Titan — Power Users · Max Privileges', ar: 'تيتان' },
-    status:           'coming_soon',
+    emoji:            '🏛️',
+    description:      { en: 'Enterprise OS — Business · Team · Operations on Pi', ar: 'نظام تشغيل المؤسسات — أعمال وفريق وعمليات' },
+    // Shipped July 2026 (tec-titan — Enterprise Operating Platform: the B2B/
+    // institutional counterpart to Life (Personal OS). Orgs manage identity, team +
+    // roles, operations, commerce, procurement, reputation on Pi. V0/V1 read-only
+    // enterprise console + Titan Enterprise. Titan COORDINATES + presents; it never
+    // holds funds (payment-service), owns commerce (Commerce), holds capital (FundX),
+    // owns assets (Assets), or mints verification (Zone) — realigned from a
+    // "Power Users" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'monetization',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'titan-bff', paymentMode: 'pi-platform' },
+    route:            'https://titan.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'titan-bff', paymentMode: 'none' },
     capabilities:     ['auth', 'payments', 'identity'],
-    dependsOnDomains: ['tec', 'elite'],
-    sdk:              { scopes: ['entitlements:read', 'subscriptions:manage'] },
+    dependsOnDomains: ['tec', 'zone', 'commerce'],
+    sdk:              { scopes: ['org:manage', 'team:manage'] },
     order:            62,
     ownership:        { team: 'monetization' },
   },

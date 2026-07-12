@@ -37,6 +37,8 @@ const ALLOWED_TARGETS = [
   'https://tec-alert.vercel.app',
   'https://nx.tecosystem.app',
   'https://tec-nx.vercel.app',
+  'https://titan.tecosystem.app',
+  'https://tec-titan.vercel.app',
 ];
 
 export async function GET(req: NextRequest) {

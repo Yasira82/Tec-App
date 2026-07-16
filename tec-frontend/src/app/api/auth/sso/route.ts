@@ -43,6 +43,8 @@ const ALLOWED_TARGETS = [
   'https://tec-insure.vercel.app',
   'https://epic.tecosystem.app',
   'https://tec-epic.vercel.app',
+  'https://legend.tecosystem.app',
+  'https://tec-legend.vercel.app',
 ];
 
 export async function GET(req: NextRequest) {

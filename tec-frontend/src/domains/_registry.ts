@@ -448,16 +448,23 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'VIP', ar: 'في آي بي' },
     piDomain:         'vip.pi',
     emoji:            '👑',
-    description:      { en: 'VIP Tier — Exclusive Benefits & Access', ar: 'عضوية VIP' },
-    status:           'coming_soon',
+    description:      { en: 'Premium Experience — Tiers · Benefits · Concierge', ar: 'تجربة مميّزة — طبقات ومزايا وخدمة' },
+    // Shipped July 2026 (tec-vip — C-128 Premium Experience Runtime: "What
+    // exclusive benefits do I receive?"). System of Privilege (cross-cutting): it
+    // translates recognition + achievement into premium experience across the
+    // ecosystem. V0/V1 read-only tiers + cross-app benefits + concierge + VIP
+    // Standard. P5: VIP grants ELIGIBILITY; owning apps enforce value. VIP_ELITE
+    // needs Elite recognition; only STANDARD is sold. Reward layer of
+    // Legend→Elite→VIP — realigned from an "Exclusive Benefits" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'monetization',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'vip-bff', paymentMode: 'pi-platform' },
+    route:            'https://vip.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'vip-bff', paymentMode: 'none' },
     capabilities:     ['auth', 'payments', 'identity'],
-    dependsOnDomains: ['tec'],
-    sdk:              { scopes: ['entitlements:read', 'subscriptions:manage'] },
+    dependsOnDomains: ['elite', 'legend'],
+    sdk:              { scopes: ['membership:read', 'benefits:read'] },
     order:            60,
     ownership:        { team: 'monetization' },
   },

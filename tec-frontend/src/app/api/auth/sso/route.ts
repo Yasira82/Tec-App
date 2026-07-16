@@ -47,6 +47,8 @@ const ALLOWED_TARGETS = [
   'https://tec-legend.vercel.app',
   'https://elite.tecosystem.app',
   'https://tec-elite.vercel.app',
+  'https://vip.tecosystem.app',
+  'https://tec-vip.vercel.app',
 ];
 
 export async function GET(req: NextRequest) {

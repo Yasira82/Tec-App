@@ -134,17 +134,23 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'nbf',
     name:             { en: 'NBF', ar: 'إن بي إف' },
     piDomain:         'nbf.pi',
-    emoji:            '🏦',
-    description:      { en: 'Neo Banking — Accounts · Loans · Transfers', ar: 'بنك نيو' },
-    status:           'coming_soon',
+    emoji:            '🏢',
+    description:      { en: 'Business Foundation — Establish · Verify · Launch', ar: 'تأسيس الأعمال — أنشئ ووثّق وأطلق' },
+    // Shipped July 2026 (tec-nbf — C-124 Business Foundation Runtime: "How do I
+    // start my business in the Pi economy?"). Network Business Foundation: create
+    // a verified business identity in 25 min (the entity that transacts). V0/V1
+    // read-only: launch funnel + templates + graduation-to-Titan. NBF establishes;
+    // Zone verifies, Commerce sells, Titan is the graduation target — realigned
+    // from a "Neo Banking" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'finance',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'nbf-bff', paymentMode: 'pi-platform' },
-    capabilities:     ['wallet', 'payments', 'kyc'],
-    dependsOnDomains: ['assets'],
-    sdk:              { scopes: ['banking:manage', 'wallet:write', 'transfers:write'] },
+    route:            'https://nbf.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'nbf-bff', paymentMode: 'none' },
+    capabilities:     ['auth', 'payments', 'identity'],
+    dependsOnDomains: ['zone', 'commerce'],
+    sdk:              { scopes: ['business:manage', 'profile:read'] },
     order:            11,
     ownership:        { team: 'finance' },
   },
@@ -223,17 +229,24 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'brookfield',
     name:             { en: 'Brookfield', ar: 'بروكفيلد' },
     piDomain:         'brookfield.pi',
-    emoji:            '🏢',
-    description:      { en: 'Property Management — B2B · Commercial', ar: 'إدارة العقارات' },
-    status:           'coming_soon',
+    emoji:            '🏗️',
+    description:      { en: 'Infrastructure Runtime — Institutional assets', ar: 'منصة البنية التحتية — أصول مؤسسية' },
+    // Shipped July 2026 (tec-brookfield — C-131 Infrastructure Runtime: "Who owns
+    // the project?"). System of Institutional Assets (B2B/B2I) — the institutional
+    // counterpart to Estate (B2C) + the missing middle between FundX (raise) and
+    // Estate (sell units). V0/V1 SIMULATED read-only portfolio + governance.
+    // Custody + Legal hard-gated (securities/REIT): no real Pi/investment/REIT
+    // until legal + payment-service custody + SYSTEM + FundX V2. Owns asset +
+    // governance records only — realigned from a "Property Management" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'real_world',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'brookfield-bff', paymentMode: 'pi-platform' },
-    capabilities:     ['assets', 'payments', 'kyc'],
-    dependsOnDomains: ['assets', 'commerce', 'estate'],
-    sdk:              { scopes: ['property:manage', 'leasing:write'] },
+    route:            'https://brookfield.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'brookfield-bff', paymentMode: 'none' },
+    capabilities:     ['auth', 'payments', 'identity'],
+    dependsOnDomains: ['fundx', 'estate', 'zone'],
+    sdk:              { scopes: ['asset:read', 'governance:read'] },
     order:            31,
     ownership:        { team: 'real-world' },
   },

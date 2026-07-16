@@ -1232,7 +1232,21 @@ describe('domains/_registry helpers', () => {
     const { getVisibleDomains } = await import('@/domains/_registry');
     const noPro = getVisibleDomains(true, false);
     const withPro = getVisibleDomains(true, true);
-    expect(withPro.length).toBeGreaterThan(noPro.length);
+    // Pro is a superset: a Pro user sees at least every domain a non-Pro user
+    // sees, and never fewer. (No domain currently gates *visibility* behind Pro —
+    // Pro is an in-app subscription — so the sets are equal today; the invariant
+    // that matters is superset + that no requiresPro domain leaks to non-Pro.)
+    expect(withPro.length).toBeGreaterThanOrEqual(noPro.length);
+    const withProSlugs = new Set(withPro.map(d => d.slug));
+    for (const d of noPro) {
+      expect(withProSlugs.has(d.slug), d.slug).toBe(true);
+      expect(d.features.requiresPro).not.toBe(true); // non-Pro view excludes requiresPro domains
+    }
+    // and if any requiresPro domain exists, non-Pro must see strictly fewer
+    const proGated = withPro.filter(d => d.features.requiresPro);
+    if (proGated.length > 0) {
+      expect(withPro.length).toBeGreaterThan(noPro.length);
+    }
   });
 
   it('getDomainsByGroup returns domains in a group', async () => {

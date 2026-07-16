@@ -49,6 +49,10 @@ const ALLOWED_TARGETS = [
   'https://tec-elite.vercel.app',
   'https://vip.tecosystem.app',
   'https://tec-vip.vercel.app',
+  'https://nbf.tecosystem.app',
+  'https://tec-nbf.vercel.app',
+  'https://brookfield.tecosystem.app',
+  'https://tec-brookfield.vercel.app',
 ];
 
 export async function GET(req: NextRequest) {

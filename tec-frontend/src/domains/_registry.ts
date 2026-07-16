@@ -154,16 +154,22 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'Insure', ar: 'تأمين' },
     piDomain:         'insure.pi',
     emoji:            '🛡️',
-    description:      { en: 'Pi Insurance — Policies · Claims · Risk', ar: 'تأمين باي' },
-    status:           'coming_soon',
+    description:      { en: 'Risk Protection — Risk Score · Escrow · Recovery', ar: 'حماية المخاطر — تقييم · ضمان · استرداد' },
+    // Shipped July 2026 (tec-insure — C-129 Risk Protection Runtime: "How do I
+    // protect myself, my assets, my activities?"). V0/V1 read-only preview: risk
+    // score + protection surfaces (escrow · dispute · recovery · beneficiary) +
+    // Insure Pro. Insure is a RISK PLATFORM, not an insurance company (no policies/
+    // underwriting, V1-V2). Escrow custody is HARD-GATED to payment-service
+    // (Invariant #8) — realigned from a "Policies · Claims" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'finance',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'insure-bff', paymentMode: 'pi-platform' },
-    capabilities:     ['wallet', 'payments', 'kyc'],
-    dependsOnDomains: ['commerce'],
-    sdk:              { scopes: ['policies:manage', 'claims:write'] },
+    route:            'https://insure.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'insure-bff', paymentMode: 'none' },
+    capabilities:     ['auth', 'payments'],
+    dependsOnDomains: ['commerce', 'zone'],
+    sdk:              { scopes: ['risk:read', 'escrow:read'] },
     order:            12,
     ownership:        { team: 'finance' },
   },

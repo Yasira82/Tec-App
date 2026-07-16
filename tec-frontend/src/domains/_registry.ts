@@ -466,17 +466,24 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'elite',
     name:             { en: 'Elite', ar: 'النخبة' },
     piDomain:         'elite.pi',
-    emoji:            '🥇',
-    description:      { en: 'Elite Status — Top Tier Membership', ar: 'عضوية النخبة' },
-    status:           'coming_soon',
+    emoji:            '🎖️',
+    description:      { en: 'Excellence Runtime — Criteria-based recognition', ar: 'منصة التميّز — تقدير مبني على معايير' },
+    // Shipped July 2026 (tec-elite — C-127 Excellence Runtime: "Are you among the
+    // best?"). System of Recognition: official, criteria-based recognition from
+    // verified evidence — earned, NEVER bought (recognition is free). Tiers
+    // BRONZE→PLATINUM; evidence from Legend, criteria from Analytics, governed by
+    // System, GOLD/PLATINUM human-reviewed. V0/V1 read-only recognition home +
+    // Elite Certificate (adjacent premium). Middle link of Legend→Elite→VIP —
+    // realigned from a "Top Tier Membership" placeholder (that is VIP's role).
+    status:           'live',
     layer:            'domain',
     group:            'monetization',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'elite-bff', paymentMode: 'pi-platform' },
+    route:            'https://elite.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'elite-bff', paymentMode: 'none' },
     capabilities:     ['auth', 'payments', 'identity'],
-    dependsOnDomains: ['tec', 'vip'],
-    sdk:              { scopes: ['entitlements:read', 'subscriptions:manage'] },
+    dependsOnDomains: ['legend', 'analytics'],
+    sdk:              { scopes: ['recognition:read', 'criteria:read'] },
     order:            61,
     ownership:        { team: 'monetization' },
   },

@@ -1259,8 +1259,9 @@ describe('domains/_registry helpers', () => {
 
   it('getDependents returns empty array for leaf domain', async () => {
     const { getDependents } = await import('@/domains/_registry');
-    // A domain no one depends on
-    const deps = getDependents('legend');
+    // A domain no one depends on — vip is the terminal of Legend→Elite→VIP.
+    // (legend is no longer a leaf: elite depends on it for evidence, C-127.)
+    const deps = getDependents('vip');
     expect(deps).toEqual([]);
   });
 

@@ -511,17 +511,23 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'legend',
     name:             { en: 'Legend', ar: 'أسطورة' },
     piDomain:         'legend.pi',
-    emoji:            '⭐',
-    description:      { en: 'Legend — Hall of Fame · Lifetime Access', ar: 'أسطورة' },
-    status:           'coming_soon',
+    emoji:            '🏅',
+    description:      { en: 'Reputation Runtime — Evidence-based reputation', ar: 'منصة السمعة — سمعة مبنية على دليل' },
+    // Shipped July 2026 (tec-legend — C-126 Reputation Runtime: "What have you
+    // achieved?"). System of Evidence: permanent, verifiable, portable reputation
+    // from real Pi activity. Records OUTCOMES not claims (read layer; source apps
+    // write, Zone verifies, Analytics computes scores). V0/V1 read-only reputation
+    // profile + Legend Pro. Base of Legend→Elite→VIP — realigned from a
+    // "Hall of Fame · Lifetime Access" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'monetization',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: true },
-    api:              { bff: 'legend-bff', paymentMode: 'pi-platform' },
+    route:            'https://legend.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'legend-bff', paymentMode: 'none' },
     capabilities:     ['auth', 'payments', 'identity'],
-    dependsOnDomains: ['tec', 'titan'],
-    sdk:              { scopes: ['entitlements:read', 'subscriptions:manage'] },
+    dependsOnDomains: ['zone', 'analytics'],
+    sdk:              { scopes: ['reputation:read', 'achievements:read'] },
     order:            63,
     ownership:        { team: 'monetization' },
   },

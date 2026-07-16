@@ -532,17 +532,24 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     slug:             'epic',
     name:             { en: 'Epic', ar: 'إيبيك' },
     piDomain:         'epic.pi',
-    emoji:            '🔥',
-    description:      { en: 'Epic Experiences — Events · Entertainment', ar: 'تجارب ملحمية' },
-    status:           'coming_soon',
+    emoji:            '🚀',
+    description:      { en: 'Creation Runtime — Build · Launch · Grow projects', ar: 'منصة الإنشاء — ابنِ وأطلق ونمِّ مشاريعك' },
+    // Shipped July 2026 (tec-epic — C-125 Creation Runtime: "What are you
+    // building?"). System of Construction: create/launch/grow projects
+    // (startup · community · campaign · event · challenge · program · initiative).
+    // V0/V1 read-only project board + lifecycle (Epic→Zone→activity→Legend) +
+    // Epic Pro. Epic OWNS creation + lifecycle; it never verifies (Zone), moves
+    // capital (FundX), or records reputation (Legend) — realigned from an
+    // "Events · Entertainment" placeholder.
+    status:           'live',
     layer:            'domain',
     group:            'monetization',
-    route:            null,
-    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: true },
-    api:              { bff: 'epic-bff', paymentMode: 'pi-platform' },
-    capabilities:     ['payments', 'identity'],
-    dependsOnDomains: ['commerce'],
-    sdk:              { scopes: ['events:manage', 'tickets:write'] },
+    route:            'https://epic.tecosystem.app/app',
+    features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: false, requiresPro: false },
+    api:              { bff: 'epic-bff', paymentMode: 'none' },
+    capabilities:     ['auth', 'payments', 'identity'],
+    dependsOnDomains: ['zone', 'commerce'],
+    sdk:              { scopes: ['project:manage', 'team:manage'] },
     order:            70,
     ownership:        { team: 'monetization' },
   },

@@ -13,6 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { LIVE_DOMAINS } from '@/domains/_registry';
+import { useKyc } from '@/lib-client/hooks/useKyc';
 
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
@@ -36,6 +37,7 @@ type Copy = {
   eyebrow: string; founding: string; h1: string; lead: string;
   callout: string;
   questTitle: string; questSub: (done: number, total: number) => string;
+  questGate: string;
   tierGettingStarted: string; tierExplorer: string; tierBuilder: string; tierFounding: string;
   questDoneBanner: string;
   stepsTitle: string; steps: { n: string; title: string; body: string }[];
@@ -56,6 +58,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     callout: 'Open this page inside Pi Browser with a KYC-verified Pi account — that is what lets your visit count toward the Founding 100.',
     questTitle: 'Your Pioneer Quest',
     questSub: (d, t) => `${d} of ${t} apps opened`,
+    questGate: 'Log in with a KYC-verified Pi account to start your Pioneer Quest and earn the Founding badge. Browsing every app below is open to everyone.',
     tierGettingStarted: 'Getting started',
     tierExplorer: 'Explorer · 5 apps',
     tierBuilder: 'Builder · 12 apps',
@@ -85,6 +88,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     callout: 'افتح الصفحة دي جوّه متصفح Pi وبحساب Pi مُوثّق (KYC) — ده اللي بيخلّي زيارتك تتحسب ضمن الـ 100 المؤسّس.',
     questTitle: 'مهمّتك كـ Pioneer',
     questSub: (d, t) => `فتحت ${d} من ${t} تطبيق`,
+    questGate: 'سجّل دخول بحساب Pi مُوثّق (KYC) عشان تبدأ مهمّتك وتكسب شارة Founding. تصفّح كل التطبيقات تحت متاح للجميع.',
     tierGettingStarted: 'البداية',
     tierExplorer: 'مستكشف · 5 تطبيقات',
     tierBuilder: 'باني · 12 تطبيق',
@@ -112,6 +116,12 @@ export default function PioneersClient() {
   const { locale, dir } = useTranslation();
   const t = COPY[locale];
   const total = LIVE_DOMAINS.length;
+
+  // Only a logged-in, KYC-verified Pioneer accrues Quest progress + the ✓ marks.
+  // Browsing every app stays open to everyone; the Quest itself is KYC-gated (the
+  // Founding cohort must be KYC-only). `kyc` is null for logged-out / non-verified.
+  const { kyc, isLoading: kycLoading } = useKyc();
+  const eligible = kyc?.status === 'VERIFIED';
 
   // The visitor's OWN quest progress. localStorage is the instant, offline-safe
   // hint; the server (when logged in + deployed) is authoritative and the source of
@@ -161,6 +171,8 @@ export default function PioneersClient() {
   }, []);
 
   const markVisited = useCallback((slug: string) => {
+    // Non-verified visitors browse freely but never accrue progress or a ✓ mark.
+    if (!eligible) return;
     setVisited((prev) => {
       if (prev.includes(slug)) return prev;
       const next = [...prev, slug];
@@ -180,9 +192,11 @@ export default function PioneersClient() {
         body:        JSON.stringify({ app: slug }),
       }).catch(() => {});
     } catch { /* ignore */ }
-  }, []);
+  }, [eligible]);
 
-  const done = visited.length;
+  // Progress (and the ✓ marks) only count for a verified pioneer.
+  const effectiveVisited = eligible ? visited : [];
+  const done = effectiveVisited.length;
   const pct = total > 0 ? Math.round((done / total) * 100) : 0;
   const complete = done >= total;
 
@@ -222,23 +236,31 @@ export default function PioneersClient() {
           <p style={{ fontSize: 15, color: C.subtext, margin: '12px 0 0', lineHeight: 1.7 }}>{t.lead}</p>
         </header>
 
-        {/* Quest progress — the visitor's OWN real progress */}
-        <section style={{ ...card, marginTop: 22, background: C.surface2 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t.questTitle}</span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: complete ? C.green : C.gold }}>{tier}</span>
-          </div>
-          <div style={{ marginTop: 12, height: 12, borderRadius: 999, background: '#000', overflow: 'hidden', border: `1px solid ${C.gold}22` }}>
-            <div style={{ width: `${pct}%`, height: '100%', background: complete ? `linear-gradient(90deg, ${C.green}, ${C.gold})` : `linear-gradient(90deg, ${C.goldDark}, ${C.gold})`, transition: 'width 300ms ease' }} />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8 }}>
-            <span style={{ fontSize: 13, color: C.subtext }}>{t.questSub(done, total)}</span>
-            <span style={{ fontSize: 18, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
-          </div>
-          {complete && (
-            <p style={{ fontSize: 13, color: C.green, margin: '12px 0 0', fontWeight: 700, lineHeight: 1.5 }}>{t.questDoneBanner}</p>
-          )}
-        </section>
+        {/* Quest — progress for a verified pioneer; a KYC gate otherwise. Browsing
+            the apps below stays open to everyone; only the Quest is KYC-gated. */}
+        {eligible ? (
+          <section style={{ ...card, marginTop: 22, background: C.surface2 }}>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 15, fontWeight: 800, color: C.text }}>{t.questTitle}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: complete ? C.green : C.gold }}>{tier}</span>
+            </div>
+            <div style={{ marginTop: 12, height: 12, borderRadius: 999, background: '#000', overflow: 'hidden', border: `1px solid ${C.gold}22` }}>
+              <div style={{ width: `${pct}%`, height: '100%', background: complete ? `linear-gradient(90deg, ${C.green}, ${C.gold})` : `linear-gradient(90deg, ${C.goldDark}, ${C.gold})`, transition: 'width 300ms ease' }} />
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 8 }}>
+              <span style={{ fontSize: 13, color: C.subtext }}>{t.questSub(done, total)}</span>
+              <span style={{ fontSize: 18, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
+            </div>
+            {complete && (
+              <p style={{ fontSize: 13, color: C.green, margin: '12px 0 0', fontWeight: 700, lineHeight: 1.5 }}>{t.questDoneBanner}</p>
+            )}
+          </section>
+        ) : !kycLoading ? (
+          <section style={{ ...card, marginTop: 22, background: `${C.gold}12`, borderColor: `${C.gold}44` }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: C.gold }}>🔐 {t.questTitle}</div>
+            <p style={{ fontSize: 13, color: C.text, margin: '8px 0 0', lineHeight: 1.7 }}>{t.questGate}</p>
+          </section>
+        ) : null}
 
         {/* Pi Browser + KYC callout */}
         <div style={{ ...card, marginTop: 16, background: `${C.gold}14`, borderColor: `${C.gold}44`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -272,7 +294,7 @@ export default function PioneersClient() {
 
           <div style={{ display: 'grid', gap: 10 }}>
             {LIVE_DOMAINS.map((d) => {
-              const isDone = visited.includes(d.slug);
+              const isDone = eligible && visited.includes(d.slug);
               return (
                 <a
                   key={d.slug}

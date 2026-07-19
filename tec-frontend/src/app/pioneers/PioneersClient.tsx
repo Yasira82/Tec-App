@@ -41,6 +41,9 @@ type Copy = {
   stepsTitle: string; steps: { n: string; title: string; body: string }[];
   appsTitle: string; appsLead: string; opened: string;
   badgeTitle: string; badgeBody: string;
+  foundingLive: (claimed: number, remaining: number) => string;
+  youAreFounding: (n: number) => string;
+  kycNeeded: string;
   footer: string;
 };
 
@@ -69,6 +72,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
     opened: 'Opened',
     badgeTitle: '★ The Founding Pioneer badge',
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
+    foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
+    youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
+    kycNeeded: 'Only KYC-verified Pioneers earn the Founding badge. Verify your Pi account to claim your spot — your progress is saved.',
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
   },
   ar: {
@@ -95,6 +101,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
     opened: 'مفتوح',
     badgeTitle: '★ شارة Founding Pioneer',
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
+    foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
+    youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
+    kycNeeded: 'شارة Founding للـ Pioneers المُوثّقين (KYC) بس. وثّق حساب Pi عشان تحجز مكانك — تقدّمك محفوظ.',
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
   },
 };
@@ -104,8 +113,14 @@ export default function PioneersClient() {
   const t = COPY[locale];
   const total = LIVE_DOMAINS.length;
 
-  // The visitor's OWN quest progress — real, from localStorage. No global fake counters.
+  // The visitor's OWN quest progress. localStorage is the instant, offline-safe
+  // hint; the server (when logged in + deployed) is authoritative and the source of
+  // the REAL Founding counter + badge number. Merged as a union so nothing is lost.
   const [visited, setVisited] = useState<string[]>([]);
+  const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number } | null>(null);
+  const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
+  const [kycNeeded, setKycNeeded] = useState(false);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(QUEST_KEY);
@@ -116,6 +131,35 @@ export default function PioneersClient() {
     } catch { /* ignore — start fresh */ }
   }, []);
 
+  // Pull the REAL campaign counter (public) + the caller's own quest (if logged in).
+  // Both degrade silently — a logged-out visitor or an undeployed backend just keeps
+  // the local-only view.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const r = await fetch('/api/bff/pioneer/stats', { credentials: 'include' });
+        const s = (await r.json().catch(() => null))?.data?.stats;
+        if (alive && s && typeof s.founding_claimed === 'number') {
+          setServerStats({ claimed: s.founding_claimed, remaining: s.founding_remaining });
+        }
+      } catch { /* keep local-only */ }
+      try {
+        const r = await fetch('/api/bff/pioneer/me', { credentials: 'include' });
+        const q = (await r.json().catch(() => null))?.data?.quest;
+        if (alive && q) {
+          if (Array.isArray(q.opened_apps)) {
+            setVisited((prev) => Array.from(new Set([...prev, ...q.opened_apps])));
+          }
+          if (typeof q.founding_number === 'number') setFoundingNumber(q.founding_number);
+          // Logged-in but not KYC-verified (and no number yet) → nudge to verify.
+          if (q.founding_number == null && q.kyc_verified === false) setKycNeeded(true);
+        }
+      } catch { /* not logged in / backend down — local-only */ }
+    })();
+    return () => { alive = false; };
+  }, []);
+
   const markVisited = useCallback((slug: string) => {
     setVisited((prev) => {
       if (prev.includes(slug)) return prev;
@@ -123,6 +167,19 @@ export default function PioneersClient() {
       try { localStorage.setItem(QUEST_KEY, JSON.stringify(next)); } catch { /* ignore */ }
       return next;
     });
+    // Best-effort server record (only succeeds when logged in) — the authoritative
+    // source of the Founding counter + badge. Silent on failure; local still shows.
+    try {
+      const csrf = typeof document !== 'undefined'
+        ? (document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '')
+        : '';
+      void fetch('/api/bff/pioneer/open', {
+        method:      'POST',
+        credentials: 'include',
+        headers:     { 'Content-Type': 'application/json', ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}) },
+        body:        JSON.stringify({ app: slug }),
+      }).catch(() => {});
+    } catch { /* ignore */ }
   }, []);
 
   const done = visited.length;
@@ -242,7 +299,15 @@ export default function PioneersClient() {
         <section style={{ ...card, marginTop: 30, background: `${C.purple}12`, borderColor: `${C.purple}44` }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: C.gold }}>{t.badgeTitle}</div>
           <p style={{ fontSize: 13, color: C.text, margin: '8px 0 0', lineHeight: 1.7 }}>{t.badgeBody}</p>
-          <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>{`${t.founding} · ${FOUNDING_CAP}`}</div>
+          {foundingNumber != null && (
+            <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
+          )}
+          {foundingNumber == null && kycNeeded && (
+            <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded}</div>
+          )}
+          <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>
+            {serverStats ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}
+          </div>
         </section>
 
         <p style={{ fontSize: 12, color: C.subtext, margin: '28px 0 0', lineHeight: 1.7, textAlign: 'center' }}>{t.footer}</p>

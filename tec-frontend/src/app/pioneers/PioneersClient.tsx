@@ -13,7 +13,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { LIVE_DOMAINS } from '@/domains/_registry';
-import { useKyc } from '@/lib-client/hooks/useKyc';
+import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
@@ -58,7 +58,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     callout: 'Open this page inside Pi Browser with a KYC-verified Pi account — that is what lets your visit count toward the Founding 100.',
     questTitle: 'Your Pioneer Quest',
     questSub: (d, t) => `${d} of ${t} apps opened`,
-    questGate: 'Log in with a KYC-verified Pi account to start your Pioneer Quest and earn the Founding badge. Browsing every app below is open to everyone.',
+    questGate: 'Log in with your Pi account to start your Pioneer Quest. Browsing every app below is open to everyone.',
     tierGettingStarted: 'Getting started',
     tierExplorer: 'Explorer · 5 apps',
     tierBuilder: 'Builder · 12 apps',
@@ -77,7 +77,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
-    kycNeeded: 'Only KYC-verified Pioneers earn the Founding badge. Verify your Pi account to claim your spot — your progress is saved.',
+    kycNeeded: 'Open all 24 apps to complete the Quest and earn your Founding badge — no payment required. Pi Network handles KYC for the domain claims itself.',
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
   },
   ar: {
@@ -88,7 +88,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     callout: 'افتح الصفحة دي جوّه متصفح Pi وبحساب Pi مُوثّق (KYC) — ده اللي بيخلّي زيارتك تتحسب ضمن الـ 100 المؤسّس.',
     questTitle: 'مهمّتك كـ Pioneer',
     questSub: (d, t) => `فتحت ${d} من ${t} تطبيق`,
-    questGate: 'سجّل دخول بحساب Pi مُوثّق (KYC) عشان تبدأ مهمّتك وتكسب شارة Founding. تصفّح كل التطبيقات تحت متاح للجميع.',
+    questGate: 'سجّل دخول بحساب Pi عشان تبدأ مهمّتك. تصفّح كل التطبيقات تحت متاح للجميع.',
     tierGettingStarted: 'البداية',
     tierExplorer: 'مستكشف · 5 تطبيقات',
     tierBuilder: 'باني · 12 تطبيق',
@@ -107,7 +107,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
-    kycNeeded: 'شارة Founding للـ Pioneers المُوثّقين (KYC) بس. وثّق حساب Pi عشان تحجز مكانك — تقدّمك محفوظ.',
+    kycNeeded: 'افتح الـ 24 تطبيق عشان تكمّل الـ Quest وتكسب شارة Founding — من غير أي دفع. Pi Network هو اللي بيتكفّل بالـ KYC لاستلام الدومينات.',
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
   },
 };
@@ -117,11 +117,13 @@ export default function PioneersClient() {
   const t = COPY[locale];
   const total = LIVE_DOMAINS.length;
 
-  // Only a logged-in, KYC-verified Pioneer accrues Quest progress + the ✓ marks.
-  // Browsing every app stays open to everyone; the Quest itself is KYC-gated (the
-  // Founding cohort must be KYC-only). `kyc` is null for logged-out / non-verified.
-  const { kyc, isLoading: kycLoading } = useKyc();
-  const eligible = kyc?.status === 'VERIFIED';
+  // The ✓ marks + Quest progress track engagement, so they gate on LOGIN — not on a
+  // KYC flag (TEC does not store Pi-Network KYC status; its internal doc-KYC is a
+  // different, rarely-completed flow). The REAL KYC gate is the Founding badge, which
+  // is earned via a genuine Pi payment (Pi only permits payments for KYC-verified
+  // accounts) — self-enforcing, un-fakeable. Browsing stays open to everyone.
+  const { isAuthenticated, isLoading: authLoading } = usePiAuth();
+  const eligible = isAuthenticated;
 
   // The visitor's OWN quest progress. localStorage is the instant, offline-safe
   // hint; the server (when logged in + deployed) is authoritative and the source of
@@ -255,7 +257,7 @@ export default function PioneersClient() {
               <p style={{ fontSize: 13, color: C.green, margin: '12px 0 0', fontWeight: 700, lineHeight: 1.5 }}>{t.questDoneBanner}</p>
             )}
           </section>
-        ) : !kycLoading ? (
+        ) : !authLoading ? (
           <section style={{ ...card, marginTop: 22, background: `${C.gold}12`, borderColor: `${C.gold}44` }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: C.gold }}>🔐 {t.questTitle}</div>
             <p style={{ fontSize: 13, color: C.text, margin: '8px 0 0', lineHeight: 1.7 }}>{t.questGate}</p>

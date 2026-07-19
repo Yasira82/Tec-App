@@ -43,6 +43,7 @@ type Copy = {
   badgeTitle: string; badgeBody: string;
   foundingLive: (claimed: number, remaining: number) => string;
   youAreFounding: (n: number) => string;
+  kycNeeded: string;
   footer: string;
 };
 
@@ -73,6 +74,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
+    kycNeeded: 'Only KYC-verified Pioneers earn the Founding badge. Verify your Pi account to claim your spot — your progress is saved.',
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
   },
   ar: {
@@ -101,6 +103,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
+    kycNeeded: 'شارة Founding للـ Pioneers المُوثّقين (KYC) بس. وثّق حساب Pi عشان تحجز مكانك — تقدّمك محفوظ.',
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
   },
 };
@@ -116,6 +119,7 @@ export default function PioneersClient() {
   const [visited, setVisited] = useState<string[]>([]);
   const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number } | null>(null);
   const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
+  const [kycNeeded, setKycNeeded] = useState(false);
 
   useEffect(() => {
     try {
@@ -148,6 +152,8 @@ export default function PioneersClient() {
             setVisited((prev) => Array.from(new Set([...prev, ...q.opened_apps])));
           }
           if (typeof q.founding_number === 'number') setFoundingNumber(q.founding_number);
+          // Logged-in but not KYC-verified (and no number yet) → nudge to verify.
+          if (q.founding_number == null && q.kyc_verified === false) setKycNeeded(true);
         }
       } catch { /* not logged in / backend down — local-only */ }
     })();
@@ -295,6 +301,9 @@ export default function PioneersClient() {
           <p style={{ fontSize: 13, color: C.text, margin: '8px 0 0', lineHeight: 1.7 }}>{t.badgeBody}</p>
           {foundingNumber != null && (
             <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
+          )}
+          {foundingNumber == null && kycNeeded && (
+            <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded}</div>
           )}
           <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>
             {serverStats ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}

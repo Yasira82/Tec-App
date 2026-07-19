@@ -77,7 +77,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
-    kycNeeded: 'Earn the Founding badge with a real Pi payment — Pi only permits payments for KYC-verified accounts, so the badge can’t be faked.',
+    kycNeeded: 'Open all 24 apps to complete the Quest and earn your Founding badge — no payment required. Pi Network handles KYC for the domain claims itself.',
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
   },
   ar: {
@@ -107,7 +107,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
-    kycNeeded: 'اكسب شارة Founding بدفعة Pi حقيقية — Pi بيسمح بالدفع للحسابات المُوثّقة (KYC) بس، فمحدش يقدر يزوّرها.',
+    kycNeeded: 'افتح الـ 24 تطبيق عشان تكمّل الـ Quest وتكسب شارة Founding — من غير أي دفع. Pi Network هو اللي بيتكفّل بالـ KYC لاستلام الدومينات.',
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
   },
 };

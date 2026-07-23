@@ -51,6 +51,7 @@ type Copy = {
   kycNeeded: (total: number) => string;
   footer: string;
   share: string; shareCopied: string; shareText: (total: number) => string; faq: string;
+  statPioneers: string; statCompleted: string; statFounding: string; liveLabel: string;
 };
 
 const COPY: Record<'en' | 'ar', Copy> = {
@@ -87,6 +88,10 @@ const COPY: Record<'en' | 'ar', Copy> = {
     shareCopied: 'Link copied ✓',
     shareText: (total) => `I'm becoming a TEC Founding Pioneer — a full economy on Pi with ${total} apps, one identity, real Pi payments. Join the Founding 100:`,
     faq: 'Questions? Read the Pioneer FAQ',
+    statPioneers: 'Pioneers joined',
+    statCompleted: 'Completed the Quest',
+    statFounding: 'Founding claimed',
+    liveLabel: 'Live',
   },
   ar: {
     eyebrow: 'منظومة TEC · شغّالة على Pi Mainnet',
@@ -121,6 +126,10 @@ const COPY: Record<'en' | 'ar', Copy> = {
     shareCopied: 'اتنسخ اللينك ✓',
     shareText: (total) => `أنا ببقى TEC Founding Pioneer — اقتصاد كامل على Pi بـ ${total} تطبيق، هوية واحدة، مدفوعات Pi حقيقية. انضم لنادي الـ 100 المؤسّس:`,
     faq: 'عندك أسئلة؟ اقرأ الـ Pioneer FAQ',
+    statPioneers: 'Pioneers انضمّوا',
+    statCompleted: 'كمّلوا الـ Quest',
+    statFounding: 'أماكن مؤسّسة اتحجزت',
+    liveLabel: 'مباشر',
   },
 };
 
@@ -143,7 +152,7 @@ export default function PioneersClient() {
   // hint; the server (when logged in + deployed) is authoritative and the source of
   // the REAL Founding counter + badge number. Merged as a union so nothing is lost.
   const [visited, setVisited] = useState<string[]>([]);
-  const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number } | null>(null);
+  const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number; pioneers: number; completed: number } | null>(null);
   const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
   const [kycNeeded, setKycNeeded] = useState(false);
   const [shared, setShared] = useState(false);
@@ -186,7 +195,14 @@ export default function PioneersClient() {
         const r = await fetch('/api/bff/pioneer/stats', { credentials: 'include' });
         const s = (await r.json().catch(() => null))?.data?.stats;
         if (alive && s && typeof s.founding_claimed === 'number') {
-          setServerStats({ claimed: s.founding_claimed, remaining: s.founding_remaining });
+          // Real, server-computed aggregates (the pioneer module owns pioneer state,
+          // so it is the authoritative source of these counts — no fabricated numbers).
+          setServerStats({
+            claimed:   s.founding_claimed,
+            remaining: s.founding_remaining,
+            pioneers:  typeof s.total_pioneers === 'number' ? s.total_pioneers : 0,
+            completed: typeof s.completed === 'number' ? s.completed : 0,
+          });
         }
       } catch { /* keep local-only */ }
       try {
@@ -291,6 +307,30 @@ export default function PioneersClient() {
               {t.faq} ›
             </Link>
           </div>
+
+          {/* Live counters — REAL aggregates from the pioneer stats endpoint (the
+              authoritative source of pioneer counts). Rendered only when the server
+              responds; every value is real (shows 0 honestly, never a fake number). */}
+          {serverStats && (
+            <div style={{ marginTop: 18, border: `1px solid ${C.gold}22`, borderRadius: 14, background: C.surface, overflow: 'hidden' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderBottom: `1px solid ${C.gold}18` }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 0 3px ${C.green}22`, display: 'inline-block' }} />
+                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.6, color: C.green, textTransform: 'uppercase' }}>{t.liveLabel}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                {[
+                  { n: serverStats.pioneers, label: t.statPioneers, color: C.gold },
+                  { n: serverStats.completed, label: t.statCompleted, color: C.text },
+                  { n: serverStats.claimed,  label: `${t.statFounding} / ${FOUNDING_CAP}`, color: C.purple },
+                ].map((s, i) => (
+                  <div key={i} style={{ padding: '14px 10px', textAlign: 'center', borderInlineStart: i > 0 ? `1px solid ${C.gold}14` : 'none' }}>
+                    <div style={{ fontSize: 26, fontWeight: 900, color: s.color, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>{s.n}</div>
+                    <div style={{ fontSize: 10.5, color: C.subtext, marginTop: 5, letterSpacing: 0.2, lineHeight: 1.3 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </header>
 
         {/* Quest — progress for a verified pioneer; a KYC gate otherwise. Browsing

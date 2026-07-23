@@ -93,7 +93,8 @@ describe('PioneersClient — derived counts', () => {
   it('renders one anchor per live app', async () => {
     let container!: HTMLElement;
     await act(async () => { ({ container } = render(<PioneersClient />)); });
-    const links = container.querySelectorAll('a[href]');
+    // App links carry data-app; other anchors (FAQ, etc.) are excluded on purpose.
+    const links = container.querySelectorAll('a[data-app]');
     expect(links.length).toBe(TOTAL);
   });
 });
@@ -107,14 +108,14 @@ describe('PioneersClient — quest gating', () => {
       expect(container.textContent).toContain('Log in with your Pi account');
     });
     // Apps still browsable for everyone.
-    expect(container.querySelectorAll('a[href]').length).toBe(TOTAL);
+    expect(container.querySelectorAll('a[data-app]').length).toBe(TOTAL);
   });
 
   it('does NOT accrue progress or POST when a logged-out visitor taps an app', async () => {
     mockUsePiAuth.mockReturnValue(anon);
     let container!: HTMLElement;
     await act(async () => { ({ container } = render(<PioneersClient />)); });
-    const link = container.querySelector('a[href]')!;
+    const link = container.querySelector('a[data-app]')!;
     await act(async () => { fireEvent.click(link); });
     expect(localStorage.getItem('tec_pioneer_quest')).toBeNull();
     const openCalls = (global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
@@ -127,7 +128,7 @@ describe('PioneersClient — opened-app tracking', () => {
   it('marks an app opened for an authenticated visitor: localStorage + best-effort POST', async () => {
     let container!: HTMLElement;
     await act(async () => { ({ container } = render(<PioneersClient />)); });
-    const link = container.querySelector('a[href]')!;
+    const link = container.querySelector('a[data-app]')!;
     await act(async () => { fireEvent.click(link); });
 
     const stored = JSON.parse(localStorage.getItem('tec_pioneer_quest') ?? '[]');

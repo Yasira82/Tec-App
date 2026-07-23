@@ -355,6 +355,7 @@ export default function PioneersClient() {
               return (
                 <a
                   key={d.slug}
+                  data-app={d.slug}
                   href={linkFor(d.slug, d.route)}
                   onClick={() => markVisited(d.slug)}
                   style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', borderColor: isDone ? `${C.green}55` : `${C.gold}22` }}

@@ -311,7 +311,7 @@ export default function PioneersClient() {
                   <span style={{ fontSize: 24, lineHeight: 1, flex: '0 0 auto' }}>{d.emoji}</span>
                   <span style={{ flex: '1 1 auto', minWidth: 0 }}>
                     <span style={{ display: 'block', fontSize: 15, fontWeight: 800, color: C.text }}>{d.name[locale]}</span>
-                    <span style={{ display: 'block', fontSize: 12.5, color: C.subtext, marginTop: 2, lineHeight: 1.5 }}>{d.description[locale]}</span>
+                    <span style={{ display: 'block', fontSize: 12.5, color: C.subtext, marginTop: 2, lineHeight: 1.5 }}>{(d.valueProp ?? d.description)[locale]}</span>
                     <span style={{ display: 'block', fontSize: 11, color: C.gold, marginTop: 4, fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' }}>{d.piDomain}</span>
                   </span>
                   {isDone

@@ -155,6 +155,31 @@ describe('PioneersClient — Founding counter', () => {
     expect(container.textContent).toContain('58 left');
   });
 
+  it('renders the real live counters (pioneers joined + completed) from stats', async () => {
+    global.fetch = mockFetch(null, {
+      founding_claimed: 3, founding_remaining: 97, total_pioneers: 128, completed: 11,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => { expect(container.textContent).toContain('Pioneers joined'); });
+    expect(container.textContent).toContain('128');
+    expect(container.textContent).toContain('Completed the Quest');
+    expect(container.textContent).toContain('11');
+  });
+
+  it('shows an honest zero (not a fabricated number) when no pioneers have joined', async () => {
+    global.fetch = mockFetch(null, {
+      founding_claimed: 0, founding_remaining: 100, total_pioneers: 0, completed: 0,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => { expect(container.textContent).toContain('Pioneers joined'); });
+    // Real zero is shown — the honesty rule (C-133 §7): never a fake starter number.
+    const joinedCell = Array.from(container.querySelectorAll('div'))
+      .find((el) => el.textContent?.trim() === 'Pioneers joined')?.previousElementSibling;
+    expect(joinedCell?.textContent).toBe('0');
+  });
+
   it('merges server-side opened apps and shows the Founding number badge', async () => {
     global.fetch = mockFetch(
       { opened_apps: LIVE_DOMAINS.map((d) => d.slug), founding_number: 7, kyc_verified: true },

@@ -11,6 +11,7 @@
 // is the path to the Founding Pioneer badge (first 100 — a real limit, granted later via
 // the reputation layer). Inline styles only (Pi Browser safe — no CSS modules/Tailwind).
 import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { LIVE_DOMAINS } from '@/domains/_registry';
@@ -49,6 +50,7 @@ type Copy = {
   youAreFounding: (n: number) => string;
   kycNeeded: (total: number) => string;
   footer: string;
+  share: string; shareCopied: string; shareText: (total: number) => string; faq: string;
 };
 
 const COPY: Record<'en' | 'ar', Copy> = {
@@ -81,6 +83,10 @@ const COPY: Record<'en' | 'ar', Copy> = {
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
     kycNeeded: (total) => `Open all ${total} apps to complete the Quest and earn your Founding badge — no payment required. Pi Network handles KYC for the domain claims itself.`,
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
+    share: 'Share',
+    shareCopied: 'Link copied ✓',
+    shareText: (total) => `I'm becoming a TEC Founding Pioneer — a full economy on Pi with ${total} apps, one identity, real Pi payments. Join the Founding 100:`,
+    faq: 'Questions? Read the Pioneer FAQ',
   },
   ar: {
     eyebrow: 'منظومة TEC · شغّالة على Pi Mainnet',
@@ -111,6 +117,10 @@ const COPY: Record<'en' | 'ar', Copy> = {
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
     kycNeeded: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest وتكسب شارة Founding — من غير أي دفع. Pi Network هو اللي بيتكفّل بالـ KYC لاستلام الدومينات.`,
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
+    share: 'شارك',
+    shareCopied: 'اتنسخ اللينك ✓',
+    shareText: (total) => `أنا ببقى TEC Founding Pioneer — اقتصاد كامل على Pi بـ ${total} تطبيق، هوية واحدة، مدفوعات Pi حقيقية. انضم لنادي الـ 100 المؤسّس:`,
+    faq: 'عندك أسئلة؟ اقرأ الـ Pioneer FAQ',
   },
 };
 
@@ -136,6 +146,25 @@ export default function PioneersClient() {
   const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number } | null>(null);
   const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
   const [kycNeeded, setKycNeeded] = useState(false);
+  const [shared, setShared] = useState(false);
+
+  // Share the campaign — native share sheet where available (mobile / Pi Browser),
+  // clipboard copy as the fallback. The link itself is the marketing asset.
+  const handleShare = useCallback(async () => {
+    const url  = typeof window !== 'undefined' ? `${window.location.origin}/pioneers` : 'https://hub.tecosystem.app/pioneers';
+    const text = COPY[locale].shareText(LIVE_DOMAINS.length);
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ title: 'TEC Founding 100', text, url });
+        return;
+      }
+    } catch { /* user cancelled or unsupported — fall through to copy */ }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setShared(true);
+      setTimeout(() => setShared(false), 2200);
+    } catch { /* clipboard blocked — nothing to do */ }
+  }, [locale]);
 
   useEffect(() => {
     try {
@@ -240,6 +269,28 @@ export default function PioneersClient() {
           <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, color: C.gold, background: `${C.gold}18`, border: `1px solid ${C.gold}55`, borderRadius: 999, padding: '4px 12px', letterSpacing: 0.3 }}>{t.founding}</span>
           <h1 style={{ fontSize: 30, fontWeight: 900, color: C.gold, margin: '14px 0 0', lineHeight: 1.15, textWrap: 'balance' as React.CSSProperties['textWrap'] }}>{t.h1}</h1>
           <p style={{ fontSize: 15, color: C.subtext, margin: '12px 0 0', lineHeight: 1.7 }}>{t.lead}</p>
+
+          {/* Share + FAQ — the link is a marketing asset; the FAQ builds trust before login. */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={handleShare}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 7, cursor: 'pointer',
+                fontSize: 13, fontWeight: 800, color: shared ? C.green : '#1a1205',
+                background: shared ? `${C.green}22` : `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`,
+                border: shared ? `1px solid ${C.green}66` : 'none', borderRadius: 999, padding: '9px 16px',
+              }}
+            >
+              <span aria-hidden>↗</span>{shared ? t.shareCopied : t.share}
+            </button>
+            <Link
+              href="/pioneers/faq"
+              style={{ fontSize: 13, fontWeight: 700, color: C.gold, textDecoration: 'none', borderBottom: `1px solid ${C.gold}44`, paddingBottom: 1 }}
+            >
+              {t.faq} ›
+            </Link>
+          </div>
         </header>
 
         {/* Quest — progress for a verified pioneer; a KYC gate otherwise. Browsing
@@ -304,6 +355,7 @@ export default function PioneersClient() {
               return (
                 <a
                   key={d.slug}
+                  data-app={d.slug}
                   href={linkFor(d.slug, d.route)}
                   onClick={() => markVisited(d.slug)}
                   style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', borderColor: isDone ? `${C.green}55` : `${C.gold}22` }}

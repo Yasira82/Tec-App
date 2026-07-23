@@ -1,0 +1,170 @@
+/**
+ * Coverage for the public Pioneer campaign:
+ *   app/pioneers/page.tsx          — metadata count derives from the LIVE registry
+ *   app/pioneers/PioneersClient.tsx — quest gating, derived counts (no hard-coded 24),
+ *                                     opened-app tracking, and the public Founding counter.
+ */
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import React from 'react';
+import { render, act, fireEvent, waitFor } from '@testing-library/react';
+
+const mockUsePiAuth = vi.hoisted(() => vi.fn());
+
+vi.mock('@/lib-client/hooks/usePiAuth', () => ({ usePiAuth: mockUsePiAuth }));
+
+vi.mock('@/lib/i18n', () => ({
+  useTranslation: () => ({ locale: 'en', dir: 'ltr', setLocale: vi.fn() }),
+}));
+
+vi.mock('@/components/LanguageSwitcher', () => ({
+  default: () => <div data-testid="lang-switcher" />,
+}));
+
+// Real registry — the whole point is that the copy tracks LIVE_DOMAINS, so use it.
+import { LIVE_DOMAINS } from '@/domains/_registry';
+import PioneersClient from '@/app/pioneers/PioneersClient';
+import { metadata } from '@/app/pioneers/page';
+
+const TOTAL = LIVE_DOMAINS.length;
+
+function mockFetch(quest: unknown = null, stats: unknown = null) {
+  return vi.fn((url: string) => {
+    const u = String(url);
+    if (u.includes('/pioneer/stats')) {
+      return Promise.resolve({ ok: !!stats, json: async () => ({ data: { stats } }) });
+    }
+    if (u.includes('/pioneer/me')) {
+      return Promise.resolve({ ok: true, json: async () => ({ data: { quest } }) });
+    }
+    // /pioneer/open
+    return Promise.resolve({ ok: true, json: async () => ({ data: {} }) });
+  });
+}
+
+const authed = {
+  user: { id: 'u-1', piUsername: 'alice' },
+  isAuthenticated: true, isLoading: false, login: vi.fn(), logout: vi.fn(), error: null,
+};
+const anon = {
+  user: null, isAuthenticated: false, isLoading: false, login: vi.fn(), logout: vi.fn(), error: null,
+};
+
+beforeEach(() => {
+  localStorage.clear();
+  mockUsePiAuth.mockReturnValue(authed);
+  global.fetch = mockFetch() as unknown as typeof fetch;
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
+
+describe('pioneers page metadata', () => {
+  it('derives the app count in the description from LIVE_DOMAINS (no hard-coded 24)', () => {
+    expect(metadata.description).toContain(`${TOTAL} apps`);
+  });
+});
+
+describe('PioneersClient — derived counts', () => {
+  it('renders the LIVE app count in the apps title and the "N live" badge', async () => {
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain(`The ${TOTAL} apps`);
+    });
+    expect(container.textContent).toContain(`${TOTAL} live`);
+  });
+
+  it('shows the derived total in the completion banner when all apps are opened', async () => {
+    // Pre-seed every live slug as visited — an authenticated visitor then sees the
+    // "opened all N" banner, and N must equal the derived total, not a literal 24.
+    localStorage.setItem(
+      'tec_pioneer_quest',
+      JSON.stringify(LIVE_DOMAINS.map((d) => d.slug)),
+    );
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain(`you opened all ${TOTAL}`);
+    });
+    expect(container.textContent).toContain('100%');
+  });
+
+  it('renders one anchor per live app', async () => {
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    const links = container.querySelectorAll('a[href]');
+    expect(links.length).toBe(TOTAL);
+  });
+});
+
+describe('PioneersClient — quest gating', () => {
+  it('shows the login gate (not the progress bar) when logged out', async () => {
+    mockUsePiAuth.mockReturnValue(anon);
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('Log in with your Pi account');
+    });
+    // Apps still browsable for everyone.
+    expect(container.querySelectorAll('a[href]').length).toBe(TOTAL);
+  });
+
+  it('does NOT accrue progress or POST when a logged-out visitor taps an app', async () => {
+    mockUsePiAuth.mockReturnValue(anon);
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    const link = container.querySelector('a[href]')!;
+    await act(async () => { fireEvent.click(link); });
+    expect(localStorage.getItem('tec_pioneer_quest')).toBeNull();
+    const openCalls = (global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
+      .filter((c) => String(c[0]).includes('/pioneer/open'));
+    expect(openCalls.length).toBe(0);
+  });
+});
+
+describe('PioneersClient — opened-app tracking', () => {
+  it('marks an app opened for an authenticated visitor: localStorage + best-effort POST', async () => {
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    const link = container.querySelector('a[href]')!;
+    await act(async () => { fireEvent.click(link); });
+
+    const stored = JSON.parse(localStorage.getItem('tec_pioneer_quest') ?? '[]');
+    expect(stored).toContain(LIVE_DOMAINS[0].slug);
+
+    await waitFor(() => {
+      const openCalls = (global.fetch as unknown as { mock: { calls: unknown[][] } }).mock.calls
+        .filter((c) => String(c[0]).includes('/pioneer/open'));
+      expect(openCalls.length).toBe(1);
+    });
+    // The tapped app shows the "Opened" check.
+    expect(container.textContent).toContain('Opened');
+  });
+});
+
+describe('PioneersClient — Founding counter', () => {
+  it('renders the live Founding counter from the public stats endpoint', async () => {
+    global.fetch = mockFetch(null, { founding_claimed: 42, founding_remaining: 58 }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('42 of 100 Founding spots claimed');
+    });
+    expect(container.textContent).toContain('58 left');
+  });
+
+  it('merges server-side opened apps and shows the Founding number badge', async () => {
+    global.fetch = mockFetch(
+      { opened_apps: LIVE_DOMAINS.map((d) => d.slug), founding_number: 7, kyc_verified: true },
+      null,
+    ) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('You are Founding Pioneer #7');
+    });
+    // Server quest completes the bar → derived total banner.
+    expect(container.textContent).toContain(`you opened all ${TOTAL}`);
+  });
+});

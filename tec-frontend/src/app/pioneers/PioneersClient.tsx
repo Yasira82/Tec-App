@@ -4,9 +4,10 @@
 // domain registry (single source of truth — @/domains/_registry), so this page never
 // drifts from what is actually live. Bilingual EN/AR via the Hub i18n locale + dir.
 //
-// The campaign is a "Pioneer Quest": open every live app in Pi Browser (engagement is
-// per-App-ID, so each app must be opened at its OWN domain). We track the visitor's OWN
-// progress locally (localStorage) — no fabricated global counters. Completing the quest
+// The campaign is a "Pioneer Quest": open every live app in Pi Browser. Each app opens
+// at its registry route — its own Pi domain for standalone apps, or a Hub-internal route
+// for apps that live inside the Hub. We track the visitor's OWN progress locally
+// (localStorage) as an offline hint — no fabricated global counters. Completing the quest
 // is the path to the Founding Pioneer badge (first 100 — a real limit, granted later via
 // the reputation layer). Inline styles only (Pi Browser safe — no CSS modules/Tailwind).
 import { useEffect, useState, useCallback } from 'react';
@@ -38,14 +39,15 @@ type Copy = {
   callout: string;
   questTitle: string; questSub: (done: number, total: number) => string;
   questGate: string;
-  tierGettingStarted: string; tierExplorer: string; tierBuilder: string; tierFounding: string;
-  questDoneBanner: string;
+  tierGettingStarted: string; tierExplorer: string; tierBuilder: string;
+  tierFounding: (total: number) => string;
+  questDoneBanner: (total: number) => string;
   stepsTitle: string; steps: { n: string; title: string; body: string }[];
-  appsTitle: string; appsLead: string; opened: string;
+  appsTitle: (total: number) => string; appsLead: string; opened: string;
   badgeTitle: string; badgeBody: string;
   foundingLive: (claimed: number, remaining: number) => string;
   youAreFounding: (n: number) => string;
-  kycNeeded: string;
+  kycNeeded: (total: number) => string;
   footer: string;
 };
 
@@ -62,22 +64,22 @@ const COPY: Record<'en' | 'ar', Copy> = {
     tierGettingStarted: 'Getting started',
     tierExplorer: 'Explorer · 5 apps',
     tierBuilder: 'Builder · 12 apps',
-    tierFounding: 'Founding Pioneer · all 24',
-    questDoneBanner: '🎉 Quest complete — you opened all 24. You qualify for the Founding Pioneer badge.',
+    tierFounding: (total) => `Founding Pioneer · all ${total}`,
+    questDoneBanner: (total) => `🎉 Quest complete — you opened all ${total}. You qualify for the Founding Pioneer badge.`,
     stepsTitle: 'How it works — 3 steps',
     steps: [
-      { n: '1', title: 'Open in Pi Browser', body: 'Tap any app below from inside Pi Browser. It opens on its own Pi domain and ticks your Quest.' },
+      { n: '1', title: 'Open in Pi Browser', body: 'Tap any app below from inside Pi Browser. It opens the app and ticks your Quest.' },
       { n: '2', title: 'Log in with Pi', body: 'Sign in once with your Pi account — your session carries across all TEC apps (single sign-on).' },
       { n: '3', title: 'Try one action', body: 'Do one thing in each app — browse, create, or a small Pi payment. That is your Pioneer footprint.' },
     ],
-    appsTitle: 'The 24 apps — all live',
+    appsTitle: (total) => `The ${total} apps — all live`,
     appsLead: 'Tap each to open it in Pi Browser. Opened apps are checked off your Quest.',
     opened: 'Opened',
     badgeTitle: '★ The Founding Pioneer badge',
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
-    kycNeeded: 'Open all 24 apps to complete the Quest and earn your Founding badge — no payment required. Pi Network handles KYC for the domain claims itself.',
+    kycNeeded: (total) => `Open all ${total} apps to complete the Quest and earn your Founding badge — no payment required. Pi Network handles KYC for the domain claims itself.`,
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
   },
   ar: {
@@ -92,22 +94,22 @@ const COPY: Record<'en' | 'ar', Copy> = {
     tierGettingStarted: 'البداية',
     tierExplorer: 'مستكشف · 5 تطبيقات',
     tierBuilder: 'باني · 12 تطبيق',
-    tierFounding: 'مؤسّس · الـ 24 كلهم',
-    questDoneBanner: '🎉 المهمّة اكتملت — فتحت الـ 24 كلهم. إنت مؤهّل لشارة Founding Pioneer.',
+    tierFounding: (total) => `مؤسّس · الـ ${total} كلهم`,
+    questDoneBanner: (total) => `🎉 المهمّة اكتملت — فتحت الـ ${total} كلهم. إنت مؤهّل لشارة Founding Pioneer.`,
     stepsTitle: 'إزاي تشتغل — 3 خطوات',
     steps: [
-      { n: '1', title: 'افتح في متصفح Pi', body: 'اضغط أي تطبيق تحت من جوّه Pi Browser. بيفتح على دومين Pi الخاص بيه ويتحسب في مهمّتك.' },
+      { n: '1', title: 'افتح في متصفح Pi', body: 'اضغط أي تطبيق تحت من جوّه Pi Browser. بيفتح التطبيق ويتحسب في مهمّتك.' },
       { n: '2', title: 'سجّل دخول بـ Pi', body: 'سجّل دخول مرة واحدة بحساب Pi — الجلسة بتمشي معاك في كل تطبيقات TEC (دخول موحّد).' },
       { n: '3', title: 'جرّب إجراء واحد', body: 'اعمل حاجة واحدة في كل تطبيق — تتصفّح، تنشئ، أو دفعة Pi صغيرة. دي بصمتك كـ Pioneer.' },
     ],
-    appsTitle: 'الـ 24 تطبيق — كلهم شغّالين',
+    appsTitle: (total) => `الـ ${total} تطبيق — كلهم شغّالين`,
     appsLead: 'اضغط كل واحد علشان تفتحه في متصفح Pi. اللي بتفتحه بيتشطّب في مهمّتك.',
     opened: 'مفتوح',
     badgeTitle: '★ شارة Founding Pioneer',
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
-    kycNeeded: 'افتح الـ 24 تطبيق عشان تكمّل الـ Quest وتكسب شارة Founding — من غير أي دفع. Pi Network هو اللي بيتكفّل بالـ KYC لاستلام الدومينات.',
+    kycNeeded: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest وتكسب شارة Founding — من غير أي دفع. Pi Network هو اللي بيتكفّل بالـ KYC لاستلام الدومينات.`,
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
   },
 };
@@ -119,9 +121,11 @@ export default function PioneersClient() {
 
   // The ✓ marks + Quest progress track engagement, so they gate on LOGIN — not on a
   // KYC flag (TEC does not store Pi-Network KYC status; its internal doc-KYC is a
-  // different, rarely-completed flow). The REAL KYC gate is the Founding badge, which
-  // is earned via a genuine Pi payment (Pi only permits payments for KYC-verified
-  // accounts) — self-enforcing, un-fakeable. Browsing stays open to everyone.
+  // different, rarely-completed flow). The Founding badge is earned by COMPLETING the
+  // Quest (opening every live app) while logged in — no payment required, matching the
+  // identity-service which grants the Founding number on completion. The server is the
+  // authoritative source of that number; the UI never fabricates it. Browsing stays
+  // open to everyone.
   const { isAuthenticated, isLoading: authLoading } = usePiAuth();
   const eligible = isAuthenticated;
 
@@ -214,7 +218,7 @@ export default function PioneersClient() {
 
   // Quest tier label from progress.
   const tier =
-    done >= total ? t.tierFounding
+    done >= total ? t.tierFounding(total)
     : done >= 12  ? t.tierBuilder
     : done >= 5   ? t.tierExplorer
     : t.tierGettingStarted;
@@ -254,7 +258,7 @@ export default function PioneersClient() {
               <span style={{ fontSize: 18, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
             </div>
             {complete && (
-              <p style={{ fontSize: 13, color: C.green, margin: '12px 0 0', fontWeight: 700, lineHeight: 1.5 }}>{t.questDoneBanner}</p>
+              <p style={{ fontSize: 13, color: C.green, margin: '12px 0 0', fontWeight: 700, lineHeight: 1.5 }}>{t.questDoneBanner(total)}</p>
             )}
           </section>
         ) : !authLoading ? (
@@ -289,7 +293,7 @@ export default function PioneersClient() {
         {/* Apps grid — every LIVE domain; tapping ticks the Quest */}
         <section style={{ marginTop: 34 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{t.appsTitle}</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{t.appsTitle(total)}</h2>
             <span style={{ fontSize: 11, color: C.green, border: `1px solid ${C.green}55`, borderRadius: 999, padding: '2px 10px', fontWeight: 700 }}>{total} live</span>
           </div>
           <p style={{ fontSize: 13, color: C.subtext, margin: '6px 0 14px', lineHeight: 1.6 }}>{t.appsLead}</p>
@@ -327,7 +331,7 @@ export default function PioneersClient() {
             <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
           )}
           {foundingNumber == null && kycNeeded && (
-            <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded}</div>
+            <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded(total)}</div>
           )}
           <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>
             {serverStats ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}

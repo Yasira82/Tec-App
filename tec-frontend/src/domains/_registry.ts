@@ -22,6 +22,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:     'tec.pi',
     emoji:        '🔷',
     description:  { en: 'TEC OS — Hub · Dashboard · AI', ar: 'نظام تك' },
+    valueProp:        { en: 'Your identity + wallet for the whole Pi economy — one login opens every TEC app.', ar: 'هويتك ومحفظتك لكل اقتصاد باي — تسجيل دخول واحد يفتحلك كل تطبيقات TEC.' },
     status:       'live',
     layer:        'os',
     group:        'platform',
@@ -45,6 +46,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'nexus.pi',
     emoji:            '🧭',
     description:      { en: 'Coordination Runtime — Workflows · Routing · Sagas', ar: 'زمن التنسيق — مسارات عمل وتوجيه' },
+    valueProp:        { en: 'Ties your actions across apps together, so multi-step things just work.', ar: 'بيربط أفعالك عبر التطبيقات، فأي عملية من كذا خطوة تمشي لوحدها.' },
     // Shipped July 2026 (tec-nexus — C-109 Coordination Runtime: "What should happen next?"; V0 scaffold + Nexus Pro + C-123 login)
     status:           'live',
     layer:            'connector',
@@ -69,6 +71,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'assets.pi',
     emoji:            '💎',
     description:      { en: 'Ownership Engine — NFTs · Domains · Real Estate', ar: 'محرك الملكية' },
+    valueProp:        { en: 'Own and manage your Pi-native assets — NFTs, domains and more — in one wallet.', ar: 'تملّك وادِر أصولك على باي — NFTs ونطاقات وغيرها — في محفظة واحدة.' },
     status:           'live',
     layer:            'core',
     group:            'platform',
@@ -89,6 +92,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'commerce.pi',
     emoji:            '🛒',
     description:      { en: 'Transaction Engine — Orders · Checkout · Marketplace', ar: 'محرك المعاملات' },
+    valueProp:        { en: 'Sell or buy with Pi — real orders, checkout and a live marketplace.', ar: 'بيع واشترِ بالباي — طلبات حقيقية ودفع وسوق شغّال.' },
     status:           'live',
     layer:            'core',
     group:            'platform',
@@ -115,6 +119,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'fundx.pi',
     emoji:            '📈',
     description:      { en: 'Capital Coordination — Pools · Charters · Co-invest', ar: 'تنسيق رأس المال — تجميعات وحوكمة' },
+    valueProp:        { en: 'Learn how Pi capital pools work — browse educational pool charters, no risk yet.', ar: 'اعرف إزاي تجميعات رأس المال بالباي بتشتغل — اتصفّح مواثيق تعليمية من غير مخاطرة دلوقتي.' },
     // Shipped July 2026 (tec-fundx — C-113 Capital Coordination; V0 scaffold + FundX Pro +
     // read-only educational pool charters. Real contributions hard-gated: legal + KYC + SYSTEM, §11)
     status:           'live',
@@ -136,6 +141,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'nbf.pi',
     emoji:            '🏢',
     description:      { en: 'Business Foundation — Establish · Verify · Launch', ar: 'تأسيس الأعمال — أنشئ ووثّق وأطلق' },
+    valueProp:        { en: 'Start a verified Pi business in minutes — the entity that actually transacts.', ar: 'ابدأ نشاط تجاري موثّق على باي في دقائق — الكيان اللي بيعامل فعلاً.' },
     // Shipped July 2026 (tec-nbf — C-124 Business Foundation Runtime: "How do I
     // start my business in the Pi economy?"). Network Business Foundation: create
     // a verified business identity in 25 min (the entity that transacts). V0/V1
@@ -161,6 +167,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'insure.pi',
     emoji:            '🛡️',
     description:      { en: 'Risk Protection — Risk Score · Escrow · Recovery', ar: 'حماية المخاطر — تقييم · ضمان · استرداد' },
+    valueProp:        { en: 'See your risk score and the protections around your Pi activity.', ar: 'شوف تقييم المخاطر بتاعك والحماية حوالين نشاطك على باي.' },
     // Shipped July 2026 (tec-insure — C-129 Risk Protection Runtime: "How do I
     // protect myself, my assets, my activities?"). V0/V1 read-only preview: risk
     // score + protection surfaces (escrow · dispute · recovery · beneficiary) +
@@ -188,6 +195,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'ecommerce.pi',
     emoji:            '🏬',
     description:      { en: 'B2C Stores — Products · Storefronts · Delivery', ar: 'متاجر إلى المستهلك' },
+    valueProp:        { en: 'Shop Pi-native stores — real products, storefronts and delivery.', ar: 'اتسوّق من متاجر باي — منتجات حقيقية وواجهات وتوصيل.' },
     status:           'live',
     layer:            'domain',
     group:            'commerce',
@@ -209,6 +217,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'estate.pi',
     emoji:            '🏡',
     description:      { en: 'Real Estate OS — Own · Lease · Invest · Manage', ar: 'نظام تشغيل عقاري — تملّك وتأجير واستثمار وإدارة' },
+    valueProp:        { en: 'Explore property on Pi — own, lease, invest and manage, all in one place.', ar: 'استكشف العقارات على باي — تملّك وأجّر واستثمر وادِر في مكان واحد.' },
     // Shipped July 2026 (tec-estate — C-114 Real Estate OS: full property lifecycle;
     // V0 scaffold + Estate Pro + read-only sample portfolio. Services only — no full
     // property purchase in Pi, no title transfer (C-114 §4/§6))
@@ -231,6 +240,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'brookfield.pi',
     emoji:            '🏗️',
     description:      { en: 'Infrastructure Runtime — Institutional assets', ar: 'منصة البنية التحتية — أصول مؤسسية' },
+    valueProp:        { en: 'Explore institutional-grade assets and see who owns each project.', ar: 'استكشف الأصول المؤسسية وشوف مين بيملك كل مشروع.' },
     // Shipped July 2026 (tec-brookfield — C-131 Infrastructure Runtime: "Who owns
     // the project?"). System of Institutional Assets (B2B/B2I) — the institutional
     // counterpart to Estate (B2C) + the missing middle between FundX (raise) and
@@ -257,6 +267,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'explorer.pi',
     emoji:            '🧭',
     description:      { en: 'Discovery — Find Pi-accepting businesses & opportunities', ar: 'اكتشاف — ابحث عن الأنشطة والفرص التي تقبل باي' },
+    valueProp:        { en: 'Find real businesses and opportunities that accept Pi near you.', ar: 'لاقِ أنشطة وفرص حقيقية بتقبل باي قريبة منك.' },
     // Shipped July 2026 (tec-explorer — C-108 Economic Discovery Infrastructure:
     // search Pi-accepting businesses/services/opportunities, trust-first ranking;
     // V0/V1 scaffold + Explorer Business Pro + read-only sample directory. Explorer
@@ -284,6 +295,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'connection.pi',
     emoji:            '🔗',
     description:      { en: 'Relationship graph — Connections · Trust · Collaboration', ar: 'رسم العلاقات — روابط وثقة وتعاون' },
+    valueProp:        { en: 'Build your trusted network — connections, trust and collaboration on Pi.', ar: 'ابنِ شبكتك الموثوقة — روابط وثقة وتعاون على باي.' },
     // Shipped July 2026 (tec-connection — C-107 System of Record: the Trust Graph; Phase 0 shell + C-123 login)
     status:           'live',
     layer:            'domain',
@@ -304,6 +316,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'zone.pi',
     emoji:            '🛡️',
     description:      { en: 'Verification Runtime — Verify · Evidence · Trust', ar: 'زمن التحقق — تحقّق وأدلة وثقة' },
+    valueProp:        { en: 'Check what\'s verified and trusted before you deal — evidence, not claims.', ar: 'اتأكد إيه اللي موثّق قبل ما تتعامل — أدلة مش ادعاءات.' },
     // Shipped July 2026 (tec-zone — C-120 Verification Runtime: "What can be trusted?"; V0 scaffold + Zone Pro + C-123 login)
     status:           'live',
     layer:            'domain',
@@ -324,6 +337,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'life.pi',
     emoji:            '🌱',
     description:      { en: 'Personal context — Goals · Preferences · Activity', ar: 'السياق الشخصي — أهداف وتفضيلات ونشاط' },
+    valueProp:        { en: 'Set your goals and preferences so the ecosystem works for you — privately.', ar: 'حدّد أهدافك وتفضيلاتك عشان المنظومة تشتغل لصالحك، وبخصوصية.' },
     // Shipped July 2026 (tec-life — C-106 System of Record: Goals/Preferences + Activity, C-123 login)
     status:           'live',
     layer:            'domain',
@@ -346,6 +360,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'dx.pi',
     emoji:            '🛠️',
     description:      { en: 'Developer Platform — SDKs · Templates · Capabilities · Guides', ar: 'منصّة المطورين — SDKs وقوالب وقدرات وأدلّة' },
+    valueProp:        { en: 'Build on Pi fast — SDKs, templates and copy-paste guides for developers.', ar: 'ابنِ على باي بسرعة — SDKs وقوالب وأدلّة جاهزة للمطورين.' },
     // Shipped July 2026 (tec-dx — C-115 System of Construction: distributes the
     // SDKs, starter templates, certified capabilities (from SYSTEM/C-94) + guides.
     // V0/V1 read-only Developer Portal + DX Builder Pro. DX distributes — it never
@@ -369,6 +384,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'nx.pi',
     emoji:            '🧩',
     description:      { en: 'Opportunity Exchange — Jobs · Partnerships · Grants · Hackathons', ar: 'بورصة الفرص — وظائف وشراكات ومِنَح' },
+    valueProp:        { en: 'Find your next opportunity — jobs, partnerships, grants and hackathons on Pi.', ar: 'لاقِ فرصتك الجاية — وظائف وشراكات ومِنَح وهاكاثونات على باي.' },
     // Shipped July 2026 (tec-nx — C-112 repurposed by ADR-010: NX = Network /
     // Opportunity Exchange, the Pi economy's unified opportunity marketplace. V0/V1
     // read-only board + NX Pro. NX matches + presents — it never moves capital
@@ -393,6 +409,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:     'system.pi',
     emoji:        '⚖️',
     description:  { en: 'Constitution Runtime — Policies · Tiers · Capabilities', ar: 'زمن الدستور — سياسات وطبقات وقدرات' },
+    valueProp:        { en: 'See the platform\'s rules in plain terms — what\'s allowed, and why.', ar: 'شوف قواعد المنصّة ببساطة — إيه المسموح وليه.' },
     // Shipped July 2026 (tec-system — C-110 Institutional Authority / Constitution
     // Runtime: makes C-47 rules queryable + governs subscription tiers + certifies
     // capabilities (C-94). V0/V1 read-only Governance Console. SYSTEM defines +
@@ -417,6 +434,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'alert.pi',
     emoji:            '🔔',
     description:      { en: 'Smart inbox — TEC activity + Pi community, classified', ar: 'صندوق ذكي — نشاط TEC + مجتمع باي' },
+    valueProp:        { en: 'One smart inbox for everything that matters — your TEC activity + Pi news.', ar: 'صندوق ذكي واحد لكل المهم — نشاطك في TEC + أخبار باي.' },
     // Shipped July 2026 (tec-alert — C-111 extended: one smart inbox that
     // aggregates + classifies + routes signals from every TEC app AND a curated
     // Pi-community feed. V0/V1 read-only inbox + Alert Pro. Alert presents + routes;
@@ -441,6 +459,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:     'analytics.pi',
     emoji:        '📊',
     description:  { en: 'Ecosystem intelligence · metrics · trends', ar: 'ذكاء المنظومة والمقاييس' },
+    valueProp:        { en: 'See the real numbers behind the Pi economy — your activity and market trends.', ar: 'شوف الأرقام الحقيقية ورا اقتصاد باي — نشاطك واتجاهات السوق.' },
     // Shipped July 2026 (tec-analytics — C-105 Phase 1 + C-123 session compliance)
     status:       'live',
     layer:        'domain',
@@ -462,6 +481,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'vip.pi',
     emoji:            '👑',
     description:      { en: 'Premium Experience — Tiers · Benefits · Concierge', ar: 'تجربة مميّزة — طبقات ومزايا وخدمة' },
+    valueProp:        { en: 'Unlock premium experiences and benefits across the whole ecosystem.', ar: 'افتح تجارب ومزايا مميّزة عبر المنظومة كلها.' },
     // Shipped July 2026 (tec-vip — C-128 Premium Experience Runtime: "What
     // exclusive benefits do I receive?"). System of Privilege (cross-cutting): it
     // translates recognition + achievement into premium experience across the
@@ -488,6 +508,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'elite.pi',
     emoji:            '🎖️',
     description:      { en: 'Excellence Runtime — Criteria-based recognition', ar: 'منصة التميّز — تقدير مبني على معايير' },
+    valueProp:        { en: 'Earn official recognition for real achievement — never bought, only earned.', ar: 'اكسب تقدير رسمي على إنجاز حقيقي — مبيتشراش، بيتكسب بس.' },
     // Shipped July 2026 (tec-elite — C-127 Excellence Runtime: "Are you among the
     // best?"). System of Recognition: official, criteria-based recognition from
     // verified evidence — earned, NEVER bought (recognition is free). Tiers
@@ -514,6 +535,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'titan.pi',
     emoji:            '🏛️',
     description:      { en: 'Enterprise OS — Business · Team · Operations on Pi', ar: 'نظام تشغيل المؤسسات — أعمال وفريق وعمليات' },
+    valueProp:        { en: 'Run your organization on Pi — team, roles and operations in one console.', ar: 'شغّل مؤسستك على باي — فريق وأدوار وعمليات في لوحة واحدة.' },
     // Shipped July 2026 (tec-titan — Enterprise Operating Platform: the B2B/
     // institutional counterpart to Life (Personal OS). Orgs manage identity, team +
     // roles, operations, commerce, procurement, reputation on Pi. V0/V1 read-only
@@ -540,6 +562,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'legend.pi',
     emoji:            '🏅',
     description:      { en: 'Reputation Runtime — Evidence-based reputation', ar: 'منصة السمعة — سمعة مبنية على دليل' },
+    valueProp:        { en: 'Build a permanent, evidence-based reputation that follows you everywhere on Pi.', ar: 'ابنِ سمعة دائمة مبنية على دليل بتمشي معاك في كل مكان على باي.' },
     // Shipped July 2026 (tec-legend — C-126 Reputation Runtime: "What have you
     // achieved?"). System of Evidence: permanent, verifiable, portable reputation
     // from real Pi activity. Records OUTCOMES not claims (read layer; source apps
@@ -567,6 +590,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'epic.pi',
     emoji:            '🚀',
     description:      { en: 'Creation Runtime — Build · Launch · Grow projects', ar: 'منصة الإنشاء — ابنِ وأطلق ونمِّ مشاريعك' },
+    valueProp:        { en: 'Turn your idea into a real project — build, launch and grow it on Pi.', ar: 'حوّل فكرتك لمشروع حقيقي — ابنيه وأطلقه ونمّيه على باي.' },
     // Shipped July 2026 (tec-epic — C-125 Creation Runtime: "What are you
     // building?"). System of Construction: create/launch/grow projects
     // (startup · community · campaign · event · challenge · program · initiative).
@@ -660,6 +684,11 @@ export function validateRegistry(): string[] {
     }
     if (!d.description?.en) {
       errors.push(`[${d.slug}] missing required description.en`);
+    }
+    // Marketing SSoT (KB C-133 R6): every LIVE app must state a real user-facing
+    // value proposition — no empty landing pages. Non-live apps may fill it later.
+    if (d.status === 'live' && !d.valueProp?.en) {
+      errors.push(`[${d.slug}] live domain missing valueProp.en (C-133 R6)`);
     }
     if (d.api.paymentMode === 'pirc2' && (!d.tiers || d.tiers.length === 0)) {
       errors.push(`[${d.slug}] paymentMode=pirc2 requires at least one tier`);

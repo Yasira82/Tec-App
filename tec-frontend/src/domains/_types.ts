@@ -125,6 +125,15 @@ export interface DomainConfig {
   piDomain:          string;
   emoji:             string;
   description:       Localized;
+  /**
+   * User-facing value proposition — the plain "why a Pioneer would use this"
+   * line, distinct from the engineering-flavored `description`. Marketing SSoT
+   * (KB C-133 R6: every app must state real standalone value). Rendered on
+   * /pioneers and reusable as the Pi Portal listing copy. Optional so the
+   * registry stays valid before every app is filled in; validated to be present
+   * for LIVE apps in validateRegistry().
+   */
+  valueProp?:        Localized;
   status:            DomainStatus;
   layer:             DomainLayer;
   group:             DomainGroup;

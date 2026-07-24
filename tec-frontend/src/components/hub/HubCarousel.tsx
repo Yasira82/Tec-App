@@ -1,24 +1,27 @@
 'use client';
 
-import { useRef }  from 'react';
-import { haptic }  from '@/lib/hub/utils';
-import { PiPrice } from '@/lib/hub/types';
-import { CountUp } from '@/components/ui/CountUp';
+import { useRef }       from 'react';
+import { haptic }       from '@/lib/hub/utils';
+import { PiPrice }      from '@/lib/hub/types';
+import { CountUp }      from '@/components/ui/CountUp';
+import { LIVE_DOMAINS } from '@/domains/_registry';
 
+// Hub top spotlight. Marketing-first: slide 1 = the Founding-100 "missions" entry,
+// slide 2 = an ecosystem announcement/ad, slide 3 = the live Pi price. The old
+// Assets/Commerce/Analytics shortcuts were removed (they live in the apps grid / nav).
 interface Props {
   carouselIdx:    number;
   setCarouselIdx: (i: number) => void;
-  assetCount:     number | null;
   piPrice:        PiPrice | null;
-  goToAssets:     () => void;
-  goToCommerce:   () => void;
-  goToAnalytics:  () => void;
+  goToPioneers:   () => void;
 }
 
-export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, goToAssets, goToCommerce, goToAnalytics }: Props) {
+const SLIDES = 3;
+
+export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers }: Props) {
   const touchStartX = useRef(0);
   const priceUp     = (piPrice?.change24h ?? 0) >= 0;
-  const SLIDES      = 4;
+  const liveApps    = LIVE_DOMAINS.length;
 
   return (
     <div style={{ padding: '14px 16px 0', animation: 'tec-fade-in 0.5s ease both' }}>
@@ -31,58 +34,37 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, 
         style={{ overflow: 'hidden', borderRadius: 20 }}>
         <div style={{ display: 'flex', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
 
-          {/* Assets */}
+          {/* 1 — Founding 100 · Marketing missions entry */}
           <div style={{ minWidth: '100%' }}>
-            <button className="tec-btn" onClick={goToAssets}
-              style={{ width: '100%', borderRadius: 20, background: '#111627', border: '1px solid rgba(251,191,36,0.12)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>💎</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Digital Assets</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Domains · NFTs · Real Estate</div>
+            <button className="tec-btn" onClick={goToPioneers}
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(251,191,36,0.14), #111627)', border: '1px solid rgba(251,191,36,0.3)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#FBBF24' }}>★</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Founding 100</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Start your Pioneer missions — earn the badge</div>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                {assetCount === null
-                  ? <div className="tec-skeleton" style={{ width: 36, height: 32, marginBottom: 4 }} />
-                  : <div style={{ fontSize: 30, fontWeight: 900, color: '#FBBF24', lineHeight: 1 }}>{assetCount}</div>
-                }
-                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: 1.5, marginTop: 4 }}>ASSETS →</div>
-              </div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#FBBF24', letterSpacing: 1.5 }}>START →</div>
             </button>
           </div>
 
-          {/* Commerce */}
+          {/* 2 — Ecosystem announcement / app ad */}
           <div style={{ minWidth: '100%' }}>
-            <button className="tec-btn" onClick={goToCommerce}
-              style={{ width: '100%', borderRadius: 20, background: '#111627', border: '1px solid rgba(59,130,246,0.15)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#0a1628,#111627)', border: '1px solid rgba(59,130,246,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🛒</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Commerce</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Buy · Sell · Trade on Pi</div>
+            <button className="tec-btn" onClick={goToPioneers}
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(139,92,246,0.14), #111627)', border: '1px solid rgba(139,92,246,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1e1440,#111627)', border: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🚀</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{liveApps} apps live on Pi</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>One identity · real Pi payments — explore the ecosystem</div>
                 </div>
               </div>
-              <div style={{ fontSize: 9, color: 'rgba(59,130,246,0.8)', letterSpacing: 1.5 }}>OPEN →</div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#C4B5FD', letterSpacing: 1.5 }}>EXPLORE →</div>
             </button>
           </div>
 
-          {/* Analytics */}
-          <div style={{ minWidth: '100%' }}>
-            <button className="tec-btn" onClick={goToAnalytics}
-              style={{ width: '100%', borderRadius: 20, background: '#111627', border: '1px solid rgba(6,182,212,0.15)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#06222b,#111627)', border: '1px solid rgba(6,182,212,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>📊</div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', marginBottom: 3 }}>Analytics</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>Ecosystem intelligence · metrics</div>
-                </div>
-              </div>
-              <div style={{ fontSize: 9, color: 'rgba(6,182,212,0.85)', letterSpacing: 1.5 }}>OPEN →</div>
-            </button>
-          </div>
-
-          {/* Pi Price */}
+          {/* 3 — Pi Price (kept as-is) */}
           <div style={{ minWidth: '100%' }}>
             <div style={{ borderRadius: 20, background: '#111627', border: '1px solid rgba(251,191,36,0.12)', padding: '16px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -138,4 +120,4 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, assetCount, piPrice, 
       </div>
     </div>
   );
-              }
+}

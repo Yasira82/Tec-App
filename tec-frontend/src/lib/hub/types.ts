@@ -11,4 +11,5 @@ export interface HubApp {
   emoji: string;
   href:  string;
   desc:  string;
+  group?: string;
 }

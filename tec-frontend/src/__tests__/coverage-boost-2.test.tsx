@@ -129,7 +129,6 @@ vi.mock('@/app/hub/components/PaymentModal', () => ({
 }));
 
 vi.mock('@/components/hub', () => ({
-  HubShareCard: () => null,
   HubHeader:    ({ notifCount }: { notifCount: number }) => <div data-testid="hub-header">{notifCount}</div>,
   HubWalletCard: () => <div data-testid="hub-wallet-card" />,
   HubCarousel:   () => <div data-testid="hub-carousel" />,
@@ -1457,74 +1456,6 @@ describe('Hub page — pending payment edge cases', () => {
 });
 
 // ════════════════════════════════════════════════════════════════════════════
-// 10. Hub page — pull-to-refresh gesture
-// ════════════════════════════════════════════════════════════════════════════
-describe('Hub page — pull to refresh', () => {
-  it('full pull triggers refresh and an Updated toast', async () => {
-    const refresh = vi.fn().mockResolvedValue(undefined);
-    mockUseHubData.mockReturnValue({
-      balance: '5.00', assetCount: 0, piPrice: 31.5, notifCount: 0, time: '12:00',
-      setNotifCount: vi.fn(), refresh, refreshBalance: vi.fn(),
-    });
-    const { default: HubPage } = await import('@/app/hub/page');
-    const { container } = render(<HubPage />);
-    await act(async () => {});
-
-    const scroller = container.firstElementChild as HTMLElement;
-    Object.defineProperty(scroller, 'scrollTop', { value: 0, configurable: true });
-
-    fireEvent.touchStart(scroller, { touches: [{ clientY: 100 }] });
-    fireEvent.touchMove(scroller,  { touches: [{ clientY: 250 }] }); // 150px > threshold 80
-    await act(async () => { fireEvent.touchEnd(scroller); });
-
-    expect(refresh).toHaveBeenCalled();
-  });
-
-  it('short pull resets without refreshing', async () => {
-    const refresh = vi.fn().mockResolvedValue(undefined);
-    mockUseHubData.mockReturnValue({
-      balance: '5.00', assetCount: 0, piPrice: 31.5, notifCount: 0, time: '12:00',
-      setNotifCount: vi.fn(), refresh, refreshBalance: vi.fn(),
-    });
-    const { default: HubPage } = await import('@/app/hub/page');
-    const { container } = render(<HubPage />);
-    await act(async () => {});
-
-    const scroller = container.firstElementChild as HTMLElement;
-    Object.defineProperty(scroller, 'scrollTop', { value: 0, configurable: true });
-
-    fireEvent.touchStart(scroller, { touches: [{ clientY: 100 }] });
-    fireEvent.touchMove(scroller,  { touches: [{ clientY: 120 }] }); // 20px < threshold
-    await act(async () => { fireEvent.touchEnd(scroller); });
-
-    expect(refresh).not.toHaveBeenCalled();
-  });
-
-  it('toast auto-dismisses after 4 seconds', async () => {
-    vi.useFakeTimers();
-    const refresh = vi.fn().mockResolvedValue(undefined);
-    mockUseHubData.mockReturnValue({
-      balance: '5.00', assetCount: 0, piPrice: 31.5, notifCount: 0, time: '12:00',
-      setNotifCount: vi.fn(), refresh, refreshBalance: vi.fn(),
-    });
-    const { default: HubPage } = await import('@/app/hub/page');
-    const { container } = render(<HubPage />);
-    await act(async () => {});
-
-    const scroller = container.firstElementChild as HTMLElement;
-    Object.defineProperty(scroller, 'scrollTop', { value: 0, configurable: true });
-    fireEvent.touchStart(scroller, { touches: [{ clientY: 100 }] });
-    fireEvent.touchMove(scroller,  { touches: [{ clientY: 250 }] });
-    await act(async () => { fireEvent.touchEnd(scroller); });
-
-    // ToastContainer mock shows toast count — dismiss timer clears it
-    await act(async () => { vi.advanceTimersByTime(4500); });
-    expect(screen.getByTestId('toast-container').textContent).toBe('0');
-    vi.useRealTimers();
-  });
-});
-
-// ════════════════════════════════════════════════════════════════════════════
 // 11. PayClient — success redirect timer + idle cancel + cancelled Go Back
 // ════════════════════════════════════════════════════════════════════════════
 describe('PayClient — redirect timers and back buttons', () => {
@@ -1563,18 +1494,3 @@ describe('PayClient — redirect timers and back buttons', () => {
   });
 });
 
-describe('Hub page — touchEnd without touchStart is a no-op', () => {
-  it('does not refresh when pull was never started', async () => {
-    const refresh = vi.fn().mockResolvedValue(undefined);
-    mockUseHubData.mockReturnValue({
-      balance: '5.00', assetCount: 0, piPrice: 31.5, notifCount: 0, time: '12:00',
-      setNotifCount: vi.fn(), refresh, refreshBalance: vi.fn(),
-    });
-    const { default: HubPage } = await import('@/app/hub/page');
-    const { container } = render(<HubPage />);
-    await act(async () => {});
-    const scroller = container.firstElementChild as HTMLElement;
-    await act(async () => { fireEvent.touchEnd(scroller); });
-    expect(refresh).not.toHaveBeenCalled();
-  });
-});

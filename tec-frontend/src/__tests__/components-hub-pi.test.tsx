@@ -1687,10 +1687,8 @@ describe('HubCarousel (src/components/hub)', () => {
   const baseProps = {
     carouselIdx: 0,
     setCarouselIdx: vi.fn(),
-    assetCount: 5,
     piPrice: { price: 1.23, change24h: 0.45, high24h: 1.50, low24h: 1.0 },
-    goToAssets: vi.fn(),
-    goToCommerce: vi.fn(),
+    goToPioneers: vi.fn(),
   };
 
   it('renders without crash', () => {
@@ -1698,16 +1696,9 @@ describe('HubCarousel (src/components/hub)', () => {
     expect(container).toBeTruthy();
   });
 
-  it('renders asset count', () => {
+  it('renders the Founding 100 missions slide', () => {
     render(<HubCarousel {...baseProps} />);
-    expect(screen.getByText('5')).toBeInTheDocument();
-  });
-
-  it('renders null assetCount skeleton', () => {
-    const { container } = render(
-      <HubCarousel {...baseProps} assetCount={null} />
-    );
-    expect(container).toBeTruthy();
+    expect(screen.getByText('Founding 100')).toBeInTheDocument();
   });
 
   it('renders pi price data', () => {
@@ -1733,18 +1724,11 @@ describe('HubCarousel (src/components/hub)', () => {
     expect(container.textContent).toContain('▼');
   });
 
-  it('calls goToAssets on Digital Assets button click', () => {
-    const goToAssets = vi.fn();
-    render(<HubCarousel {...baseProps} goToAssets={goToAssets} />);
-    fireEvent.click(screen.getByText('Digital Assets'));
-    expect(goToAssets).toHaveBeenCalled();
-  });
-
-  it('calls goToCommerce on Commerce button click', () => {
-    const goToCommerce = vi.fn();
-    render(<HubCarousel {...baseProps} goToCommerce={goToCommerce} />);
-    fireEvent.click(screen.getByText('Commerce'));
-    expect(goToCommerce).toHaveBeenCalled();
+  it('calls goToPioneers on the Founding 100 slide click', () => {
+    const goToPioneers = vi.fn();
+    render(<HubCarousel {...baseProps} goToPioneers={goToPioneers} />);
+    fireEvent.click(screen.getByText('Founding 100'));
+    expect(goToPioneers).toHaveBeenCalled();
   });
 
   it('navigates carousel by dot clicks', () => {

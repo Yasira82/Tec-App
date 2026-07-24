@@ -14,6 +14,16 @@ export function HubWalletCard({ balance, piPrice }: Props) {
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
 
+  // Primary wallet actions — surfaced on the home like every major fintech app.
+  // They do NOT reimplement payment logic; each opens the REAL Send/Receive/history
+  // flow on the wallet page (payment-service owns the transaction — P2/ADR-004).
+  const go = (path: string) => { haptic('light'); router.push(path); };
+  const ACTIONS = [
+    { key: 'send',    label: 'Send',    icon: '↑', path: '/dashboard/wallet?action=send' },
+    { key: 'receive', label: 'Receive', icon: '↓', path: '/dashboard/wallet?action=receive' },
+    { key: 'history', label: 'History', icon: '⇄', path: '/dashboard/wallet' },
+  ];
+
   return (
     <div style={{ padding: '20px 16px 0', animation: 'tec-fade-in 0.4s ease both' }}>
       <button className="tec-btn"
@@ -73,6 +83,21 @@ export function HubWalletCard({ balance, piPrice }: Props) {
           </div>
         </div>
       </button>
+
+      {/* Quick actions — open the real wallet Send/Receive/history flow */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
+        {ACTIONS.map(a => (
+          <button key={a.key} className="tec-btn" onClick={() => go(a.path)} aria-label={a.label}
+            style={{
+              flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
+              padding: '11px 0', borderRadius: 16, cursor: 'pointer',
+              background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.16)',
+            }}>
+            <span style={{ fontSize: 17, fontWeight: 900, color: '#FBBF24', lineHeight: 1 }}>{a.icon}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3 }}>{a.label}</span>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

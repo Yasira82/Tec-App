@@ -11,6 +11,9 @@ interface Props {
   initialValue?: string | null;
   /** Called with the durable storage key once an image is uploaded (or '' when cleared). */
   onChange:   (key: string) => void;
+  /** Force a live camera capture instead of the file chooser. 'user' = front
+   *  camera (selfie), 'environment' = rear camera. Omit to allow camera OR gallery. */
+  capture?:   'user' | 'environment';
 }
 
 type State = 'idle' | 'uploading' | 'done' | 'error';
@@ -19,7 +22,7 @@ type State = 'idle' | 'uploading' | 'done' | 'error';
 // chosen image, and uploads it to secure storage — replacing the old
 // "paste a URL" box. Keeps a native <input type="file"> so the platform
 // picker (and the camera on mobile) is used.
-export function PhotoUpload({ label, required, initialValue, onChange }: Props) {
+export function PhotoUpload({ label, required, initialValue, onChange, capture }: Props) {
   const [state,   setState]   = useState<State>(initialValue ? 'done' : 'idle');
   const [preview, setPreview] = useState<string | null>(null);
   const [name,    setName]    = useState<string | null>(initialValue ? 'Uploaded document' : null);
@@ -69,6 +72,7 @@ export function PhotoUpload({ label, required, initialValue, onChange }: Props) 
         <input
           type="file"
           accept="image/*"
+          {...(capture ? { capture } : {})}
           onChange={onFile}
           aria-label={label}
           style={{

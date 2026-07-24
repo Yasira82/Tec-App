@@ -5,8 +5,7 @@ import { useKyc, KycRecord, KycStatus }     from '@/lib-client/hooks/useKyc';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
 import { Icon, IconName }                   from '@/components/ui/Icon';
-import { PhotoUpload }                       from '@/components/kyc/PhotoUpload';
-import { LiveSelfieCapture }                 from '@/components/kyc/LiveSelfieCapture';
+import { CameraCapture }                     from '@/components/kyc/CameraCapture';
 
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<KycStatus, {
@@ -190,9 +189,15 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             </div>
           </div>
 
-          <PhotoUpload label="ID / Passport — Front" required initialValue={kyc.id_front_url} onChange={setIdFrontUrl} />
-          <PhotoUpload label="ID / Passport — Back (optional)" initialValue={kyc.id_back_url} onChange={setIdBackUrl} />
-          <LiveSelfieCapture label="Live Selfie (camera)" required initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
+          <CameraCapture label="ID / Passport — Front" required facing="environment" guide="rect"
+            title="Take a photo of your ID" hint="Opens your camera · fit all corners in the frame"
+            initialValue={kyc.id_front_url} onChange={setIdFrontUrl} />
+          <CameraCapture label="ID / Passport — Back (optional)" facing="environment" guide="rect"
+            title="Take a photo of the back" hint="Opens your camera · optional"
+            initialValue={kyc.id_back_url} onChange={setIdBackUrl} />
+          <CameraCapture label="Live Selfie (camera)" required facing="user" guide="oval"
+            title="Take a selfie" hint="Opens your front camera · look straight at it"
+            initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
 
           {uploadErr && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>

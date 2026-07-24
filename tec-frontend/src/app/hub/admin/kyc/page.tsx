@@ -76,7 +76,12 @@ function ReviewCard({ kyc, onDone }: { kyc: PendingKyc; onDone: (userId: string)
 
   const reject = () => {
     const reason = window.prompt('Reason for rejection (shown to the user):');
-    if (reason && reason.trim()) act('/api/kyc/admin/reject', { userId: kyc.user_id, reason: reason.trim() }, 'reject');
+    if (reason === null) return;            // cancelled
+    if (!reason.trim()) {                    // OK with an empty box → tell them why nothing happened
+      window.alert('A rejection reason is required. Type it in the box, then press OK.');
+      return;
+    }
+    act('/api/kyc/admin/reject', { userId: kyc.user_id, reason: reason.trim() }, 'reject');
   };
 
   return (

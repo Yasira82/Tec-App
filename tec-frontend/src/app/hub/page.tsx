@@ -51,7 +51,7 @@ function HubPageInner() {
       const href  = route.startsWith('http')
         ? `/api/auth/sso?target=${encodeURIComponent(route)}`
         : route;
-      return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description.en };
+      return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description.en, group: d.group };
     });
 
   const { balance, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
@@ -229,6 +229,9 @@ function HubPageInner() {
   // Marketing missions entry — the Pioneer Quest / Founding 100 (public route, same origin).
   const goToPioneers  = () => { haptic('light'); router.push('/pioneers'); };
 
+  const hour     = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+
   return (
     <div
       style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88, overflowY: 'auto', overscrollBehavior: 'none' }}
@@ -257,6 +260,16 @@ function HubPageInner() {
         notifCount={totalNotif}
         onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/hub/notifications'); }}
       />
+      {/* Personalized greeting — time-of-day + Pi username */}
+      {user?.piUsername && (
+        <div style={{ padding: '16px 20px 0', animation: 'tec-fade-in 0.35s ease both' }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: -0.2 }}>
+            {greeting}, <span style={{ color: '#FBBF24' }}>@{user.piUsername}</span>
+          </div>
+          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>Your Pi economy, all in one place.</div>
+        </div>
+      )}
+
       <HubWalletCard balance={balance} piPrice={piPrice} />
 
       {/* Carousel = the top spotlight: Founding-100 marketing missions + an app

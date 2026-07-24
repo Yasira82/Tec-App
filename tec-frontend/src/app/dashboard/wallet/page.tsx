@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/useWallet';
 import { useWalletRealtime, WalletUpdatedEvent }     from '@/lib-client/hooks/useWalletRealtime';
 import { getAccessToken }                            from '@/lib-client/pi/pi-auth';
@@ -285,6 +285,14 @@ export default function WalletPage() {
   const [liveFlash,   setLiveFlash]   = useState(false);
   const [showSend,    setShowSend]    = useState(false);
   const [showReceive, setShowReceive] = useState(false);
+
+  // Deep-link from the Hub wallet card: /dashboard/wallet?action=send|receive
+  // opens the real Send/Receive modal directly (no reimplemented payment logic).
+  useEffect(() => {
+    const a = new URLSearchParams(window.location.search).get('action');
+    if (a === 'send')    setShowSend(true);
+    if (a === 'receive') setShowReceive(true);
+  }, []);
 
   const handleBalanceUpdate = useCallback((event: WalletUpdatedEvent) => {
     updateBalance(event.balance);

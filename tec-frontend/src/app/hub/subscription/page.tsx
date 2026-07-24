@@ -188,13 +188,20 @@ export default function HubSubscriptionPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSubscribe = async (planId: string) => {
+    // Do NOT gate on a client-readable token: `tec_access_token` is HttpOnly, so
+    // getAccessToken() returns null in most browsers — the cookie still rides on
+    // credentials:'include' and the BFF route reads it. Gating here made the
+    // Upgrade buttons silently do nothing.
     const token = getAccessToken();
-    if (!token) return;
     setPaying(planId); setError(null); setSuccess(null);
     try {
       const res  = await fetch('/api/subscriptions?endpoint=subscribe', {
         method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, 'x-csrf-token': getCsrfToken() },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': getCsrfToken(),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify({ plan: planId }),
       });
       const data = await res.json();
@@ -206,13 +213,17 @@ export default function HubSubscriptionPage() {
   };
 
   const handleCancel = async () => {
+    if (!confirm('Cancel your subscription?')) return;
     const token = getAccessToken();
-    if (!token || !confirm('Cancel your subscription?')) return;
     setCancelling(true); setError(null); setSuccess(null);
     try {
       const res  = await fetch('/api/subscriptions?endpoint=cancel', {
         method: 'PATCH', credentials: 'include',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': getCsrfToken(),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message ?? 'Failed to cancel');

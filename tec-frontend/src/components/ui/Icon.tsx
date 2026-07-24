@@ -11,7 +11,7 @@ import type { CSSProperties } from 'react';
 export type IconName =
   | 'hub' | 'wallet' | 'gem' | 'cart' | 'settings'
   | 'bell' | 'sparkles' | 'store' | 'receipt' | 'chart' | 'box' | 'plus'
-  | 'shield' | 'shieldCheck' | 'check' | 'clock' | 'x' | 'info' | 'upload' | 'alert';
+  | 'shield' | 'shieldCheck' | 'check' | 'clock' | 'x' | 'info' | 'upload' | 'alert' | 'camera';
 
 const PATHS: Record<IconName, string> = {
   hub:      '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>',
@@ -34,6 +34,7 @@ const PATHS: Record<IconName, string> = {
   info:        '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   upload:      '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>',
   alert:       '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  camera:      '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/>',
 };
 
 interface IconProps {

@@ -6,6 +6,7 @@ import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
 import { Icon, IconName }                   from '@/components/ui/Icon';
 import { PhotoUpload }                       from '@/components/kyc/PhotoUpload';
+import { LiveSelfieCapture }                 from '@/components/kyc/LiveSelfieCapture';
 
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<KycStatus, {
@@ -191,7 +192,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
 
           <PhotoUpload label="ID / Passport — Front" required initialValue={kyc.id_front_url} onChange={setIdFrontUrl} />
           <PhotoUpload label="ID / Passport — Back (optional)" initialValue={kyc.id_back_url} onChange={setIdBackUrl} />
-          <PhotoUpload label="Live Selfie (camera)" required capture="user" initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
+          <LiveSelfieCapture label="Live Selfie (camera)" required initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
 
           {uploadErr && (
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>

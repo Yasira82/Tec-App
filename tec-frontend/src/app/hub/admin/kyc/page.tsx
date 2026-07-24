@@ -25,24 +25,11 @@ const getCsrfToken = (): string => {
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
 
-// Resolves a storage key → presigned URL (admin) and renders the document image.
+// Renders a stored KYC document image. The src is a same-origin BFF route that
+// streams the bytes from storage (no presigned R2 URL in the browser).
 function DocImage({ label, docKey }: { label: string; docKey: string | null }) {
-  const [url, setUrl] = useState<string | null>(null);
   const [err, setErr] = useState(false);
-
-  useEffect(() => {
-    if (!docKey) return;
-    let alive = true;
-    (async () => {
-      try {
-        const res  = await fetch(`/api/kyc/admin/document?key=${encodeURIComponent(docKey)}`, { credentials: 'include' });
-        const data = await res.json().catch(() => ({}));
-        const u = data?.data?.url ?? data?.url;
-        if (alive) { if (u) setUrl(u); else setErr(true); }
-      } catch { if (alive) setErr(true); }
-    })();
-    return () => { alive = false; };
-  }, [docKey]);
+  const src = docKey ? `/api/kyc/admin/document?key=${encodeURIComponent(docKey)}` : null;
 
   return (
     <div style={{ flex: 1, minWidth: 0 }}>
@@ -52,17 +39,15 @@ function DocImage({ label, docKey }: { label: string; docKey: string | null }) {
         background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        {!docKey ? (
+        {!src ? (
           <span style={{ fontSize: 11, color: 'var(--tec-text-3)' }}>—</span>
         ) : err ? (
           <span style={{ fontSize: 11, color: '#ef4444' }}>Unavailable</span>
-        ) : url ? (
-          <a href={url} target="_blank" rel="noreferrer" style={{ width: '100%', height: '100%' }}>
-            {/* eslint-disable-next-line @next/next/no-img-element -- private presigned document, not an optimizable asset */}
-            <img src={url} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          </a>
         ) : (
-          <span className="tec-skeleton" style={{ width: '100%', height: '100%' }} />
+          <a href={src} target="_blank" rel="noreferrer" style={{ width: '100%', height: '100%' }}>
+            {/* eslint-disable-next-line @next/next/no-img-element -- private streamed document, not an optimizable asset */}
+            <img src={src} alt={label} onError={() => setErr(true)} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          </a>
         )}
       </div>
     </div>

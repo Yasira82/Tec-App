@@ -324,7 +324,7 @@ describe('HubPage — authenticated render', () => {
   it('renders all 5 bottom nav items', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    const nav = ['Hub', 'Wallet', 'Assets', 'Commerce', 'Settings'];
+    const nav = ['Hub', 'Wallet', 'Activity', 'Plan', 'Settings'];
     for (const label of nav) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
@@ -367,20 +367,18 @@ describe('HubPage — bottom navigation', () => {
     expect(mockPush).toHaveBeenCalledWith('/hub/profile');
   });
 
-  it('Assets nav click sets window.location.href to SSO assets URL', async () => {
+  it('Activity nav click calls router.push(/hub/notifications)', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Assets'));
-    expect(window.location.href).toContain('/api/auth/sso');
-    expect(window.location.href).toContain('assets.tecosystem.app');
+    fireEvent.click(screen.getByLabelText('Activity'));
+    expect(mockPush).toHaveBeenCalledWith('/hub/notifications');
   });
 
-  it('Commerce nav click sets window.location.href to SSO commerce URL', async () => {
+  it('Plan nav click calls router.push(/hub/subscription)', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Commerce'));
-    expect(window.location.href).toContain('/api/auth/sso');
-    expect(window.location.href).toContain('commerce.tecosystem.app');
+    fireEvent.click(screen.getByLabelText('Plan'));
+    expect(mockPush).toHaveBeenCalledWith('/hub/subscription');
   });
 });
 

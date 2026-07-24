@@ -104,6 +104,21 @@ export default function HubProfilePage() {
         </div>
       </DashboardCard>
 
+      {/* ── Admin: KYC Review (admins only) ──────────── */}
+      {user?.role === 'admin' && (
+        <DashboardCard title="Admin">
+          <button onClick={() => router.push('/hub/admin/kyc')}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left' }}>
+            <span style={{ fontSize: 22 }}>🛡️</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>KYC Review</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Approve or reject identity submissions</div>
+            </div>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
+          </button>
+        </DashboardCard>
+      )}
+
       {/* ── Connected Apps ───────────────────────────── */}
       <DashboardCard title="Connected Apps">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 'var(--radius-md)' }}>

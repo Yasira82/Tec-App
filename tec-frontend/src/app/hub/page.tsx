@@ -23,8 +23,6 @@ import { useHubData }  from '@/hooks/useHubData';
 import { haptic }      from '@/lib/hub/utils';
 import '@/styles/tec-design-tokens.css';
 
-const ASSETS_URL     = 'https://assets.tecosystem.app';
-const COMMERCE_URL   = 'https://commerce.tecosystem.app';
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -80,7 +78,7 @@ function HubPageInner() {
           memo:      decodeURIComponent(p.get('memo')       ?? 'TEC Payment'),
           productId: p.get('product_id') ?? '',
           // No return_url (template apps like Nexus/Zone don't send one) → come
-          // back to the Hub, NOT Commerce. The old COMMERCE_URL default dumped
+          // back to the Hub, NOT Commerce. The old Commerce-URL default dumped
           // every template-app Mode-1 payment onto Commerce after "Close".
           returnUrl: decodeURIComponent(p.get('return_url') ?? `${window.location.origin}/hub`),
           source:    p.get('source')     ?? 'hub',
@@ -224,8 +222,6 @@ function HubPageInner() {
   }
 
   const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
-  const goToAssets    = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
-  const goToCommerce  = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
   // Marketing missions entry — the Pioneer Quest / Founding 100 (public route, same origin).
   const goToPioneers  = () => { haptic('light'); router.push('/pioneers'); };
 
@@ -315,8 +311,8 @@ function HubPageInner() {
         {([
           { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
           { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: 'gem'      as const, label: 'Assets',   active: false, action: goToAssets },
-          { icon: 'cart'     as const, label: 'Commerce', active: false, action: goToCommerce },
+          { icon: 'bell'     as const, label: 'Activity', active: false, action: () => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/hub/notifications'); } },
+          { icon: 'sparkles' as const, label: 'Plan',     active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
           { icon: 'settings' as const, label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
         ]).map(item => (
           <button key={item.label} className="tec-nav-btn" onClick={item.action} aria-label={item.label} aria-current={item.active ? 'page' : undefined}

@@ -20,6 +20,14 @@ on:
 permissions:
   contents: read
 
+# The push (claude/**) and pull_request events both fire for the same commit,
+# which used to start two identical ~15-min runs in parallel (double CI spend,
+# and if a runner stalled BOTH hit the timeout). Key the group on the head SHA
+# so both events share one group and the duplicate cancels itself.
+concurrency:
+  group: ci-${{ github.event.pull_request.head.sha || github.sha }}
+  cancel-in-progress: true
+
 jobs:
   pipeline:
     name: Lint + Typecheck + Test + Build

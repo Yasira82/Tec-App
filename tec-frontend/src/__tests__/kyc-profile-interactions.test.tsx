@@ -12,6 +12,9 @@ import { render, act, fireEvent, waitFor, screen } from '@testing-library/react'
 const mockUsePiAuth   = vi.hoisted(() => vi.fn());
 const mockUseKyc      = vi.hoisted(() => vi.fn());
 const mockRouterPush  = vi.hoisted(() => vi.fn());
+// KYC document photo upload — return a deterministic storage key per file so we
+// can assert the keys flow through to uploadDocs.
+const mockUploadImage = vi.hoisted(() => vi.fn(async (f: File) => ({ key: `k:${f.name}`, name: f.name })));
 
 vi.mock('next/navigation', () => ({
   useRouter:       () => ({ push: mockRouterPush, back: vi.fn(), replace: vi.fn() }),
@@ -21,6 +24,7 @@ vi.mock('next/navigation', () => ({
 
 vi.mock('@/lib-client/hooks/usePiAuth', () => ({ usePiAuth: mockUsePiAuth }));
 vi.mock('@/lib-client/hooks/useKyc',    () => ({ useKyc: mockUseKyc }));
+vi.mock('@/lib-client/kyc/upload-image', () => ({ uploadKycImage: mockUploadImage }));
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({
   getAccessToken: vi.fn(() => 'tok'),
@@ -78,6 +82,11 @@ beforeEach(() => {
     reset:        vi.fn().mockResolvedValue(undefined),
   };
   mockUseKyc.mockReturnValue(kycState);
+  mockUploadImage.mockClear();
+  // jsdom has no object-URL support; PhotoUpload uses it for the local preview.
+  if (!('createObjectURL' in URL)) {
+    (URL as unknown as { createObjectURL: unknown }).createObjectURL = vi.fn(() => 'blob:preview');
+  }
   Object.defineProperty(navigator, 'clipboard', {
     value:        { writeText: vi.fn().mockResolvedValue(undefined) },
     writable:     true,
@@ -85,11 +94,17 @@ beforeEach(() => {
   });
 });
 
-const fillKycForm = (container: HTMLElement) => {
+const selectPhoto = (input: Element, name: string) => {
+  const file = new File(['x'], name, { type: 'image/jpeg' });
+  fireEvent.change(input, { target: { files: [file] } });
+};
+
+// Photo pickers: ID Front, ID Back (optional), Selfie. Selecting a file uploads
+// it (mocked → key `k:<name>`) and reports the key up to the form.
+const fillKycForm = async (container: HTMLElement) => {
   const inputs = container.querySelectorAll('input');
-  // ID Front, ID Back (optional), Selfie
-  fireEvent.change(inputs[0], { target: { value: 'https://storage/id-front.jpg' } });
-  fireEvent.change(inputs[2], { target: { value: 'https://storage/selfie.jpg' } });
+  await act(async () => { selectPhoto(inputs[0], 'id-front.jpg'); });
+  await act(async () => { selectPhoto(inputs[2], 'selfie.jpg'); });
 };
 
 const clickContinue = (container: HTMLElement) =>
@@ -104,12 +119,12 @@ describe.each([
 ] as const)('%s KYC form interactions', (_name, Page) => {
   it('upload succeeds → moves to review step', async () => {
     const { container } = render(<Page />);
-    fillKycForm(container);
+    await fillKycForm(container);
     await act(async () => { clickContinue(container); });
     expect(kycState.uploadDocs).toHaveBeenCalledWith({
-      idFrontUrl: 'https://storage/id-front.jpg',
+      idFrontUrl: 'k:id-front.jpg',
       idBackUrl:  undefined,
-      selfieUrl:  'https://storage/selfie.jpg',
+      selfieUrl:  'k:selfie.jpg',
     });
     await waitFor(() => {
       expect(container.textContent).toContain('Back');
@@ -119,19 +134,19 @@ describe.each([
   it('upload includes idBackUrl when provided', async () => {
     const { container } = render(<Page />);
     const inputs = container.querySelectorAll('input');
-    fireEvent.change(inputs[0], { target: { value: 'https://f.jpg' } });
-    fireEvent.change(inputs[1], { target: { value: 'https://b.jpg' } });
-    fireEvent.change(inputs[2], { target: { value: 'https://s.jpg' } });
+    await act(async () => { selectPhoto(inputs[0], 'front.jpg'); });
+    await act(async () => { selectPhoto(inputs[1], 'back.jpg'); });
+    await act(async () => { selectPhoto(inputs[2], 'selfie.jpg'); });
     await act(async () => { clickContinue(container); });
     expect(kycState.uploadDocs).toHaveBeenCalledWith({
-      idFrontUrl: 'https://f.jpg', idBackUrl: 'https://b.jpg', selfieUrl: 'https://s.jpg',
+      idFrontUrl: 'k:front.jpg', idBackUrl: 'k:back.jpg', selfieUrl: 'k:selfie.jpg',
     });
   });
 
   it('upload failure shows the error message', async () => {
     kycState.uploadDocs.mockRejectedValue(new Error('Upload rejected by gateway'));
     const { container } = render(<Page />);
-    fillKycForm(container);
+    await fillKycForm(container);
     await act(async () => { clickContinue(container); });
     await waitFor(() => {
       expect(container.textContent).toContain('Upload rejected by gateway');

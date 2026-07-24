@@ -14,17 +14,31 @@ const FAV_KEY    = 'tec_fav_apps';
 const RECENT_KEY = 'tec_recent_apps';
 const RECENT_MAX = 6;
 
-// Human labels + display order for the registry `group` values.
-const GROUP_LABEL: Record<string, string> = {
-  platform:     'Platform',
-  finance:      'Finance',
-  commerce:     'Commerce',
-  real_world:   'Real World',
-  social:       'Social',
-  tech:         'Tech',
-  monetization: 'Prestige',
+// User-facing app categories — grounded in the KB Economic OS Model (C-119) + the app
+// charters (C-105→C-131), NOT the registry's coarse `group` field (which mis-placed
+// e.g. Zone under "social" — it is the Verification Runtime, C-120). Each app once.
+const CATEGORY_OF: Record<string, string> = {
+  // Money & Commerce — trade, ownership, capital, protection
+  commerce: 'money', ecommerce: 'money', assets: 'money', fundx: 'money', insure: 'money',
+  // Business & Work — build, enterprise, opportunities, developers
+  nbf: 'work', titan: 'work', nx: 'work', epic: 'work', dx: 'work',
+  // Real World — property, institutional assets, discovery
+  estate: 'realworld', brookfield: 'realworld', explorer: 'realworld',
+  // Identity & Social — personal + relationships
+  life: 'social', connection: 'social',
+  // Reputation — evidence → recognition → premium
+  legend: 'reputation', elite: 'reputation', vip: 'reputation',
+  // Trust & Intelligence — verification, governance, data, coordination
+  zone: 'trust', system: 'trust', analytics: 'trust', alert: 'trust', nexus: 'trust',
 };
-const GROUP_ORDER = ['platform', 'finance', 'commerce', 'real_world', 'social', 'tech', 'monetization'];
+const CATEGORY_ORDER: [string, string][] = [
+  ['money',      'Money & Commerce'],
+  ['work',       'Business & Work'],
+  ['realworld',  'Real World'],
+  ['social',     'Identity & Social'],
+  ['reputation', 'Reputation'],
+  ['trust',      'Trust & Intelligence'],
+];
 
 function readList(key: string): string[] {
   try {
@@ -74,13 +88,12 @@ export function HubAppsGrid({ apps }: Props) {
   const favApps    = favs.map((s) => bySlug.get(s)).filter((a): a is HubApp => !!a);
   const recentApps = recents.map((s) => bySlug.get(s)).filter((a): a is HubApp => !!a).filter((a) => !favs.includes(a.slug));
 
-  // Category sections in a stable order (only groups that have apps). Any app whose
-  // group is unknown/unset falls into a "More" bucket so nothing is ever dropped.
-  const known = new Set(GROUP_ORDER);
-  const grouped = GROUP_ORDER
-    .map((g) => ({ group: g, label: GROUP_LABEL[g] ?? g, items: apps.filter((a) => a.group === g) }))
+  // Category sections in a stable order (only categories that have apps). Any app not
+  // in the map falls into a "More" bucket so nothing is ever dropped.
+  const grouped = CATEGORY_ORDER
+    .map(([key, label]) => ({ group: key, label, items: apps.filter((a) => CATEGORY_OF[a.slug] === key) }))
     .filter((s) => s.items.length > 0);
-  const others = apps.filter((a) => !a.group || !known.has(a.group));
+  const others = apps.filter((a) => !CATEGORY_OF[a.slug]);
   if (others.length) grouped.push({ group: 'other', label: 'More', items: others });
 
   const AppCard = ({ app, idx }: { app: HubApp; idx: number }) => {

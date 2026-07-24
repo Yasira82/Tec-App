@@ -234,7 +234,7 @@ function HubPageInner() {
 
   return (
     <div
-      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88, overflowY: 'auto', overscrollBehavior: 'none' }}
+      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88 }}
     >
       {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (

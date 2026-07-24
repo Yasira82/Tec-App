@@ -311,7 +311,7 @@ function HubPageInner() {
         {([
           { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
           { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          { icon: 'bell'     as const, label: 'Activity', active: false, action: () => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/hub/notifications'); } },
+          { icon: 'shield'   as const, label: 'Verify',   active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
           { icon: 'sparkles' as const, label: 'Plan',     active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
           { icon: 'settings' as const, label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
         ]).map(item => (

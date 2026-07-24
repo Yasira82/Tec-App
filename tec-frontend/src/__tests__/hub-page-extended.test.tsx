@@ -324,7 +324,7 @@ describe('HubPage — authenticated render', () => {
   it('renders all 5 bottom nav items', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    const nav = ['Hub', 'Wallet', 'Activity', 'Plan', 'Settings'];
+    const nav = ['Hub', 'Wallet', 'Verify', 'Plan', 'Settings'];
     for (const label of nav) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
@@ -367,11 +367,11 @@ describe('HubPage — bottom navigation', () => {
     expect(mockPush).toHaveBeenCalledWith('/hub/profile');
   });
 
-  it('Activity nav click calls router.push(/hub/notifications)', async () => {
+  it('Verify nav click calls router.push(/hub/kyc)', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Activity'));
-    expect(mockPush).toHaveBeenCalledWith('/hub/notifications');
+    fireEvent.click(screen.getByLabelText('Verify'));
+    expect(mockPush).toHaveBeenCalledWith('/hub/kyc');
   });
 
   it('Plan nav click calls router.push(/hub/subscription)', async () => {

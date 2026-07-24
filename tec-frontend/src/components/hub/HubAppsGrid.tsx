@@ -96,47 +96,48 @@ export function HubAppsGrid({ apps }: Props) {
   const others = apps.filter((a) => !CATEGORY_OF[a.slug]);
   if (others.length) grouped.push({ group: 'other', label: 'More', items: others });
 
-  const AppCard = ({ app, idx }: { app: HubApp; idx: number }) => {
+  // Compact icon tile (WeChat/iOS-style launcher) — dense so all apps fit in a few
+  // rows. Tap opens; the corner star pins/unpins without opening.
+  const AppCard = ({ app }: { app: HubApp }) => {
     const isFav = favs.includes(app.slug);
     return (
-      <div style={{ position: 'relative', animation: `tec-fade-in ${0.25 + idx * 0.04}s ease both` }}>
-        <button className="tec-app-card" onClick={() => openApp(app)}
+      <div style={{ position: 'relative' }}>
+        <button className="tec-btn" onClick={() => openApp(app)}
           style={{
-            width: '100%', display: 'flex', alignItems: 'center', gap: 12,
-            padding: '14px 16px', background: '#111627',
-            border: '1px solid rgba(255,255,255,0.06)',
-            borderRadius: 18, cursor: 'pointer', textAlign: 'left',
+            width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+            padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer',
           }}>
           <div style={{
-            width: 42, height: 42, borderRadius: 14, minWidth: 42,
-            background: `linear-gradient(135deg, ${appAccentRgba(app.slug, 0.16)}, ${appAccentRgba(app.slug, 0.05)})`,
+            width: 54, height: 54, borderRadius: 17,
+            background: `linear-gradient(135deg, ${appAccentRgba(app.slug, 0.20)}, ${appAccentRgba(app.slug, 0.06)})`,
             border: `1px solid ${appAccentRgba(app.slug, 0.30)}`,
-            boxShadow: `0 4px 14px ${appAccentRgba(app.slug, 0.10)}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
+            boxShadow: `0 4px 14px ${appAccentRgba(app.slug, 0.12)}`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
           }}>{app.emoji}</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#fff', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.name}</div>
-            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{app.desc}</div>
-          </div>
+          <span style={{
+            fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center',
+            lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+          }}>{app.name}</span>
         </button>
-        {/* Favorite toggle — pin without opening */}
+        {/* Favorite toggle */}
         <button onClick={(e) => { e.stopPropagation(); toggleFav(app.slug); }}
           aria-label={isFav ? `Unpin ${app.name}` : `Pin ${app.name}`} aria-pressed={isFav}
           style={{
-            position: 'absolute', top: 8, insetInlineEnd: 8, width: 24, height: 24, borderRadius: 8,
+            position: 'absolute', top: 2, insetInlineEnd: 2, width: 20, height: 20, borderRadius: 999,
             display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            background: isFav ? 'rgba(251,191,36,0.14)' : 'transparent', border: 'none',
-            fontSize: 12, color: isFav ? '#FBBF24' : 'rgba(255,255,255,0.25)', lineHeight: 1,
+            background: 'transparent', border: 'none', fontSize: 11, lineHeight: 1,
+            color: isFav ? '#FBBF24' : 'rgba(255,255,255,0.22)',
           }}>{isFav ? '★' : '☆'}</button>
       </div>
     );
   };
 
   const Section = ({ title, items, accent }: { title: string; items: HubApp[]; accent?: string }) => (
-    <div style={{ marginTop: 18 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: accent ?? 'rgba(255,255,255,0.4)', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 10 }}>{title}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 8 }}>
-        {items.map((app, i) => <AppCard key={app.slug} app={app} idx={i} />)}
+    <div style={{ marginTop: 16 }}>
+      <div style={{ fontSize: 10, fontWeight: 700, color: accent ?? 'rgba(255,255,255,0.4)', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4 }}>
+        {items.map((app) => <AppCard key={app.slug} app={app} />)}
       </div>
     </div>
   );

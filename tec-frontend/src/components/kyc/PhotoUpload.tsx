@@ -1,8 +1,8 @@
 'use client';
 
-import { useRef, useState } from 'react';
-import { Icon }               from '@/components/ui/Icon';
-import { uploadKycImage }     from '@/lib-client/kyc/upload-image';
+import { useState }       from 'react';
+import { Icon }           from '@/components/ui/Icon';
+import { uploadKycImage } from '@/lib-client/kyc/upload-image';
 
 interface Props {
   label:      string;
@@ -20,13 +20,10 @@ type State = 'idle' | 'uploading' | 'done' | 'error';
 // "paste a URL" box. Keeps a native <input type="file"> so the platform
 // picker (and the camera on mobile) is used.
 export function PhotoUpload({ label, required, initialValue, onChange }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
   const [state,   setState]   = useState<State>(initialValue ? 'done' : 'idle');
   const [preview, setPreview] = useState<string | null>(null);
   const [name,    setName]    = useState<string | null>(initialValue ? 'Uploaded document' : null);
   const [err,     setErr]     = useState<string | null>(null);
-
-  const pick = () => inputRef.current?.click();
 
   const onFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -57,25 +54,25 @@ export function PhotoUpload({ label, required, initialValue, onChange }: Props) 
         {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
       </label>
 
-      {/* Native picker — capture prefers the rear camera on mobile, but the OS
-          still offers the gallery. Hidden; the styled box below triggers it. */}
-      <input
-        ref={inputRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        onChange={onFile}
-        aria-label={label}
-        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-      />
-
-      <button type="button" onClick={pick}
+      {/* The file input lives INSIDE the label — tapping anywhere on the label
+          opens the OS picker natively (camera + gallery). This works in strict
+          mobile webviews (incl. Pi Browser) where a programmatic input.click()
+          on a hidden input is blocked. No `capture` → the OS offers both camera
+          and gallery instead of forcing camera-only. */}
+      <label
         style={{
           width: '100%', display: 'flex', alignItems: 'center', gap: 12,
           padding: 'var(--sp-3) var(--sp-4)', textAlign: 'left', cursor: 'pointer',
           background: 'var(--tec-surface-1)', border: `1px solid ${borderColor}`,
           borderRadius: 'var(--radius-md)',
         }}>
+        <input
+          type="file"
+          accept="image/*"
+          onChange={onFile}
+          aria-label={label}
+          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+        />
         {/* Thumbnail / icon */}
         <div style={{
           width: 46, height: 46, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
@@ -111,7 +108,7 @@ export function PhotoUpload({ label, required, initialValue, onChange }: Props) 
 
         <Icon name={state === 'done' ? 'check' : 'upload'} size={16}
           color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} style={{ flexShrink: 0 }} />
-      </button>
+      </label>
     </div>
   );
 }

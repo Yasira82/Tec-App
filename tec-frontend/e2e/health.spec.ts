@@ -14,7 +14,9 @@ test.describe('App Health', () => {
       if (msg.type() === 'error') errors.push(msg.text());
     });
     await page.goto('/');
-    await page.waitForLoadState('networkidle');
+    // domcontentloaded, not networkidle — background polling means networkidle
+    // never settles (goto already waited for load).
+    await page.waitForLoadState('domcontentloaded');
 
     const critical = errors.filter(e =>
       !e.includes('favicon') &&

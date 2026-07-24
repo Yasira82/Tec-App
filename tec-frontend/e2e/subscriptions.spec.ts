@@ -17,7 +17,10 @@ test.describe('Subscription Flow', () => {
 
   test('subscription page loads plans', async ({ page }) => {
     await page.goto('/dashboard/subscription');
-    await page.waitForLoadState('networkidle');
+    // domcontentloaded, not networkidle — the page polls in the background so
+    // networkidle never settles and the test flakes/times out (goto already
+    // waited for load).
+    await page.waitForLoadState('domcontentloaded');
 
     const url = page.url();
     if (url.includes('/subscription')) {

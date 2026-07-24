@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { Icon }           from '@/components/ui/Icon';
 import { uploadKycImage } from '@/lib-client/kyc/upload-image';
 
@@ -22,11 +22,10 @@ interface Props {
 
 type State = 'idle' | 'uploading' | 'done' | 'error';
 
-// getUserMedia only works in a SECURE context with the API present. Some mobile
-// webviews block the native file picker but DO allow getUserMedia (and vice
-// versa) — so we make the in-app live camera the PRIMARY path when available,
-// and always keep the native <input capture> as a fallback. One of the two
-// works in every environment we've seen.
+// getUserMedia only works in a SECURE context with the API present AND the user
+// having granted camera permission. Some mobile browsers block the native file
+// picker but allow getUserMedia (and vice-versa), so we offer BOTH capture
+// paths and let whichever the browser supports win.
 const hasLiveCamera = (): boolean =>
   typeof navigator !== 'undefined' &&
   !!navigator.mediaDevices &&
@@ -38,12 +37,21 @@ const hasLiveCamera = (): boolean =>
 // full-screen modal can NEVER hang black on top of the rest of the form.
 const CAMERA_START_TIMEOUT_MS = 8000;
 
+const isPermissionError = (msg: string): boolean =>
+  /denied|permission|notallowed/i.test(msg);
+
 // Unified KYC capture tile used for ID front, ID back and the selfie.
 //
-// Tap the tile → opens the in-app live camera (getUserMedia) when it can run,
-// draws the frame to a canvas and uploads it. Where getUserMedia is blocked it
-// falls back to the native <input capture> (phone camera). A small "upload a
-// file" link is always available for picking an existing image.
+// PRIMARY (most compatible): the tile is a native <label> tied to an
+// <input type="file" capture> — a tap opens the phone's real camera app. This
+// needs NO in-page camera permission and works in most mobile webviews. Using
+// a real <label> (not a programmatic .click()) is what makes it open in strict
+// browsers like Samsung Internet.
+//
+// SECONDARY: an "in-app live camera" button (getUserMedia) for browsers that
+// block the file picker but allow the camera. If the camera permission is
+// denied, the modal explains exactly how to enable it and offers the native
+// camera as a fallback.
 export function CameraCapture({
   label, required, initialValue, onChange,
   facing = 'environment', guide = 'rect',
@@ -57,13 +65,11 @@ export function CameraCapture({
   const [starting, setStarting] = useState(false);
   const [mounted,  setMounted]  = useState(false);
 
+  const inputId     = useId();
   const videoRef    = useRef<HTMLVideoElement>(null);
   const streamRef   = useRef<MediaStream | null>(null);
-  const fileRef     = useRef<HTMLInputElement>(null);
   const watchdogRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Decide the live-camera path only AFTER mount — hasLiveCamera() is false
-  // during SSR, so gating render on it directly would cause a hydration mismatch.
   useEffect(() => { setMounted(true); }, []);
 
   const clearWatchdog = useCallback(() => {
@@ -100,10 +106,8 @@ export function CameraCapture({
     setStarting(false);
   }, [clearWatchdog, stopStream]);
 
-  const openCamera = useCallback(async () => {
-    // No live camera here → straight to the native picker (this click is a user
-    // gesture, so programmatic .click() is allowed).
-    if (!hasLiveCamera()) { fileRef.current?.click(); return; }
+  const openLiveCamera = useCallback(async () => {
+    if (!hasLiveCamera()) return;
     setCamErr(null);
     setStarting(true);
     setCamOpen(true);
@@ -111,7 +115,7 @@ export function CameraCapture({
     watchdogRef.current = setTimeout(() => {
       if (!streamRef.current) {
         setStarting(false);
-        setCamErr('The camera did not start. Use your phone camera instead.');
+        setCamErr('The camera did not start in time.');
       }
     }, CAMERA_START_TIMEOUT_MS);
     try {
@@ -128,7 +132,7 @@ export function CameraCapture({
     } catch (e: unknown) {
       clearWatchdog();
       setStarting(false);
-      setCamErr((e as Error)?.message || 'Camera unavailable. Use your phone camera instead.');
+      setCamErr((e as Error)?.message || 'Camera unavailable.');
     }
   }, [clearWatchdog, facing]);
 
@@ -155,11 +159,12 @@ export function CameraCapture({
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    closeCamera(); // if the native picker was opened from inside the modal
     if (!file) return;
     void uploadFile(file);
   };
 
-  const iconName = facing === 'user' ? 'camera' : (state === 'done' ? 'check' : 'camera');
+  const permissionDenied = !!camErr && isPermissionError(camErr);
   const borderColor =
     state === 'done'  ? 'rgba(34,197,94,0.4)'
   : state === 'error' ? 'rgba(239,68,68,0.4)'
@@ -167,16 +172,28 @@ export function CameraCapture({
 
   return (
     <div style={{ marginBottom: 'var(--sp-5)' }}>
-      <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--tec-text-2)', marginBottom: 8, letterSpacing: 0.5 }}>
+      <label htmlFor={inputId} style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--tec-text-2)', marginBottom: 8, letterSpacing: 0.5 }}>
         {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
       </label>
 
-      {/* Tile → opens the in-app live camera (or the native picker as fallback). */}
-      <button
-        type="button"
-        onClick={openCamera}
+      {/* The native camera input — opened by <label htmlFor> taps (no JS click,
+          so strict mobile browsers still open it). Also the target the tests
+          fire onto. */}
+      <input
+        id={inputId}
+        type="file"
+        accept="image/*"
+        capture={facing}
+        onChange={onFile}
+        aria-label={label}
+        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden', clip: 'rect(0 0 0 0)' }}
+      />
+
+      {/* PRIMARY tile → native camera app via the label. */}
+      <label
+        htmlFor={inputId}
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          position: 'relative', width: '100%', display: 'flex', alignItems: 'center', gap: 12,
           padding: 'var(--sp-3) var(--sp-4)', textAlign: 'left', cursor: 'pointer',
           background: 'var(--tec-surface-1)', border: `1px solid ${borderColor}`,
           borderRadius: 'var(--radius-md)',
@@ -189,7 +206,7 @@ export function CameraCapture({
           {preview
             // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable asset
             ? <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <Icon name={state === 'done' ? 'check' : (iconName as 'camera' | 'check')} size={20} color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} />}
+            : <Icon name={state === 'done' ? 'check' : 'camera'} size={20} color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} />}
         </div>
 
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -215,30 +232,19 @@ export function CameraCapture({
 
         <Icon name={state === 'done' ? 'check' : 'camera'} size={16}
           color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} style={{ flexShrink: 0 }} />
-      </button>
+      </label>
 
-      {/* Native fallback input (also the target automated tests fire onto). */}
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        capture={facing}
-        onChange={onFile}
-        aria-label={label}
-        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
-      />
-
-      {/* Always-available alternative: pick an existing file. */}
-      {mounted && (
+      {/* SECONDARY: in-app live camera (only where getUserMedia can run). */}
+      {mounted && hasLiveCamera() && (
         <button
           type="button"
-          onClick={() => fileRef.current?.click()}
+          onClick={openLiveCamera}
           style={{
             marginTop: 8, display: 'inline-flex', alignItems: 'center', gap: 6,
             background: 'transparent', border: 'none', padding: '2px 0',
-            color: 'var(--tec-text-3)', fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer',
+            color: 'var(--tec-gold)', fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer',
           }}>
-          <Icon name="upload" size={13} color="var(--tec-text-3)" /> Or upload a file
+          <Icon name="camera" size={13} color="var(--tec-gold)" /> Or use the in-app live camera
         </button>
       )}
 
@@ -253,21 +259,34 @@ export function CameraCapture({
             padding: 'var(--sp-5)',
           }}>
           {camErr ? (
-            <div style={{ textAlign: 'center', maxWidth: 360 }}>
+            <div style={{ textAlign: 'center', maxWidth: 380 }}>
               <div style={{ width: 60, height: 60, borderRadius: 16, margin: '0 auto var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)' }}>
                 <Icon name="camera" size={26} color="#ef4444" />
               </div>
-              <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#fff', marginBottom: 8 }}>Camera unavailable</div>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.6)', marginBottom: 'var(--sp-5)' }}>{camErr}</div>
+              <div style={{ fontSize: 'var(--text-md)', fontWeight: 700, color: '#fff', marginBottom: 8 }}>
+                {permissionDenied ? 'Camera permission is blocked' : 'Camera unavailable'}
+              </div>
+              {permissionDenied ? (
+                <div style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)', marginBottom: 'var(--sp-5)', lineHeight: 1.7, textAlign: 'left' }}>
+                  To use the live camera, allow it for this site:
+                  <br />1. Tap the <b>lock / ⚠️ icon</b> next to the address bar.
+                  <br />2. Open <b>Permissions</b> → <b>Camera</b> → <b>Allow</b>.
+                  <br />3. <b>Reload</b> the page and try again.
+                  <br /><br />Or just use your phone camera / a saved photo below.
+                </div>
+              ) : (
+                <div style={{ fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.6)', marginBottom: 'var(--sp-5)' }}>{camErr} Use your phone camera or a saved photo instead.</div>
+              )}
               <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'center' }}>
                 <button type="button" onClick={closeCamera}
                   style={{ padding: '11px 20px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid rgba(255,255,255,0.3)', color: '#fff', fontWeight: 600, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
                   Cancel
                 </button>
-                <button type="button" onClick={() => { closeCamera(); fileRef.current?.click(); }}
+                {/* Native camera via the SAME input — a real label, opens even in strict browsers. */}
+                <label htmlFor={inputId}
                   style={{ padding: '11px 20px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,var(--tec-gold),#F59E0B)', border: 'none', color: '#1a1200', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
                   Use phone camera
-                </button>
+                </label>
               </div>
             </div>
           ) : (
@@ -289,7 +308,6 @@ export function CameraCapture({
                 {starting && (
                   <span style={{ position: 'absolute', fontSize: 'var(--text-sm)', color: 'rgba(255,255,255,0.7)' }}>Starting camera…</span>
                 )}
-                {/* Capture guide */}
                 <div style={{
                   position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)',
                   width: guide === 'oval' ? '62%' : '86%',

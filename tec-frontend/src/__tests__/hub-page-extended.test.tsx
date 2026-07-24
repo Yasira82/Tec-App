@@ -78,6 +78,7 @@ vi.mock('@/lib/i18n', () => ({
 
 // ── Stub hub sub-components so we don't need their deps ────────────
 vi.mock('@/components/hub', () => ({
+  HubShareCard: () => null,
   HubHeader:    ({ piUsername, notifCount, onNotifClick }: any) => (
     <div data-testid="hub-header">
       <span data-testid="hub-username">{piUsername}</span>

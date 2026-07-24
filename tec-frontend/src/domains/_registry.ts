@@ -75,7 +75,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     status:           'live',
     layer:            'core',
     group:            'platform',
-    route:            '/dashboard/assets',
+    // External live app (SSO-wrapped by the Hub app-grid builder) — same target as the
+    // bottom-nav "Assets" button (ASSETS_URL). Was '/dashboard/assets' (the old internal
+    // dashboard), which opened a different, wrong experience from the grid tile.
+    route:            'https://assets.tecosystem.app',
     features:         { hasNotifications: true, hasAnalytics: true, requiresKYC: true, requiresPro: false },
     api:              { bff: 'assets-bff', paymentMode: 'pi-platform' },
     capabilities:     ['wallet', 'payments', 'identity'],

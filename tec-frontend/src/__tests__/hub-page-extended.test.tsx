@@ -78,7 +78,6 @@ vi.mock('@/lib/i18n', () => ({
 
 // ── Stub hub sub-components so we don't need their deps ────────────
 vi.mock('@/components/hub', () => ({
-  HubShareCard: () => null,
   HubHeader:    ({ piUsername, notifCount, onNotifClick }: any) => (
     <div data-testid="hub-header">
       <span data-testid="hub-username">{piUsername}</span>
@@ -348,12 +347,6 @@ describe('HubPage — authenticated render', () => {
     await act(async () => { render(<HubPage />); });
     expect(screen.getByTestId('toast-container')).toBeInTheDocument();
   });
-
-  it('renders PullIndicator', async () => {
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-    expect(screen.getByTestId('pull-indicator')).toBeInTheDocument();
-  });
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -387,20 +380,6 @@ describe('HubPage — bottom navigation', () => {
     await act(async () => { render(<HubPage />); });
     fireEvent.click(screen.getByLabelText('Commerce'));
     expect(window.location.href).toContain('/api/auth/sso');
-    expect(window.location.href).toContain('commerce.tecosystem.app');
-  });
-
-  it('Carousel goToAssets click navigates to Assets SSO', async () => {
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByTestId('go-assets'));
-    expect(window.location.href).toContain('assets.tecosystem.app');
-  });
-
-  it('Carousel goToCommerce click navigates to Commerce SSO', async () => {
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByTestId('go-commerce'));
     expect(window.location.href).toContain('commerce.tecosystem.app');
   });
 });
@@ -464,65 +443,6 @@ describe('HubPage — notifications', () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
     expect(screen.getByTestId('hub-notif-count')).toHaveTextContent('3');
-  });
-});
-
-// ─────────────────────────────────────────────────────────────────
-// 7. Pull-to-refresh
-// ─────────────────────────────────────────────────────────────────
-describe('HubPage — pull to refresh', () => {
-  it('full pull (>= threshold) calls refresh and shows toast', async () => {
-    const refreshMock = vi.fn().mockResolvedValue(undefined);
-    mockUseHubData.mockReturnValue({ ...defaultHubData, refresh: refreshMock });
-
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-
-    const container = document.querySelector('[style*="overscroll-behavior"]') as HTMLElement;
-    expect(container).toBeTruthy();
-
-    // Start pull at y=0, scrollTop=0
-    fireEvent.touchStart(container, { touches: [{ clientY: 0 }] });
-    // Move 200px down (> 80 threshold → progress = 1)
-    fireEvent.touchMove(container, { touches: [{ clientY: 200 }] });
-
-    await act(async () => {
-      fireEvent.touchEnd(container);
-    });
-
-    await waitFor(() => {
-      expect(refreshMock).toHaveBeenCalled();
-    });
-  });
-
-  it('partial pull (< threshold) does NOT call refresh', async () => {
-    const refreshMock = vi.fn().mockResolvedValue(undefined);
-    mockUseHubData.mockReturnValue({ ...defaultHubData, refresh: refreshMock });
-
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-
-    const container = document.querySelector('[style*="overscroll-behavior"]') as HTMLElement;
-
-    fireEvent.touchStart(container, { touches: [{ clientY: 0 }] });
-    // Move only 20px (< 80 threshold)
-    fireEvent.touchMove(container, { touches: [{ clientY: 20 }] });
-    await act(async () => { fireEvent.touchEnd(container); });
-
-    expect(refreshMock).not.toHaveBeenCalled();
-  });
-
-  it('touchMove when not pulling does nothing (isPulling.current=false)', async () => {
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-
-    const container = document.querySelector('[style*="overscroll-behavior"]') as HTMLElement;
-
-    // TouchMove without a prior TouchStart that triggers pulling
-    fireEvent.touchMove(container, { touches: [{ clientY: 300 }] });
-
-    // No crash expected
-    expect(screen.getByTestId('pull-indicator')).toBeInTheDocument();
   });
 });
 

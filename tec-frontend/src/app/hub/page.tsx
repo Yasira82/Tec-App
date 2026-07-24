@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter }                                 from 'next/navigation';
 import { usePiAuth }                                 from '@/lib-client/hooks/usePiAuth';
 import { usePiSdkReady }                             from '@/lib-client/hooks/usePiSdkReady';
@@ -14,11 +14,10 @@ import { ToastContainer, Toast }                     from './components/ToastCon
 import { AIDrawer }                                  from './components/AIDrawer';
 import { Icon }                                       from '@/components/ui/Icon';
 import { HubSkeleton }                               from './components/HubSkeleton';
-import { PullIndicator }                             from './components/PullIndicator';
 import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
 import {
   HubHeader, HubWalletCard, HubCarousel,
-  HubAppsGrid, HubShareCard, HubComingSoon,
+  HubAppsGrid, HubComingSoon,
 } from '@/components/hub';
 import { useHubData }  from '@/hooks/useHubData';
 import { haptic }      from '@/lib/hub/utils';
@@ -26,8 +25,6 @@ import '@/styles/tec-design-tokens.css';
 
 const ASSETS_URL     = 'https://assets.tecosystem.app';
 const COMMERCE_URL   = 'https://commerce.tecosystem.app';
-const ANALYTICS_URL  = 'https://analytics.tecosystem.app';
-const PULL_THRESHOLD = 80;
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -57,19 +54,14 @@ function HubPageInner() {
       return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description.en };
     });
 
-  const { balance, assetCount, piPrice, notifCount, time, setNotifCount, refresh, refreshBalance } =
+  const { balance, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
 
   const [carouselIdx,     setCarouselIdx]     = useState(0);
   const [aiOpen,          setAiOpen]          = useState(false);
   const [toasts,          setToasts]          = useState<Toast[]>([]);
-  const [pullProgress,    setPullProgress]    = useState(0);
-  const [isRefreshing,    setIsRefreshing]    = useState(false);
   const [externalPayment, setExternalPayment] = useState<ExternalPayment | null>(null);
   const [pendingPayment,  setPendingPayment]  = useState<Omit<ExternalPayment, 'internalId'> | null>(null);
-
-  const pullStartY = useRef(0);
-  const isPulling  = useRef(false);
 
   const showToast = useCallback((type: Toast['type'], message: string, txid?: string) => {
     const id = Math.random().toString(36).slice(2);
@@ -177,26 +169,6 @@ function HubPageInner() {
   window.location.href = ret.toString();
 }, [externalPayment]);
 
-  /* ── Pull to refresh ── */
-  const handlePullStart = (e: React.TouchEvent) => {
-    const el = e.currentTarget as HTMLElement;
-    if (el.scrollTop === 0) { pullStartY.current = e.touches[0].clientY; isPulling.current = true; }
-  };
-  const handlePullMove = (e: React.TouchEvent) => {
-    if (!isPulling.current) return;
-    const diff = e.touches[0].clientY - pullStartY.current;
-    if (diff > 0) setPullProgress(Math.min(diff / PULL_THRESHOLD, 1));
-  };
-  const handlePullEnd = async () => {
-    if (!isPulling.current) return;
-    isPulling.current = false;
-    if (pullProgress >= 1) {
-      haptic('medium'); setIsRefreshing(true); setPullProgress(0);
-      await refresh();
-      setIsRefreshing(false); showToast('info', 'Updated ✓');
-    } else { setPullProgress(0); }
-  };
-
   useEffect(() => {
     if (!piPrice) return;
     const id = setInterval(() => setCarouselIdx(p => p === 2 ? 0 : p + 1), 5000);
@@ -254,14 +226,12 @@ function HubPageInner() {
   const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
   const goToAssets    = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ASSETS_URL); };
   const goToCommerce  = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(COMMERCE_URL); };
-  const goToAnalytics = () => { haptic('light'); window.location.href = '/api/auth/sso?target=' + encodeURIComponent(ANALYTICS_URL); };
+  // Marketing missions entry — the Pioneer Quest / Founding 100 (public route, same origin).
+  const goToPioneers  = () => { haptic('light'); router.push('/pioneers'); };
 
   return (
     <div
       style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88, overflowY: 'auto', overscrollBehavior: 'none' }}
-      onTouchStart={handlePullStart}
-      onTouchMove={handlePullMove}
-      onTouchEnd={handlePullEnd}
     >
       {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (
@@ -273,7 +243,6 @@ function HubPageInner() {
       )}
 
       <ToastContainer toasts={toasts} onDismiss={id => setToasts(p => p.filter(t => t.id !== id))} />
-      <PullIndicator progress={pullProgress} refreshing={isRefreshing} />
       <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
 
       {!aiOpen && (
@@ -290,24 +259,16 @@ function HubPageInner() {
       />
       <HubWalletCard balance={balance} piPrice={piPrice} />
 
-      {/* Apps grid moved ABOVE the carousel so the live apps are reachable without a
-          scroll (the #hub-apps anchor is the target of the bottom HUB tap). */}
-      <div id="hub-apps" style={{ scrollMarginTop: 12 }}>
-        <HubAppsGrid apps={visibleLive} />
-      </div>
-
+      {/* Carousel = the top spotlight: Founding-100 marketing missions + an app
+          announcement + the live Pi price. (Assets/Commerce/Analytics slides removed.) */}
       <HubCarousel
         carouselIdx={carouselIdx}
         setCarouselIdx={setCarouselIdx}
-        assetCount={assetCount}
         piPrice={piPrice}
-        goToAssets={goToAssets}
-        goToCommerce={goToCommerce}
-        goToAnalytics={goToAnalytics}
+        goToPioneers={goToPioneers}
       />
 
-      {/* Marketing: turn a real member snapshot into a one-tap share → Founding 100 */}
-      <HubShareCard assetCount={assetCount} liveApps={visibleLive.length} />
+      <HubAppsGrid apps={visibleLive} />
 
       {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
 
@@ -339,7 +300,7 @@ function HubPageInner() {
 
       <nav aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
         {([
-          { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => { haptic('light'); document.getElementById('hub-apps')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
+          { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
           { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
           { icon: 'gem'      as const, label: 'Assets',   active: false, action: goToAssets },
           { icon: 'cart'     as const, label: 'Commerce', active: false, action: goToCommerce },

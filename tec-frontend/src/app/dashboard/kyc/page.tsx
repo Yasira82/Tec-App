@@ -3,6 +3,7 @@
 import { useState }                         from 'react';
 import { useKyc, KycRecord, KycStatus }     from '@/lib-client/hooks/useKyc';
 import { DashboardShell, DashboardCard }    from '@/components/dashboard';
+import { PhotoUpload }                       from '@/components/kyc/PhotoUpload';
 
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<KycStatus, {
@@ -106,37 +107,6 @@ function StepIndicator({ step }: { step: 'docs' | 'review' }) {
 }
 
 // ── Field ──────────────────────────────────────────────────────
-function Field({ label, required, value, onChange, placeholder }: {
-  label: string; required?: boolean; value: string;
-  onChange: (v: string) => void; placeholder?: string;
-}) {
-  return (
-    <div style={{ marginBottom: 'var(--sp-5)' }}>
-      <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--tec-text-2)', marginBottom: 8, letterSpacing: 0.5 }}>
-        {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
-      </label>
-      <input
-        type="url"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder ?? 'https://...'}
-        style={{
-          width: '100%', padding: 'var(--sp-3) var(--sp-4)',
-          background: 'var(--tec-surface-1)',
-          border: '1px solid var(--tec-border)',
-          borderRadius: 'var(--radius-md)',
-          color: 'var(--tec-text-1)', fontSize: 'var(--text-sm)',
-          outline: 'none', boxSizing: 'border-box',
-          fontFamily: 'var(--font-sans)',
-          transition: 'border-color 0.2s ease',
-        }}
-        onFocus={e => { e.target.style.borderColor = 'rgba(251,191,36,0.4)'; }}
-        onBlur={e  => { e.target.style.borderColor = 'var(--tec-border)'; }}
-      />
-    </div>
-  );
-}
-
 // ── KYC Form ───────────────────────────────────────────────────
 function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
   kyc: KycRecord; isSubmitting: boolean;
@@ -177,13 +147,13 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
               Upload Your Documents
             </div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6 }}>
-              Provide valid document URLs. Ensure images are clear and not expired.
+              Take a photo or choose a clear image of your ID. Make sure all corners are visible and the text is readable.
             </div>
           </div>
 
-          <Field label="ID Front" required value={idFrontUrl} onChange={setIdFrontUrl} placeholder="https://storage/id-front.jpg" />
-          <Field label="ID Back (optional)" value={idBackUrl} onChange={setIdBackUrl} placeholder="https://storage/id-back.jpg" />
-          <Field label="Selfie with ID" required value={selfieUrl} onChange={setSelfieUrl} placeholder="https://storage/selfie.jpg" />
+          <PhotoUpload label="ID / Passport — Front" required initialValue={kyc.id_front_url} onChange={setIdFrontUrl} />
+          <PhotoUpload label="ID / Passport — Back (optional)" initialValue={kyc.id_back_url} onChange={setIdBackUrl} />
+          <PhotoUpload label="Selfie with your ID" required initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
 
           {uploadErr && (
             <div style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>

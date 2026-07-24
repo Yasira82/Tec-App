@@ -720,6 +720,28 @@ describe('Hub page — uncovered paths', () => {
 // 4. Hub Subscription page — uncovered paths
 // ════════════════════════════════════════════════════════════════════════════
 describe('Hub Subscription page — uncovered paths', () => {
+  // The page loads TWO endpoints (subscription status + assets list) and calls
+  // subscribe/cancel. Route the mock by URL so tests don't depend on call order.
+  const proSub = { plan: 'PRO', status: 'ACTIVE', current_period_end: null };
+  const routeFetch = (opts: {
+    sub?: Record<string, unknown> | null; statusOk?: boolean;
+    assets?: unknown[]; subscribe?: { ok: boolean; body?: unknown };
+    cancel?: { ok: boolean; body?: unknown };
+  } = {}) => {
+    global.fetch = vi.fn().mockImplementation((url: unknown) => {
+      const u = String(url);
+      if (u.includes('endpoint=status'))
+        return Promise.resolve({ ok: opts.statusOk ?? true, json: async () => (opts.sub ? { data: { subscription: opts.sub } } : {}) });
+      if (u.includes('/bff/assets/list'))
+        return Promise.resolve({ ok: true, json: async () => ({ data: opts.assets ?? [] }) });
+      if (u.includes('endpoint=subscribe'))
+        return Promise.resolve({ ok: opts.subscribe?.ok ?? true, json: async () => opts.subscribe?.body ?? {} });
+      if (u.includes('endpoint=cancel'))
+        return Promise.resolve({ ok: opts.cancel?.ok ?? true, json: async () => opts.cancel?.body ?? {} });
+      return Promise.resolve({ ok: true, json: async () => ({}) });
+    }) as unknown as typeof fetch;
+  };
+
   it('shows loading state initially', async () => {
     global.fetch = vi.fn().mockImplementation(() => new Promise(() => {})) as unknown as typeof fetch;
     const { default: Page } = await import('@/app/hub/subscription/page');
@@ -728,51 +750,24 @@ describe('Hub Subscription page — uncovered paths', () => {
   });
 
   it('shows plans after loading', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false, json: async () => ({}),
-    }) as unknown as typeof fetch;
+    routeFetch({ statusOk: false });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
-    expect(screen.getByText('Available Plans')).toBeInTheDocument();
+    expect(screen.getByText('Plans')).toBeInTheDocument();
   });
 
   it('shows current plan card when subscription active', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: {
-          subscription: {
-            plan: 'PRO', status: 'ACTIVE',
-            current_period_end: '2026-12-01T00:00:00Z',
-            isExpired: false,
-            planDetails: { id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30, features: ['Unlimited assets'] },
-          },
-        },
-      }),
-    }) as unknown as typeof fetch;
+    routeFetch({ sub: { ...proSub, current_period_end: '2026-12-01T00:00:00Z' } });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
     expect(screen.getByText('Current Plan')).toBeInTheDocument();
   });
 
   it('clicking subscribe button sends POST request', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: false, json: async () => ({}) })  // status fetch
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            subscription: {
-              plan: 'PRO', status: 'ACTIVE', current_period_end: null, isExpired: false,
-              planDetails: { id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30, features: [] },
-            },
-          },
-        }),
-      }) as unknown as typeof fetch;
+    routeFetch({ statusOk: false });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
-    const upgradeBtn = screen.getByText(/Upgrade to Pro/);
-    await act(async () => { fireEvent.click(upgradeBtn); });
+    await act(async () => { fireEvent.click(screen.getByText(/Upgrade to Pro/)); });
     await waitFor(() => {
       expect(global.fetch).toHaveBeenCalledWith(
         '/api/subscriptions?endpoint=subscribe',
@@ -782,34 +777,17 @@ describe('Hub Subscription page — uncovered paths', () => {
   });
 
   it('shows success message after successful subscribe', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: false, json: async () => ({}) })
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            subscription: {
-              plan: 'PRO', status: 'ACTIVE', current_period_end: null, isExpired: false,
-              planDetails: { id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30, features: [] },
-            },
-          },
-        }),
-      }) as unknown as typeof fetch;
+    routeFetch({ statusOk: false, subscribe: { ok: true } });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
     await act(async () => { fireEvent.click(screen.getByText(/Upgrade to Pro/)); });
     await waitFor(() => {
-      expect(screen.getByText(/Successfully subscribed to PRO/)).toBeInTheDocument();
+      expect(screen.getByText(/You're now on Pro/)).toBeInTheDocument();
     });
   });
 
   it('shows error message on subscribe failure', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: false, json: async () => ({}) })
-      .mockResolvedValueOnce({
-        ok:   false,
-        json: async () => ({ message: 'Subscription failed' }),
-      }) as unknown as typeof fetch;
+    routeFetch({ statusOk: false, subscribe: { ok: false, body: { message: 'Subscription failed' } } });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
     await act(async () => { fireEvent.click(screen.getByText(/Upgrade to Pro/)); });
@@ -820,22 +798,7 @@ describe('Hub Subscription page — uncovered paths', () => {
 
   it('shows cancel button for PRO plan and handles cancel', async () => {
     (window.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            subscription: {
-              plan: 'PRO', status: 'ACTIVE', current_period_end: null, isExpired: false,
-              planDetails: { id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30, features: ['Unlimited assets'] },
-            },
-          },
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok:   true,
-        json: async () => ({ data: { subscription: { plan: 'FREE', status: 'CANCELLED', current_period_end: null, isExpired: false, planDetails: { id: 'FREE', name: 'Free', price: 0, currency: 'PI', duration: 0, features: [] } } } }),
-      }) as unknown as typeof fetch;
+    routeFetch({ sub: proSub, cancel: { ok: true } });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
     await waitFor(() => {
@@ -849,22 +812,7 @@ describe('Hub Subscription page — uncovered paths', () => {
 
   it('shows cancel failure error message', async () => {
     (window.confirm as ReturnType<typeof vi.fn>).mockReturnValue(true);
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: {
-            subscription: {
-              plan: 'PRO', status: 'ACTIVE', current_period_end: null, isExpired: false,
-              planDetails: { id: 'PRO', name: 'Pro', price: 10, currency: 'PI', duration: 30, features: [] },
-            },
-          },
-        }),
-      })
-      .mockResolvedValueOnce({
-        ok:   false,
-        json: async () => ({ message: 'Cancel failed' }),
-      }) as unknown as typeof fetch;
+    routeFetch({ sub: proSub, cancel: { ok: false, body: { message: 'Cancel failed' } } });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
     await waitFor(() => {
@@ -877,31 +825,27 @@ describe('Hub Subscription page — uncovered paths', () => {
   });
 
   it('shows ENTERPRISE badge for ENTERPRISE plan', async () => {
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        data: {
-          subscription: {
-            plan: 'ENTERPRISE', status: 'ACTIVE', current_period_end: null, isExpired: false,
-            planDetails: { id: 'ENTERPRISE', name: 'Enterprise', price: 50, currency: 'PI', duration: 30, features: [] },
-          },
-        },
-      }),
-    }) as unknown as typeof fetch;
+    routeFetch({ sub: { plan: 'ENTERPRISE', status: 'ACTIVE', current_period_end: null } });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
-    // Badge text should appear
     expect(document.body.textContent).toContain('Enterprise');
   });
 
-  it('handles missing token gracefully (no-op on subscribe)', async () => {
-    mockGetAccessToken.mockReturnValue(null);
-    global.fetch = vi.fn().mockResolvedValue({
-      ok: false, json: async () => ({}),
-    }) as unknown as typeof fetch;
+  it('enforces asset usage bar on FREE plan', async () => {
+    routeFetch({ sub: { plan: 'FREE', status: 'ACTIVE', current_period_end: null }, assets: [{ id: 1 }, { id: 2 }] });
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });
-    // Click upgrade — should not crash (token is null, returns early)
+    await waitFor(() => {
+      expect(screen.getByText('Assets used')).toBeInTheDocument();
+      expect(screen.getByText('2 / 5')).toBeInTheDocument();
+    });
+  });
+
+  it('handles missing token gracefully (still submits via cookie)', async () => {
+    mockGetAccessToken.mockReturnValue(null);
+    routeFetch({ statusOk: false });
+    const { default: Page } = await import('@/app/hub/subscription/page');
+    await act(async () => { render(<Page />); });
     const upgradeBtn = screen.queryByText(/Upgrade to Pro/);
     if (upgradeBtn) {
       await act(async () => { fireEvent.click(upgradeBtn); });

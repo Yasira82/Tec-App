@@ -4,29 +4,30 @@ import { useState }                         from 'react';
 import { useKyc, KycRecord, KycStatus }     from '@/lib-client/hooks/useKyc';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
+import { Icon, IconName }                   from '@/components/ui/Icon';
 
 // ── Status config ──────────────────────────────────────────────
 const STATUS_CONFIG: Record<KycStatus, {
-  icon: string; label: string; desc: string;
+  icon: IconName; label: string; desc: string;
   bg: string; border: string; color: string;
 }> = {
   NOT_STARTED: {
-    icon: '📋', label: 'Not Started',
+    icon: 'shield', label: 'Not Started',
     desc: 'Complete your identity verification to unlock all TEC features.',
     bg: 'rgba(255,255,255,0.03)', border: 'var(--tec-border)', color: 'var(--tec-text-2)',
   },
   PENDING: {
-    icon: '⏳', label: 'Under Review',
+    icon: 'clock', label: 'Under Review',
     desc: 'Your documents are being reviewed. This usually takes 1–2 business days.',
     bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: '#f59e0b',
   },
   VERIFIED: {
-    icon: '✅', label: 'Verified',
+    icon: 'shieldCheck', label: 'Verified',
     desc: 'Your identity has been successfully verified.',
     bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: '#22C55E',
   },
   REJECTED: {
-    icon: '❌', label: 'Rejected',
+    icon: 'x', label: 'Rejected',
     desc: 'Your verification was rejected. Please resubmit with correct documents.',
     bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: '#ef4444',
   },
@@ -41,7 +42,13 @@ function StatusCard({ kyc }: { kyc: KycRecord }) {
       background: cfg.bg, border: `1px solid ${cfg.border}`,
       borderRadius: 'var(--radius-xl)', marginBottom: 'var(--sp-5)',
     }}>
-      <span style={{ fontSize: 36, flexShrink: 0 }}>{cfg.icon}</span>
+      <div style={{
+        width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: cfg.bg, border: `1px solid ${cfg.border}`,
+      }}>
+        <Icon name={cfg.icon} size={24} color={cfg.color} strokeWidth={2} />
+      </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: cfg.color, marginBottom: 4 }}>
           {cfg.label}
@@ -58,6 +65,39 @@ function StatusCard({ kyc }: { kyc: KycRecord }) {
       }}>
         Level {kyc.level}
       </div>
+    </div>
+  );
+}
+
+// Trust / benefits panel — shown before a user starts. States WHY verification
+// matters + that it is secure, the way a professional KYC flow opens.
+function VerifyIntro() {
+  const benefits: { icon: IconName; title: string; desc: string }[] = [
+    { icon: 'wallet', title: 'Unlock full access',   desc: 'Higher limits and all TEC financial features.' },
+    { icon: 'check',  title: 'One-time process',       desc: 'Verify once — it applies across the ecosystem.' },
+    { icon: 'shield', title: 'Bank-grade security',    desc: 'Your documents are encrypted and never shared.' },
+  ];
+  return (
+    <div style={{
+      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--sp-3)',
+      marginBottom: 'var(--sp-5)',
+    }}>
+      {benefits.map(b => (
+        <div key={b.title} style={{
+          padding: 'var(--sp-4)', borderRadius: 'var(--radius-lg)',
+          background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)',
+        }}>
+          <div style={{
+            width: 34, height: 34, borderRadius: 10, marginBottom: 10,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)',
+          }}>
+            <Icon name={b.icon} size={17} color="var(--tec-gold)" />
+          </div>
+          <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 3 }}>{b.title}</div>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', lineHeight: 1.5 }}>{b.desc}</div>
+        </div>
+      ))}
     </div>
   );
 }
@@ -87,7 +127,7 @@ function StepIndicator({ step }: { step: 'docs' | 'review' }) {
                                     : 'var(--tec-border)'}`,
                 color: isDone ? '#22C55E' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
               }}>
-                {isDone ? '✓' : i + 1}
+                {isDone ? <Icon name="check" size={14} color="#22C55E" /> : i + 1}
               </div>
               <span style={{
                 fontSize: 'var(--text-sm)', fontWeight: isActive ? 600 : 400,
@@ -113,24 +153,29 @@ function Field({ label, required, value, onChange, placeholder }: {
       <label style={{ display: 'block', fontSize: 'var(--text-xs)', color: 'var(--tec-text-2)', marginBottom: 8, letterSpacing: 0.5 }}>
         {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
       </label>
-      <input
-        type="url"
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder ?? 'https://...'}
-        style={{
-          width: '100%', padding: 'var(--sp-3) var(--sp-4)',
-          background: 'var(--tec-surface-1)',
-          border: '1px solid var(--tec-border)',
-          borderRadius: 'var(--radius-md)',
-          color: 'var(--tec-text-1)', fontSize: 'var(--text-sm)',
-          outline: 'none', boxSizing: 'border-box',
-          fontFamily: 'var(--font-sans)',
-          transition: 'border-color 0.2s ease',
-        }}
-        onFocus={e => { e.target.style.borderColor = 'rgba(251,191,36,0.4)'; }}
-        onBlur={e  => { e.target.style.borderColor = 'var(--tec-border)'; }}
-      />
+      <div style={{ position: 'relative' }}>
+        <span style={{ position: 'absolute', insetInlineStart: 12, top: '50%', transform: 'translateY(-50%)', display: 'flex', pointerEvents: 'none' }}>
+          <Icon name="upload" size={15} color="var(--tec-text-3)" />
+        </span>
+        <input
+          type="url"
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          placeholder={placeholder ?? 'https://...'}
+          style={{
+            width: '100%', padding: 'var(--sp-3) var(--sp-4) var(--sp-3) 38px',
+            background: 'var(--tec-surface-1)',
+            border: '1px solid var(--tec-border)',
+            borderRadius: 'var(--radius-md)',
+            color: 'var(--tec-text-1)', fontSize: 'var(--text-sm)',
+            outline: 'none', boxSizing: 'border-box',
+            fontFamily: 'var(--font-sans)',
+            transition: 'border-color 0.2s ease',
+          }}
+          onFocus={e => { e.target.style.borderColor = 'rgba(251,191,36,0.4)'; }}
+          onBlur={e  => { e.target.style.borderColor = 'var(--tec-border)'; }}
+        />
+      </div>
     </div>
   );
 }
@@ -183,10 +228,16 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
           <Field label="Selfie with ID" required value={selfieUrl} onChange={setSelfieUrl} placeholder="https://storage/selfie.jpg" />
 
           {uploadErr && (
-            <div style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
-              ⚠️ {uploadErr}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
+              <Icon name="alert" size={16} color="#ef4444" /> {uploadErr}
             </div>
           )}
+
+          {/* Security reassurance */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-5)', fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>
+            <Icon name="shield" size={14} color="#22C55E" />
+            Encrypted end-to-end. Your documents are used only for verification.
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={handleUpload} disabled={uploading || !idFrontUrl || !selfieUrl}
@@ -210,30 +261,34 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
           </div>
 
           <div style={{ border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 'var(--sp-5)' }}>
-            {reviewItems.map((item, i) => (
-              <div key={item.label} style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                padding: 'var(--sp-3) var(--sp-5)',
-                borderBottom: i < reviewItems.length - 1 ? '1px solid var(--tec-border)' : 'none',
-                background: 'var(--tec-surface-1)',
-              }}>
-                <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{item.label}</span>
-                <span style={{
-                  fontSize: 'var(--text-sm)', fontWeight: 600,
-                  color: item.value ? '#22C55E' : item.required ? '#ef4444' : 'var(--tec-text-3)',
+            {reviewItems.map((item, i) => {
+              const state = item.value ? 'ok' : item.required ? 'missing' : 'optional';
+              const color = state === 'ok' ? '#22C55E' : state === 'missing' ? '#ef4444' : 'var(--tec-text-3)';
+              return (
+                <div key={item.label} style={{
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  padding: 'var(--sp-3) var(--sp-5)',
+                  borderBottom: i < reviewItems.length - 1 ? '1px solid var(--tec-border)' : 'none',
+                  background: 'var(--tec-surface-1)',
                 }}>
-                  {item.value ? '✓ Uploaded' : item.required ? '✗ Missing' : '— Optional'}
-                </span>
-              </div>
-            ))}
+                  <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{item.label}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', fontWeight: 600, color }}>
+                    <Icon name={state === 'ok' ? 'check' : state === 'missing' ? 'x' : 'info'} size={15} color={color} />
+                    {state === 'ok' ? 'Uploaded' : state === 'missing' ? 'Missing' : 'Optional'}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           <div style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8,
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
             background: 'rgba(251,191,36,0.05)', border: '1px solid var(--tec-border-gold)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
           }}>
-            ℹ️ By submitting, you confirm these documents are authentic and belong to you.
+            <span style={{ flexShrink: 0, marginTop: 2 }}><Icon name="info" size={16} color="var(--tec-gold)" /></span>
+            By submitting, you confirm these documents are authentic and belong to you.
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'flex-end' }}>
@@ -258,22 +313,41 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
   );
 }
 
+// Centered icon badge for the terminal states.
+function StateBadge({ icon, color, ring }: { icon: IconName; color: string; ring: string }) {
+  return (
+    <div style={{
+      width: 68, height: 68, borderRadius: 20, margin: '0 auto var(--sp-4)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: ring, border: `1px solid ${color}33`,
+    }}>
+      <Icon name={icon} size={34} color={color} strokeWidth={1.8} />
+    </div>
+  );
+}
+
 function PendingState() {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
-        <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>⏳</div>
+        <StateBadge icon="clock" color="#f59e0b" ring="rgba(245,158,11,0.1)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-3)' }}>
           Under Review
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, maxWidth: 400, margin: '0 auto' }}>
           Your documents are being reviewed. You&apos;ll receive a notification once complete — usually within 1–2 business days.
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240, margin: 'var(--sp-6) auto 0' }}>
-          {['Documents submitted', 'Manual review in progress', 'Decision notification'].map((s, i) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#22C55E' : i === 1 ? '#f59e0b' : 'var(--tec-text-3)' }}>
-              <span>{i === 0 ? '✓' : i === 1 ? '◉' : '○'}</span>
-              <span>{s}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 260, margin: 'var(--sp-6) auto 0' }}>
+          {[
+            { label: 'Documents submitted',       state: 'done' },
+            { label: 'Manual review in progress', state: 'active' },
+            { label: 'Decision notification',     state: 'todo' },
+          ].map(s => (
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: s.state === 'done' ? '#22C55E' : s.state === 'active' ? '#f59e0b' : 'var(--tec-text-3)' }}>
+              {s.state === 'done'
+                ? <Icon name="check" size={16} color="#22C55E" />
+                : <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${s.state === 'active' ? '#f59e0b' : 'var(--tec-border)'}`, background: s.state === 'active' ? '#f59e0b' : 'transparent', flexShrink: 0 }} />}
+              <span>{s.label}</span>
             </div>
           ))}
         </div>
@@ -286,7 +360,7 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
-        <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>✅</div>
+        <StateBadge icon="shieldCheck" color="#22C55E" ring="rgba(34,197,94,0.1)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#22C55E', marginBottom: 'var(--sp-3)' }}>
           Identity Verified
         </div>
@@ -315,7 +389,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-8) var(--sp-6)' }}>
-        <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>❌</div>
+        <StateBadge icon="x" color="#ef4444" ring="rgba(239,68,68,0.1)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#ef4444', marginBottom: 'var(--sp-3)' }}>
           Verification Rejected
         </div>
@@ -323,7 +397,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
           <div style={{
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6,
+            borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6, textAlign: 'left',
           }}>
             <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Reason</span>
             {reason}
@@ -368,16 +442,20 @@ export default function HubKycPage() {
 
       {error && (
         <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
           padding: 'var(--sp-3) var(--sp-5)', marginBottom: 'var(--sp-4)',
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444',
         }}>
-          ⚠️ {error}
+          <Icon name="alert" size={16} color="#ef4444" /> {error}
         </div>
       )}
 
       {kyc?.status === 'NOT_STARTED' && (
-        <KycForm kyc={kyc} isSubmitting={isSubmitting} onUpload={uploadDocs} onSubmit={submit} />
+        <>
+          <VerifyIntro />
+          <KycForm kyc={kyc} isSubmitting={isSubmitting} onUpload={uploadDocs} onSubmit={submit} />
+        </>
       )}
       {kyc?.status === 'REJECTED' && (
         <RejectedState reason={kyc.rejection_reason} isSubmitting={isSubmitting} onReset={reset} />

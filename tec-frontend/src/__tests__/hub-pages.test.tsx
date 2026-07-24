@@ -7,6 +7,7 @@ import { render } from '@testing-library/react';
 
 // ── Shared component mocks ────────────────────────────────────────
 vi.mock('@/components/hub', () => ({
+  HubShareCard: () => null,
   HubSubShell: ({ children, title, loading }: { children?: React.ReactNode; title?: string; loading?: boolean }) =>
     loading
       ? <div data-testid="loading">Loading…</div>

@@ -38,6 +38,7 @@ vi.mock('@/components/dashboard', () => ({
 }));
 
 vi.mock('@/components/hub', () => ({
+  HubShareCard: () => null,
   HubSubShell: ({ children, title, loading }: any) =>
     loading ? <div data-testid="hub-loading" /> : <div><h1>{title}</h1>{children}</div>,
 }));

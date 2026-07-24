@@ -18,7 +18,7 @@ import { PullIndicator }                             from './components/PullIndi
 import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
 import {
   HubHeader, HubWalletCard, HubCarousel,
-  HubAppsGrid, HubComingSoon,
+  HubAppsGrid, HubShareCard, HubComingSoon,
 } from '@/components/hub';
 import { useHubData }  from '@/hooks/useHubData';
 import { haptic }      from '@/lib/hub/utils';
@@ -289,6 +289,13 @@ function HubPageInner() {
         onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/hub/notifications'); }}
       />
       <HubWalletCard balance={balance} piPrice={piPrice} />
+
+      {/* Apps grid moved ABOVE the carousel so the live apps are reachable without a
+          scroll (the #hub-apps anchor is the target of the bottom HUB tap). */}
+      <div id="hub-apps" style={{ scrollMarginTop: 12 }}>
+        <HubAppsGrid apps={visibleLive} />
+      </div>
+
       <HubCarousel
         carouselIdx={carouselIdx}
         setCarouselIdx={setCarouselIdx}
@@ -299,9 +306,10 @@ function HubPageInner() {
         goToAnalytics={goToAnalytics}
       />
 
-      {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
+      {/* Marketing: turn a real member snapshot into a one-tap share → Founding 100 */}
+      <HubShareCard assetCount={assetCount} liveApps={visibleLive.length} />
 
-      <HubAppsGrid apps={visibleLive} />
+      {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
 
       {/* ── Platform Tools ──────────────────────────────── */}
       <div style={{ margin: '0 16px 8px', display: 'flex', gap: 8 }}>
@@ -331,7 +339,7 @@ function HubPageInner() {
 
       <nav aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
         {([
-          { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
+          { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => { haptic('light'); document.getElementById('hub-apps')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); } },
           { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
           { icon: 'gem'      as const, label: 'Assets',   active: false, action: goToAssets },
           { icon: 'cart'     as const, label: 'Commerce', active: false, action: goToCommerce },

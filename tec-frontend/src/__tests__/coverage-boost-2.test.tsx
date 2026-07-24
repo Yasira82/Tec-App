@@ -129,6 +129,7 @@ vi.mock('@/app/hub/components/PaymentModal', () => ({
 }));
 
 vi.mock('@/components/hub', () => ({
+  HubShareCard: () => null,
   HubHeader:    ({ notifCount }: { notifCount: number }) => <div data-testid="hub-header">{notifCount}</div>,
   HubWalletCard: () => <div data-testid="hub-wallet-card" />,
   HubCarousel:   () => <div data-testid="hub-carousel" />,

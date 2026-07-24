@@ -54,14 +54,14 @@ export function PhotoUpload({ label, required, initialValue, onChange }: Props) 
         {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
       </label>
 
-      {/* The file input lives INSIDE the label — tapping anywhere on the label
-          opens the OS picker natively (camera + gallery). This works in strict
-          mobile webviews (incl. Pi Browser) where a programmatic input.click()
-          on a hidden input is blocked. No `capture` → the OS offers both camera
-          and gallery instead of forcing camera-only. */}
+      {/* The file <input> is a FULL-SIZE transparent overlay on top of the tile,
+          so a tap lands directly on the input element (not on a wrapper that has
+          to forward the event). This is the most robust pattern for mobile
+          webviews — no programmatic click, no label-propagation dependency.
+          No `capture` → the OS offers both camera and gallery. */}
       <label
         style={{
-          width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+          position: 'relative', width: '100%', display: 'flex', alignItems: 'center', gap: 12,
           padding: 'var(--sp-3) var(--sp-4)', textAlign: 'left', cursor: 'pointer',
           background: 'var(--tec-surface-1)', border: `1px solid ${borderColor}`,
           borderRadius: 'var(--radius-md)',
@@ -71,43 +71,49 @@ export function PhotoUpload({ label, required, initialValue, onChange }: Props) 
           accept="image/*"
           onChange={onFile}
           aria-label={label}
-          style={{ position: 'absolute', width: 1, height: 1, opacity: 0, overflow: 'hidden' }}
+          style={{
+            position: 'absolute', inset: 0, width: '100%', height: '100%',
+            opacity: 0, cursor: 'pointer', zIndex: 2,
+          }}
         />
-        {/* Thumbnail / icon */}
-        <div style={{
-          width: 46, height: 46, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)',
-        }}>
-          {preview
-            // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable asset
-            ? <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            : <Icon name={state === 'done' ? 'check' : 'upload'} size={20} color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} />}
-        </div>
+        {/* Visual content sits behind the input; it must not swallow the tap. */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', pointerEvents: 'none' }}>
+          {/* Thumbnail / icon */}
+          <div style={{
+            width: 46, height: 46, borderRadius: 10, flexShrink: 0, overflow: 'hidden',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)',
+          }}>
+            {preview
+              // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable asset
+              ? <img src={preview} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              : <Icon name={state === 'done' ? 'check' : 'upload'} size={20} color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} />}
+          </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {state === 'uploading' ? (
-            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>Uploading…</span>
-          ) : state === 'done' ? (
-            <>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-1)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: '#22C55E' }}>Uploaded · tap to change</div>
-            </>
-          ) : state === 'error' ? (
-            <>
-              <div style={{ fontSize: 'var(--text-sm)', color: '#ef4444', fontWeight: 600 }}>Upload failed</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{err} · tap to retry</div>
-            </>
-          ) : (
-            <>
-              <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-1)', fontWeight: 600 }}>Take a photo or choose a file</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>JPEG, PNG or WEBP · up to 10MB</div>
-            </>
-          )}
-        </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            {state === 'uploading' ? (
+              <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>Uploading…</span>
+            ) : state === 'done' ? (
+              <>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-1)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</div>
+                <div style={{ fontSize: 'var(--text-xs)', color: '#22C55E' }}>Uploaded · tap to change</div>
+              </>
+            ) : state === 'error' ? (
+              <>
+                <div style={{ fontSize: 'var(--text-sm)', color: '#ef4444', fontWeight: 600 }}>Upload failed</div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{err} · tap to retry</div>
+              </>
+            ) : (
+              <>
+                <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-1)', fontWeight: 600 }}>Take a photo or choose a file</div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>JPEG, PNG or WEBP · up to 10MB</div>
+              </>
+            )}
+          </div>
 
-        <Icon name={state === 'done' ? 'check' : 'upload'} size={16}
-          color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} style={{ flexShrink: 0 }} />
+          <Icon name={state === 'done' ? 'check' : 'upload'} size={16}
+            color={state === 'done' ? '#22C55E' : 'var(--tec-text-3)'} style={{ flexShrink: 0 }} />
+        </div>
       </label>
     </div>
   );

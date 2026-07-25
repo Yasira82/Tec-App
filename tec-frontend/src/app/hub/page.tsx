@@ -287,6 +287,7 @@ function HubPageInner() {
           { icon: '📊', label: 'Analytics', route: '/hub/analytics' },
           { icon: '🪪', label: 'KYC',        route: '/hub/kyc' },
           { icon: '⭐', label: 'Plan',        route: '/hub/subscription' },
+          { icon: '🎁', label: 'Invite',     route: '/hub/referral' },
         ].map(({ icon, label, route }) => (
           <button
             key={label}

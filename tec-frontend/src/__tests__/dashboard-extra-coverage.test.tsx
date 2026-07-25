@@ -747,9 +747,16 @@ describe('HubSubscriptionPage (hub/subscription)', () => {
   });
 
   it('shows error on subscribe failure', async () => {
-    global.fetch = vi.fn()
-      .mockResolvedValueOnce({ ok: true, json: async () => ({ data: null }) })
-      .mockResolvedValueOnce({ ok: false, json: async () => ({ message: 'Insufficient funds' }) }) as unknown as typeof fetch;
+    // The page loads status + assets, then subscribes — route by URL so the
+    // subscribe failure isn't masked by load-order.
+    global.fetch = vi.fn().mockImplementation((url: unknown) => {
+      const u = String(url);
+      if (u.includes('endpoint=subscribe'))
+        return Promise.resolve({ ok: false, json: async () => ({ message: 'Insufficient funds' }) });
+      if (u.includes('/bff/assets/list'))
+        return Promise.resolve({ ok: true, json: async () => ({ data: [] }) });
+      return Promise.resolve({ ok: true, json: async () => ({ data: null }) });
+    }) as unknown as typeof fetch;
 
     const { default: Page } = await import('@/app/hub/subscription/page');
     await act(async () => { render(<Page />); });

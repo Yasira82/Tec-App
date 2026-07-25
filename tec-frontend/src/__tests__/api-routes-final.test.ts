@@ -210,9 +210,19 @@ describe('POST /api/assets/provision', () => {
     expect(res.status).toBe(400);
   });
 
+  // Route fetch by URL: the subscription-quota gate (status + user assets) runs
+  // before provision. FREE plan with 0 owned assets → under the cap → proceeds.
+  const routeProvisionFetch = (provisionResp: unknown) =>
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url: unknown) => {
+      const u = String(url);
+      if (u.includes('/subscriptions/status')) return gw({ plan: 'FREE', status: 'ACTIVE' });
+      if (u.includes('/assets/user/'))         return gw({ data: [] });
+      return provisionResp as ReturnType<typeof gw>;
+    });
+
   it('provisions DOMAIN asset with .pi extension', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'user-123' } });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(gw({ data: { id: 'a1', slug: 'myname' } }));
+    routeProvisionFetch(gw({ data: { id: 'a1', slug: 'myname' } }));
     const { POST } = await import('@/app/api/assets/provision/route');
     const res  = await POST(makeReq({ token: 'tok', body: { slug: 'myname', payment_id: 'pay-1', category: 'DOMAIN' } }));
     const body = await res.json();
@@ -222,10 +232,25 @@ describe('POST /api/assets/provision', () => {
 
   it('proxies gateway error status', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'user-123' } });
-    vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(gwErr(409));
+    routeProvisionFetch(gwErr(409));
     const { POST } = await import('@/app/api/assets/provision/route');
     const res = await POST(makeReq({ token: 'tok', body: { slug: 'myslug', payment_id: 'pay-1' } }));
     expect(res.status).toBe(409);
+  });
+
+  it('blocks provisioning at the FREE asset cap (402 UPGRADE_REQUIRED)', async () => {
+    mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'user-123' } });
+    vi.spyOn(globalThis, 'fetch').mockImplementation((url: unknown) => {
+      const u = String(url);
+      if (u.includes('/subscriptions/status')) return gw({ plan: 'FREE', status: 'ACTIVE' });
+      if (u.includes('/assets/user/'))         return gw({ data: Array.from({ length: 5 }, (_, i) => ({ id: i })) });
+      return gw({ data: { id: 'should-not-reach' } });
+    });
+    const { POST } = await import('@/app/api/assets/provision/route');
+    const res  = await POST(makeReq({ token: 'tok', body: { slug: 'sixth', payment_id: 'pay-1' } }));
+    const body = await res.json();
+    expect(res.status).toBe(402);
+    expect(body.code).toBe('UPGRADE_REQUIRED');
   });
 });
 

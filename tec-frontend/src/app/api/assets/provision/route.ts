@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { randomUUID }                from 'crypto';
+import { checkAssetQuota }           from '@/lib/subscription/plan.server';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
+
+// 402 payload when a plan's asset cap is hit — shared shape across entry points.
+const quotaResponse = (plan: string, limit: number, owned: number) =>
+  NextResponse.json(
+    {
+      error:        `Your ${plan} plan allows up to ${limit} assets. Upgrade to Pro for unlimited assets.`,
+      code:         'UPGRADE_REQUIRED',
+      requiredPlan: 'PRO',
+      limit,
+      owned,
+    },
+    { status: 402 },
+  );
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
@@ -38,6 +52,10 @@ export async function POST(req: NextRequest) {
   if (slug.length < 3) {
     return NextResponse.json({ error: 'slug too short (min 3 chars)' }, { status: 400 });
   }
+
+  // ── Subscription entitlement: FREE plan asset cap (real "Unlimited assets") ─
+  const quota = await checkAssetQuota(token, userId);
+  if (!quota.allowed) return quotaResponse(quota.plan, quota.limit, quota.owned);
 
   const category = body.category ?? 'DOMAIN';
   const metadata = body.metadata ?? {};

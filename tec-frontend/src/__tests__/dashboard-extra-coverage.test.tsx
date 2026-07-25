@@ -55,6 +55,13 @@ vi.mock('@/lib-client/pi/marketplace-payment', () => ({
   buyAsset: mockBuyAsset,
 }));
 
+// Subscription upgrades now take a real Pi payment first — mock it as completed
+// so the subscribe POST fires in tests.
+const mockCreateU2A = vi.hoisted(() => vi.fn(async () => ({
+  success: true, status: 'completed', paymentId: 'pi-pay-1', txid: 'tx-1', amount: 10, memo: 'sub',
+})));
+vi.mock('@/lib-client/pi/pi-payment', () => ({ createU2APayment: mockCreateU2A }));
+
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     t:           { common: { loading: 'Loading...' }, dashboard: { title: 'Dashboard' }, apps: {} },

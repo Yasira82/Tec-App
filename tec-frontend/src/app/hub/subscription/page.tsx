@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
+import { createU2APayment }                 from '@/lib-client/pi/pi-payment';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
 import {
@@ -174,23 +175,36 @@ export default function HubSubscriptionPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSubscribe = async (planId: PlanId) => {
-    // Cookie-auth only: `tec_access_token` is HttpOnly, so never gate on a
-    // JS-readable token — the cookie rides on credentials:'include'.
-    const token = getAccessToken();
+    const meta = PLAN_META[planId];
     setPaying(planId); setError(null); setSuccess(null);
     try {
-      const res  = await fetch('/api/subscriptions?endpoint=subscribe', {
+      // 1) Take a REAL Pi payment first (approve+complete are verified by
+      //    payment-service). No payment → no upgrade.
+      const pay = await createU2APayment(
+        meta.price,
+        `TEC ${meta.name} subscription — 1 month`,
+        { type: 'subscription', plan: planId },
+      );
+      if (!pay.success || pay.status !== 'completed') {
+        if (pay.status === 'cancelled') { setError('Payment cancelled — your plan was not changed.'); return; }
+        throw new Error(pay.message ?? 'Payment did not complete — your plan was not changed.');
+      }
+
+      // 2) Activate the subscription, linked to the paid Pi payment.
+      //    Cookie-auth only (tec_access_token is HttpOnly).
+      const token = getAccessToken();
+      const res   = await fetch('/api/subscriptions?endpoint=subscribe', {
         method: 'POST', credentials: 'include',
         headers: {
           'Content-Type': 'application/json',
           'x-csrf-token': getCsrfToken(),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ plan: planId }),
+        body: JSON.stringify({ plan: planId, piPaymentId: pay.paymentId }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message ?? data.error ?? 'Failed to subscribe');
-      setSuccess(`You're now on ${PLAN_META[planId].name}.`);
+      if (!res.ok) throw new Error(data.message ?? data.error ?? 'Payment succeeded but activation failed — please contact support.');
+      setSuccess(`Payment complete — you're now on ${meta.name}.`);
       await fetchData();
     } catch (e: unknown) { setError((e as Error).message); }
     finally { setPaying(null); }

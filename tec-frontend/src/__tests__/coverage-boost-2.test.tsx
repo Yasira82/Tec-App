@@ -782,7 +782,7 @@ describe('Hub Subscription page — uncovered paths', () => {
     await act(async () => { render(<Page />); });
     await act(async () => { fireEvent.click(screen.getByText(/Upgrade to Pro/)); });
     await waitFor(() => {
-      expect(screen.getByText(/You're now on Pro/)).toBeInTheDocument();
+      expect(screen.getByText(/Payment complete/)).toBeInTheDocument();
     });
   });
 

@@ -7,18 +7,20 @@ import { CountUp }      from '@/components/ui/CountUp';
 import { LIVE_DOMAINS } from '@/domains/_registry';
 
 // Hub top spotlight. Marketing-first: slide 1 = the Founding-100 "missions" entry,
-// slide 2 = an ecosystem announcement/ad, slide 3 = the live Pi price. The old
-// Assets/Commerce/Analytics shortcuts were removed (they live in the apps grid / nav).
+// slide 2 = Invite & Earn (referral), slide 3 = an ecosystem announcement/ad,
+// slide 4 = the live Pi price. The old Assets/Commerce/Analytics shortcuts were
+// removed (they live in the apps grid / nav).
 interface Props {
   carouselIdx:    number;
   setCarouselIdx: (i: number) => void;
   piPrice:        PiPrice | null;
   goToPioneers:   () => void;
+  goToReferral:   () => void;
 }
 
-const SLIDES = 3;
+const SLIDES = 4;
 
-export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers }: Props) {
+export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers, goToReferral }: Props) {
   const touchStartX = useRef(0);
   const priceUp     = (piPrice?.change24h ?? 0) >= 0;
   const liveApps    = LIVE_DOMAINS.length;
@@ -49,7 +51,22 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             </button>
           </div>
 
-          {/* 2 — Ecosystem announcement / app ad */}
+          {/* 2 — Invite & Earn (referral growth) */}
+          <div style={{ minWidth: '100%' }}>
+            <button className="tec-btn" onClick={goToReferral}
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(34,197,94,0.14), #111627)', border: '1px solid rgba(34,197,94,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#0d2417,#111627)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Invite &amp; Earn</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Invite a friend — you both get a free PRO month</div>
+                </div>
+              </div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#22C55E', letterSpacing: 1.5 }}>INVITE →</div>
+            </button>
+          </div>
+
+          {/* 3 — Ecosystem announcement / app ad */}
           <div style={{ minWidth: '100%' }}>
             <button className="tec-btn" onClick={goToPioneers}
               style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(139,92,246,0.14), #111627)', border: '1px solid rgba(139,92,246,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
@@ -64,7 +81,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             </button>
           </div>
 
-          {/* 3 — Pi Price (kept as-is) */}
+          {/* 4 — Pi Price (kept as-is) */}
           <div style={{ minWidth: '100%' }}>
             <div style={{ borderRadius: 20, background: '#111627', border: '1px solid rgba(251,191,36,0.12)', padding: '16px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

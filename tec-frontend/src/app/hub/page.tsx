@@ -169,7 +169,7 @@ function HubPageInner() {
 
   useEffect(() => {
     if (!piPrice) return;
-    const id = setInterval(() => setCarouselIdx(p => p === 2 ? 0 : p + 1), 5000);
+    const id = setInterval(() => setCarouselIdx(p => p === 3 ? 0 : p + 1), 5000);
     return () => clearInterval(id);
   }, [piPrice]);
 
@@ -224,6 +224,7 @@ function HubPageInner() {
   const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
   // Marketing missions entry — the Pioneer Quest / Founding 100 (public route, same origin).
   const goToPioneers  = () => { haptic('light'); router.push('/pioneers'); };
+  const goToReferral  = () => { haptic('light'); router.push('/hub/referral'); };
 
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
@@ -275,6 +276,7 @@ function HubPageInner() {
         setCarouselIdx={setCarouselIdx}
         piPrice={piPrice}
         goToPioneers={goToPioneers}
+        goToReferral={goToReferral}
       />
 
       <HubAppsGrid apps={visibleLive} />

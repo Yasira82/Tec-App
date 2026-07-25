@@ -4,9 +4,10 @@ const GATEWAY   = process.env.API_GATEWAY_URL ?? '';
 const WINDOW_MS = 24 * 60 * 60 * 1000;
 
 interface RawPayment {
-  status:    string;
-  createdAt: string;
-  amount:    number | string;
+  status:     string;
+  created_at: string;   // payment-service returns snake_case
+  createdAt?: string;   // tolerate camelCase too, just in case
+  amount:     number | string;
 }
 
 export async function GET(req: NextRequest) {
@@ -32,7 +33,10 @@ export async function GET(req: NextRequest) {
     const all: RawPayment[] = data?.data?.payments ?? data?.payments ?? data?.data ?? [];
 
     const cutoff  = Date.now() - WINDOW_MS;
-    const last24h = all.filter(p => new Date(p.createdAt).getTime() >= cutoff);
+    const last24h = all.filter(p => {
+      const ts = new Date(p.created_at ?? p.createdAt ?? 0).getTime();
+      return Number.isFinite(ts) && ts >= cutoff;
+    });
 
     const total     = last24h.length;
     const completed = last24h.filter(p => p.status === 'completed').length;

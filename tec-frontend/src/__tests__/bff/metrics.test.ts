@@ -15,9 +15,11 @@ const makeRequest = (token?: string): NextRequest => ({
 } as unknown as NextRequest);
 
 const NOW_MS = new Date('2026-06-04T12:00:00.000Z').getTime();
+// payment-service returns snake_case `created_at` — the fixture must match the
+// real backend shape, or the 24h window filter silently drops everything.
 const makePayment = (status: string, hoursAgo: number, amount: number = 1) => ({
   status,
-  createdAt: new Date(NOW_MS - hoursAgo * 3_600_000).toISOString(),
+  created_at: new Date(NOW_MS - hoursAgo * 3_600_000).toISOString(),
   amount,
 });
 

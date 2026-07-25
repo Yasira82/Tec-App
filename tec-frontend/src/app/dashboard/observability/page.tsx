@@ -112,8 +112,23 @@ export default function ObservabilityPage() {
         const body = await res.json().catch(() => ({}));
         throw new Error((body as { error?: string }).error ?? `HTTP ${res.status}`);
       }
-      const data: Metrics = await res.json();
-      setMetrics(data);
+      const raw = await res.json();
+      // The BFF serializes `volume` as a string (toFixed) — coerce every numeric
+      // field so a string never reaches `.toFixed()` in render (that threw and
+      // crashed the page into the error boundary). Fail-safe on missing fields.
+      const num = (v: unknown) => (Number.isFinite(Number(v)) ? Number(v) : 0);
+      setMetrics({
+        window:      '24h',
+        total:       num(raw?.total),
+        completed:   num(raw?.completed),
+        failed:      num(raw?.failed),
+        cancelled:   num(raw?.cancelled),
+        pending:     num(raw?.pending),
+        successRate: raw?.successRate === null || raw?.successRate === undefined ? null : num(raw.successRate),
+        volume:      num(raw?.volume),
+        healthy:     !!raw?.healthy,
+        generatedAt: typeof raw?.generatedAt === 'string' ? raw.generatedAt : new Date().toISOString(),
+      });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load metrics');

@@ -3,6 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation }              from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
+import { parseNavIntents }             from '@/lib/ai/nav-intents';
+import type { NavIntent }              from '@/lib/ai/nav-intents';
+import { t }                           from '@/domains/_types';
 import Link                            from 'next/link';
 import styles                          from './ai.module.css';
 
@@ -16,6 +19,7 @@ interface Message {
   role:      'user' | 'assistant';
   content:   string;
   timestamp: Date;
+  intents?:  NavIntent[];
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -119,6 +123,7 @@ export default function AiClient() {
 
       const reader  = response.body?.getReader();
       const decoder = new TextDecoder();
+      let full = '';
 
       if (reader) {
         while (true) {
@@ -133,11 +138,10 @@ export default function AiClient() {
               const parsed = JSON.parse(data);
               const delta  = parsed?.text ?? parsed?.delta?.text ?? parsed?.content?.[0]?.text ?? '';
               if (delta) {
+                full += delta;
                 setMessages(prev =>
                   prev.map(m =>
-                    m.id === assistantMessage.id
-                      ? { ...m, content: m.content + delta }
-                      : m
+                    m.id === assistantMessage.id ? { ...m, content: full } : m,
                   )
                 );
               }
@@ -145,6 +149,17 @@ export default function AiClient() {
           }
         }
       }
+
+      // Resolve navigation intents: strip the machine-read marker from the prose
+      // and surface the recommended app as an action chip (a pointer, never an action).
+      const { clean, intents } = parseNavIntents(full);
+      setMessages(prev =>
+        prev.map(m =>
+          m.id === assistantMessage.id
+            ? { ...m, content: clean, intents: intents.length ? intents : undefined }
+            : m,
+        )
+      );
     } catch (err) {
       const needsSignIn = err instanceof Error && err.message === 'SIGN_IN';
       setMessages(prev => [...prev, {
@@ -264,6 +279,30 @@ export default function AiClient() {
                   )}
                   <div className={styles.messageBubble}>
                     <p className={styles.messageContent}>{msg.content}</p>
+                    {msg.intents && msg.intents.length > 0 && (
+                      <div className={styles.intentRow}>
+                        {msg.intents.map(intent => {
+                          const label = intent.label ?? t(intent.name, locale);
+                          const external = /^https?:\/\//.test(intent.href);
+                          const arrow = dir === 'rtl' ? '←' : '→';
+                          return external ? (
+                            <a
+                              key={intent.slug}
+                              href={intent.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={styles.intentChip}
+                            >
+                              {label} <span aria-hidden>{arrow}</span>
+                            </a>
+                          ) : (
+                            <Link key={intent.slug} href={intent.href} className={styles.intentChip}>
+                              {label} <span aria-hidden>{arrow}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
                     <span className={styles.messageTime}>
                       {msg.timestamp.toLocaleTimeString(locale === 'ar' ? 'ar' : 'en', {
                         hour: '2-digit', minute: '2-digit',

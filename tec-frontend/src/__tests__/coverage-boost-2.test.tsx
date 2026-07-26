@@ -173,6 +173,7 @@ vi.mock('@/components/dashboard', () => ({
 vi.mock('@/domains/_registry', () => ({
   getVisibleDomains: vi.fn(() => []),
   LIVE_DOMAINS:      [],
+  DOMAIN_REGISTRY:   {}, // AiClient → nav-intents derives NAV_TARGETS from this
 }));
 
 vi.mock('@/components/ErrorBoundary', () => ({

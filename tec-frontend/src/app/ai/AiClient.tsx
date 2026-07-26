@@ -102,7 +102,11 @@ export default function AiClient() {
         }),
       });
 
-      if (!response.ok) throw new Error('AI request failed');
+      if (!response.ok) {
+        // The assistant is for signed-in TEC users (protects the AI budget).
+        const signIn = response.status === 401;
+        throw new Error(signIn ? 'SIGN_IN' : 'AI request failed');
+      }
 
       const assistantMessage: Message = {
         id:        (Date.now() + 1).toString(),
@@ -141,14 +145,19 @@ export default function AiClient() {
           }
         }
       }
-    } catch {
+    } catch (err) {
+      const needsSignIn = err instanceof Error && err.message === 'SIGN_IN';
       setMessages(prev => [...prev, {
         id:        (Date.now() + 2).toString(),
         role:      'assistant',
         timestamp: new Date(),
-        content: locale === 'ar'
-          ? '❌ حدث خطأ. يرجى المحاولة مرة أخرى.'
-          : '❌ Something went wrong. Please try again.',
+        content: needsSignIn
+          ? (locale === 'ar'
+              ? '🔒 سجّل دخولك بحساب Pi عشان تستخدم مساعد TEC.'
+              : '🔒 Please sign in with Pi to use the TEC Assistant.')
+          : (locale === 'ar'
+              ? '❌ حدث خطأ. يرجى المحاولة مرة أخرى.'
+              : '❌ Something went wrong. Please try again.'),
       }]);
     } finally {
       setIsLoading(false);

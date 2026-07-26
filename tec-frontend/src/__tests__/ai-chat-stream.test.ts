@@ -4,6 +4,13 @@
  * pipeThrough(createUnifiedStream(provider)) actually runs.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+// The route auth-gates on a verified TEC session — mock jose so a Bearer token
+// resolves to a user (the auth logic itself is covered separately below).
+vi.mock('jose', () => ({
+  jwtVerify: vi.fn(async () => ({ payload: { sub: 'test-user' } })),
+}));
+
 import { POST } from '@/app/api/ai/chat/route';
 
 const encoder = new TextEncoder();
@@ -16,12 +23,14 @@ const sseStream = (chunks: string[]) =>
     },
   });
 
-const makeRequest = (body: unknown) =>
+const makeRequest = (body: unknown, opts: { auth?: boolean } = { auth: true }) =>
   new Request('http://localhost/api/ai/chat', {
     method:  'POST',
     headers: {
       'Content-Type':    'application/json',
       'x-forwarded-for': `stream-${Math.random()}`,
+      // Authenticated by default (jose is mocked to accept it)
+      ...(opts.auth === false ? {} : { Authorization: 'Bearer test-token' }),
     },
     body: JSON.stringify(body),
   }) as any;
@@ -30,6 +39,7 @@ const savedEnv = { ...process.env };
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  process.env.JWT_SECRET = 'test-secret-32-chars-long-aaaaaaaa';
   delete process.env.ANTHROPIC_API_KEY;
   delete process.env.GROQ_API_KEY;
   delete process.env.GEMINI_API_KEY;
@@ -142,5 +152,14 @@ describe('createUnifiedStream via POST', () => {
     const res = await POST(makeRequest({ message: 'hi' }));
     const out = await readAll(res);
     expect(out).toBe('');
+  });
+
+  // ── auth gate ──────────────────────────────────────────
+  it('401s an unauthenticated request (no token) before calling any provider', async () => {
+    process.env.ANTHROPIC_API_KEY = 'k';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const res = await POST(makeRequest({ message: 'hi' }, { auth: false }));
+    expect(res.status).toBe(401);
+    expect(fetchSpy).not.toHaveBeenCalled();   // paid provider never hit
   });
 });

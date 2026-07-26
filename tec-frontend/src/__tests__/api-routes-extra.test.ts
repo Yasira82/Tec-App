@@ -281,6 +281,9 @@ describe('AI chat route', () => {
       get: (name: string) => {
         if (name === 'x-forwarded-for') return opts.ip ?? '10.0.0.1';
         if (name === 'origin')          return opts.origin ?? 'http://localhost:3000';
+        // Authenticated by default — token keyed to the ip so each unique-ip test
+        // maps to a distinct user (the route rate-limits per user, not per ip).
+        if (name === 'authorization')   return `Bearer tok-${opts.ip ?? '10.0.0.1'}`;
         return null;
       },
     },
@@ -288,10 +291,15 @@ describe('AI chat route', () => {
     json: async () => opts.body ?? { messages: [{ role: 'user', content: 'Hello' }] },
   } as unknown as NextRequest);
 
-  beforeEach(() => {
+  beforeEach(async () => {
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.GEMINI_API_KEY;
+    // The route auth-gates via jose. Make jwtVerify resolve a user id FROM the token
+    // so the per-user rate limiter stays isolated per test (token is keyed to ip above).
+    const { jwtVerify } = await import('jose');
+    (jwtVerify as unknown as { mockImplementation: (fn: (t: string) => Promise<unknown>) => void })
+      .mockImplementation(async (token: string) => ({ payload: { sub: `user-${token}` } }));
   });
 
   it('OPTIONS returns 204 with CORS headers', async () => {

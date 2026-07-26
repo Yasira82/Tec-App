@@ -45,6 +45,15 @@ function makeReq({
   const searchParams = new URLSearchParams(search);
   const searchStr    = searchParams.toString() ? `?${searchParams.toString()}` : '';
 
+  // The AI chat route auth-gates on a verified session. Auto-attach a Bearer token
+  // for ai/chat requests, keyed to the ip, so each distinct-ip test is a distinct
+  // user (the route rate-limits per user) while a shared ip stays one user.
+  if (url.includes('/api/ai/chat') &&
+      !Object.keys(headers).some(k => k.toLowerCase() === 'authorization')) {
+    const ip = headers['x-forwarded-for'] ?? 'anon';
+    headers = { ...headers, authorization: `Bearer tok-${ip}` };
+  }
+
   return {
     method,
     url:     `${url}${searchStr}`,
@@ -113,6 +122,9 @@ describe('POST /api/ai/chat', () => {
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.GEMINI_API_KEY;
+    // outer beforeEach ran vi.resetAllMocks() — re-arm jwtVerify to resolve a user
+    // id derived FROM the token (keeps the per-user rate limiter isolated per ip).
+    mockJwtVerify.mockImplementation(async (token: string) => ({ payload: { sub: `user-${token}` } }));
   });
 
   it('OPTIONS returns 204 with CORS headers', async () => {

@@ -89,6 +89,14 @@ vi.mock('@/lib-client/pi/pi-session', () => ({
   PiAuthError: {},
 }));
 
+// The AI chat route auth-gates on a verified TEC session (jose jwtVerify). Mock
+// jose so a Bearer token resolves to a user — and derive the `sub` FROM the token
+// so each distinct token is a distinct user. The route rate-limits per user, so a
+// unique token per request keeps tests isolated (a shared user would cascade 429s).
+vi.mock('jose', () => ({
+  jwtVerify: vi.fn(async (token: string) => ({ payload: { sub: `user-${token}` } })),
+}));
+
 // CSS modules mock
 vi.mock('@/components/PiIntegration.module.css', () => ({
   default: {
@@ -1052,16 +1060,26 @@ describe('api/ai/chat route', () => {
   let OPTIONS: (req: Request) => Promise<Response>;
 
   beforeEach(async () => {
+    // The route fails closed without a signing secret — set one so authenticate() runs.
+    process.env.JWT_SECRET = 'test-secret-32-chars-long-aaaaaaaa';
     // Dynamically import to get fresh module each time (mocks already set up)
     const mod = await import('@/app/api/ai/chat/route');
     POST    = mod.POST as unknown as (req: Request) => Promise<Response>;
     OPTIONS = mod.OPTIONS as unknown as (req: Request) => Promise<Response>;
   });
 
+  // Authenticated by default with a UNIQUE token per request (jose is mocked to
+  // derive the user id from the token), so the per-user rate limiter never bleeds
+  // across tests. A caller may override Authorization via `headers` (e.g. the
+  // rate-limit test reuses one token to trip the limiter).
   const makeRequest = (body: unknown, headers: Record<string, string> = {}) => {
     return new Request('http://localhost/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...headers },
+      headers: {
+        'Content-Type':  'application/json',
+        Authorization:   `Bearer tok-${Math.random().toString(36).slice(2)}`,
+        ...headers,
+      },
       body: JSON.stringify(body),
     });
   };
@@ -1125,15 +1143,17 @@ describe('api/ai/chat route', () => {
   });
 
   it('returns 429 when rate limit exceeded', async () => {
-    // Call 21 times from same IP to trip rate limiter
-    const ip = `test-rate-limit-${Date.now()}`;
-    const headers = { 'x-forwarded-for': ip };
+    // Reuse ONE token so all 22 calls map to the same user and trip the per-user limiter.
+    const token = `rate-limit-${Date.now()}`;
 
     let lastRes: Response | null = null;
     for (let i = 0; i < 22; i++) {
       const req = new Request('http://localhost/api/ai/chat', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', ...headers },
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization:  `Bearer ${token}`,
+        },
         body: JSON.stringify({ message: 'x' }),
       });
       lastRes = await POST(req);
@@ -1215,7 +1235,11 @@ describe('api/ai/chat route', () => {
   it('returns 500 on unexpected JSON parse error', async () => {
     const req = new Request('http://localhost/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-forwarded-for': `error-test-${Date.now()}` },
+      headers: {
+        'Content-Type':  'application/json',
+        Authorization:   `Bearer parse-${Date.now()}`,
+        'x-forwarded-for': `error-test-${Date.now()}`,
+      },
       body: 'not-valid-json{{{',
     });
     const res = await POST(req);

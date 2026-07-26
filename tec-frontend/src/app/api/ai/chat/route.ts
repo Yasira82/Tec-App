@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 
 export const runtime = 'edge';
@@ -8,19 +9,47 @@ interface Message {
   content: string;
 }
 
+// ── Auth gate ─────────────────────────────────────────────
+// The AI providers cost real money, so this endpoint is for authenticated TEC
+// users ONLY — an open endpoint can be drained by anyone. Verify the TEC session
+// (same HS256 JWT + JWT_SECRET the BFF uses) before calling any provider. Returns
+// the user id (token `sub`) or null. Edge-safe (jose uses Web Crypto).
+async function authenticate(req: NextRequest): Promise<string | null> {
+  const bearer = req.headers.get('authorization');
+  const token  = bearer?.startsWith('Bearer ')
+    ? bearer.slice(7)
+    : req.cookies?.get?.('tec_access_token')?.value;
+  if (!token) return null;
+
+  const secret = process.env.JWT_SECRET;
+  if (!secret) return null; // fail closed — no secret, no trust
+
+  try {
+    const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
+      algorithms: ['HS256'],
+    });
+    return typeof payload.sub === 'string' ? payload.sub : null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Rate Limiter ──────────────────────────────────────────
+// Keyed by the VERIFIED user id (not IP) — an IP is trivially rotated, a Pi
+// session is not. Best-effort per edge instance; a durable per-user limit
+// (Redis) is the follow-up for multi-instance correctness.
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT   = 20;
 const RATE_WINDOW  = 60_000;
 
-function checkRateLimit(ip: string): boolean {
+function checkRateLimit(key: string): boolean {
   const now   = Date.now();
-  const entry = rateLimitMap.get(ip);
+  const entry = rateLimitMap.get(key);
   if (entry && now < entry.resetAt) {
     if (entry.count >= RATE_LIMIT) return false;
     entry.count++;
   } else {
-    rateLimitMap.set(ip, { count: 1, resetAt: now + RATE_WINDOW });
+    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_WINDOW });
   }
   return true;
 }
@@ -181,9 +210,17 @@ function createUnifiedStream(provider: string) {
 export async function POST(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
 
-  // ✅ P0-3: Rate limiting — 20 req/min per IP
-  const ip = req.headers.get('x-forwarded-for') ?? 'unknown';
-  if (!checkRateLimit(ip)) {
+  // ── Auth gate — logged-in TEC users only (protects the paid AI budget) ──
+  const userId = await authenticate(req);
+  if (!userId) {
+    return NextResponse.json(
+      { error: 'Please sign in to use the TEC Assistant.' },
+      { status: 401, headers: corsHeaders },
+    );
+  }
+
+  // Rate limit — 20 req/min per authenticated user
+  if (!checkRateLimit(userId)) {
     return NextResponse.json(
       { error: 'Rate limit exceeded. Try again in a minute.' },
       { status: 429, headers: corsHeaders },

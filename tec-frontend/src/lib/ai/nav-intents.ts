@@ -61,48 +61,80 @@ export const ACTION_TARGETS: Record<string, { href: string; name: Localized }> =
   'tec:notifications': { href: '/hub/notifications',           name: { en: 'Notifications',     ar: 'الإشعارات' } },
 };
 
+/** An ordered, multi-step journey the assistant suggests across apps/actions. */
+export interface NavFlow {
+  steps: NavIntent[];
+}
+
+/**
+ * Resolve a single step spec (slug, optional action, optional label) to an intent.
+ * An action MUST resolve to a known action target — never fall back to the app
+ * home, or the AI could silently point somewhere it didn't mean. Returns null when
+ * the slug/action is unknown (fail closed).
+ */
+function resolveStep(slug: string, action?: string, label?: string): NavIntent | null {
+  let base: NavTarget | undefined;
+  if (action) {
+    const at = ACTION_TARGETS[`${slug}:${action}`];
+    if (at) base = { slug, href: at.href, name: at.name };
+  } else {
+    base = NAV_TARGETS[slug];
+  }
+  if (!base) return null;
+  return { ...base, action, label: label || undefined };
+}
+
 // [[go:slug]] · [[go:slug:action]] · with an optional |Label. Lowercase slug/action.
 const MARKER = /\[\[go:([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\|([^\]]+))?\]\]/gi;
+// [[flow: step ; step ; … ]] — a multi-step journey. Steps split on ';' or '>'.
+const FLOW_MARKER = /\[\[flow:([^\]]+)\]\]/gi;
+const STEP_SPEC   = /^([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\|(.+))?$/i;
 
 export interface ParsedReply {
   /** The prose with all markers removed and trailing whitespace trimmed. */
   clean: string;
-  /** Resolved intents, de-duplicated, unknown slugs/actions dropped. */
+  /** Resolved single-step intents, de-duplicated, unknown slugs/actions dropped. */
   intents: NavIntent[];
+  /** Resolved multi-step flows (each with ≥2 valid steps). */
+  flows: NavFlow[];
 }
 
 /**
- * Split a raw assistant reply into display prose + resolved navigation intents.
- * Unknown slugs/actions are silently dropped (the AI cannot invent a destination).
+ * Split a raw assistant reply into display prose + resolved navigation intents
+ * and multi-step flows. Unknown slugs/actions are silently dropped (the AI cannot
+ * invent a destination).
  */
 export function parseNavIntents(raw: string): ParsedReply {
   const intents: NavIntent[] = [];
+  const flows:   NavFlow[]   = [];
   const seen = new Set<string>();
 
+  // Multi-step flows first.
+  let fm: RegExpExecArray | null;
+  FLOW_MARKER.lastIndex = 0;
+  while ((fm = FLOW_MARKER.exec(raw)) !== null) {
+    const steps: NavIntent[] = [];
+    for (const spec of fm[1].split(/[;>]/).map(s => s.trim()).filter(Boolean)) {
+      const sm = STEP_SPEC.exec(spec);
+      if (!sm) continue;
+      const step = resolveStep(sm[1].toLowerCase(), sm[2]?.toLowerCase(), sm[3]?.trim());
+      if (step) steps.push(step);
+    }
+    if (steps.length >= 2) flows.push({ steps });   // a 1-step "flow" is just an intent
+  }
+
+  // Single-step intents.
   let match: RegExpExecArray | null;
   MARKER.lastIndex = 0;
   while ((match = MARKER.exec(raw)) !== null) {
-    const slug   = match[1].toLowerCase();
-    const action = match[2]?.toLowerCase();
-    const label  = match[3]?.trim();
-
-    // An action marker MUST resolve to a known action target — never fall back to
-    // the app home, or the AI could silently point somewhere it didn't mean.
-    let base: NavTarget | undefined;
-    if (action) {
-      const at = ACTION_TARGETS[`${slug}:${action}`];
-      if (at) base = { slug, href: at.href, name: at.name };
-    } else {
-      base = NAV_TARGETS[slug];
-    }
-    if (!base) continue;
-
-    const key = action ? `${slug}:${action}` : slug;
+    const step = resolveStep(match[1].toLowerCase(), match[2]?.toLowerCase(), match[3]?.trim());
+    if (!step) continue;
+    const key = step.action ? `${step.slug}:${step.action}` : step.slug;
     if (seen.has(key)) continue;
     seen.add(key);
-    intents.push({ ...base, action, label: label || undefined });
+    intents.push(step);
   }
 
-  const clean = raw.replace(MARKER, '').replace(/[ \t]+\n/g, '\n').trim();
-  return { clean, intents };
+  const clean = raw.replace(FLOW_MARKER, '').replace(MARKER, '').replace(/[ \t]+\n/g, '\n').trim();
+  return { clean, intents, flows };
 }

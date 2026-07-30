@@ -88,3 +88,36 @@ describe('parseNavIntents — Hub action deep-links', () => {
     expect(intents[0].label).toBe('Pay now');
   });
 });
+
+describe('parseNavIntents — multi-step flows', () => {
+  it('parses an ordered flow across apps, stripping the marker', () => {
+    const { clean, flows, intents } = parseNavIntents(
+      "Here's the path. [[flow: nbf|Register your business ; commerce|List your product ; explorer]]",
+    );
+    expect(clean).toBe("Here's the path.");
+    expect(intents).toHaveLength(0);              // flow steps are not also single intents
+    expect(flows).toHaveLength(1);
+    expect(flows[0].steps.map(s => s.slug)).toEqual(['nbf', 'commerce', 'explorer']);
+    expect(flows[0].steps[0].label).toBe('Register your business');
+  });
+
+  it('resolves action steps inside a flow', () => {
+    const { flows } = parseNavIntents('[[flow: tec:kyc ; tec:subscribe ]]');
+    expect(flows[0].steps.map(s => s.href)).toEqual(['/hub/kyc', '/hub/subscription']);
+  });
+
+  it('drops unknown steps but keeps the flow if ≥2 remain', () => {
+    const { flows } = parseNavIntents('[[flow: nbf ; not-an-app ; commerce]]');
+    expect(flows[0].steps.map(s => s.slug)).toEqual(['nbf', 'commerce']);
+  });
+
+  it('discards a flow that resolves to fewer than 2 valid steps', () => {
+    const { flows } = parseNavIntents('[[flow: nbf ; not-an-app]]');
+    expect(flows).toHaveLength(0);
+  });
+
+  it('accepts ">" as a step separator', () => {
+    const { flows } = parseNavIntents('[[flow: nbf > commerce]]');
+    expect(flows[0].steps).toHaveLength(2);
+  });
+});

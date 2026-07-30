@@ -4,8 +4,9 @@ import { useState, useRef, useEffect } from 'react';
 import { useTranslation }              from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import { parseNavIntents }             from '@/lib/ai/nav-intents';
-import type { NavIntent }              from '@/lib/ai/nav-intents';
+import type { NavIntent, NavFlow }     from '@/lib/ai/nav-intents';
 import { t }                           from '@/domains/_types';
+import type { Locale }                 from '@/domains/_types';
 import Link                            from 'next/link';
 import styles                          from './ai.module.css';
 
@@ -14,12 +15,25 @@ const getCsrfToken = (): string => {
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
 
+// A single navigation-intent chip — an internal Link for Hub paths, an external
+// anchor for another app's domain. Shared by single intents and flow steps.
+function IntentChip({ intent, locale, dir }: { intent: NavIntent; locale: Locale; dir: string }) {
+  const label    = intent.label ?? t(intent.name, locale);
+  const external = /^https?:\/\//.test(intent.href);
+  const arrow    = dir === 'rtl' ? '←' : '→';
+  const inner    = <>{label} <span aria-hidden>{arrow}</span></>;
+  return external
+    ? <a href={intent.href} target="_blank" rel="noopener noreferrer" className={styles.intentChip}>{inner}</a>
+    : <Link href={intent.href} className={styles.intentChip}>{inner}</Link>;
+}
+
 interface Message {
   id:        string;
   role:      'user' | 'assistant';
   content:   string;
   timestamp: Date;
   intents?:  NavIntent[];
+  flows?:    NavFlow[];
 }
 
 const SUGGESTED_QUESTIONS = [
@@ -152,11 +166,16 @@ export default function AiClient() {
 
       // Resolve navigation intents: strip the machine-read marker from the prose
       // and surface the recommended app as an action chip (a pointer, never an action).
-      const { clean, intents } = parseNavIntents(full);
+      const { clean, intents, flows } = parseNavIntents(full);
       setMessages(prev =>
         prev.map(m =>
           m.id === assistantMessage.id
-            ? { ...m, content: clean, intents: intents.length ? intents : undefined }
+            ? {
+                ...m,
+                content: clean,
+                intents: intents.length ? intents : undefined,
+                flows:   flows.length   ? flows   : undefined,
+              }
             : m,
         )
       );
@@ -281,28 +300,27 @@ export default function AiClient() {
                     <p className={styles.messageContent}>{msg.content}</p>
                     {msg.intents && msg.intents.length > 0 && (
                       <div className={styles.intentRow}>
-                        {msg.intents.map(intent => {
-                          const label = intent.label ?? t(intent.name, locale);
-                          const external = /^https?:\/\//.test(intent.href);
-                          const arrow = dir === 'rtl' ? '←' : '→';
-                          return external ? (
-                            <a
-                              key={intent.slug}
-                              href={intent.href}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className={styles.intentChip}
-                            >
-                              {label} <span aria-hidden>{arrow}</span>
-                            </a>
-                          ) : (
-                            <Link key={intent.slug} href={intent.href} className={styles.intentChip}>
-                              {label} <span aria-hidden>{arrow}</span>
-                            </Link>
-                          );
-                        })}
+                        {msg.intents.map(intent => (
+                          <IntentChip
+                            key={intent.action ? `${intent.slug}:${intent.action}` : intent.slug}
+                            intent={intent} locale={locale} dir={dir}
+                          />
+                        ))}
                       </div>
                     )}
+                    {msg.flows && msg.flows.map((flow, fi) => (
+                      <div key={fi} className={styles.flowCard}>
+                        <div className={styles.flowTitle}>
+                          {locale === 'ar' ? 'خطوات مقترحة' : 'Suggested steps'}
+                        </div>
+                        {flow.steps.map((step, si) => (
+                          <div key={si} className={styles.flowStep}>
+                            <span className={styles.flowNum}>{si + 1}</span>
+                            <IntentChip intent={step} locale={locale} dir={dir} />
+                          </div>
+                        ))}
+                      </div>
+                    ))}
                     <span className={styles.messageTime}>
                       {msg.timestamp.toLocaleTimeString(locale === 'ar' ? 'ar' : 'en', {
                         hour: '2-digit', minute: '2-digit',

@@ -1,20 +1,23 @@
 /**
- * TEC AI — Navigation Intents (V2, first orchestration primitive).
+ * TEC AI — Navigation Intents (V2 orchestration primitive).
  *
  * The assistant is a GUIDE, not an executor (C-104 v2.0 §1.5 — Decision-Support,
  * C-47 P6). A "navigation intent" is the smallest orchestration step: the model
- * reasons about what the user wants, then points to the EXACT app/page to open —
- * it never moves Pi or completes an action itself.
+ * reasons about what the user wants, then points to the EXACT app/page — or the
+ * EXACT action inside the Hub — it never moves Pi or completes the action itself.
  *
- * Transport: the model appends a marker `[[go:<slug>]]` (optionally
- * `[[go:<slug>|Custom label>]]`) when it recommends one specific app. We parse it
- * out of the streamed text, strip it from the prose, and render an action chip.
- * This works across all three providers (Claude/Groq/Gemini) with no per-provider
+ * Transport: the model appends a marker in the reply, which we parse out of the
+ * streamed text, strip from the prose, and render as an action chip:
+ *   [[go:<slug>]]                 → open an app         (e.g. [[go:commerce]])
+ *   [[go:<slug>:<action>]]        → a specific action   (e.g. [[go:tec:pay]])
+ *   [[go:<slug>|Custom label]]    → override the label
+ *   [[go:<slug>:<action>|Label]]
+ * Works across all three providers (Claude/Groq/Gemini) with no per-provider
  * tool-calling schema.
  *
- * Targets are DERIVED from the domain registry (single source of truth, P1) — a
- * slug the registry doesn't know is dropped (fail closed), so the AI can never
- * route a user to a fabricated destination.
+ * App targets are DERIVED from the domain registry (single source of truth, P1);
+ * action targets are the Hub's own deep-links. An unknown slug/action is dropped
+ * (fail closed), so the AI can never route a user to a fabricated destination.
  */
 import { DOMAIN_REGISTRY } from '@/domains/_registry';
 import type { Localized }  from '@/domains/_types';
@@ -26,7 +29,9 @@ export interface NavTarget {
 }
 
 export interface NavIntent extends NavTarget {
-  /** Optional label the model supplied after the pipe; falls back to the app name. */
+  /** The specific in-app action, when the marker named one (e.g. 'pay'). */
+  action?: string;
+  /** Optional label the model supplied after the pipe; falls back to the name. */
   label?: string;
 }
 
@@ -40,35 +45,96 @@ export const NAV_TARGETS: Record<string, NavTarget> = Object.values(DOMAIN_REGIS
   {} as Record<string, NavTarget>,
 );
 
-// [[go:slug]] or [[go:slug|Label]] — slug is lowercase letters/digits/hyphen.
-const MARKER = /\[\[go:([a-z0-9-]+)(?:\|([^\]]+))?\]\]/gi;
+/**
+ * Hub deep-link actions, keyed `tec:<action>`. These are the concrete flows the
+ * assistant can point a user straight to (all internal Hub paths — the wallet/KYC/
+ * subscription/referral surfaces already exist). Pointers only — never execution.
+ */
+export const ACTION_TARGETS: Record<string, { href: string; name: Localized }> = {
+  'tec:pay':           { href: '/hub?pay=1',                   name: { en: 'Open payment',      ar: 'افتح الدفع' } },
+  'tec:send':          { href: '/dashboard/wallet?action=send',    name: { en: 'Send Pi',       ar: 'ابعت Pi' } },
+  'tec:receive':       { href: '/dashboard/wallet?action=receive', name: { en: 'Receive Pi',    ar: 'استقبل Pi' } },
+  'tec:wallet':        { href: '/dashboard/wallet',            name: { en: 'Open wallet',       ar: 'افتح المحفظة' } },
+  'tec:kyc':           { href: '/hub/kyc',                     name: { en: 'Verify identity',   ar: 'وثّق هويتك' } },
+  'tec:subscribe':     { href: '/hub/subscription',            name: { en: 'View plans',        ar: 'شوف الباقات' } },
+  'tec:referral':      { href: '/hub/referral',                name: { en: 'Invite & Earn',     ar: 'ادعُ واكسب' } },
+  'tec:notifications': { href: '/hub/notifications',           name: { en: 'Notifications',     ar: 'الإشعارات' } },
+};
+
+/** An ordered, multi-step journey the assistant suggests across apps/actions. */
+export interface NavFlow {
+  steps: NavIntent[];
+}
+
+/**
+ * Resolve a single step spec (slug, optional action, optional label) to an intent.
+ * An action MUST resolve to a known action target — never fall back to the app
+ * home, or the AI could silently point somewhere it didn't mean. Returns null when
+ * the slug/action is unknown (fail closed).
+ */
+function resolveStep(slug: string, action?: string, label?: string): NavIntent | null {
+  let base: NavTarget | undefined;
+  if (action) {
+    const at = ACTION_TARGETS[`${slug}:${action}`];
+    if (at) base = { slug, href: at.href, name: at.name };
+  } else {
+    base = NAV_TARGETS[slug];
+  }
+  if (!base) return null;
+  return { ...base, action, label: label || undefined };
+}
+
+// [[go:slug]] · [[go:slug:action]] · with an optional |Label. Lowercase slug/action.
+const MARKER = /\[\[go:([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\|([^\]]+))?\]\]/gi;
+// [[flow: step ; step ; … ]] — a multi-step journey. Steps split on ';' or '>'.
+const FLOW_MARKER = /\[\[flow:([^\]]+)\]\]/gi;
+const STEP_SPEC   = /^([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\|(.+))?$/i;
 
 export interface ParsedReply {
   /** The prose with all markers removed and trailing whitespace trimmed. */
   clean: string;
-  /** Resolved intents, de-duplicated by slug, unknown slugs dropped. */
+  /** Resolved single-step intents, de-duplicated, unknown slugs/actions dropped. */
   intents: NavIntent[];
+  /** Resolved multi-step flows (each with ≥2 valid steps). */
+  flows: NavFlow[];
 }
 
 /**
- * Split a raw assistant reply into display prose + resolved navigation intents.
- * Unknown slugs are silently dropped (the AI cannot invent a destination).
+ * Split a raw assistant reply into display prose + resolved navigation intents
+ * and multi-step flows. Unknown slugs/actions are silently dropped (the AI cannot
+ * invent a destination).
  */
 export function parseNavIntents(raw: string): ParsedReply {
   const intents: NavIntent[] = [];
+  const flows:   NavFlow[]   = [];
   const seen = new Set<string>();
 
+  // Multi-step flows first.
+  let fm: RegExpExecArray | null;
+  FLOW_MARKER.lastIndex = 0;
+  while ((fm = FLOW_MARKER.exec(raw)) !== null) {
+    const steps: NavIntent[] = [];
+    for (const spec of fm[1].split(/[;>]/).map(s => s.trim()).filter(Boolean)) {
+      const sm = STEP_SPEC.exec(spec);
+      if (!sm) continue;
+      const step = resolveStep(sm[1].toLowerCase(), sm[2]?.toLowerCase(), sm[3]?.trim());
+      if (step) steps.push(step);
+    }
+    if (steps.length >= 2) flows.push({ steps });   // a 1-step "flow" is just an intent
+  }
+
+  // Single-step intents.
   let match: RegExpExecArray | null;
   MARKER.lastIndex = 0;
   while ((match = MARKER.exec(raw)) !== null) {
-    const slug   = match[1].toLowerCase();
-    const label  = match[2]?.trim();
-    const target = NAV_TARGETS[slug];
-    if (!target || seen.has(slug)) continue;
-    seen.add(slug);
-    intents.push({ ...target, label: label || undefined });
+    const step = resolveStep(match[1].toLowerCase(), match[2]?.toLowerCase(), match[3]?.trim());
+    if (!step) continue;
+    const key = step.action ? `${step.slug}:${step.action}` : step.slug;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    intents.push(step);
   }
 
-  const clean = raw.replace(MARKER, '').replace(/[ \t]+\n/g, '\n').trim();
-  return { clean, intents };
+  const clean = raw.replace(FLOW_MARKER, '').replace(MARKER, '').replace(/[ \t]+\n/g, '\n').trim();
+  return { clean, intents, flows };
 }

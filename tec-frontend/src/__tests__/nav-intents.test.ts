@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { NAV_TARGETS, parseNavIntents } from '@/lib/ai/nav-intents';
+import { NAV_TARGETS, ACTION_TARGETS, parseNavIntents } from '@/lib/ai/nav-intents';
 
 describe('NAV_TARGETS (derived from the domain registry)', () => {
   it('exposes live apps keyed by slug', () => {
@@ -52,5 +52,39 @@ describe('parseNavIntents', () => {
     const { intents } = parseNavIntents('go [[GO:Commerce]]');
     expect(intents).toHaveLength(1);
     expect(intents[0].slug).toBe('commerce');
+  });
+});
+
+describe('parseNavIntents — Hub action deep-links', () => {
+  it('resolves a Hub action marker to its deep-link + action', () => {
+    const { clean, intents } = parseNavIntents('Tap below to pay. [[go:tec:pay]]');
+    expect(clean).toBe('Tap below to pay.');
+    expect(intents).toHaveLength(1);
+    expect(intents[0].slug).toBe('tec');
+    expect(intents[0].action).toBe('pay');
+    expect(intents[0].href).toBe(ACTION_TARGETS['tec:pay'].href);   // /hub?pay=1
+  });
+
+  it('resolves kyc / subscribe / send actions', () => {
+    expect(parseNavIntents('[[go:tec:kyc]]').intents[0].href).toBe('/hub/kyc');
+    expect(parseNavIntents('[[go:tec:subscribe]]').intents[0].href).toBe('/hub/subscription');
+    expect(parseNavIntents('[[go:tec:send]]').intents[0].href).toBe('/dashboard/wallet?action=send');
+  });
+
+  it('drops an unknown action instead of falling back to the app home', () => {
+    const { intents } = parseNavIntents('[[go:tec:teleport]]');
+    expect(intents).toHaveLength(0);
+  });
+
+  it('keeps an app-level and an action-level intent as distinct', () => {
+    const { intents } = parseNavIntents('a [[go:tec:pay]] b [[go:commerce]]');
+    expect(intents).toHaveLength(2);
+    expect(intents.map(i => i.action)).toEqual(['pay', undefined]);
+  });
+
+  it('honors a custom label after an action marker', () => {
+    const { intents } = parseNavIntents('[[go:tec:pay|Pay now]]');
+    expect(intents[0].action).toBe('pay');
+    expect(intents[0].label).toBe('Pay now');
   });
 });

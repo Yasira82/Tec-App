@@ -6,11 +6,13 @@ import { PiPrice }   from '@/lib/hub/types';
 import { CountUp }   from '@/components/ui/CountUp';
 
 interface Props {
-  balance:  string;
-  piPrice:  PiPrice | null;
+  balance:         string;
+  piPrice:         PiPrice | null;
+  balanceError?:   boolean;
+  onRetryBalance?: () => void;
 }
 
-export function HubWalletCard({ balance, piPrice }: Props) {
+export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }: Props) {
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
 
@@ -48,7 +50,29 @@ export function HubWalletCard({ balance, piPrice }: Props) {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
-            {balance === '—' ? (
+            {balanceError ? (
+              // Honest failure state (C-135 §4) — never show a fabricated 0 balance.
+              // A role=button span (not a real <button>) because the whole card is
+              // already a <button> and nesting buttons is invalid HTML.
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => { e.stopPropagation(); haptic('light'); onRetryBalance?.(); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault(); e.stopPropagation(); haptic('light'); onRetryBalance?.();
+                  }
+                }}
+                style={{
+                  display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+                  background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.28)',
+                  borderRadius: 12, padding: '9px 14px',
+                }}
+              >
+                <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>Couldn&apos;t load balance</span>
+                <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 700 }}>↻ Retry</span>
+              </span>
+            ) : balance === '—' ? (
               <div className="tec-skeleton" style={{ width: 120, height: 44 }} />
             ) : (
               <>

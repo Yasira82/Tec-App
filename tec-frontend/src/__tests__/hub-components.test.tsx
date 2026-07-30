@@ -69,6 +69,16 @@ describe('HubWalletCard', () => {
     const { container } = render(<HubWalletCard balance="3.00" piPrice={{ price: 1.1, change24h: -0.3, high24h: 1.5, low24h: 1.0 }} />);
     expect(container).toBeTruthy();
   });
+
+  it('shows an honest error+retry state instead of a fabricated balance', () => {
+    const onRetry = vi.fn();
+    render(<HubWalletCard balance="—" piPrice={null} balanceError onRetryBalance={onRetry} />);
+    // No fabricated 0 balance is shown (C-135 §4 honest state)
+    expect(screen.queryByText('0.00')).not.toBeInTheDocument();
+    expect(screen.getByText(/Couldn't load balance/)).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/Retry/));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
 });
 
 // ── HubAppsGrid ───────────────────────────────────────────

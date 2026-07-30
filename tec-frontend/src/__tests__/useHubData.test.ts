@@ -74,12 +74,36 @@ describe('useHubData', () => {
     expect(typeof result.current.time).toBe('string');
   });
 
-  it('handles fetch error silently on refreshBalance', async () => {
+  it('handles fetch error silently on refreshBalance and flags balanceError', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network')) as any;
     const { result } = renderHook(() => useHubData('u1'));
     await act(async () => {
       await expect(result.current.refreshBalance()).resolves.not.toThrow();
     });
+    // Honest state (C-135 §4): balance stays '—' (never a fabricated 0) and the
+    // error flag lets the card offer a retry instead of an eternal skeleton.
     expect(result.current.balance).toBe('—');
+    expect(result.current.balanceError).toBe(true);
+  });
+
+  it('flags balanceError on a non-ok balance response', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, json: async () => ({}) }) as any;
+    const { result } = renderHook(() => useHubData('u1'));
+    await act(async () => { await result.current.refreshBalance(); });
+    expect(result.current.balanceError).toBe(true);
+    expect(result.current.balance).toBe('—');
+  });
+
+  it('clears balanceError once the balance loads successfully', async () => {
+    // First call fails, then a retry succeeds — the flag must clear.
+    global.fetch = vi.fn().mockRejectedValueOnce(new Error('Network')) as any;
+    const { result } = renderHook(() => useHubData('u1'));
+    await act(async () => { await result.current.refreshBalance(); });
+    expect(result.current.balanceError).toBe(true);
+
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ balance: '9.00' }) }) as any;
+    await act(async () => { await result.current.refreshBalance(); });
+    expect(result.current.balanceError).toBe(false);
+    expect(result.current.balance).toBe('9.00');
   });
 });

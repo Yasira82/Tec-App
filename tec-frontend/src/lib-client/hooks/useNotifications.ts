@@ -80,34 +80,37 @@ export function useNotifications(): UseNotificationsReturn {
   const markAsRead = useCallback(async (id: string) => {
     const token = getAccessToken();
     if (!token) return;
+    // Optimistic update for a snappy UI…
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
+    setUnreadCount(prev => Math.max(0, prev - 1));
     try {
-      await fetch('/api/bff/notifications/list', {
+      const res = await fetch('/api/bff/notifications/list', {
         method:      'PATCH',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         body:        JSON.stringify({ notificationId: id }),
       });
-      setNotifications(prev =>
-        prev.map(n => n.id === id ? { ...n, read: true } : n)
-      );
-      setUnreadCount(prev => Math.max(0, prev - 1));
-    } catch { /* ignore */ }
-  }, []);
+      // …but if the server rejects, resync from the source of truth so the unread
+      // badge never silently lies (a swallowed failure is an invisible bug — C-96).
+      if (!res.ok) fetchNotifications(true);
+    } catch { fetchNotifications(true); }
+  }, [fetchNotifications]);
 
   const markAllAsRead = useCallback(async () => {
     const token = getAccessToken();
     if (!token) return;
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    setUnreadCount(0);
     try {
-      await fetch('/api/bff/notifications/list', {
+      const res = await fetch('/api/bff/notifications/list', {
         method:      'PATCH',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         body:        JSON.stringify({ markAll: true }),
       });
-      setNotifications(prev => prev.map(n => ({ ...n, read: true })));
-      setUnreadCount(0);
-    } catch { /* ignore */ }
-  }, []);
+      if (!res.ok) fetchNotifications(true);
+    } catch { fetchNotifications(true); }
+  }, [fetchNotifications]);
 
   useEffect(() => {
     fetchNotifications();

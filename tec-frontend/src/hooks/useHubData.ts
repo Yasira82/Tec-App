@@ -4,6 +4,7 @@ import { PiPrice }                          from '@/lib/hub/types';
 
 interface HubData {
   balance:           string;
+  balanceError:      boolean;
   assetCount:        number | null;
   piPrice:           PiPrice | null;
   notifCount:        number;
@@ -14,11 +15,12 @@ interface HubData {
 }
 
 export function useHubData(userId?: string): HubData {
-  const [balance,    setBalance]    = useState('—');
-  const [assetCount, setAssetCount] = useState<number | null>(null);
-  const [piPrice,    setPiPrice]    = useState<PiPrice | null>(null);
-  const [notifCount, setNotifCount] = useState(0);
-  const [time,       setTime]       = useState('');
+  const [balance,      setBalance]      = useState('—');
+  const [balanceError, setBalanceError] = useState(false);
+  const [assetCount,   setAssetCount]   = useState<number | null>(null);
+  const [piPrice,      setPiPrice]      = useState<PiPrice | null>(null);
+  const [notifCount,   setNotifCount]   = useState(0);
+  const [time,         setTime]         = useState('');
 
   // bffFetch (C-123 §7): Authorization header from the in-memory session + one
   // silent Pi re-auth on 401 — data loads and SELF-HEALS mid-session even in
@@ -27,8 +29,16 @@ export function useHubData(userId?: string): HubData {
     if (!userId) return;
     try {
       const res = await bffFetch('/api/bff/wallet/balance', { cache: 'no-store' });
-      if (res.ok) { const d = await res.json(); setBalance(`${Number(d.balance).toFixed(2)}`); }
-    } catch {}
+      if (res.ok) {
+        const d = await res.json();
+        setBalance(`${Number(d.balance).toFixed(2)}`);
+        setBalanceError(false);
+      } else {
+        // Honest state (C-135 §4): surface the failure so the card can offer a
+        // retry, instead of an eternal skeleton. Never fabricate a 0 balance.
+        setBalanceError(true);
+      }
+    } catch { setBalanceError(true); }
   }, [userId]);
 
   const refreshAssets = useCallback(async () => {
@@ -80,5 +90,5 @@ export function useHubData(userId?: string): HubData {
     return () => clearInterval(id);
   }, []);
 
-  return { balance, assetCount, piPrice, notifCount, time, setNotifCount, refresh, refreshBalance };
+  return { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refresh, refreshBalance };
 }

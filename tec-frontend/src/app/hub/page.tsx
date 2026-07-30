@@ -52,7 +52,7 @@ function HubPageInner() {
       return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description.en, group: d.group };
     });
 
-  const { balance, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
+  const { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
 
   const [carouselIdx,     setCarouselIdx]     = useState(0);
@@ -267,7 +267,7 @@ function HubPageInner() {
         </div>
       )}
 
-      <HubWalletCard balance={balance} piPrice={piPrice} />
+      <HubWalletCard balance={balance} piPrice={piPrice} balanceError={balanceError} onRetryBalance={refreshBalance} />
 
       {/* Carousel = the top spotlight: Founding-100 marketing missions + an app
           announcement + the live Pi price. (Assets/Commerce/Analytics slides removed.) */}

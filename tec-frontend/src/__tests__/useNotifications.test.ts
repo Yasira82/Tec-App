@@ -106,6 +106,35 @@ describe('useNotifications — markAsRead', () => {
     expect(patchUrl).toContain('/api/bff/notifications/list');
     expect(JSON.parse(patchBody)).toEqual({ notificationId: 'n1' });
   });
+
+  it('optimistically decrements the unread count on success', async () => {
+    const { result } = renderHook(() => useNotifications());
+    await act(async () => {});
+    expect(result.current.unreadCount).toBe(1);
+    await act(async () => { await result.current.markAsRead('n1'); });
+    expect(result.current.unreadCount).toBe(0);
+    expect(result.current.notifications.find(n => n.id === 'n1')?.read).toBe(true);
+  });
+
+  it('resyncs from the server when the PATCH is rejected (badge never lies)', async () => {
+    let getCalls = 0;
+    global.fetch = vi.fn(async (_url: string, opts?: RequestInit) => {
+      if (opts?.method === 'PATCH') return { ok: false, status: 500, json: async () => ({}) };
+      getCalls++;
+      return {
+        ok:   true,
+        json: async () => ({
+          success: true,
+          data:    { notifications: [makeNotif('n1'), makeNotif('n2', true)], unreadCount: 1 },
+        }),
+      };
+    }) as any;
+
+    const { result } = renderHook(() => useNotifications());
+    await act(async () => {});                                   // initial load → 1 GET
+    await act(async () => { await result.current.markAsRead('n1'); }); // PATCH fails → resync GET
+    expect(getCalls).toBeGreaterThanOrEqual(2);
+  });
 });
 
 describe('useNotifications — markAllAsRead', () => {

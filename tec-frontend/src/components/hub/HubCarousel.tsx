@@ -4,12 +4,11 @@ import { useRef }       from 'react';
 import { haptic }       from '@/lib/hub/utils';
 import { PiPrice }      from '@/lib/hub/types';
 import { CountUp }      from '@/components/ui/CountUp';
-import { LIVE_DOMAINS } from '@/domains/_registry';
 
 // Hub top spotlight. Marketing-first: slide 1 = the Founding-100 "missions" entry,
-// slide 2 = Invite & Earn (referral), slide 3 = an ecosystem announcement/ad,
-// slide 4 = the live Pi price. The old Assets/Commerce/Analytics shortcuts were
-// removed (they live in the apps grid / nav).
+// slide 2 = Invite & Earn (referral), slide 3 = the live Pi price. The old
+// "apps live on Pi" slide was removed — it linked to the same Pioneers page as
+// Founding-100 (a duplicate); app discovery lives in the apps grid / nav.
 interface Props {
   carouselIdx:    number;
   setCarouselIdx: (i: number) => void;
@@ -18,12 +17,11 @@ interface Props {
   goToReferral:   () => void;
 }
 
-const SLIDES = 4;
+const SLIDES = 3;
 
 export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers, goToReferral }: Props) {
   const touchStartX = useRef(0);
   const priceUp     = (piPrice?.change24h ?? 0) >= 0;
-  const liveApps    = LIVE_DOMAINS.length;
 
   return (
     <div style={{ padding: '14px 16px 0', animation: 'tec-fade-in 0.5s ease both' }}>
@@ -66,22 +64,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             </button>
           </div>
 
-          {/* 3 — Ecosystem announcement / app ad */}
-          <div style={{ minWidth: '100%' }}>
-            <button className="tec-btn" onClick={goToPioneers}
-              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(139,92,246,0.14), #111627)', border: '1px solid rgba(139,92,246,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1e1440,#111627)', border: '1px solid rgba(139,92,246,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🚀</div>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{liveApps} apps live on Pi</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>One identity · real Pi payments — explore the ecosystem</div>
-                </div>
-              </div>
-              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#C4B5FD', letterSpacing: 1.5 }}>EXPLORE →</div>
-            </button>
-          </div>
-
-          {/* 4 — Pi Price (kept as-is) */}
+          {/* 3 — Pi Price (kept as-is) */}
           <div style={{ minWidth: '100%' }}>
             <div style={{ borderRadius: 20, background: '#111627', border: '1px solid rgba(251,191,36,0.12)', padding: '16px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>

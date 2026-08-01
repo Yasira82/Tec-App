@@ -27,12 +27,16 @@ const getSourceLabel = (source: string) => {
 };
 
 export interface ExternalPayment {
-  amount:     number;
-  memo:       string;
-  productId:  string;
-  returnUrl:  string;
-  source:     string;
-  internalId: string;
+  amount:        number;
+  memo:          string;
+  productId:     string;
+  returnUrl:     string;
+  source:        string;
+  internalId:    string;
+  // Optional Nexus workflow-run link (C-109 §5): when a Nexus run payment is handed to
+  // the Hub, these travel into the payment metadata so the run resumes on completion.
+  nexusRunId?:   string;
+  nexusStepIdx?: string;
 }
 
 export function PaymentModal({

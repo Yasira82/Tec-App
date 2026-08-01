@@ -12,6 +12,10 @@ function timestamp() {
 }
 
 type ServiceStatus = { name: string; status: 'checking' | 'ok' | 'error'; ms?: number };
+type StreamHealth = {
+  ok?: boolean; degraded?: boolean; redis?: string;
+  missingGroups?: number; warnings?: number; checkedAt?: string; error?: string;
+};
 
 export function PiTestClient() {
   const [logs,           setLogs]           = useState<LogEntry[]>([]);
@@ -21,6 +25,8 @@ export function PiTestClient() {
   const [sdkReady,       setSdkReady]       = useState<boolean | null>(null);
   const [services,       setServices]       = useState<ServiceStatus[]>([]);
   const [checkingAll,    setCheckingAll]    = useState(false);
+  const [streams,        setStreams]        = useState<StreamHealth | null>(null);
+  const [checkingStreams,setCheckingStreams]= useState(false);
 
   const log = useCallback((type: LogEntry['type'], msg: string) => {
     setLogs(prev => [...prev, { ts: timestamp(), type, msg }]);
@@ -76,6 +82,29 @@ export function PiTestClient() {
       log('error', `Services check failed: ${String(err)}`);
     }
     setCheckingAll(false);
+  }, [log]);
+
+  // ── Consumer liveness (the nervous-system sensor, via BFF) ─────────────────
+  const checkStreams = useCallback(async () => {
+    setCheckingStreams(true);
+    setStreams(null);
+    log('info', 'Checking consumer liveness (event streams)...');
+    try {
+      const start = Date.now();
+      const res   = await fetch('/api/health/streams', { cache: 'no-store' });
+      const data  = await res.json() as StreamHealth;
+      const ms    = Date.now() - start;
+      setStreams(data);
+      if (data.redis === 'unavailable') {
+        log('warn', `Stream sensor unavailable (${ms}ms) — Redis unreachable or not configured`);
+      } else {
+        const verdict = data.ok ? 'success' : (data.missingGroups ? 'error' : 'warn');
+        log(verdict, `Consumer liveness: ok=${data.ok} missing=${data.missingGroups ?? 0} warnings=${data.warnings ?? 0} (${ms}ms)`);
+      }
+    } catch (err) {
+      log('error', `Stream check failed: ${String(err)}`);
+    }
+    setCheckingStreams(false);
   }, [log]);
 
   // ── Auth Test ─────────────────────────────────────────────
@@ -229,6 +258,7 @@ export function PiTestClient() {
           { label: '🔐 Authenticate',        fn: handleAuth,             disabled: authStatus === 'loading' },
           { label: '💳 Test Payment (1π)',  fn: handlePayment,          disabled: payStatus === 'loading' },
           { label: '📡 All Services',        fn: checkAllServices,       disabled: checkingAll },
+          { label: '🫀 Consumer Liveness',   fn: checkStreams,           disabled: checkingStreams },
           { label: '🏥 BFF Health',          fn: handleCheckHealth,      disabled: false },
           { label: '🔄 SSO Test',            fn: handleCheckSSO,         disabled: false },
           { label: '⚠️ Cancel Pending',      fn: handleCancelPending,    disabled: false },
@@ -262,6 +292,40 @@ export function PiTestClient() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Consumer liveness (event-stream sensor) */}
+      {streams && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 8 }}>
+            CONSUMER LIVENESS {streams.checkedAt ? `· ${streams.checkedAt.slice(11, 19)}` : ''}
+          </div>
+          {streams.redis === 'unavailable' ? (
+            <div style={{
+              fontSize: 12, padding: '8px 12px', borderRadius: 8,
+              background: '#f2c94c20', border: '1px solid #f2c94c40', color: '#f2c94c',
+            }}>
+              Sensor unavailable — Redis unreachable or not configured on identity-service.
+            </div>
+          ) : (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {([
+                ['status',   streams.ok ? 'healthy' : streams.degraded ? 'degraded' : 'broken', streams.ok],
+                ['missing groups', String(streams.missingGroups ?? 0), (streams.missingGroups ?? 0) === 0],
+                ['lag/pending warnings', String(streams.warnings ?? 0), (streams.warnings ?? 0) === 0],
+              ] as [string, string, boolean][]).map(([label, val, good]) => (
+                <div key={label} style={{
+                  fontSize: 11, padding: '4px 10px', borderRadius: 8,
+                  background: good ? '#7ee7c020' : '#e74c3c20',
+                  border: `1px solid ${good ? '#7ee7c040' : '#e74c3c40'}`,
+                  color: good ? '#7ee7c0' : '#e74c3c',
+                }}>
+                  {label}: {val}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

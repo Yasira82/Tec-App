@@ -81,6 +81,12 @@ export const APP_ACTIONS: Record<string, { path: string; name: Localized }> = {
   'ecommerce:stores':  { path: '/store',        name: { en: 'Browse stores',    ar: 'تصفّح المتاجر' } },
   'ecommerce:sell':    { path: '/merchant',     name: { en: 'Sell (merchant)',  ar: 'بيع (تاجر)' } },
   'commerce:settings': { path: '/app/settings', name: { en: 'Store settings',   ar: 'إعدادات المتجر' } },
+  // Nexus = the coordination runtime (C-109). These deep-link to a SPECIFIC governed
+  // workflow so the assistant can recommend the right one for a multi-step goal.
+  'nexus:workflows':    { path: '/app',                          name: { en: 'Nexus workflows',      ar: 'مسارات Nexus' } },
+  'nexus:checkout':     { path: '/workflow/checkout-saga',       name: { en: 'Checkout saga',        ar: 'مسار الشراء (Checkout)' } },
+  'nexus:asset':        { path: '/workflow/asset-transfer-saga', name: { en: 'Asset transfer saga',  ar: 'مسار نقل الأصول' } },
+  'nexus:subscription': { path: '/workflow/subscription-renewal',name: { en: 'Subscription renewal', ar: 'مسار تجديد الاشتراك' } },
 };
 
 /** Origin of an absolute app route; '' for a relative (Hub) route. */

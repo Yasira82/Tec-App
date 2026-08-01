@@ -155,3 +155,30 @@ describe('parseNavIntents — expanded Hub + cross-app actions (Slice B)', () =>
     expect(intents).toHaveLength(0);
   });
 });
+
+describe('parseNavIntents — Nexus workflow deep-links (TEC AI × Nexus)', () => {
+  const origin = (href: string) => new URL(href).origin;
+
+  it('routes to a specific Nexus workflow by id', () => {
+    const { intents } = parseNavIntents('Use the checkout saga. [[go:nexus:checkout]]');
+    expect(intents).toHaveLength(1);
+    expect(intents[0].slug).toBe('nexus');
+    expect(intents[0].href).toBe(`${origin(NAV_TARGETS.nexus.href)}/workflow/checkout-saga`);
+  });
+
+  it('routes asset + subscription workflows to their real detail pages', () => {
+    const a = parseNavIntents('[[go:nexus:asset]]').intents[0];
+    const s = parseNavIntents('[[go:nexus:subscription]]').intents[0];
+    expect(a.href).toBe(`${origin(NAV_TARGETS.nexus.href)}/workflow/asset-transfer-saga`);
+    expect(s.href).toBe(`${origin(NAV_TARGETS.nexus.href)}/workflow/subscription-renewal`);
+  });
+
+  it('nexus:workflows points to the catalog', () => {
+    const { intents } = parseNavIntents('[[go:nexus:workflows]]');
+    expect(intents[0].href).toBe(`${origin(NAV_TARGETS.nexus.href)}/app`);
+  });
+
+  it('drops an unknown nexus workflow (never fabricates one)', () => {
+    expect(parseNavIntents('[[go:nexus:teleport]]').intents).toHaveLength(0);
+  });
+});

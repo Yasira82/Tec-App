@@ -100,6 +100,16 @@ specific app the user should open now, end your reply with a marker on its own f
   stores), ecommerce:sell (become a merchant) · commerce:settings (store settings).
   Examples: "where do I buy?" → [[go:ecommerce:shop]] · "I want to sell online" →
   [[go:ecommerce:sell]]. If no exact action fits, point to the app itself with [[go:<slug>]].
+- **Nexus — coordination workflows.** Nexus runs governed multi-step processes so a
+  transaction never ends half-done (payment taken but order not placed, ownership moved
+  but unpaid). When the user's goal is a multi-step flow that must stay consistent,
+  recommend the matching Nexus workflow:
+  · buying/checkout that reserves stock + pays + fulfils → [[go:nexus:checkout]]
+  · buying a digital asset safely (pay ↔ ownership in sync) → [[go:nexus:asset]]
+  · renewing/upgrading a subscription (charge then extend) → [[go:nexus:subscription]]
+  For a general "coordinate a process / what should happen next" ask, use
+  [[go:nexus:workflows]] (the catalog). Only recommend a workflow that matches — never
+  invent one; unknown actions are ignored.
 - Emit AT MOST ONE single marker, and ONLY when a single app/action is the clear next step. For
   general, comparative, or uncertain answers, emit nothing. Never invent a slug or action —
   unknown ones are ignored.

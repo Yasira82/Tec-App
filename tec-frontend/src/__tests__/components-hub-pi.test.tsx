@@ -448,7 +448,7 @@ describe('AIDrawer', () => {
     fireEvent.click(sendBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Connection error. Try again.')).toBeInTheDocument();
+      expect(screen.getByText('خطأ في الاتصال — حاول مرة أخرى.')).toBeInTheDocument();
     });
   });
 

@@ -89,11 +89,17 @@ specific app the user should open now, end your reply with a marker on its own f
 - The slug is the app's lowercase short name: tec, hub→tec, commerce, ecommerce, assets, explorer,
   analytics, zone, connection, nbf, life, legend, elite, vip, epic, nx, nexus, dx, alert, system,
   titan, estate, fundx, insure. Example: recommending the marketplace → [[go:commerce]].
-- For a specific Hub action, use [[go:tec:<action>]] to point straight to it. Valid actions:
+- For a specific Hub action, use [[go:tec:<action>]] to point straight to it. Valid tec actions:
   pay (make a payment), send (send Pi), receive (receive Pi), wallet (open wallet), kyc (verify
-  identity), subscribe (view PRO/ENTERPRISE plans), referral (Invite & Earn), notifications.
-  Examples: "how do I pay?" → [[go:tec:pay]] · "verify my identity" → [[go:tec:kyc]] ·
+  identity), subscribe (view PRO/ENTERPRISE plans), referral (Invite & Earn), notifications,
+  profile (account), analytics (your numbers), orders (your orders), assets (your assets),
+  security. Examples: "how do I pay?" → [[go:tec:pay]] · "verify my identity" → [[go:tec:kyc]] ·
   "upgrade to PRO" → [[go:tec:subscribe]].
+- For a specific action INSIDE another app, use [[go:<slug>:<action>]]. Valid app actions:
+  ecommerce:shop (browse products), ecommerce:orders (buyer's orders), ecommerce:stores (browse
+  stores), ecommerce:sell (become a merchant) · commerce:settings (store settings).
+  Examples: "where do I buy?" → [[go:ecommerce:shop]] · "I want to sell online" →
+  [[go:ecommerce:sell]]. If no exact action fits, point to the app itself with [[go:<slug>]].
 - Emit AT MOST ONE single marker, and ONLY when a single app/action is the clear next step. For
   general, comparative, or uncertain answers, emit nothing. Never invent a slug or action —
   unknown ones are ignored.

@@ -51,14 +51,41 @@ export const NAV_TARGETS: Record<string, NavTarget> = Object.values(DOMAIN_REGIS
  * subscription/referral surfaces already exist). Pointers only — never execution.
  */
 export const ACTION_TARGETS: Record<string, { href: string; name: Localized }> = {
-  'tec:pay':           { href: '/hub?pay=1',                   name: { en: 'Open payment',      ar: 'افتح الدفع' } },
-  'tec:send':          { href: '/dashboard/wallet?action=send',    name: { en: 'Send Pi',       ar: 'ابعت Pi' } },
-  'tec:receive':       { href: '/dashboard/wallet?action=receive', name: { en: 'Receive Pi',    ar: 'استقبل Pi' } },
-  'tec:wallet':        { href: '/dashboard/wallet',            name: { en: 'Open wallet',       ar: 'افتح المحفظة' } },
-  'tec:kyc':           { href: '/hub/kyc',                     name: { en: 'Verify identity',   ar: 'وثّق هويتك' } },
-  'tec:subscribe':     { href: '/hub/subscription',            name: { en: 'View plans',        ar: 'شوف الباقات' } },
-  'tec:referral':      { href: '/hub/referral',                name: { en: 'Invite & Earn',     ar: 'ادعُ واكسب' } },
-  'tec:notifications': { href: '/hub/notifications',           name: { en: 'Notifications',     ar: 'الإشعارات' } },
+  'tec:pay':           { href: '/hub?pay=1',                       name: { en: 'Open payment',      ar: 'افتح الدفع' } },
+  'tec:send':          { href: '/dashboard/wallet?action=send',    name: { en: 'Send Pi',           ar: 'ابعت Pi' } },
+  'tec:receive':       { href: '/dashboard/wallet?action=receive', name: { en: 'Receive Pi',        ar: 'استقبل Pi' } },
+  'tec:wallet':        { href: '/dashboard/wallet',                name: { en: 'Open wallet',       ar: 'افتح المحفظة' } },
+  'tec:kyc':           { href: '/hub/kyc',                         name: { en: 'Verify identity',   ar: 'وثّق هويتك' } },
+  'tec:subscribe':     { href: '/hub/subscription',                name: { en: 'View plans',        ar: 'شوف الباقات' } },
+  'tec:referral':      { href: '/hub/referral',                    name: { en: 'Invite & Earn',     ar: 'ادعُ واكسب' } },
+  'tec:notifications': { href: '/hub/notifications',               name: { en: 'Notifications',     ar: 'الإشعارات' } },
+  'tec:profile':       { href: '/hub/profile',                     name: { en: 'Your profile',      ar: 'ملفك الشخصي' } },
+  'tec:analytics':     { href: '/hub/analytics',                   name: { en: 'Your analytics',    ar: 'تحليلاتك' } },
+  'tec:orders':        { href: '/dashboard/orders',                name: { en: 'Your orders',       ar: 'طلباتك' } },
+  'tec:assets':        { href: '/dashboard/assets',                name: { en: 'Your assets',       ar: 'أصولك' } },
+  'tec:security':      { href: '/dashboard/security',              name: { en: 'Security',          ar: 'الأمان' } },
+};
+
+/**
+ * Cross-app actions, keyed `<slug>:<action>`. Unlike the Hub actions above (Hub-relative
+ * paths), these point to a SPECIFIC page INSIDE another live app. The `path` is appended
+ * to the app's ORIGIN (derived from its registry route — SSoT), NOT to the registry
+ * route itself: some apps live under a sub-path (`/app`, `/shop`) while their other pages
+ * sit at the origin root (e.g. ecommerce `/orders`). Every path here is a real page in the
+ * target app's repo — the AI can only reach a page that exists (fail closed). If the app
+ * is not LIVE (absent from NAV_TARGETS), the action drops.
+ */
+export const APP_ACTIONS: Record<string, { path: string; name: Localized }> = {
+  'ecommerce:shop':    { path: '/shop',         name: { en: 'Shop products',    ar: 'تسوّق المنتجات' } },
+  'ecommerce:orders':  { path: '/orders',       name: { en: 'Your orders',      ar: 'طلباتك' } },
+  'ecommerce:stores':  { path: '/store',        name: { en: 'Browse stores',    ar: 'تصفّح المتاجر' } },
+  'ecommerce:sell':    { path: '/merchant',     name: { en: 'Sell (merchant)',  ar: 'بيع (تاجر)' } },
+  'commerce:settings': { path: '/app/settings', name: { en: 'Store settings',   ar: 'إعدادات المتجر' } },
+};
+
+/** Origin of an absolute app route; '' for a relative (Hub) route. */
+const originOf = (href: string): string => {
+  try { return new URL(href).origin; } catch { return ''; }
 };
 
 /** An ordered, multi-step journey the assistant suggests across apps/actions. */
@@ -75,8 +102,16 @@ export interface NavFlow {
 function resolveStep(slug: string, action?: string, label?: string): NavIntent | null {
   let base: NavTarget | undefined;
   if (action) {
-    const at = ACTION_TARGETS[`${slug}:${action}`];
-    if (at) base = { slug, href: at.href, name: at.name };
+    const hubAction = ACTION_TARGETS[`${slug}:${action}`];
+    if (hubAction) {
+      base = { slug, href: hubAction.href, name: hubAction.name };
+    } else {
+      // Cross-app action → the live app's origin + the action's real page path.
+      const appAction = APP_ACTIONS[`${slug}:${action}`];
+      const app       = NAV_TARGETS[slug];
+      const origin    = app ? originOf(app.href) : '';
+      if (appAction && origin) base = { slug, href: origin + appAction.path, name: appAction.name };
+    }
   } else {
     base = NAV_TARGETS[slug];
   }

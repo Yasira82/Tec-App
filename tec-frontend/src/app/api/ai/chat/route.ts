@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
+import { checkRateLimit }    from '@/lib/ai/rate-limit';
 
 export const runtime = 'edge';
 
@@ -35,24 +36,9 @@ async function authenticate(req: NextRequest): Promise<string | null> {
 }
 
 // ── Rate Limiter ──────────────────────────────────────────
-// Keyed by the VERIFIED user id (not IP) — an IP is trivially rotated, a Pi
-// session is not. Best-effort per edge instance; a durable per-user limit
-// (Redis) is the follow-up for multi-instance correctness.
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT   = 20;
-const RATE_WINDOW  = 60_000;
-
-function checkRateLimit(key: string): boolean {
-  const now   = Date.now();
-  const entry = rateLimitMap.get(key);
-  if (entry && now < entry.resetAt) {
-    if (entry.count >= RATE_LIMIT) return false;
-    entry.count++;
-  } else {
-    rateLimitMap.set(key, { count: 1, resetAt: now + RATE_WINDOW });
-  }
-  return true;
-}
+// Keyed by the VERIFIED user id (not IP) — an IP is trivially rotated, a Pi session
+// is not. Durable across edge instances when Upstash REST is configured, else a
+// bounded in-memory fallback. See src/lib/ai/rate-limit.ts. (checkRateLimit is async.)
 
 // ── CORS ──────────────────────────────────────────────────
 function getCorsHeaders(req: NextRequest) {
@@ -65,17 +51,45 @@ function getCorsHeaders(req: NextRequest) {
   };
 }
 
-const buildSystemPrompt = (userContext?: {
+interface UserContext {
   username?: string;
   balance?:  number;
   locale?:   string;
-}) => `${TEC_SYSTEM_PROMPT}
+  // Personalization (C-104 reasoning input · C-121 pipeline). All OWN-SCOPE, assembled
+  // server-side by /api/bff/ai/context. Present only when the user has this data.
+  kycVerified?: boolean;
+  goals?:       { title: string; done: boolean }[];
+  focus?:       string;
+  activity?:    { logins?: number; payments?: number; volume?: string };
+}
+
+const buildSystemPrompt = (userContext?: UserContext) => {
+  const goals = (userContext?.goals ?? []).filter(g => !g.done).slice(0, 5);
+  const a     = userContext?.activity;
+  const activityLine = a && (a.logins !== undefined || a.payments !== undefined || a.volume !== undefined)
+    ? `- Recent activity: ${[
+        a.logins   !== undefined ? `${a.logins} logins`     : null,
+        a.payments !== undefined ? `${a.payments} payments`  : null,
+        a.volume                 ? `${a.volume} volume`       : null,
+      ].filter(Boolean).join(' · ')}`
+    : '';
+
+  return `${TEC_SYSTEM_PROMPT}
 
 ## CURRENT USER CONTEXT
+This is the user's OWN private context (their session, their data). Use it to make your
+guidance specific and relevant — reference a goal or their activity when it helps. NEVER
+reveal it back verbatim as if you surveilled them, never treat activity numbers as
+financial truth (the owning app is the source), and keep the honesty rules above.
 ${userContext?.username ? `- Username: @${userContext.username}` : '- User: Guest'}
 ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toFixed(2)} TEC` : ''}
+${userContext?.kycVerified !== undefined ? `- KYC (via Pi): ${userContext.kycVerified ? 'verified' : 'not verified'}` : ''}
+${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
+${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
+${activityLine}
 ${userContext?.locale ? `- Language preference: ${userContext.locale === 'ar' ? 'Arabic' : 'English'}` : ''}
 `;
+};
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {
@@ -89,9 +103,11 @@ const callClaude = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
+  signal?:      AbortSignal,
 ): Promise<Response> => {
   return fetch('https://api.anthropic.com/v1/messages', {
     method:  'POST',
+    signal,
     headers: {
       'Content-Type':      'application/json',
       'x-api-key':         apiKey,
@@ -112,9 +128,11 @@ const callGroq = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
+  signal?:      AbortSignal,
 ): Promise<Response> => {
   return fetch('https://api.groq.com/openai/v1/chat/completions', {
     method:  'POST',
+    signal,
     headers: {
       'Content-Type':  'application/json',
       'Authorization': `Bearer ${apiKey}`,
@@ -133,6 +151,7 @@ const callGemini = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
+  signal?:      AbortSignal,
 ): Promise<Response> => {
   const geminiMessages = messages.map(m => ({
     role:  m.role === 'assistant' ? 'model' : 'user',
@@ -143,6 +162,7 @@ const callGemini = async (
     `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method:  'POST',
+      signal,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         system_instruction: { parts: [{ text: systemPrompt }] },
@@ -219,11 +239,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // Rate limit — 20 req/min per authenticated user
-  if (!checkRateLimit(userId)) {
+  // Rate limit — 20 req/min per authenticated user (durable when configured)
+  const rate = await checkRateLimit(userId);
+  if (!rate.ok) {
     return NextResponse.json(
       { error: 'Rate limit exceeded. Try again in a minute.' },
-      { status: 429, headers: corsHeaders },
+      { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } },
     );
   }
 
@@ -258,40 +279,39 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Try each configured provider in order, falling through on failure. Each attempt
+    // is guarded by a timeout so a HUNG upstream (headers never arrive) can't stall the
+    // whole request — we abort and move to the next provider. Once headers arrive the
+    // timer is cleared and the body streams freely.
+    const PROVIDER_TIMEOUT_MS = 12_000;
+    const attempt = async (
+      call: (signal: AbortSignal) => Promise<Response>,
+    ): Promise<Response | null> => {
+      const controller = new AbortController();
+      const timer      = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+      try {
+        const res = await call(controller.signal);
+        clearTimeout(timer);
+        return res.ok && res.body ? res : null;
+      } catch {
+        clearTimeout(timer);
+        return null;
+      }
+    };
+
+    const providers: Array<[string, string | undefined, (s: AbortSignal) => Promise<Response>]> = [
+      ['claude', claudeKey, (s) => callClaude(messages, systemPrompt, claudeKey!, s)],
+      ['groq',   groqKey,   (s) => callGroq(messages, systemPrompt, groqKey!, s)],
+      ['gemini', geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s)],
+    ];
+
     let response: Response | null = null;
     let provider = '';
-
-    // 1️⃣ Claude
-    if (claudeKey && !response) {
-      try {
-        const res = await callClaude(messages, systemPrompt, claudeKey);
-        if (res.ok) { response = res; provider = 'claude'; }
-        else { console.warn('Claude failed:', res.status); }
-      } catch (e) {
-        console.warn('Claude error:', (e as Error).message);
-      }
-    }
-
-    // 2️⃣ Groq
-    if (groqKey && !response) {
-      try {
-        const res = await callGroq(messages, systemPrompt, groqKey);
-        if (res.ok) { response = res; provider = 'groq'; }
-        else { console.warn('Groq failed:', res.status); }
-      } catch (e) {
-        console.warn('Groq error:', (e as Error).message);
-      }
-    }
-
-    // 3️⃣ Gemini
-    if (geminiKey && !response) {
-      try {
-        const res = await callGemini(messages, systemPrompt, geminiKey);
-        if (res.ok) { response = res; provider = 'gemini'; }
-        else { console.warn('Gemini failed:', res.status); }
-      } catch (e) {
-        console.warn('Gemini error:', (e as Error).message);
-      }
+    for (const [name, key, call] of providers) {
+      if (!key || response) continue;
+      const res = await attempt(call);
+      if (res) { response = res; provider = name; }
+      else console.warn(`[AI] provider ${name} unavailable — falling through`);
     }
 
     if (!response || !response.body) {

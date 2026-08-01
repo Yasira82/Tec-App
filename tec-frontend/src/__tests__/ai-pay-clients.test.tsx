@@ -286,7 +286,9 @@ describe('AiClient', () => {
     const ta = screen.getByPlaceholderText('Type your message...');
     fireEvent.change(ta, { target: { value: 'multi line' } });
     fireEvent.keyDown(ta, { key: 'Enter', shiftKey: true });
-    expect(fetch).not.toHaveBeenCalled();
+    // Shift+Enter must not SEND. (A benign personalization-context fetch may fire on
+    // mount — assert the chat endpoint specifically was never hit, not that fetch is idle.)
+    expect(fetch).not.toHaveBeenCalledWith('/api/ai/chat', expect.anything());
   });
 
   it('shows stars rating UI in Support panel', () => {

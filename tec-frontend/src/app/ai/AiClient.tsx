@@ -77,6 +77,22 @@ export default function AiClient() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLTextAreaElement>(null);
 
+  // Personalization context (C-104 · C-121): the user's OWN goals/activity/KYC,
+  // assembled server-side by the BFF. Fetched once per session; fail-soft — if it
+  // never arrives the assistant still works on base context.
+  const [aiCtx, setAiCtx] = useState<Record<string, unknown> | null>(null);
+  useEffect(() => {
+    if (!user?.piUsername) { setAiCtx(null); return; }
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/bff/ai/context', { credentials: 'include', cache: 'no-store' });
+        if (alive && res.ok) setAiCtx(await res.json().catch(() => null));
+      } catch { /* fail-soft — omit personalization */ }
+    })();
+    return () => { alive = false; };
+  }, [user?.piUsername]);
+
   // ✅ Welcome message
   useEffect(() => {
     setMessages([{
@@ -116,7 +132,7 @@ export default function AiClient() {
           messages: [...messages, userMessage]
             .filter(m => m.id !== 'welcome')
             .map(m => ({ role: m.role, content: m.content })),
-          userContext: { username: user?.piUsername, locale },
+          userContext: { username: user?.piUsername, locale, ...(aiCtx ?? {}) },
         }),
       });
 

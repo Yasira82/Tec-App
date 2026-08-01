@@ -121,3 +121,37 @@ describe('parseNavIntents — multi-step flows', () => {
     expect(flows[0].steps).toHaveLength(2);
   });
 });
+
+describe('parseNavIntents — expanded Hub + cross-app actions (Slice B)', () => {
+  const origin = (href: string) => new URL(href).origin;
+
+  it('resolves a newly-added Hub action', () => {
+    const { intents } = parseNavIntents('Here is your profile. [[go:tec:profile]]');
+    expect(intents).toHaveLength(1);
+    expect(intents[0].slug).toBe('tec');
+    expect(intents[0].action).toBe('profile');
+    expect(intents[0].href).toBe('/hub/profile');
+  });
+
+  it('resolves a cross-app action to the app ORIGIN + real page path', () => {
+    const { intents } = parseNavIntents('You can sell online. [[go:ecommerce:sell]]');
+    expect(intents).toHaveLength(1);
+    expect(intents[0].href).toBe(`${origin(NAV_TARGETS.ecommerce.href)}/merchant`);
+    expect(intents[0].name.en).toBe('Sell (merchant)');
+  });
+
+  it('appends a deep sub-path for commerce:settings', () => {
+    const { intents } = parseNavIntents('Adjust your store. [[go:commerce:settings]]');
+    expect(intents[0].href).toBe(`${origin(NAV_TARGETS.commerce.href)}/app/settings`);
+  });
+
+  it('drops an unknown app action (never fabricates a page)', () => {
+    const { intents } = parseNavIntents('Nope. [[go:ecommerce:teleport]]');
+    expect(intents).toHaveLength(0);
+  });
+
+  it('drops an app action whose app is not live/known', () => {
+    const { intents } = parseNavIntents('Nope. [[go:ghostapp:sell]]');
+    expect(intents).toHaveLength(0);
+  });
+});

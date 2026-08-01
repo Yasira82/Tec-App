@@ -77,6 +77,11 @@ function HubPageInner() {
           amount,
           memo:      decodeURIComponent(p.get('memo')       ?? 'TEC Payment'),
           productId: p.get('product_id') ?? '',
+          // Nexus workflow-run link (C-109 §5): carried through so the completed
+          // payment's metadata lets the Nexus consumer resume the run. Present only
+          // for a Nexus run payment; harmless otherwise.
+          nexusRunId:   p.get('nexus_run')  ?? '',
+          nexusStepIdx: p.get('nexus_step') ?? '',
           // No return_url (template apps like Nexus/Zone don't send one) → come
           // back to the Hub, NOT Commerce. The old Commerce-URL default dumped
           // every template-app Mode-1 payment onto Commerce after "Close".
@@ -124,6 +129,11 @@ function HubPageInner() {
             metadata: {
               app_source: pendingPayment.source,
               product_id: pendingPayment.productId,
+              // Nexus run link — only when this is a Nexus workflow-run payment. Lets the
+              // Nexus consumer resume the run once payment.completed fires (C-109 §5).
+              ...(pendingPayment.nexusRunId
+                ? { nexusRunId: pendingPayment.nexusRunId, nexusStepIdx: Number(pendingPayment.nexusStepIdx) }
+                : {}),
             },
           }),
         });

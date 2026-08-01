@@ -7,6 +7,17 @@ const getCsrfToken = (): string => {
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
 
+/** Map a chat-route error status to a clear, honest reason (no silent failures, C-96). */
+function errorMessage(status: number): string {
+  switch (status) {
+    case 401: return 'سجّل دخولك الأول عشان تستخدم مساعد TEC.';
+    case 429: return 'وصلت للحد الأقصى للرسائل — استنى دقيقة وجرّب تاني.';
+    case 503: return 'مساعد TEC مش مفعّل حالياً. حاول لاحقاً.';
+    case 502: return 'مساعد TEC مش متاح دلوقتي — حاول تاني بعد شوية.';
+    default:  return 'حصل خطأ مؤقت — حاول مرة أخرى.';
+  }
+}
+
 export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [input,    setInput]    = useState('');
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([]);
@@ -24,6 +35,15 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         credentials: 'include',
         body: JSON.stringify({ messages: [{ role: 'user', content: text }] }),
       });
+
+      // The chat route replies with an SSE stream ONLY on success; every error is a
+      // JSON body with a non-2xx status. Surface the real reason instead of a generic
+      // "no response" that hides it (C-96 — no silent failures).
+      if (!res.ok) {
+        setMessages(prev => [...prev, { role: 'ai', text: errorMessage(res.status) }]);
+        return;
+      }
+
       const reader  = res.body?.getReader();
       const decoder = new TextDecoder();
       let reply = '';
@@ -40,9 +60,12 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
           }
         }
       }
-      setMessages(prev => [...prev, { role: 'ai', text: reply || 'Sorry, no response.' }]);
+      setMessages(prev => [...prev, {
+        role: 'ai',
+        text: reply.trim() || 'لم أتمكّن من الرد على هذه الرسالة — جرّب تصيغ سؤالك بشكل أوضح.',
+      }]);
     } catch {
-      setMessages(prev => [...prev, { role: 'ai', text: 'Connection error. Try again.' }]);
+      setMessages(prev => [...prev, { role: 'ai', text: 'خطأ في الاتصال — حاول مرة أخرى.' }]);
     } finally { setLoading(false); }
   }, [input, loading]);
 

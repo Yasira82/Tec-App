@@ -109,6 +109,15 @@ export default function AiClient() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  // Deep-link hand-off: another app (e.g. Nexus "Ask TEC AI") can open the assistant
+  // with the user's goal prefilled via ?q=. We prefill the input (not auto-send) so the
+  // user reviews it and keeps control — and so the personalization context is loaded first.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q && q.trim()) setInput(q.trim());
+  }, []);
+
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
 

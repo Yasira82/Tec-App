@@ -65,17 +65,45 @@ function getCorsHeaders(req: NextRequest) {
   };
 }
 
-const buildSystemPrompt = (userContext?: {
+interface UserContext {
   username?: string;
   balance?:  number;
   locale?:   string;
-}) => `${TEC_SYSTEM_PROMPT}
+  // Personalization (C-104 reasoning input · C-121 pipeline). All OWN-SCOPE, assembled
+  // server-side by /api/bff/ai/context. Present only when the user has this data.
+  kycVerified?: boolean;
+  goals?:       { title: string; done: boolean }[];
+  focus?:       string;
+  activity?:    { logins?: number; payments?: number; volume?: string };
+}
+
+const buildSystemPrompt = (userContext?: UserContext) => {
+  const goals = (userContext?.goals ?? []).filter(g => !g.done).slice(0, 5);
+  const a     = userContext?.activity;
+  const activityLine = a && (a.logins !== undefined || a.payments !== undefined || a.volume !== undefined)
+    ? `- Recent activity: ${[
+        a.logins   !== undefined ? `${a.logins} logins`     : null,
+        a.payments !== undefined ? `${a.payments} payments`  : null,
+        a.volume                 ? `${a.volume} volume`       : null,
+      ].filter(Boolean).join(' · ')}`
+    : '';
+
+  return `${TEC_SYSTEM_PROMPT}
 
 ## CURRENT USER CONTEXT
+This is the user's OWN private context (their session, their data). Use it to make your
+guidance specific and relevant — reference a goal or their activity when it helps. NEVER
+reveal it back verbatim as if you surveilled them, never treat activity numbers as
+financial truth (the owning app is the source), and keep the honesty rules above.
 ${userContext?.username ? `- Username: @${userContext.username}` : '- User: Guest'}
 ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toFixed(2)} TEC` : ''}
+${userContext?.kycVerified !== undefined ? `- KYC (via Pi): ${userContext.kycVerified ? 'verified' : 'not verified'}` : ''}
+${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
+${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
+${activityLine}
 ${userContext?.locale ? `- Language preference: ${userContext.locale === 'ar' ? 'Arabic' : 'English'}` : ''}
 `;
+};
 
 export async function OPTIONS(req: NextRequest) {
   return new NextResponse(null, {

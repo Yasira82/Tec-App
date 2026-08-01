@@ -390,3 +390,64 @@ describe('GET /api/bff/realtime', () => {
     delete process.env.REALTIME_URL;
   });
 });
+
+// ────────────────────────────────────────────────────────────────
+// ai/context — personalization (own-scope, fail-soft)
+// ────────────────────────────────────────────────────────────────
+describe('GET /api/bff/ai/context', () => {
+  type GETFn = (r: NextRequest) => Promise<Response>;
+  let GET: GETFn;
+
+  beforeAll(async () => {
+    process.env.JWT_SECRET      = 'test-jwt-secret-32-chars-long-xx';
+    process.env.API_GATEWAY_URL = GATEWAY;
+    process.env.INTERNAL_SECRET = 'internal-key';
+    vi.resetModules();
+    ({ GET } = await import('@/app/api/bff/ai/context/route'));
+  });
+  afterAll(() => { delete process.env.API_GATEWAY_URL; delete process.env.INTERNAL_SECRET; });
+  beforeEach(() => vi.clearAllMocks());
+
+  // Per-URL gateway mock: goals / preferences / analytics overview.
+  const gatewayByUrl = () =>
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input: any) => {
+      const url = String(input);
+      const json = (data: unknown) => Promise.resolve({ ok: true, json: async () => data } as any);
+      if (url.includes('/life/goals'))       return json([{ title: 'Save 100 Pi', done: false }, { title: 'Old', done: true }]);
+      if (url.includes('/life/preferences')) return json({ focus: 'growth' });
+      if (url.includes('/analytics/me/overview')) return json({ data: { logins: 12, payments: 3, volume: '45.5' } });
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as any);
+    });
+
+  it('returns 401 without token', async () => {
+    const res = await GET(makeReq());
+    expect(res.status).toBe(401);
+  });
+
+  it('shapes own-scope goals + focus + activity (KYC from session)', async () => {
+    authOk();
+    gatewayByUrl();
+    const res  = await GET(makeReq({ token: 'tok' }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.kycVerified).toBe(true);         // from the verified JWT, not a param
+    expect(body.goals).toEqual([
+      { title: 'Save 100 Pi', done: false },
+      { title: 'Old', done: true },
+    ]);
+    expect(body.focus).toBe('growth');
+    expect(body.activity).toEqual({ logins: 12, payments: 3, volume: '45.5' });
+  });
+
+  it('fail-soft: returns base context when every upstream fails', async () => {
+    authOk();
+    gatewayFail(502);
+    const res  = await GET(makeReq({ token: 'tok' }));
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.kycVerified).toBe(true);
+    expect(body.goals).toEqual([]);
+    expect(body.focus ?? null).toBeNull();
+    expect(body.activity ?? null).toBeNull();
+  });
+});

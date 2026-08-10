@@ -19,6 +19,41 @@ interface Subscription {
   plan:               string;
   status:             string;
   current_period_end: string | null;
+  daysRemaining?:     number | null;   // whole days left in the period (commerce)
+  isExpired?:         boolean;          // period already elapsed (commerce)
+}
+
+// ── Renewal reminder ───────────────────────────────────────────
+// Pi Pro is a ONE-TIME U2A payment — there is no auto-renewal, so the honest word
+// is "Expires", not "Renews". Commerce sends daysRemaining + isExpired; we surface a
+// calm line normally, an amber nudge in the last week, and a red prompt once lapsed.
+function RenewalNotice({ endISO, daysRemaining, isExpired }: {
+  endISO: string; daysRemaining: number | null | undefined; isExpired: boolean | undefined;
+}) {
+  const dateStr = new Date(endISO).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const days    = typeof daysRemaining === 'number' ? daysRemaining : null;
+  const expired = isExpired === true || days === 0;
+  const soon    = !expired && days !== null && days <= 7;
+
+  const tone = expired ? '#ef4444' : soon ? '#f59e0b' : 'var(--tec-text-3)';
+  const line = expired
+    ? `Expired on ${dateStr} — renew to restore Pro`
+    : days !== null
+      ? `Expires in ${days} day${days === 1 ? '' : 's'} · ${dateStr}`
+      : `Expires ${dateStr}`;
+
+  return (
+    <div style={{ marginTop: 'var(--sp-3)' }}>
+      <div style={{ fontSize: 'var(--text-xs)', color: tone, fontWeight: (expired || soon) ? 700 : 400 }}>
+        {expired ? '⚠️ ' : soon ? '⏳ ' : ''}{line}
+      </div>
+      {(soon || expired) && (
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginTop: 4, lineHeight: 1.5 }}>
+          Pro is a one-time monthly payment (no auto-renewal) — re-subscribe below to keep Pro features active.
+        </div>
+      )}
+    </div>
+  );
 }
 
 // ── Honest "Live / Soon" tag ───────────────────────────────────
@@ -288,9 +323,11 @@ export default function HubSubscriptionPage() {
         </div>
 
         {sub?.current_period_end && (
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginTop: 'var(--sp-3)' }}>
-            Renews {new Date(sub.current_period_end).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-          </div>
+          <RenewalNotice
+            endISO={sub.current_period_end}
+            daysRemaining={sub.daysRemaining}
+            isExpired={sub.isExpired}
+          />
         )}
 
         {/* The one entitlement enforced today: asset limit */}

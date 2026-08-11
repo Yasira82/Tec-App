@@ -124,7 +124,34 @@ const nextConfig = {
           { key: 'Cache-Control', value: 'no-store, max-age=0' },
         ],
       },
+      {
+        // Pi re-fetches validation-key.txt on every Verify — never let an edge
+        // cache serve a stale copy while a domain is being validated.
+        source: '/validation-key:suffix(.*)',
+        headers: [
+          { key: 'Cache-Control', value: 'no-store, max-age=0' },
+        ],
+      },
     ];
+  },
+
+  async rewrites() {
+    return {
+      // Pi does an EXACT match on the content of /validation-key.txt, and the
+      // paired Testnet app is served on the *.vercel.app URL — the SAME Vercel
+      // deployment as the Mainnet domain hub.tecosystem.app. So each host must
+      // serve exactly its own single key. Only the *.vercel.app host is rewritten
+      // to the Testnet-only file; hub.tecosystem.app falls through to the static
+      // public/validation-key.txt (the Mainnet key, byte-identical to what Pi
+      // already verified — untouched).
+      beforeFiles: [
+        {
+          source: '/validation-key.txt',
+          has: [{ type: 'host', value: '.*vercel\\.app' }],
+          destination: '/validation-key-testnet.txt',
+        },
+      ],
+    };
   },
 
   async redirects() {

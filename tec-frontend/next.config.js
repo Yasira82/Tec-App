@@ -127,7 +127,7 @@ const nextConfig = {
       {
         // Pi re-fetches validation-key.txt on every Verify — never let an edge
         // cache serve a stale copy while a domain is being validated.
-        source: '/validation-key:suffix(.*)',
+        source: '/validation-key.txt',
         headers: [
           { key: 'Cache-Control', value: 'no-store, max-age=0' },
         ],
@@ -147,10 +147,12 @@ const nextConfig = {
       beforeFiles: [
         {
           source: '/validation-key.txt',
-          has: [{ type: 'host', value: '.*vercel\\.app' }],
+          has: [{ type: 'host', value: '.*\\.vercel\\.app(:\\d+)?' }],
           destination: '/validation-key-testnet.txt',
         },
       ],
+      afterFiles: [],
+      fallback: [],
     };
   },
 

@@ -43,9 +43,8 @@ vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => mockCookieStore),
 }));
 
-vi.mock('next/font/google', () => ({
-  Cormorant_Garamond: () => ({ variable: '--font-cormorant' }),
-  DM_Sans:            () => ({ variable: '--font-dm-sans' }),
+vi.mock('next/font/local', () => ({
+  default: () => ({ variable: '--font-local', className: 'font-local' }),
 }));
 
 vi.mock('next/script', () => ({

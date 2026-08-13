@@ -1,6 +1,6 @@
 import './globals.css';
 import Script from 'next/script';
-import { Cormorant_Garamond, DM_Sans } from 'next/font/google';
+import localFont from 'next/font/local';
 import { ClientProviders } from '@/components/ClientProviders';
 import PiSdkLoader from '@/components/PiSdkLoader';
 import { BackendOfflineBanner } from '@/components/BackendOfflineBanner';
@@ -11,17 +11,23 @@ import type { Metadata, Viewport } from 'next';
 
 // ✅ منع prerender لكل الصفحات
 
-const cormorantGaramond = Cormorant_Garamond({
-  subsets:  ['latin'],
-  weight:   ['300', '400', '600'],
-  style:    ['normal', 'italic'],
+// Self-hosted (next/font/local) so `next build` never fetches from fonts.gstatic.com
+// — a transient Google Fonts fetch used to fail the build (CI flake). Variable woff2
+// (latin), one file per style covering the full weight range. Same CSS variables +
+// swap as before, so the visual result is unchanged.
+const cormorantGaramond = localFont({
+  src: [
+    { path: './fonts/cormorant-normal.woff2', weight: '300 600', style: 'normal' },
+    { path: './fonts/cormorant-italic.woff2', weight: '300 600', style: 'italic' },
+  ],
   variable: '--font-cormorant',
   display:  'swap',
 });
 
-const dmSans = DM_Sans({
-  subsets:  ['latin'],
-  weight:   ['300', '400', '500'],
+const dmSans = localFont({
+  src: [
+    { path: './fonts/dmsans.woff2', weight: '300 500', style: 'normal' },
+  ],
   variable: '--font-dm-sans',
   display:  'swap',
 });

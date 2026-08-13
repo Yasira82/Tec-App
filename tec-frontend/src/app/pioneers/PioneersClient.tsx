@@ -16,6 +16,7 @@ import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { LIVE_DOMAINS } from '@/domains/_registry';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
+import { getSource } from '@/lib-client/campaign';
 
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
@@ -236,11 +237,12 @@ export default function PioneersClient() {
       const csrf = typeof document !== 'undefined'
         ? (document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '')
         : '';
+      const source = getSource();
       void fetch('/api/bff/pioneer/open', {
         method:      'POST',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json', ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}) },
-        body:        JSON.stringify({ app: slug }),
+        body:        JSON.stringify({ app: slug, ...(source ? { source } : {}) }),
       }).catch(() => {});
     } catch { /* ignore */ }
   }, [eligible]);

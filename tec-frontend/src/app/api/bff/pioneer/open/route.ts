@@ -10,7 +10,7 @@ const GW = process.env.API_GATEWAY_URL ?? '';
 
 export const POST = createHandler({
   requireAuth: true,
-  schema: z.object({ app: z.string().min(1).max(40) }),
+  schema: z.object({ app: z.string().min(1).max(40), source: z.string().max(200).optional() }),
   handler: async ({ input, ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
     const res = await fetch(`${GW}/api/identity/pioneer/open`, {
@@ -20,7 +20,7 @@ export const POST = createHandler({
         'Content-Type': 'application/json',
         'x-request-id': ctx.requestId,
       },
-      body: JSON.stringify({ app: input.app }),
+      body: JSON.stringify({ app: input.app, ...(input.source ? { source: input.source } : {}) }),
     });
     if (!res.ok) throw new Error(`Gateway ${res.status}`);
     return res.json();

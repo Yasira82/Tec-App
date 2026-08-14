@@ -146,8 +146,18 @@ export default function PioneersClient() {
   // identity-service which grants the Founding number on completion. The server is the
   // authoritative source of that number; the UI never fabricates it. Browsing stays
   // open to everyone.
-  const { isAuthenticated, isLoading: authLoading } = usePiAuth();
+  const { isAuthenticated, isLoading: authLoading, user } = usePiAuth();
   const eligible = isAuthenticated;
+
+  // Admin-only live counter: the public honest counter (joined / completed / founding
+  // claimed) is shown ONLY to a configured owner, so cold campaign visitors never see
+  // the early zeros. NEXT_PUBLIC_PIONEER_ADMINS = comma-separated Pi usernames — not a
+  // secret, purely a UI gate (the /pioneer/stats endpoint stays public for the owner).
+  const PIONEER_ADMINS = (process.env.NEXT_PUBLIC_PIONEER_ADMINS ?? '')
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+  const isPioneerAdmin = isAuthenticated
+    && !!user?.piUsername
+    && PIONEER_ADMINS.includes(user.piUsername.toLowerCase());
 
   // The visitor's OWN quest progress. localStorage is the instant, offline-safe
   // hint; the server (when logged in + deployed) is authoritative and the source of
@@ -319,7 +329,7 @@ export default function PioneersClient() {
           {/* Live counters — REAL aggregates from the pioneer stats endpoint (the
               authoritative source of pioneer counts). Rendered only when the server
               responds; every value is real (shows 0 honestly, never a fake number). */}
-          {serverStats && (
+          {serverStats && isPioneerAdmin && (
             <div style={{ marginTop: 18, border: `1px solid ${C.gold}22`, borderRadius: 14, background: C.surface, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderBottom: `1px solid ${C.gold}18` }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 0 3px ${C.green}22`, display: 'inline-block' }} />
@@ -434,7 +444,7 @@ export default function PioneersClient() {
             <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded(total)}</div>
           )}
           <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>
-            {serverStats ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}
+            {serverStats && isPioneerAdmin ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}
           </div>
         </section>
 

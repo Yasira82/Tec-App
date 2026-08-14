@@ -53,10 +53,13 @@ beforeEach(() => {
   localStorage.clear();
   mockUsePiAuth.mockReturnValue(authed);
   global.fetch = mockFetch() as unknown as typeof fetch;
+  // The live counter is owner-only; the mocked authed user ('alice') is the owner.
+  process.env.NEXT_PUBLIC_PIONEER_ADMINS = 'alice';
 });
 
 afterEach(() => {
   vi.clearAllMocks();
+  delete process.env.NEXT_PUBLIC_PIONEER_ADMINS;
 });
 
 describe('pioneers page metadata', () => {
@@ -178,6 +181,20 @@ describe('PioneersClient — Founding counter', () => {
     const joinedCell = Array.from(container.querySelectorAll('div'))
       .find((el) => el.textContent?.trim() === 'Pioneers joined')?.previousElementSibling;
     expect(joinedCell?.textContent).toBe('0');
+  });
+
+  it('hides the live counter from a non-owner visitor (owner-only)', async () => {
+    // A logged-in user who is NOT in NEXT_PUBLIC_PIONEER_ADMINS must not see the
+    // aggregate counter — cold campaign traffic never sees the early zeros.
+    process.env.NEXT_PUBLIC_PIONEER_ADMINS = 'someone-else';
+    global.fetch = mockFetch(null, {
+      founding_claimed: 3, founding_remaining: 97, total_pioneers: 128, completed: 11,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => { expect(container.textContent).toContain('Your Pioneer Quest'); });
+    expect(container.textContent).not.toContain('Pioneers joined');
+    expect(container.textContent).not.toContain('Completed the Quest');
   });
 
   it('merges server-side opened apps and shows the Founding number badge', async () => {

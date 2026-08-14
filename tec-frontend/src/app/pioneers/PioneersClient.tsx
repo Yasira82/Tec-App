@@ -241,6 +241,12 @@ export default function PioneersClient() {
       void fetch('/api/bff/pioneer/open', {
         method:      'POST',
         credentials: 'include',
+        // keepalive: the app link navigates away in the same tab (its own domain),
+        // which cancels an in-flight fetch — so the server open was lost and the quest
+        // never completed server-side (local localStorage still showed 100%). keepalive
+        // lets the browser finish the POST after navigation (like sendBeacon). Body is
+        // tiny, well under the 64KB keepalive limit.
+        keepalive:   true,
         headers:     { 'Content-Type': 'application/json', ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}) },
         body:        JSON.stringify({ app: slug, ...(source ? { source } : {}) }),
       }).catch(() => {});

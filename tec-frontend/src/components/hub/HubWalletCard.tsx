@@ -46,7 +46,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
 
         <div style={{ position: 'relative' }}>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
-            PI WALLET BALANCE
+            TEC INTERNAL BALANCE
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
@@ -86,6 +86,14 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
             )}
           </div>
 
+          {/* Disclosure — this is an internal TEC ledger balance, NOT the user's real
+              Pi Network wallet. No A2U/withdrawal path exists (payment-service is the
+              only Pi custodian — C-47 Invariant #8). Stating it plainly avoids any
+              impression that this π can be moved to a Pi Network wallet. */}
+          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, marginBottom: 14 }}>
+            Not your Pi Network wallet · not withdrawable to Pi Network.
+          </div>
+
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
@@ -121,6 +129,13 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
             <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3 }}>{a.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* Send/Receive move π between TEC accounts on the internal ledger — they do
+          NOT send to a Pi Network wallet. Kept explicit so the actions aren't mistaken
+          for on-chain Pi transfers. */}
+      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: 8 }}>
+        Send / Receive move π between TEC accounts only.
       </div>
     </div>
   );

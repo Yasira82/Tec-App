@@ -38,6 +38,7 @@ function linkFor(slug: string, route: string | null): string {
 
 type Copy = {
   eyebrow: string; founding: string; h1: string; lead: string;
+  heroTrust: string; heroCta: string; heroRecognition: string;
   callout: string;
   questTitle: string; questSub: (done: number, total: number) => string;
   questGate: string;
@@ -59,8 +60,11 @@ const COPY: Record<'en' | 'ar', Copy> = {
   en: {
     eyebrow: 'TEC Ecosystem · Live on Pi Mainnet',
     founding: '★ Founding 100',
-    h1: 'Become a TEC Founding Pioneer',
-    lead: 'TEC is a full economy on Pi — 24 apps, one identity, real Pi payments. The first 100 Pioneers to complete the Quest earn a permanent Founding Pioneer badge in their TEC reputation. Early, limited, and yours forever.',
+    h1: 'TEC is live on Pi Mainnet',
+    lead: '24 connected apps · One Pi identity · Real Pi utility.',
+    heroTrust: '⏱️ A few minutes · Free · No purchase required · from Pi Browser',
+    heroCta: '🚀 Start the Pioneer Quest',
+    heroRecognition: 'Complete the Quest to earn Founding Pioneer recognition. ⭐ Only the first 100 qualify.',
     callout: 'Open this page inside Pi Browser with a KYC-verified Pi account — that is what lets your visit count toward the Founding 100.',
     questTitle: 'Your Pioneer Quest',
     questSub: (d, t) => `${d} of ${t} apps opened`,
@@ -97,8 +101,11 @@ const COPY: Record<'en' | 'ar', Copy> = {
   ar: {
     eyebrow: 'منظومة TEC · شغّالة على Pi Mainnet',
     founding: '★ نادي الـ 100 المؤسّس',
-    h1: 'كن من مؤسّسي TEC — Founding Pioneer',
-    lead: 'TEC اقتصاد كامل على Pi — 24 تطبيق، هوية واحدة، مدفوعات Pi حقيقية. أول 100 Pioneer يكمّلوا الـ Quest بياخدوا شارة "Founding Pioneer" دائمة في سمعتهم داخل TEC. مبكرة، محدودة، وليك للأبد.',
+    h1: 'TEC شغّال على Pi Mainnet',
+    lead: '24 تطبيق مترابط · هوية Pi واحدة · استخدام حقيقي داخل المنظومة.',
+    heroTrust: '⏱️ كام دقيقة · مجانًا · من غير شراء · من متصفح Pi',
+    heroCta: '🚀 ابدأ Pioneer Quest',
+    heroRecognition: 'كمّل الـ Quest علشان تحصل على تقدير Founding Pioneer. ⭐ أول 100 فقط مؤهلين.',
     callout: 'افتح الصفحة دي جوّه متصفح Pi وبحساب Pi مُوثّق (KYC) — ده اللي بيخلّي زيارتك تتحسب ضمن الـ 100 المؤسّس.',
     questTitle: 'مهمّتك كـ Pioneer',
     questSub: (d, t) => `فتحت ${d} من ${t} تطبيق`,
@@ -302,7 +309,26 @@ export default function PioneersClient() {
         <header style={{ marginTop: 22 }}>
           <span style={{ display: 'inline-block', fontSize: 12, fontWeight: 800, color: C.gold, background: `${C.gold}18`, border: `1px solid ${C.gold}55`, borderRadius: 999, padding: '4px 12px', letterSpacing: 0.3 }}>{t.founding}</span>
           <h1 style={{ fontSize: 30, fontWeight: 900, color: C.gold, margin: '14px 0 0', lineHeight: 1.15, textWrap: 'balance' as React.CSSProperties['textWrap'] }}>{t.h1}</h1>
-          <p style={{ fontSize: 15, color: C.subtext, margin: '12px 0 0', lineHeight: 1.7 }}>{t.lead}</p>
+          <p style={{ fontSize: 16, color: C.text, margin: '12px 0 0', lineHeight: 1.7, fontWeight: 600 }}>{t.lead}</p>
+
+          {/* Trust line — value-first, then remove the friction: free, no purchase, quick. */}
+          <p style={{ fontSize: 13, color: C.subtext, margin: '10px 0 0', lineHeight: 1.7 }}>{t.heroTrust}</p>
+
+          {/* Primary CTA — scroll to the quest card. Copy/anchor only; no logic. */}
+          <a
+            href="#pioneer-quest"
+            style={{
+              display: 'inline-block', marginTop: 16, textDecoration: 'none',
+              fontSize: 15, fontWeight: 800, color: '#1a1205',
+              background: `linear-gradient(135deg, ${C.gold}, ${C.goldDark})`,
+              borderRadius: 999, padding: '11px 22px',
+            }}
+          >
+            {t.heroCta}
+          </a>
+
+          {/* Recognition framing — Founding is recognition for completing, not the product. */}
+          <p style={{ fontSize: 13, color: C.subtext, margin: '12px 0 0', lineHeight: 1.7 }}>{t.heroRecognition}</p>
 
           {/* Share + FAQ — the link is a marketing asset; the FAQ builds trust before login. */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 16, flexWrap: 'wrap' }}>
@@ -350,6 +376,9 @@ export default function PioneersClient() {
             </div>
           )}
         </header>
+
+        {/* Anchor target for the hero "Start the Pioneer Quest" CTA (scroll only). */}
+        <div id="pioneer-quest" style={{ scrollMarginTop: 16 }} />
 
         {/* Quest — progress for a verified pioneer; a KYC gate otherwise. Browsing
             the apps below stays open to everyone; only the Quest is KYC-gated. */}

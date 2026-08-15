@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { renderHook, act, waitFor } from '@testing-library/react';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Shared module mocks (hoisted)
@@ -609,6 +609,36 @@ describe('useWallet (extra coverage)', () => {
     // Wallet may be set — just check we didn't error
     expect(result.current.isLoading).toBe(false);
     expect(result.current.error).toBeNull();
+  });
+
+  it("maps a backend 'CREDIT' ledger row to an incoming 'receive' (not a red payment)", async () => {
+    // Regression: the wallet consumer writes payment credits as type 'CREDIT'
+    // (uppercase). They must render as an incoming (+, green) 'receive', not fall
+    // through to the 'payment' default which the UI shows as a red negative row.
+    (global.fetch as any) = vi.fn().mockImplementation(async (url: string) => {
+      if (String(url).includes('/api/bff/wallet/balance')) {
+        return { ok: true, json: async () => ({ balance: 10, currency: 'PI', walletId: 'w-cr' }) };
+      }
+      if (String(url).includes('/wallet/transactions')) {
+        return {
+          ok: true,
+          json: async () => ({
+            data: {
+              transactions: [
+                { id: 'tx-cr', type: 'CREDIT', status: 'completed', amount: 10, currency: 'PI', created_at: '2024-01-01' },
+              ],
+              pagination: { total: 1 },
+            },
+          }),
+        };
+      }
+      return { ok: false, json: async () => ({}) };
+    });
+
+    const { useWallet } = await import('@/lib-client/hooks/useWallet');
+    const { result } = renderHook(() => useWallet());
+    await waitFor(() => expect(result.current.transactions.length).toBe(1));
+    expect(result.current.transactions[0]?.type).toBe('receive');
   });
 
   it('falls back to payment history when wallet transaction fetch fails', async () => {

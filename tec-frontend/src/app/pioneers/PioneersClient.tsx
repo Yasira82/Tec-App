@@ -65,9 +65,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
     heroTrust: '⏱️ A few minutes · Free · No purchase required · from Pi Browser',
     heroCta: '🚀 Start the Pioneer Quest',
     heroRecognition: 'Complete the Quest to earn Founding Pioneer recognition. ⭐ Only the first 100 qualify.',
-    callout: 'Open this page inside Pi Browser with a KYC-verified Pi account — that is what lets your visit count toward the Founding 100.',
+    callout: 'For the full Pioneer experience, open TEC in Pi Browser and sign in with Pi.',
     questTitle: 'Your Pioneer Quest',
-    questSub: (d, t) => `${d} of ${t} apps opened`,
+    questSub: (d, t) => `${d} of ${t} explored`,
     questGate: 'Log in with your Pi account to start your Pioneer Quest. Browsing every app below is open to everyone.',
     tierGettingStarted: 'Getting started',
     tierExplorer: 'Explorer · 5 apps',
@@ -80,9 +80,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
       { n: '2', title: 'Log in with Pi', body: 'Sign in once with your Pi account — your session carries across all TEC apps (single sign-on).' },
       { n: '3', title: 'Try one action', body: 'Do one thing in each app — browse, create, or a small Pi payment. That is your Pioneer footprint.' },
     ],
-    appsTitle: (total) => `The ${total} apps — all live`,
-    appsLead: 'Tap each to open it in Pi Browser. Opened apps are checked off your Quest.',
-    opened: 'Opened',
+    appsTitle: (total) => `Explore the ${total} apps · all live`,
+    appsLead: 'Explore the TEC ecosystem at your own pace — tap any app to open it in Pi Browser. Each one you explore ticks your Quest.',
+    opened: 'Explored',
     badgeTitle: '★ The Founding Pioneer badge',
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
@@ -106,9 +106,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
     heroTrust: '⏱️ كام دقيقة · مجانًا · من غير شراء · من متصفح Pi',
     heroCta: '🚀 ابدأ Pioneer Quest',
     heroRecognition: 'كمّل الـ Quest علشان تحصل على تقدير Founding Pioneer. ⭐ أول 100 فقط مؤهلين.',
-    callout: 'افتح الصفحة دي جوّه متصفح Pi وبحساب Pi مُوثّق (KYC) — ده اللي بيخلّي زيارتك تتحسب ضمن الـ 100 المؤسّس.',
+    callout: 'لأفضل تجربة Pioneer، افتح TEC من متصفح Pi وسجّل دخول بحساب Pi.',
     questTitle: 'مهمّتك كـ Pioneer',
-    questSub: (d, t) => `فتحت ${d} من ${t} تطبيق`,
+    questSub: (d, t) => `استكشفت ${d} من ${t}`,
     questGate: 'سجّل دخول بحساب Pi عشان تبدأ مهمّتك. تصفّح كل التطبيقات تحت متاح للجميع.',
     tierGettingStarted: 'البداية',
     tierExplorer: 'مستكشف · 5 تطبيقات',
@@ -121,9 +121,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
       { n: '2', title: 'سجّل دخول بـ Pi', body: 'سجّل دخول مرة واحدة بحساب Pi — الجلسة بتمشي معاك في كل تطبيقات TEC (دخول موحّد).' },
       { n: '3', title: 'جرّب إجراء واحد', body: 'اعمل حاجة واحدة في كل تطبيق — تتصفّح، تنشئ، أو دفعة Pi صغيرة. دي بصمتك كـ Pioneer.' },
     ],
-    appsTitle: (total) => `الـ ${total} تطبيق — كلهم شغّالين`,
-    appsLead: 'اضغط كل واحد علشان تفتحه في متصفح Pi. اللي بتفتحه بيتشطّب في مهمّتك.',
-    opened: 'مفتوح',
+    appsTitle: (total) => `استكشف الـ ${total} تطبيق · كلهم شغّالين`,
+    appsLead: 'استكشف منظومة TEC على راحتك — اضغط أي تطبيق تفتحه في متصفح Pi. كل واحد تستكشفه بيتشطّب في مهمّتك.',
+    opened: 'مُستكشَف',
     badgeTitle: '★ شارة Founding Pioneer',
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
@@ -408,7 +408,7 @@ export default function PioneersClient() {
 
         {/* Pi Browser + KYC callout */}
         <div style={{ ...card, marginTop: 16, background: `${C.gold}14`, borderColor: `${C.gold}44`, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-          <span style={{ fontSize: 18, lineHeight: 1 }}>⚠️</span>
+          <span style={{ fontSize: 18, lineHeight: 1 }}>📱</span>
           <p style={{ fontSize: 13, color: C.text, margin: 0, lineHeight: 1.6, fontWeight: 600 }}>{t.callout}</p>
         </div>
 

@@ -73,7 +73,7 @@ describe('PioneersClient — derived counts', () => {
     let container!: HTMLElement;
     await act(async () => { ({ container } = render(<PioneersClient />)); });
     await waitFor(() => {
-      expect(container.textContent).toContain(`The ${TOTAL} apps`);
+      expect(container.textContent).toContain(`Explore the ${TOTAL} apps`);
     });
     expect(container.textContent).toContain(`${TOTAL} live`);
   });

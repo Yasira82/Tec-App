@@ -691,7 +691,7 @@ export function validateRegistry(): string[] {
     // Marketing SSoT (KB C-133 R6): every LIVE app must state a real user-facing
     // value proposition — no empty landing pages. Non-live apps may fill it later.
     if (d.status === 'live' && !d.valueProp?.en) {
-      errors.push(`[${d.slug}] live domain missing valueProp.en (C-133 R6)`);
+      errors.push(`[${d.slug}] live domain missing valueProp.en`);
     }
     if (d.api.paymentMode === 'pirc2' && (!d.tiers || d.tiers.length === 0)) {
       errors.push(`[${d.slug}] paymentMode=pirc2 requires at least one tier`);

@@ -62,10 +62,15 @@ interface RawWalletTx {
 
 function mapWalletTx(tx: RawWalletTx): Transaction {
   const dir = tx.metadata?.direction;
+  // Normalise: the wallet ledger writes payment credits as type 'CREDIT' (uppercase)
+  // — without this they fell through to the 'payment' default and rendered as a RED
+  // NEGATIVE row, so a genuine incoming credit looked like money leaving. Lower-case
+  // + treat 'credit'/'deposit' as an incoming (green, +) 'receive'.
+  const t = (tx.type ?? '').toLowerCase();
   let type: TxType = 'payment';
-  if (dir === 'credit' || tx.type === 'deposit')    type = 'receive';
-  else if (dir === 'debit' || tx.type === 'withdrawal') type = 'send';
-  else if (tx.type === 'transfer') type = dir === 'credit' ? 'receive' : 'send';
+  if (dir === 'credit' || t === 'deposit' || t === 'credit')      type = 'receive';
+  else if (dir === 'debit' || t === 'withdrawal')                 type = 'send';
+  else if (t === 'transfer') type = dir === 'credit' ? 'receive' : 'send';
 
   return {
     id:        tx.id,

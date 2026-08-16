@@ -9,7 +9,7 @@ export async function GET() {
 
   try {
     const res = await fetch(`${gatewayUrl}/health`, {
-      signal: AbortSignal.timeout(10000),   // align with gateway proxyTimeout=10s (C-96 NEW-L) — no 499 ghost-aborts
+      signal: AbortSignal.timeout(10000), // align with gateway proxyTimeout=10s — no 499 ghost-aborts
     });
 
     if (!res.ok) {

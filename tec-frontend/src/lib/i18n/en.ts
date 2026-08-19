@@ -15,6 +15,13 @@ export const en = {
     warningTitle: 'Please open the app inside Pi Browser',
     warningText: 'Open tec.pi from within the Pi Network app',
     stats: { apps: 'Apps', piUsers: 'Pi Users', identity: 'Unified Identity' },
+    trust: {
+      free: 'Free',
+      noPassphrase: 'No passphrase',
+      noPurchase: 'No purchase to enter',
+      readOnly: 'We never touch your keys',
+      official: 'Pi Mainnet · Official',
+    },
     ecosystem: 'Ecosystem',
     ecosystemTitle: '24 Apps — One World',
     moreApps: 'more apps',

@@ -259,6 +259,31 @@
   color: rgba(232,224,208,0.35);
 }
 
+/* ── Trust strip (A4) ─────────────────────────────────────────── */
+.trustStrip {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+  max-width: 560px;
+  animation: fadeUp 0.9s ease 0.45s both;
+}
+
+.trustBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border: 1px solid rgba(126,231,192,0.18);
+  background: rgba(126,231,192,0.05);
+  border-radius: 100px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: rgba(210,235,224,0.82);
+  white-space: nowrap;
+}
+
 /* ── Payment Section ──────────────────────────────────────────── */
 .paymentSection {
   position: relative;

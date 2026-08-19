@@ -172,6 +172,15 @@ export default function HomePage() {
             <span className={styles.heroStatLabel}>{t.home.stats.identity}</span>
           </div>
         </div>
+
+        {/* Trust strip (A4) — answers "is this a scam?" before it's asked */}
+        <div className={styles.trustStrip}>
+          <span className={styles.trustBadge}>🆓 {t.home.trust.free}</span>
+          <span className={styles.trustBadge}>🔐 {t.home.trust.noPassphrase}</span>
+          <span className={styles.trustBadge}>💳 {t.home.trust.noPurchase}</span>
+          <span className={styles.trustBadge}>🛡️ {t.home.trust.readOnly}</span>
+          <span className={styles.trustBadge}>✅ {t.home.trust.official}</span>
+        </div>
       </section>
 
       {/* Sign in */}

@@ -15,6 +15,13 @@ export const ar = {
     warningTitle: 'يجب فتح التطبيق داخل Pi Browser',
     warningText: 'افتح tec.pi من داخل تطبيق Pi Network',
     stats: { apps: 'تطبيق', piUsers: 'مستخدم Pi', identity: 'هوية موحدة' },
+    trust: {
+      free: 'مجاني',
+      noPassphrase: 'بدون passphrase',
+      noPurchase: 'الدخول بدون شراء',
+      readOnly: 'لا نلمس مفاتيحك أبدًا',
+      official: 'Pi Mainnet · رسمي',
+    },
     ecosystem: 'المنظومة',
     ecosystemTitle: '24 تطبيق — عالم واحد',
     moreApps: 'تطبيق آخر',

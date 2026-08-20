@@ -146,9 +146,19 @@ export default function AiClient() {
       });
 
       if (!response.ok) {
-        // The assistant is for signed-in TEC users (protects the AI budget).
-        const signIn = response.status === 401;
-        throw new Error(signIn ? 'SIGN_IN' : 'AI request failed');
+        // Surface the ACTUAL reason so failures are diagnosable, not a blanket
+        // "something went wrong" (401 sign-in · 429 rate · 503 not configured · else).
+        let serverMsg = '';
+        try { serverMsg = ((await response.json()) as { error?: string })?.error ?? ''; }
+        catch { /* no JSON body */ }
+        const code =
+          response.status === 401 ? 'SIGN_IN'
+          : response.status === 429 ? 'RATE_LIMIT'
+          : response.status === 503 ? 'NOT_CONFIGURED'
+          : 'FAILED';
+        const e = new Error(code) as Error & { serverMsg?: string };
+        e.serverMsg = serverMsg;
+        throw e;
       }
 
       const assistantMessage: Message = {
@@ -205,18 +215,29 @@ export default function AiClient() {
         )
       );
     } catch (err) {
-      const needsSignIn = err instanceof Error && err.message === 'SIGN_IN';
+      const code = err instanceof Error ? err.message : 'FAILED';
+      const serverMsg = (err as { serverMsg?: string })?.serverMsg;
+      const ar = locale === 'ar';
+      let content: string;
+      if (code === 'SIGN_IN') {
+        content = ar ? '🔒 سجّل دخولك بحساب Pi عشان تستخدم مساعد TEC.'
+                     : '🔒 Please sign in with Pi to use the TEC Assistant.';
+      } else if (code === 'RATE_LIMIT') {
+        content = ar ? '⏳ طلبات كتير — استنى دقيقة وحاول تاني.'
+                     : '⏳ Too many requests — wait a minute and try again.';
+      } else if (code === 'NOT_CONFIGURED') {
+        content = ar ? '🔧 مساعد TEC لسه مش مفعّل. جرّب بعدين.'
+                     : '🔧 The TEC Assistant isn’t switched on yet. Try again later.';
+      } else {
+        content = ar ? '❌ حدث خطأ. يرجى المحاولة مرة أخرى.'
+                     : '❌ Something went wrong. Please try again.';
+        if (serverMsg) content += ` (${serverMsg})`;
+      }
       setMessages(prev => [...prev, {
         id:        (Date.now() + 2).toString(),
         role:      'assistant',
         timestamp: new Date(),
-        content: needsSignIn
-          ? (locale === 'ar'
-              ? '🔒 سجّل دخولك بحساب Pi عشان تستخدم مساعد TEC.'
-              : '🔒 Please sign in with Pi to use the TEC Assistant.')
-          : (locale === 'ar'
-              ? '❌ حدث خطأ. يرجى المحاولة مرة أخرى.'
-              : '❌ Something went wrong. Please try again.'),
+        content,
       }]);
     } finally {
       setIsLoading(false);

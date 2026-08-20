@@ -44,6 +44,7 @@ export const ar = {
       identityLabel: 'هوية موحدة',
       walletLabel: 'محفظة واحدة',
       sampleTag: 'عيّنة',
+      soon: 'قريبًا',
       doTitle: 'اللي تقدر تعمله فعلًا',
       do1Title: 'اشترِ منتجات حقيقية بـ Pi',
       do1Desc: 'سوق حقيقي — ادفع بـ Pi، وخد منتجات فعلية.',

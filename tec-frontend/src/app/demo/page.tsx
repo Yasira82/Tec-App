@@ -9,12 +9,16 @@
  * SAMPLE data — no auth, no real balances, no Pi calls. Pure client-side preview.
  */
 
+import type { CSSProperties } from 'react';
 import Link                from 'next/link';
 import { useTranslation }  from '@/lib/i18n';
 import LanguageSwitcher    from '@/components/LanguageSwitcher';
 
-const DEMO_APPS = [
-  { name: 'Commerce', emoji: '🛒' }, { name: 'Assets', emoji: '💼' },
+// Emojis mirror the Hub's app registry exactly. `live` = a real, deployed app a
+// guest can open right now (proves the ecosystem is real); the rest show "Soon".
+const DEMO_APPS: { name: string; emoji: string; live?: string }[] = [
+  { name: 'Commerce', emoji: '🛒', live: 'https://tec-commerce-app.vercel.app' },
+  { name: 'Assets',   emoji: '💼', live: 'https://assets.tecosystem.app' },
   { name: 'Life',     emoji: '🌱' }, { name: 'Analytics', emoji: '📈' },
   { name: 'Legend',   emoji: '⭐' }, { name: 'Zone',    emoji: '🎯' },
   { name: 'Connection', emoji: '🔗' }, { name: 'Epic',  emoji: '🎮' },
@@ -84,15 +88,28 @@ export default function DemoPage() {
         </div>
       </div>
 
-      {/* apps grid */}
+      {/* apps grid — LIVE apps open the real app; others are marked "Soon" (consistent) */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 28 }}>
-        {DEMO_APPS.map((a) => (
-          <div key={a.name} style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: 14,
-            padding: '14px 6px', textAlign: 'center' }}>
-            <div style={{ fontSize: 24 }}>{a.emoji}</div>
-            <div style={{ fontSize: 10.5, color: MUTE, marginTop: 6 }}>{a.name}</div>
-          </div>
-        ))}
+        {DEMO_APPS.map((a) => {
+          const tile = (
+            <>
+              <div style={{ fontSize: 24 }}>{a.emoji}</div>
+              <div style={{ fontSize: 10.5, color: a.live ? '#e8e0d0' : MUTE, marginTop: 6 }}>{a.name}</div>
+              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginTop: 4,
+                color: a.live ? '#7ee7c0' : 'rgba(232,224,208,0.28)' }}>
+                {a.live ? '● LIVE' : d.soon}
+              </div>
+            </>
+          );
+          const base: CSSProperties = { background: CARD,
+            border: `1px solid ${a.live ? 'rgba(126,231,192,0.28)' : LINE}`, borderRadius: 14,
+            padding: '13px 6px 11px', textAlign: 'center', display: 'block', textDecoration: 'none' };
+          return a.live ? (
+            <a key={a.name} href={a.live} target="_blank" rel="noopener noreferrer" style={base}>{tile}</a>
+          ) : (
+            <div key={a.name} style={{ ...base, opacity: 0.75 }}>{tile}</div>
+          );
+        })}
       </div>
 
       {/* what you can do */}

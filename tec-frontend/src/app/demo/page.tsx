@@ -7,24 +7,18 @@
  * Pi account to an unknown app. This lets them SEE the ecosystem populated first
  * (like Reputa's "Demo_Pioneer"), then decide. Everything here is clearly-labelled
  * SAMPLE data — no auth, no real balances, no Pi calls. Pure client-side preview.
+ *
+ * The apps grid reuses the SAME source (`@/lib/apps`) and the SAME card styles
+ * (`../page.module.css`) as the landing, so the two never drift. Per product
+ * decision, a tap here goes to Sign in — apps open only from the authenticated Hub.
  */
 
 import type { CSSProperties } from 'react';
 import Link                from 'next/link';
 import { useTranslation }  from '@/lib/i18n';
 import LanguageSwitcher    from '@/components/LanguageSwitcher';
-
-// Emojis mirror the Hub's app registry exactly. `live` = a real, deployed app a
-// guest can open right now (proves the ecosystem is real); the rest show "Soon".
-const DEMO_APPS: { name: string; emoji: string; live?: string }[] = [
-  { name: 'Commerce', emoji: '🛒', live: 'https://tec-commerce-app.vercel.app' },
-  { name: 'Assets',   emoji: '💼', live: 'https://assets.tecosystem.app' },
-  { name: 'Life',     emoji: '🌱' }, { name: 'Analytics', emoji: '📈' },
-  { name: 'Legend',   emoji: '⭐' }, { name: 'Zone',    emoji: '🎯' },
-  { name: 'Connection', emoji: '🔗' }, { name: 'Epic',  emoji: '🎮' },
-  { name: 'Vip',      emoji: '💎' }, { name: 'Estate',  emoji: '🏠' },
-  { name: 'Explorer', emoji: '✈️' }, { name: 'Nexus',   emoji: '🌐' },
-];
+import { APPS, LIVE_APPS, CATEGORY_COLORS } from '@/lib/apps';
+import styles              from '../page.module.css';
 
 const GOLD = '#FBBF24';
 const BG   = '#050816';
@@ -35,6 +29,9 @@ const MUTE = 'rgba(232,224,208,0.45)';
 export default function DemoPage() {
   const { t, dir } = useTranslation();
   const d = t.home.demo;
+
+  // Pre-login: every app tile takes the visitor to Sign in (apps open from the Hub).
+  const toSignIn = () => { window.location.href = '/#payment'; };
 
   return (
     <main dir={dir} style={{ minHeight: '100vh', background: BG, color: '#e8e0d0',
@@ -79,7 +76,7 @@ export default function DemoPage() {
       <div style={{ background: CARD, border: `1px solid ${LINE}`, borderRadius: 18, padding: 18, marginBottom: 24 }}>
         <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: MUTE, marginBottom: 14 }}>{d.passport}</div>
         <div style={{ display: 'flex', justifyContent: 'space-around', textAlign: 'center' }}>
-          {[[ '24', d.appsLabel ], [ '1', d.identityLabel ], [ '1', d.walletLabel ]].map(([n, l]) => (
+          {[[ String(APPS.length), d.appsLabel ], [ '1', d.identityLabel ], [ '1', d.walletLabel ]].map(([n, l]) => (
             <div key={l}>
               <div style={{ fontSize: 30, fontWeight: 700, color: GOLD, lineHeight: 1 }}>{n}</div>
               <div style={{ fontSize: 10, color: MUTE, marginTop: 5, textTransform: 'uppercase', letterSpacing: '0.1em' }}>{l}</div>
@@ -88,26 +85,46 @@ export default function DemoPage() {
         </div>
       </div>
 
-      {/* apps grid — LIVE apps open the real app; others are marked "Soon" (consistent) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginBottom: 28 }}>
-        {DEMO_APPS.map((a) => {
-          const tile = (
-            <>
-              <div style={{ fontSize: 24 }}>{a.emoji}</div>
-              <div style={{ fontSize: 10.5, color: a.live ? '#e8e0d0' : MUTE, marginTop: 6 }}>{a.name}</div>
-              <div style={{ fontSize: 8, fontWeight: 700, letterSpacing: '0.08em', marginTop: 4,
-                color: a.live ? '#7ee7c0' : 'rgba(232,224,208,0.28)' }}>
-                {a.live ? '● LIVE' : d.soon}
+      {/* apps grid — SAME source + SAME card styles as the landing; tap → Sign in */}
+      <div className={styles.appsGrid} style={{ marginBottom: 28 }}>
+        {APPS.map((app, i) => {
+          const isLive = !!LIVE_APPS[app.name];
+          return (
+            <div
+              key={app.name}
+              className={styles.appCard}
+              style={{
+                animationDelay: `${i * 0.04}s`,
+                '--cat-color': CATEGORY_COLORS[app.category] ?? GOLD,
+                ...(isLive ? { border: '1px solid #7ee7c040' } : {}),
+              } as CSSProperties}
+              onClick={toSignIn}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toSignIn(); } }}
+              role="button"
+              tabIndex={0}
+            >
+              <div className={styles.appCardGlow} />
+              <div className={styles.appCardTop}>
+                <span className={styles.appEmoji}>{app.emoji}</span>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                  <span className={styles.appCategory} style={{ color: CATEGORY_COLORS[app.category] ?? GOLD }}>
+                    {app.category}
+                  </span>
+                  {isLive && (
+                    <span style={{ fontSize: 8, color: '#7ee7c0', letterSpacing: 1,
+                      background: '#7ee7c010', border: '1px solid #7ee7c030', borderRadius: 4, padding: '1px 4px' }}>
+                      LIVE
+                    </span>
+                  )}
+                </div>
               </div>
-            </>
-          );
-          const base: CSSProperties = { background: CARD,
-            border: `1px solid ${a.live ? 'rgba(126,231,192,0.28)' : LINE}`, borderRadius: 14,
-            padding: '13px 6px 11px', textAlign: 'center', display: 'block', textDecoration: 'none' };
-          return a.live ? (
-            <a key={a.name} href={a.live} target="_blank" rel="noopener noreferrer" style={base}>{tile}</a>
-          ) : (
-            <div key={a.name} style={{ ...base, opacity: 0.75 }}>{tile}</div>
+              <span className={styles.appName}>{app.name}</span>
+              <span className={styles.appDesc}>{t.apps[app.name as keyof typeof t.apps] ?? app.name}</span>
+              <div className={styles.appFooter}>
+                <span className={styles.appDomain}>{app.domain}</span>
+                <span className={styles.appArrow}>{dir === 'rtl' ? '←' : '→'}</span>
+              </div>
+            </div>
           );
         })}
       </div>

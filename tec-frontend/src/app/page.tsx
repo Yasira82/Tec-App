@@ -7,56 +7,13 @@ import { useTranslation }        from '@/lib/i18n';
 import LanguageSwitcher          from '@/components/LanguageSwitcher';
 import PiPaymentButton           from '@/components/payment/PiPaymentButton';
 import InstallPrompt             from '@/components/InstallPrompt';
+import { APPS, LIVE_APPS, CATEGORY_COLORS } from '@/lib/apps';
 import styles                    from './page.module.css';
-
-const APPS = [
-  { name: 'Life',        emoji: '🌱', domain: 'life.pi',        category: 'Personal'      },
-  { name: 'Insure',      emoji: '🛡️', domain: 'insure.pi',      category: 'Finance'       },
-  { name: 'Commerce',    emoji: '🛒', domain: 'commerce.pi',    category: 'Business'      },
-  { name: 'Ecommerce',   emoji: '📦', domain: 'ecommerce.pi',   category: 'Business'      },
-  { name: 'Assets',      emoji: '💼', domain: 'assets.pi',      category: 'Finance'       },
-  { name: 'Fundx',       emoji: '📊', domain: 'fundx.pi',       category: 'Finance'       },
-  { name: 'Dx',          emoji: '🏥', domain: 'dx.pi',          category: 'Health'        },
-  { name: 'Analytics',   emoji: '📈', domain: 'analytics.pi',   category: 'Business'      },
-  { name: 'Nbf',         emoji: '🏦', domain: 'nbf.pi',         category: 'Finance'       },
-  { name: 'Epic',        emoji: '🎮', domain: 'epic.pi',        category: 'Entertainment' },
-  { name: 'Legend',      emoji: '⭐', domain: 'legend.pi',      category: 'Premium'       },
-  { name: 'Connection',  emoji: '🔗', domain: 'connection.pi',  category: 'Social'        },
-  { name: 'System',      emoji: '⚙️', domain: 'system.pi',      category: 'Tech'          },
-  { name: 'Alert',       emoji: '🔔', domain: 'alert.pi',       category: 'Tech'          },
-  { name: 'Tec',         emoji: '👑', domain: 'tec.pi',         category: 'Premium'       },
-  { name: 'Estate',      emoji: '🏠', domain: 'estate.pi',      category: 'Premium'       },
-  { name: 'Nx',          emoji: '🚀', domain: 'nx.pi',          category: 'Tech'          },
-  { name: 'Explorer',    emoji: '✈️', domain: 'explorer.pi',    category: 'Premium'       },
-  { name: 'Nexus',       emoji: '🌐', domain: 'nexus.pi',       category: 'Hub'           },
-  { name: 'Brookfield',  emoji: '🏙️', domain: 'brookfield.pi',  category: 'Premium'       },
-  { name: 'Vip',         emoji: '💎', domain: 'vip.pi',         category: 'Premium'       },
-  { name: 'Titan',       emoji: '🦾', domain: 'titan.pi',       category: 'Business'      },
-  { name: 'Zone',        emoji: '🎯', domain: 'zone.pi',        category: 'Personal'      },
-  { name: 'Elite',       emoji: '🏆', domain: 'elite.pi',       category: 'Premium'       },
-];
-
-const LIVE_APPS: Record<string, string> = {
-  'Assets':   'https://assets.tecosystem.app',
-  'Commerce': 'https://tec-commerce-app.vercel.app',
-};
 
 const CATEGORIES = [
   'All', 'Finance', 'Premium', 'Business', 'Tech',
   'Personal', 'Health', 'Entertainment', 'Social', 'Hub',
 ];
-
-const CATEGORY_COLORS: Record<string, string> = {
-  Finance:       '#f0c040',
-  Premium:       '#FBBF24',
-  Business:      '#7eb8f7',
-  Tech:          '#7ee7c0',
-  Personal:      '#f09898',
-  Health:        '#98e0a8',
-  Entertainment: '#c898f0',
-  Social:        '#f0b878',
-  Hub:           '#ffffff',
-};
 
 export default function HomePage() {
   // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
@@ -84,13 +41,12 @@ export default function HomePage() {
     return result;
   }, [activeCategory, searchQuery, t]);
 
-  const openApp = (app: typeof APPS[0]) => {
-    const liveUrl = LIVE_APPS[app.name];
-    if (liveUrl) {
-      window.location.href = `/api/auth/sso?target=${encodeURIComponent(liveUrl)}`;
-      return;
-    }
-    window.open(`https://${app.domain}`, '_blank', 'noopener,noreferrer');
+  const openApp = (_app: typeof APPS[0]) => {
+    // Pre-login page: apps open only from the authenticated Hub (after Sign in with Pi),
+    // so a tap here takes the visitor to the Sign in section instead of a dead link.
+    const el = typeof document !== 'undefined' ? document.getElementById('payment') : null;
+    if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth' });
+    window.location.hash = 'payment';
   };
 
   const handleKey = (e: React.KeyboardEvent, app: typeof APPS[0]) => {

@@ -159,7 +159,7 @@ const callGemini = async (
   }));
 
   return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method:  'POST',
       signal,
@@ -284,7 +284,12 @@ export async function POST(req: NextRequest) {
     // whole request — we abort and move to the next provider. Once headers arrive the
     // timer is cleared and the body streams freely.
     const PROVIDER_TIMEOUT_MS = 12_000;
+    // Capture WHY each provider fails (status + body snippet) so a 502 tells us the real
+    // cause — invalid key (401), decommissioned model (400/404), quota (429) — instead of
+    // a black-box "all failed".
+    const failures: string[] = [];
     const attempt = async (
+      name: string,
       call: (signal: AbortSignal) => Promise<Response>,
     ): Promise<Response | null> => {
       const controller = new AbortController();
@@ -292,9 +297,15 @@ export async function POST(req: NextRequest) {
       try {
         const res = await call(controller.signal);
         clearTimeout(timer);
-        return res.ok && res.body ? res : null;
-      } catch {
+        if (res.ok && res.body) return res;
+        const detail = typeof res.text === 'function'
+          ? await res.text().catch(() => '')
+          : '';
+        failures.push(`${name} ${res.status}: ${detail.replace(/\s+/g, ' ').slice(0, 160)}`);
+        return null;
+      } catch (e) {
         clearTimeout(timer);
+        failures.push(`${name} error: ${((e as Error)?.message ?? 'unknown').slice(0, 100)}`);
         return null;
       }
     };
@@ -309,14 +320,14 @@ export async function POST(req: NextRequest) {
     let provider = '';
     for (const [name, key, call] of providers) {
       if (!key || response) continue;
-      const res = await attempt(call);
+      const res = await attempt(name, call);
       if (res) { response = res; provider = name; }
-      else console.warn(`[AI] provider ${name} unavailable — falling through`);
     }
 
     if (!response || !response.body) {
+      console.error('[AI] all providers failed:', failures.join(' | '));
       return NextResponse.json(
-        { error: 'All AI providers failed. Please try again.' },
+        { error: `All AI providers failed — ${failures.join(' · ') || 'none configured'}` },
         { status: 502, headers: corsHeaders },
       );
     }

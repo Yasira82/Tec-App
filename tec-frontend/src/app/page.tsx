@@ -6,6 +6,7 @@ import Link                      from 'next/link';
 import { useTranslation }        from '@/lib/i18n';
 import LanguageSwitcher          from '@/components/LanguageSwitcher';
 import PiPaymentButton           from '@/components/payment/PiPaymentButton';
+import InstallPrompt             from '@/components/InstallPrompt';
 import styles                    from './page.module.css';
 
 const APPS = [
@@ -172,7 +173,19 @@ export default function HomePage() {
             <span className={styles.heroStatLabel}>{t.home.stats.identity}</span>
           </div>
         </div>
+
+        {/* Trust strip (A4) — answers "is this a scam?" before it's asked */}
+        <div className={styles.trustStrip}>
+          <span className={styles.trustBadge}>🆓 {t.home.trust.free}</span>
+          <span className={styles.trustBadge}>🔐 {t.home.trust.noPassphrase}</span>
+          <span className={styles.trustBadge}>💳 {t.home.trust.noPurchase}</span>
+          <span className={styles.trustBadge}>🛡️ {t.home.trust.readOnly}</span>
+          <span className={styles.trustBadge}>✅ {t.home.trust.official}</span>
+        </div>
       </section>
+
+      {/* Install to home screen (A3) — retention: one-tap return */}
+      <InstallPrompt />
 
       {/* Sign in */}
       <section id="payment" className={styles.paymentSection}>

@@ -27,6 +27,8 @@ vi.mock('@/lib/i18n', () => ({
         ecosystemTitle: 'Explore — the Apps',
         moreApps: 'More apps',
         stats: { apps: 'Apps', piUsers: 'Pi Users', identity: 'Identity' },
+        trust: { free: 'Free', noPassphrase: 'No passphrase', noPurchase: 'No purchase', readOnly: 'Read only', official: 'Official' },
+        install: { cta: 'Add TEC', sub: 'One tap', button: 'Install', stepsTitle: 'Steps', step1: 'One', step2: 'Two', step3: 'Three', dismiss: 'Not now' },
       },
       dashboard: {
         piIntegration: { connectBtn: 'Connect with Pi' },

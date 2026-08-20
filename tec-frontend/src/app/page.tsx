@@ -182,6 +182,11 @@ export default function HomePage() {
           <span className={styles.trustBadge}>🛡️ {t.home.trust.readOnly}</span>
           <span className={styles.trustBadge}>✅ {t.home.trust.official}</span>
         </div>
+
+        {/* Guest/Demo entry (A1) — see the ecosystem before connecting */}
+        <Link href="/demo" className={styles.guestLink}>
+          🔍 {t.home.demo.cta}
+        </Link>
       </section>
 
       {/* Install to home screen (A3) — retention: one-tap return */}

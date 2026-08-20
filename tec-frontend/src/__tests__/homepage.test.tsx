@@ -29,6 +29,7 @@ vi.mock('@/lib/i18n', () => ({
         stats: { apps: 'Apps', piUsers: 'Pi Users', identity: 'Identity' },
         trust: { free: 'Free', noPassphrase: 'No passphrase', noPurchase: 'No purchase', readOnly: 'Read only', official: 'Official' },
         install: { cta: 'Add TEC', sub: 'One tap', button: 'Install', stepsTitle: 'Steps', step1: 'One', step2: 'Two', step3: 'Three', dismiss: 'Not now' },
+        demo: { cta: 'Explore as guest', badge: 'Guest', title: 'T', subtitle: 'S', identityName: 'Demo', identityHandle: '@d', passport: 'P', appsLabel: 'A', identityLabel: 'I', walletLabel: 'W', sampleTag: 'S', doTitle: 'D', do1Title: '1', do1Desc: '1', do2Title: '2', do2Desc: '2', do3Title: '3', do3Desc: '3', signIn: 'Sign in', back: 'Back' },
       },
       dashboard: {
         piIntegration: { connectBtn: 'Connect with Pi' },

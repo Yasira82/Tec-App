@@ -29,6 +29,16 @@ const TECH         = LIVE_DOMAINS.filter(d => d.group === 'tech');
 const MONETIZATION = LIVE_DOMAINS.filter(d => d.group === 'monetization');
 const LIVE_APPS    = LIVE_DOMAINS.filter(d => d.status === 'live');
 
+// Open a domain the SAME way the Hub does: external (http) apps go through Hub SSO
+// so they land WITH a session; internal routes navigate directly. Fixes apps that
+// "don't open" — direct nav dropped the session, and router.push can't leave the app.
+function openDomainRoute(route: string) {
+  const href = route.startsWith('http')
+    ? `/api/auth/sso?target=${encodeURIComponent(route)}`
+    : route;
+  window.location.href = href;
+}
+
 // ── Domain Card ────────────────────────────────────────────
 function DomainCard({ emoji, name, domain, status, onClick }: {
   emoji: string; name: string; domain: string; status: string; onClick?: () => void;
@@ -61,7 +71,7 @@ function DomainGroup({ title, emoji, domains }: { title: string; emoji: string; 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 8 }}>
         {domains.map(d => (
           <DomainCard key={d.slug} emoji={d.emoji} name={d.name.en} domain={d.piDomain}
-            status={d.status} onClick={d.route ? () => { window.location.href = d.route!; } : undefined} />
+            status={d.status} onClick={d.route ? () => openDomainRoute(d.route!) : undefined} />
         ))}
       </div>
     </div>
@@ -462,7 +472,7 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 'var(--sp-2)' }}>
               {visibleLive.slice(0, 6).map(d => (
                 <DomainCard key={d.slug} emoji={d.emoji} name={d.name.en} domain={d.piDomain}
-                  status={d.status} onClick={d.route ? () => router.push(d.route!) : undefined} />
+                  status={d.status} onClick={d.route ? () => openDomainRoute(d.route!) : undefined} />
               ))}
             </div>
           </DashboardCard>

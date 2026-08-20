@@ -6,6 +6,7 @@ import Link                      from 'next/link';
 import { useTranslation }        from '@/lib/i18n';
 import LanguageSwitcher          from '@/components/LanguageSwitcher';
 import PiPaymentButton           from '@/components/payment/PiPaymentButton';
+import InstallPrompt             from '@/components/InstallPrompt';
 import styles                    from './page.module.css';
 
 const APPS = [
@@ -182,6 +183,9 @@ export default function HomePage() {
           <span className={styles.trustBadge}>✅ {t.home.trust.official}</span>
         </div>
       </section>
+
+      {/* Install to home screen (A3) — retention: one-tap return */}
+      <InstallPrompt />
 
       {/* Sign in */}
       <section id="payment" className={styles.paymentSection}>

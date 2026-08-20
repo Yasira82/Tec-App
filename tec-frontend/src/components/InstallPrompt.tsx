@@ -69,8 +69,13 @@ export default function InstallPrompt() {
       setHidden(true);
       return;
     }
-    // No native prompt (iOS / in-app browser) → show manual steps.
-    setShowSteps((s) => !s);
+    // Pi Browser is an in-app webview with NO "Add to Home screen" — the icon can
+    // only be added from the phone's real browser. So open this URL there, then
+    // show the (corrected) steps. Same approach as other strong Pi apps.
+    try {
+      window.open(window.location.href, '_blank', 'noopener,noreferrer');
+    } catch { /* ignore */ }
+    setShowSteps(true);
   };
 
   const i = t.home.install;
@@ -107,7 +112,7 @@ export default function InstallPrompt() {
             background: 'linear-gradient(135deg, #f5d060 0%, #FBBF24 45%, #d4af37 100%)',
           }}
         >
-          {i.button}
+          {deferred ? i.button : i.openInBrowser}
         </button>
         <button
           onClick={dismiss}

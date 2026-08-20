@@ -57,7 +57,7 @@ const makeMockT = () => ({
       moreApps:        'More apps',
       stats: { apps: 'Apps', piUsers: 'Pi Users', identity: 'Identity' },
       trust: { free: 'Free', noPassphrase: 'No passphrase', noPurchase: 'No purchase', readOnly: 'Read only', official: 'Official' },
-      install: { cta: 'Add TEC', sub: 'One tap', button: 'Install', stepsTitle: 'Steps', step1: 'One', step2: 'Two', step3: 'Three', dismiss: 'Not now' },
+      install: { cta: 'Add TEC', sub: 'One tap', button: 'Install', openInBrowser: 'Open in browser', stepsTitle: 'Steps', step1: 'One', step2: 'Two', step3: 'Three', dismiss: 'Not now' },
         demo: { cta: 'Explore as guest', badge: 'Guest', title: 'T', subtitle: 'S', identityName: 'Demo', identityHandle: '@d', passport: 'P', appsLabel: 'A', identityLabel: 'I', walletLabel: 'W', sampleTag: 'S', doTitle: 'D', do1Title: '1', do1Desc: '1', do2Title: '2', do2Desc: '2', do3Title: '3', do3Desc: '3', signIn: 'Sign in', back: 'Back' },
     },
     dashboard: {
@@ -467,70 +467,59 @@ describe('HomePage — search', () => {
 // App cards — openApp + handleKey
 // ─────────────────────────────────────────────────────────────────
 describe('HomePage — app card interaction', () => {
-  it('clicking a non-live app card calls window.open', async () => {
+  it('clicking an app card routes to Sign in (pre-login)', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    // Life is not in LIVE_APPS
     const lifeCard = screen.getByText('Life').closest('[role="button"]') as HTMLElement;
     expect(lifeCard).toBeTruthy();
     fireEvent.click(lifeCard);
-    expect(window.open).toHaveBeenCalledWith(
-      'https://life.pi',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(window.location.hash).toBe('payment');
+    expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('clicking a LIVE app card (Assets) uses SSO redirect', async () => {
+  it('clicking a LIVE app card (Assets) also routes to Sign in', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const assetsCard = screen.getByText('Assets').closest('[role="button"]') as HTMLElement;
     expect(assetsCard).toBeTruthy();
     fireEvent.click(assetsCard);
-    expect(window.location.href).toContain('/api/auth/sso');
-    expect(window.location.href).toContain('assets.tecosystem.app');
+    expect(window.location.hash).toBe('payment');
+    expect(window.open).not.toHaveBeenCalled();
   });
 
-  it('clicking a LIVE Commerce card uses SSO redirect', async () => {
+  it('clicking a LIVE Commerce card also routes to Sign in', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const commerceCard = screen.getByText('Commerce').closest('[role="button"]') as HTMLElement;
     expect(commerceCard).toBeTruthy();
     fireEvent.click(commerceCard);
-    expect(window.location.href).toContain('/api/auth/sso');
+    expect(window.location.hash).toBe('payment');
   });
 
-  it('Enter key on an app card triggers openApp', async () => {
+  it('Enter key on an app card routes to Sign in', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const fundxCard = screen.getByText('Fundx').closest('[role="button"]') as HTMLElement;
     expect(fundxCard).toBeTruthy();
     fireEvent.keyDown(fundxCard, { key: 'Enter' });
-    expect(window.open).toHaveBeenCalledWith(
-      'https://fundx.pi',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(window.location.hash).toBe('payment');
   });
 
-  it('Space key on an app card triggers openApp', async () => {
+  it('Space key on an app card routes to Sign in', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const epicCard = screen.getByText('Epic').closest('[role="button"]') as HTMLElement;
     expect(epicCard).toBeTruthy();
     fireEvent.keyDown(epicCard, { key: ' ' });
-    expect(window.open).toHaveBeenCalledWith(
-      'https://epic.pi',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(window.location.hash).toBe('payment');
   });
 
-  it('other keys on app card do NOT trigger openApp', async () => {
+  it('other keys on app card do NOT navigate', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const fundxCard = screen.getByText('Fundx').closest('[role="button"]') as HTMLElement;
     fireEvent.keyDown(fundxCard, { key: 'Tab' });
+    expect(window.location.hash).not.toBe('payment');
     expect(window.open).not.toHaveBeenCalled();
   });
 

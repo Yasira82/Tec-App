@@ -82,7 +82,7 @@ export default function HomePage() {
 
       {/* Navbar */}
       <nav className={styles.navbar}>
-        <div className={styles.navLogo}>
+        <div className={styles.navLogo} dir="ltr">
           <span className={styles.navLogoMark}>T</span>
           <span className={styles.navLogoText}>EC</span>
         </div>
@@ -291,7 +291,7 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className={styles.footer}>
-        <div className={styles.footerLogo}>
+        <div className={styles.footerLogo} dir="ltr">
           <span className={styles.navLogoMark}>T</span>
           <span className={styles.navLogoText}>EC</span>
         </div>

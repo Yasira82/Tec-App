@@ -44,6 +44,7 @@ export const en = {
       identityLabel: 'Unified identity',
       walletLabel: 'One wallet',
       sampleTag: 'SAMPLE',
+      soon: 'Soon',
       doTitle: 'What you can actually do',
       do1Title: 'Buy real products with Pi',
       do1Desc: 'A real marketplace — pay in Pi, get real items.',

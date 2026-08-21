@@ -138,7 +138,8 @@ const callGroq = async (
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model:      'llama-3.3-70b-versatile',
+      // Providers rotate models often; override via env when one is retired.
+      model:      process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
       max_tokens: 1024,
       messages:   [{ role: 'system', content: systemPrompt }, ...messages],
       stream:     true,
@@ -159,7 +160,7 @@ const callGemini = async (
   }));
 
   return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:streamGenerateContent?alt=sse&key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL ?? 'gemini-3.6-flash'}:streamGenerateContent?alt=sse&key=${apiKey}`,
     {
       method:  'POST',
       signal,

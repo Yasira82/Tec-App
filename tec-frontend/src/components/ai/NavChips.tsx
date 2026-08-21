@@ -16,48 +16,56 @@ import type { Locale }      from '@/domains/_types';
  * Chips are POINTERS, never actions — following one navigates, it never spends or commits
  * anything (C-104: TEC AI recommends and explains; the owning app executes).
  */
-export function NavChips({
-  intents, dir, locale = 'en',
-}: { intents: NavIntent[]; dir?: string; locale?: Locale }) {
-  if (!intents.length) return null;
-  const arrow = dir === 'rtl' ? '←' : '→';
+const defaultStyle: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6,
+  padding: '6px 12px', borderRadius: 999,
+  border: '1px solid #FBBF2440', background: '#FBBF2412',
+  color: '#FBBF24', fontSize: 12, fontWeight: 600,
+  textDecoration: 'none', whiteSpace: 'nowrap',
+};
 
-  const style: React.CSSProperties = {
-    display: 'inline-flex', alignItems: 'center', gap: 6,
-    padding: '6px 12px', borderRadius: 999,
-    border: '1px solid #FBBF2440', background: '#FBBF2412',
-    color: '#FBBF24', fontSize: 12, fontWeight: 600,
-    textDecoration: 'none', whiteSpace: 'nowrap',
-  };
+/**
+ * ONE chip. Exported so the /ai page can use it for a flow step and keep its own CSS
+ * class — `className` opts out of the inline style entirely.
+ *
+ * It exists because the two surfaces drifted a THIRD time: the drawer got the app emoji
+ * on its chips while /ai kept a private copy that still rendered a bare "تك". Sharing the
+ * markup, not just the parser, is what actually stops that.
+ */
+export function NavChip({
+  intent, dir, locale = 'en', className,
+}: { intent: NavIntent; dir?: string; locale?: Locale; className?: string }) {
+  const arrow = dir === 'rtl' ? '←' : '→';
+  // The registry name alone can be a bare transliteration ("تك"), which reads as nothing
+  // on a button. The emoji carries the app identity the Hub grid already taught the user.
+  const label = intent.label ?? t(intent.name, locale);
+  const content = (
+    <>{intent.emoji && <span aria-hidden>{intent.emoji}</span>}{label} <span aria-hidden>{arrow}</span></>
+  );
+
+  // Plain anchors on purpose, internal paths included. next/link needs the app router
+  // mounted; this renders inside a modal drawer that can be mounted in contexts without
+  // it, and a chip that CRASHES the reply is worse than one that costs a full page load.
+  const external = /^https?:\/\//.test(intent.href);
+  return (
+    <a
+      href={intent.href}
+      {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      {...(className ? { className } : { style: defaultStyle })}
+    >{content}</a>
+  );
+}
+
+export function NavChips({
+  intents, dir, locale = 'en', className,
+}: { intents: NavIntent[]; dir?: string; locale?: Locale; className?: string }) {
+  if (!intents.length) return null;
 
   return (
     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
       {intents.map(intent => {
-        // `intent.name` is a Localized {en, ar} OBJECT, not a string. Rendering it
-        // straight into JSX throws "Objects are not valid as a React child", which
-        // unmounts the whole reply — the answer vanished instead of showing a chip.
-        const label   = intent.label ?? t(intent.name, locale);
-        // The registry name alone can be a bare transliteration ("تك"), which reads as
-        // nothing on a button. The emoji carries the app identity the Hub grid already
-        // taught the user.
-        const content = (
-          <>{intent.emoji && <span aria-hidden>{intent.emoji}</span>}{label} <span aria-hidden>{arrow}</span></>
-        );
-        const key     = intent.action ? `${intent.slug}:${intent.action}` : intent.slug;
-
-        // Plain anchors on purpose, internal paths included. next/link needs the app
-        // router mounted; this renders inside a modal drawer that can be mounted in
-        // contexts without it, and a chip that CRASHES the reply is worse than one that
-        // costs a full page load. Following a chip navigates away regardless.
-        const external = /^https?:\/\//.test(intent.href);
-        return (
-          <a
-            key={key}
-            href={intent.href}
-            {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-            style={style}
-          >{content}</a>
-        );
+        const key = intent.action ? `${intent.slug}:${intent.action}` : intent.slug;
+        return <NavChip key={key} intent={intent} dir={dir} locale={locale} className={className} />;
       })}
     </div>
   );

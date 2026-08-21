@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { AIDrawer } from '@/app/hub/components/AIDrawer';
-import { loadConversation, saveConversation, clearConversation } from '@/lib/ai-session';
+import { loadConversation, saveConversation, clearConversation, archiveConversation, hasArchive } from '@/lib/ai-session';
 
 const enc = new TextEncoder();
 const frame = (o: unknown) => enc.encode(`data: ${JSON.stringify(o)}\n\n`);
@@ -126,5 +126,44 @@ describe('drawer session features', () => {
   it('announces the transcript to assistive tech', () => {
     const { container } = render(<AIDrawer open onClose={vi.fn()} />);
     expect(container.querySelector('[role="log"][aria-live="polite"]')).toBeTruthy();
+  });
+});
+
+describe('archive on "new chat"', () => {
+  it('keeps the previous thread instead of deleting it', async () => {
+    stubChat('رد مهم');
+    await ask('سؤال مهم');
+    await waitFor(() => expect(screen.getByText(/رد مهم/)).toBeTruthy());
+
+    fireEvent.click(screen.getByLabelText('محادثة جديدة'));
+    await waitFor(() => expect(loadConversation('tec_ai_drawer')).toEqual([]));
+    // Deleted from the live thread, but NOT destroyed.
+    expect(hasArchive('tec_ai_drawer')).toBe(true);
+  });
+
+  it('offers a restore, and brings the thread back once', async () => {
+    stubChat('رد مهم');
+    await ask('سؤال مهم');
+    await waitFor(() => expect(screen.getByText(/رد مهم/)).toBeTruthy());
+    fireEvent.click(screen.getByLabelText('محادثة جديدة'));
+
+    const restore = await screen.findByText(/استرجاع المحادثة السابقة/);
+    fireEvent.click(restore);
+    await waitFor(() => expect(screen.getByText(/رد مهم/)).toBeTruthy());
+
+    // One restore, not a toggle — the archive is consumed.
+    expect(hasArchive('tec_ai_drawer')).toBe(false);
+  });
+
+  it('does not offer a restore when nothing was ever archived', () => {
+    render(<AIDrawer open onClose={vi.fn()} />);
+    expect(screen.queryByText(/استرجاع المحادثة السابقة/)).toBeNull();
+  });
+
+  it('clearing an EMPTY thread does not destroy an existing archive', () => {
+    saveConversation('k', [{ role: 'user', text: 'الأصلية' }]);
+    archiveConversation('k');                 // archive it
+    archiveConversation('k');                 // "new chat" again on an empty thread
+    expect(loadConversation('k:prev')[0].text).toBe('الأصلية');
   });
 });

@@ -5,7 +5,7 @@ import { createSseReader } from '@/lib/ai-stream';
 import { RichText }       from '@/components/ai/RichText';
 import { NavChips }       from '@/components/ai/NavChips';
 import { parseNavIntents } from '@/lib/ai/nav-intents';
-import { loadConversation, saveConversation, clearConversation } from '@/lib/ai-session';
+import { loadConversation, saveConversation, archiveConversation, hasArchive, restoreConversation } from '@/lib/ai-session';
 import type { NavIntent }  from '@/lib/ai/nav-intents';
 
 /** How many previous turns travel with each question, so follow-ups keep context. */
@@ -113,6 +113,9 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const abortRef = useRef<AbortController | null>(null);
   // The question behind the last failure, so "try again" does not make the user retype it.
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+  // Whether a previous thread is sitting in the archive, waiting to be brought back.
+  const [canRestore, setCanRestore] = useState(false);
+  useEffect(() => { if (open) setCanRestore(hasArchive(STORE_KEY)); }, [open]);
 
   // Persist after every settled change. A streaming reply is skipped inside
   // saveConversation — restoring a half-sentence would look like a broken answer.
@@ -283,9 +286,18 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   }, [input, loading, messages]);
 
   const stop     = useCallback(() => abortRef.current?.abort(), []);
-  const newChat  = useCallback(() => {
+  // "New chat" ARCHIVES rather than deletes — starting a new conversation is not the
+  // same intent as destroying the old one, and one mis-tap used to lose it for good.
+  const newChat = useCallback(() => {
     abortRef.current?.abort();
-    setMessages([]); setFailedQuestion(null); clearConversation(STORE_KEY);
+    archiveConversation(STORE_KEY);
+    setMessages([]); setFailedQuestion(null); setCanRestore(hasArchive(STORE_KEY));
+  }, []);
+
+  const restore = useCallback(() => {
+    const turns = restoreConversation<ChatMessage>(STORE_KEY);
+    if (turns.length) setMessages(turns);
+    setCanRestore(false);
   }, []);
 
   if (!open) return null;
@@ -333,6 +345,12 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
                     <button key={q} onClick={() => setInput(q)} style={suggestionChip}>{q}</button>
                   ))}
                 </div>
+                {canRestore && (
+                  <button onClick={restore}
+                    style={{ ...suggestionChip, marginTop: 10, borderColor: '#ffffff22', color: '#8a8a9a' }}>
+                    ↺ استرجاع المحادثة السابقة
+                  </button>
+                )}
               </div>
             </div>
           )}

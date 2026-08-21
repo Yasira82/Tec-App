@@ -1,11 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation }              from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import { parseNavIntents }             from '@/lib/ai/nav-intents';
 import type { NavIntent, NavFlow }     from '@/lib/ai/nav-intents';
 import { createSseReader }             from '@/lib/ai-stream';
+import { loadConversation, saveConversation, clearConversation } from '@/lib/ai-session';
 import { RichText }                    from '@/components/ai/RichText';
 import { t }                           from '@/domains/_types';
 import type { Locale }                 from '@/domains/_types';
@@ -60,6 +61,9 @@ const POPULAR_TOPICS = [
   { en: 'Security & Privacy',     ar: 'الأمان والخصوصية'     },
 ];
 
+/** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
+const STORE_KEY = 'tec_ai_page';
+
 const SUPPORT_LINKS = [
   { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201115141346',      color: '#25D366' },
   { emoji: '✈️', label: 'Telegram', href: 'https://t.me/Yasira17',           color: '#229ED9' },
@@ -78,6 +82,31 @@ export default function AiClient() {
   const [activePanel,  setActivePanel]  = useState<'services' | 'support' | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLTextAreaElement>(null);
+  // Lets "stop" cut the stream, and stops a previous reply writing into a new bubble.
+  const abortRef       = useRef<AbortController | null>(null);
+  // Declared here, ABOVE the restore effect that sets it: a `const` is in the temporal
+  // dead zone until its declaration runs, so reading it from an earlier effect throws.
+  const seeded         = useRef(false);
+  const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+
+  // Restore the transcript for this tab. Without it, navigating to an app the assistant
+  // recommended and coming back lost the whole conversation.
+  useEffect(() => {
+    const saved = loadConversation<{ role: string; text: string }>(STORE_KEY);
+    if (!saved.length) return;
+    seeded.current = true;   // a restored thread must not be overwritten by the greeting
+    setMessages(saved.map((m, i) => ({
+      id:        `restored-${i}`,
+      role:      m.role === 'user' ? 'user' : 'assistant',
+      content:   m.text,
+      timestamp: new Date(),
+    })));
+  }, []);
+
+  useEffect(() => {
+    const settled = messages.filter(m => m.id !== 'welcome' && m.content.trim());
+    if (settled.length) saveConversation(STORE_KEY, settled.map(m => ({ role: m.role, text: m.content })));
+  }, [messages]);
 
   // Personalization context (C-104 · C-121): the user's OWN goals/activity/KYC,
   // assembled server-side by the BFF. Fetched once per session; fail-soft — if it
@@ -95,17 +124,28 @@ export default function AiClient() {
     return () => { alive = false; };
   }, [user?.piUsername]);
 
-  // ✅ Welcome message
+  // (declared above the restore effect on purpose — see the restore effect)
+  // The welcome is seeded ONCE. It used to run on [user, locale] and call setMessages
+  // with a fresh single-item array — so switching language, or the session resolving a
+  // beat late (the C-123 server path in Pi Browser flips `user` from null to an object),
+  // WIPED the entire conversation with no warning. The greeting is not worth a
+  // conversation. Re-seeding only happens while the thread is still empty.
+  // One builder, used by the initial seed AND by "new chat" — otherwise starting over
+  // dropped the user onto a blank page with no greeting.
+  const welcomeMessage = useCallback((): Message => ({
+    id:        'welcome',
+    role:      'assistant',
+    timestamp: new Date(),
+    content: locale === 'ar'
+      ? `مرحباً${user?.piUsername ? ` @${user.piUsername}` : ''}! 👋\n\nأنا مساعد TEC الذكي. يمكنني مساعدتك في:\n- استكشاف الـ 24 تطبيق في المنظومة\n- الإجابة على أسئلتك عن Pi Network\n- إرشادك للتطبيق المناسب لاحتياجاتك\n\nكيف يمكنني مساعدتك اليوم؟`
+      : `Welcome${user?.piUsername ? ` @${user.piUsername}` : ''}! 👋\n\nI'm the TEC AI Assistant. I can help you:\n- Explore all 24 apps in the ecosystem\n- Answer questions about Pi Network\n- Guide you to the right app for your needs\n\nHow can I help you today?`,
+  }), [locale, user?.piUsername]);
+
   useEffect(() => {
-    setMessages([{
-      id:        'welcome',
-      role:      'assistant',
-      timestamp: new Date(),
-      content: locale === 'ar'
-        ? `مرحباً${user?.piUsername ? ` @${user.piUsername}` : ''}! 👋\n\nأنا مساعد TEC الذكي. يمكنني مساعدتك في:\n- استكشاف الـ 24 تطبيق في المنظومة\n- الإجابة على أسئلتك عن Pi Network\n- إرشادك للتطبيق المناسب لاحتياجاتك\n\nكيف يمكنني مساعدتك اليوم؟`
-        : `Welcome${user?.piUsername ? ` @${user.piUsername}` : ''}! 👋\n\nI'm the TEC AI Assistant. I can help you:\n- Explore all 24 apps in the ecosystem\n- Answer questions about Pi Network\n- Guide you to the right app for your needs\n\nHow can I help you today?`,
-    }]);
-  }, [user, locale]);
+    if (seeded.current) return;
+    seeded.current = true;
+    setMessages([welcomeMessage()]);
+  }, [welcomeMessage]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -122,6 +162,10 @@ export default function AiClient() {
 
   const sendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return;
+    setFailedQuestion(null);
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     const userMessage: Message = {
       id:        Date.now().toString(),
@@ -138,6 +182,7 @@ export default function AiClient() {
       const response = await fetch('/api/ai/chat', {
         method:  'POST',
         credentials: 'include',
+        signal:  controller.signal,
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         body: JSON.stringify({
           messages: [...messages, userMessage]
@@ -167,6 +212,7 @@ export default function AiClient() {
           : 'FAILED');
         const e = new Error(code) as Error & { serverMsg?: string };
         e.serverMsg = serverMsg;
+        setFailedQuestion(content.trim());
         throw e;
       }
 
@@ -231,6 +277,12 @@ export default function AiClient() {
         )
       );
     } catch (err) {
+      // "Stop" is a user decision, not a failure — keep the partial answer on screen.
+      if ((err as Error)?.name === 'AbortError') {
+        setIsLoading(false);
+        abortRef.current = null;
+        return;
+      }
       const code = err instanceof Error ? err.message : 'FAILED';
       const serverMsg = (err as { serverMsg?: string })?.serverMsg;
       const ar = locale === 'ar';
@@ -262,6 +314,7 @@ export default function AiClient() {
       }]);
     } finally {
       setIsLoading(false);
+      abortRef.current = null;
       inputRef.current?.focus();
     }
   };
@@ -294,6 +347,21 @@ export default function AiClient() {
           </div>
         </div>
         <div className={styles.headerStatus}>
+          {messages.filter(m => m.id !== 'welcome').length > 0 && (
+            <button
+              onClick={() => {
+                abortRef.current?.abort();
+                clearConversation(STORE_KEY);
+                setFailedQuestion(null);
+                setMessages([welcomeMessage()]);
+              }}
+              aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New chat'}
+              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
+                       color: 'rgba(232,224,208,0.55)', cursor: 'pointer', fontSize: 11,
+                       padding: '5px 10px', fontFamily: 'inherit', marginInlineEnd: 8 }}>
+              {locale === 'ar' ? 'محادثة جديدة' : 'New chat'}
+            </button>
+          )}
           <span className={styles.statusDot} />
           <span className={styles.statusText}>{locale === 'ar' ? 'نشط' : 'Online'}</span>
         </div>
@@ -354,7 +422,7 @@ export default function AiClient() {
         {/* ── Center: Chat ── */}
         <div className={styles.chatArea}>
           <div className={styles.messagesWrap}>
-            <div className={styles.messages}>
+            <div className={styles.messages} role="log" aria-live="polite" aria-relevant="additions text">
               {messages.map(msg => (
                 <div
                   key={msg.id}
@@ -363,7 +431,10 @@ export default function AiClient() {
                   {msg.role === 'assistant' && (
                     <span className={styles.messageAvatar}>🤖</span>
                   )}
-                  <div className={styles.messageBubble}>
+                  {/* dir="auto" — the page direction follows the UI LOCALE, but a reply
+                      follows the QUESTION. An Arabic answer inside an English-locale page
+                      rendered with its punctuation at the wrong end until this was set. */}
+                  <div className={styles.messageBubble} dir="auto">
                     {/* Rendered, not printed: the model emits **bold** and bullets, and
                         a raw <p> put the asterisks on screen. Same renderer as the Hub. */}
                     <RichText text={msg.content} className={styles.messageContent} />
@@ -406,6 +477,12 @@ export default function AiClient() {
                   </div>
                 </div>
               )}
+              {failedQuestion && !isLoading && (
+                // An error message used to be a dead end — the question had to be retyped.
+                <button className={styles.suggestionBtn} onClick={() => sendMessage(failedQuestion)}>
+                  ↻ {locale === 'ar' ? 'جرّب تاني' : 'Try again'}
+                </button>
+              )}
               <div ref={messagesEndRef} />
             </div>
           </div>
@@ -432,18 +509,27 @@ export default function AiClient() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                dir="auto"
                 placeholder={locale === 'ar' ? 'اكتب رسالتك...' : 'Type your message...'}
                 rows={1}
                 disabled={isLoading}
               />
-              <button
-                className={styles.sendBtn}
-                onClick={() => sendMessage(input)}
-                disabled={!input.trim() || isLoading}
-                aria-label="Send"
-              >
-                {dir === 'rtl' ? '←' : '→'}
-              </button>
+              {isLoading ? (
+                <button
+                  className={styles.sendBtn}
+                  onClick={() => abortRef.current?.abort()}
+                  aria-label={locale === 'ar' ? 'إيقاف' : 'Stop'}
+                >◼</button>
+              ) : (
+                <button
+                  className={styles.sendBtn}
+                  onClick={() => sendMessage(input)}
+                  disabled={!input.trim()}
+                  aria-label="Send"
+                >
+                  {dir === 'rtl' ? '←' : '→'}
+                </button>
+              )}
             </div>
             <p className={styles.inputHint}>
               {locale === 'ar'

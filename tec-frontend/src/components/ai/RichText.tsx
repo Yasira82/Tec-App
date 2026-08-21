@@ -18,7 +18,11 @@ export function RichText({ text, className }: { text: string; className?: string
   return (
     <div className={className}>
       {lines.map((line, i) => (
-        <div key={i} style={{
+        // dir="auto" per LINE, not per bubble: the browser picks direction from the
+        // first strong character, so an Arabic sentence containing "Pi" or "NX" keeps
+        // its punctuation at the correct end. Without it, an Arabic reply rendered in an
+        // LTR container puts the full stop at the START of the line.
+        <div key={i} dir="auto" style={{
           display:    line.kind === 'bullet' ? 'flex' : 'block',
           gap:        line.kind === 'bullet' ? 6 : undefined,
           fontWeight: line.kind === 'heading' ? 700 : undefined,

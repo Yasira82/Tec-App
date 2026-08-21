@@ -58,6 +58,9 @@ function stubFetch(chat: (n: number) => Response | Promise<Response>) {
 
 beforeEach(() => {
   document.cookie = 'tec_csrf=abc';
+  // The drawer restores its transcript from sessionStorage; without this a test
+  // inherits the previous test's conversation instead of a fresh drawer.
+  sessionStorage.clear();
 });
 afterEach(() => vi.restoreAllMocks());
 

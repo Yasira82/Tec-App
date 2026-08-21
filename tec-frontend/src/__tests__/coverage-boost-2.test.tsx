@@ -283,6 +283,10 @@ beforeEach(() => {
 // ════════════════════════════════════════════════════════════════════════════
 // 1. AiClient — uncovered paths
 // ════════════════════════════════════════════════════════════════════════════
+// AiClient restores its transcript from sessionStorage — clear it so each test
+// starts from a fresh page rather than the previous test's conversation.
+beforeEach(() => sessionStorage.clear());
+
 describe('AiClient — uncovered paths', () => {
   it('shows error message in chat when fetch fails', async () => {
     global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));

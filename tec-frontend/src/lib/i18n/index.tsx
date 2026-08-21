@@ -5,7 +5,7 @@ import { en } from './en';
 import { ar } from './ar';
 
 type Locale = 'en' | 'ar';
-type Translations = typeof en;
+export type Translations = typeof en;
 
 interface LocaleContextValue {
   locale: Locale;

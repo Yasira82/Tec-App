@@ -13,72 +13,37 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
-
-type BIPEvent = Event & {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-};
+import { useInstallApp } from '@/lib-client/hooks/useInstallApp';
 
 const DISMISS_KEY = 'tec_install_dismissed';
 
 export default function InstallPrompt() {
   const { t, dir } = useTranslation();
-  const [deferred, setDeferred] = useState<BIPEvent | null>(null);
+  // Shared with the Dashboard menu entry — one place decides how installing works.
+  const { isStandalone, hasNativePrompt, install } = useInstallApp();
   const [showSteps, setShowSteps] = useState(false);
-  const [hidden, setHidden] = useState(true);
+  const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
-    // Already installed → never show.
-    const standalone =
-      window.matchMedia?.('(display-mode: standalone)').matches ||
-      (window.navigator as unknown as { standalone?: boolean }).standalone === true;
-    if (standalone) return;
-    if (localStorage.getItem(DISMISS_KEY) === '1') return;
-
-    setHidden(false);
-
-    const onPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferred(e as BIPEvent);
-    };
-    window.addEventListener('beforeinstallprompt', onPrompt);
-
-    const onInstalled = () => setHidden(true);
-    window.addEventListener('appinstalled', onInstalled);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', onPrompt);
-      window.removeEventListener('appinstalled', onInstalled);
-    };
+    try { setDismissed(localStorage.getItem(DISMISS_KEY) === '1'); }
+    catch { setDismissed(false); }
   }, []);
 
-  if (hidden) return null;
+  if (isStandalone || dismissed) return null;
 
   const dismiss = () => {
     try { localStorage.setItem(DISMISS_KEY, '1'); } catch { /* ignore */ }
-    setHidden(true);
+    setDismissed(true);
   };
 
   const onInstall = async () => {
-    if (deferred) {
-      try {
-        await deferred.prompt();
-        await deferred.userChoice;
-      } catch { /* user closed the native prompt */ }
-      setDeferred(null);
-      setHidden(true);
-      return;
-    }
-    // Pi Browser is an in-app webview with NO "Add to Home screen" — the icon can
-    // only be added from the phone's real browser. So open this URL there, then
-    // show the (corrected) steps. Same approach as other strong Pi apps.
-    try {
-      window.open(window.location.href, '_blank', 'noopener,noreferrer');
-    } catch { /* ignore */ }
-    setShowSteps(true);
+    const needsSteps = await install();
+    if (needsSteps) setShowSteps(true);
+    else setDismissed(true);   // native prompt handled it
   };
 
   const i = t.home.install;
+  const deferred = hasNativePrompt;
 
   return (
     <section dir={dir} style={{ width: '100%', maxWidth: 560, margin: '8px auto 0', padding: '0 16px', zIndex: 1 }}>

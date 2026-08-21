@@ -1,12 +1,14 @@
 'use client';
 
+import { useState }   from 'react';
 import Link          from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useInstallApp } from '@/lib-client/hooks/useInstallApp';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, type Translations } from '@/lib/i18n';
 import { useSubscriptionPlan } from '@/lib-client/hooks/useSubscriptionPlan';
 
-type NavItem  = { icon: string; label: string; href: string };
+type NavItem  = { icon: string; label: string; sub?: string; href: string; external?: boolean };
 type NavGroup = { label: string; items: NavItem[] };
 
 interface Props {
@@ -14,36 +16,50 @@ interface Props {
   onLogout:   () => void;
 }
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Overview',
-    items: [
-      { icon: '⊞',  label: 'Dashboard',    href: '/dashboard' },
-      { icon: '💳', label: 'Wallet',        href: '/dashboard/wallet' },
-      { icon: '🔔', label: 'Notifications', href: '/dashboard/notifications' },
-    ],
-  },
-  {
-    label: 'Apps',
-    items: [
-      { icon: '🧾', label: 'Orders',        href: '/dashboard/orders' },
-      { icon: '💎', label: 'Assets',        href: '/dashboard/assets' },
-      { icon: '📊', label: 'Analytics',     href: '/dashboard/analytics' },
-      { icon: '📡', label: 'Observability', href: '/dashboard/observability' },
-    ],
-  },
-  {
-    label: 'Account',
-    items: [
-      { icon: '◈',  label: 'Subscription', href: '/dashboard/subscription' },
-      { icon: '◐',  label: 'KYC',           href: '/dashboard/kyc' },
-      { icon: '◉',  label: 'Profile',       href: '/dashboard/profile' },
-      // 'Security' is hidden until it is backed by real data. It shipped with
-      // hardcoded sessions/devices/backup-codes and dead Revoke/Remove buttons —
-      // security controls that lie are worse than no security page at all.
-    ],
-  },
-];
+// Built from translations so labels + descriptions are bilingual. Descriptions
+// answer "what is behind this link?" — with 10 entries, names alone were ambiguous.
+function buildGroups(m: Translations['dashboard']['menu']): NavGroup[] {
+  return [
+    {
+      label: m.overview,
+      items: [
+        { icon: '⊞',  label: 'Dashboard',    sub: m.dashboardSub,     href: '/dashboard' },
+        { icon: '💳', label: 'Wallet',        sub: m.walletSub,        href: '/dashboard/wallet' },
+        { icon: '🔔', label: 'Notifications', sub: m.notificationsSub, href: '/dashboard/notifications' },
+      ],
+    },
+    {
+      label: m.apps,
+      items: [
+        { icon: '🧾', label: 'Orders',        sub: m.ordersSub,        href: '/dashboard/orders' },
+        { icon: '💎', label: 'Assets',        sub: m.assetsSub,        href: '/dashboard/assets' },
+        { icon: '📊', label: 'Analytics',     sub: m.analyticsSub,     href: '/dashboard/analytics' },
+        { icon: '📡', label: 'Observability', sub: m.observabilitySub, href: '/dashboard/observability' },
+      ],
+    },
+    {
+      label: m.account,
+      items: [
+        { icon: '◈',  label: 'Subscription', sub: m.subscriptionSub, href: '/dashboard/subscription' },
+        { icon: '◐',  label: 'KYC',           sub: m.kycSub,          href: '/dashboard/kyc' },
+        { icon: '◉',  label: 'Profile',       sub: m.profileSub,      href: '/dashboard/profile' },
+        // 'Security' is hidden until it is backed by real data. It shipped with
+        // hardcoded sessions/devices/backup-codes and dead Revoke/Remove buttons —
+        // security controls that lie are worse than no security page at all.
+      ],
+    },
+    {
+      // These pages already existed but nothing linked to them, so nobody could
+      // reach them: the referral loop (the platform's growth mechanism) and the
+      // Pioneer FAQ that answers "is this safe? do I pay?" were both invisible.
+      label: m.more,
+      items: [
+        { icon: '🎁', label: m.referrals,  sub: m.referralsSub,  href: '/hub/referral' },
+        { icon: '📖', label: m.howItWorks, sub: m.howItWorksSub, href: '/pioneers/faq' },
+      ],
+    },
+  ];
+}
 
 export function Sidebar({ user, onLogout }: Props) {
   const pathname    = usePathname();
@@ -51,6 +67,13 @@ export function Sidebar({ user, onLogout }: Props) {
   // Real plan from commerce — NOT user.subscriptionPlan (the session always says FREE).
   const { plan, isPaid } = useSubscriptionPlan();
   const planLabel   = plan === 'FREE' ? 'Free' : plan.charAt(0) + plan.slice(1).toLowerCase();
+
+  const m      = t.dashboard.menu;
+  const groups = buildGroups(m);
+
+  const { isStandalone, install } = useInstallApp();
+  const [installSteps, setInstallSteps] = useState(false);
+  const onInstall = async () => setInstallSteps(await install());
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -122,7 +145,17 @@ export function Sidebar({ user, onLogout }: Props) {
 
       {/* ── Nav ──────────────────────────────────────── */}
       <nav style={{ flex: 1, padding: 'var(--sp-3) 10px', overflowY: 'auto' }}>
-        {NAV_GROUPS.map(group => (
+
+        {/* Language first — the audience is largely Arabic-speaking, and the switch
+            used to be a small control buried at the very bottom of the menu. */}
+        <div style={{ padding: '2px 4px 10px' }}>
+          <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase', padding: '0 6px 6px' }}>
+            {m.language}
+          </div>
+          <LanguageSwitcher />
+        </div>
+
+        {groups.map(group => (
           <div key={group.label} style={{ marginBottom: 6 }}>
             <div style={{
               fontSize: 9, fontWeight: 700, color: 'var(--tec-text-3)',
@@ -144,7 +177,14 @@ export function Sidebar({ user, onLogout }: Props) {
                     color: active ? 'var(--tec-gold)' : 'var(--tec-text-2)',
                   }}>
                   <span aria-hidden="true" style={{ fontSize: 16, width: 20, textAlign: 'center' }}>{item.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: active ? 600 : 400, flex: 1 }}>{item.label}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 13, fontWeight: active ? 600 : 400 }}>{item.label}</span>
+                    {item.sub && (
+                      <span style={{ display: 'block', fontSize: 10, color: 'var(--tec-text-3)', marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {item.sub}
+                      </span>
+                    )}
+                  </span>
                   {active && <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--tec-gold)' }} />}
                 </Link>
               );
@@ -155,7 +195,42 @@ export function Sidebar({ user, onLogout }: Props) {
 
       {/* ── Bottom ───────────────────────────────────── */}
       <div style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-        <LanguageSwitcher />
+
+        {/* Install — the prompt existed but only ever rendered on the landing page,
+            so a signed-in user could never reach it. Hidden once already installed. */}
+        {!isStandalone && (
+          <button onClick={onInstall} className="tec-btn"
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+              padding: '9px 10px', borderRadius: 'var(--radius-md)', marginBottom: 6,
+              background: 'transparent', border: '1px solid rgba(251,191,36,0.18)',
+              color: 'var(--tec-gold)', fontSize: 13, cursor: 'pointer', textAlign: 'start',
+            }}>
+            <span aria-hidden="true" style={{ fontSize: 16, width: 20, textAlign: 'center' }}>📲</span>
+            <span style={{ flex: 1, minWidth: 0 }}>
+              <span style={{ display: 'block', fontSize: 13, fontWeight: 600 }}>{m.install}</span>
+              <span style={{ display: 'block', fontSize: 10, color: 'var(--tec-text-3)', marginTop: 1 }}>{m.installSub}</span>
+            </span>
+          </button>
+        )}
+
+        {installSteps && (
+          <div style={{ padding: '8px 10px', marginBottom: 6, borderRadius: 'var(--radius-md)', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.12)' }}>
+            {[t.home.install.step1, t.home.install.step2, t.home.install.step3].map((step, i) => (
+              <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '4px 0' }}>
+                <span style={{ flexShrink: 0, width: 16, height: 16, borderRadius: 999, background: 'rgba(251,191,36,0.16)', color: 'var(--tec-gold)', fontSize: 9, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
+                <span style={{ fontSize: 10, color: 'var(--tec-text-3)', lineHeight: 1.5 }}>{step}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Legal — required by the Pi Portal and previously unreachable in-app. */}
+        <div style={{ display: 'flex', gap: 12, padding: '0 10px 8px' }}>
+          <Link href="/privacy" style={{ fontSize: 10, color: 'var(--tec-text-3)', textDecoration: 'none' }}>{m.privacy}</Link>
+          <Link href="/terms"   style={{ fontSize: 10, color: 'var(--tec-text-3)', textDecoration: 'none' }}>{m.terms}</Link>
+        </div>
+
         <button onClick={onLogout} className="tec-btn"
           aria-label="Log out"
           style={{

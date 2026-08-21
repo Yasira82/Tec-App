@@ -57,15 +57,16 @@ vi.mock('@/lib-client/pi/PiRuntime', () => ({
   },
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: { common: { loading: 'Loading...', login: 'Login', appName: 'TEC' }, dashboard: {}, apps: {} },
-    locale: 'en',
-    setLanguage: vi.fn(),
-    dir: 'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// Mock with the REAL `en` bundle: a partial stub silently drops whole UI branches
+// (a missing t.dashboard.menu crashed the Sidebar), and a smoke test that renders
+// less than production isn't smoke-testing production.
+vi.mock('@/lib/i18n', async () => {
+  const { en } = await import('@/lib/i18n/en');
+  return {
+    useTranslation: () => ({ t: en, locale: 'en', setLocale: vi.fn(), setLanguage: vi.fn(), dir: 'ltr' }),
+    LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 beforeEach(() => {
   vi.clearAllMocks();

@@ -25,6 +25,7 @@ const nextConfig = {
       { protocol: 'https', hostname: '**.railway.app' },
       { protocol: 'https', hostname: 'api.minepi.com' },
       { protocol: 'https', hostname: 'www.okx.com'    },
+      { protocol: 'https', hostname: '**.r2.dev'      },  // NFT artwork (tec-assets uploads)
     ],
   },
 
@@ -89,7 +90,10 @@ const nextConfig = {
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
               // ✅ VM-017 FIXED: connect-src explicit whitelist — no more https: wildcard
               "connect-src 'self' https: wss:",
-              "img-src 'self' data: blob: *.railway.app *.vercel.app",
+              // *.r2.dev hosts the NFT artwork uploaded through tec-assets. Without it
+              // the browser BLOCKS every NFT image on /dashboard/assets and the tile
+              // renders empty. tec-assets already allows it — the Hub was the outlier.
+              "img-src 'self' data: blob: *.railway.app *.vercel.app *.r2.dev",
               "style-src 'self' 'unsafe-inline'",
               "font-src 'self' data:",
               "frame-src 'self' sdk.minepi.com *.minepi.com",

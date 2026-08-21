@@ -43,6 +43,30 @@ function assetImage(a: Asset): string | null {
   return null;
 }
 
+/**
+ * Asset thumbnail — the NFT artwork, falling back to the category icon.
+ *
+ * The fallback must RENDER something: an earlier version hid the broken <img>, which
+ * left an empty black square (every tile, because the Hub's CSP was blocking r2.dev).
+ * A failed image now returns the tile to the icon it would have shown anyway.
+ */
+function AssetThumb({ asset }: { asset: Asset }) {
+  const [failed, setFailed] = useState(false);
+  const src   = assetImage(asset);
+  const emoji = CATEGORY_EMOJI[(asset.category ?? '').toUpperCase()] ?? '📦';
+
+  return (
+    <div style={{ width: 48, height: 48, borderRadius: 14, background: '#FBBF2410', border: '1px solid #FBBF2420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48, overflow: 'hidden' }}>
+      {src && !failed ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={assetName(asset)} width={48} height={48} loading="lazy"
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          onError={() => setFailed(true)} />
+      ) : emoji}
+    </div>
+  );
+}
+
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE:  '#7ee7c0',
   PENDING: '#f0c040',
@@ -162,16 +186,12 @@ export default function AssetsPage() {
           {assets.map(asset => (
             <div key={asset.id}
               style={{ padding: '16px 20px', background: '#0B1020', border: '1px solid #FBBF2420', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#FBBF2410', border: '1px solid #FBBF2420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48, overflow: 'hidden' }}>
-                {assetImage(asset)
-                  // eslint-disable-next-line @next/next/no-img-element
-                  ? <img src={assetImage(asset)!} alt="" width={48} height={48}
-                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
-                  : (CATEGORY_EMOJI[(asset.category ?? '').toUpperCase()] ?? '📦')}
-              </div>
+              <AssetThumb asset={asset} />
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {/* Wrap to a second line instead of clipping: every NFT in a series
+                    shares a prefix ("TEC Genesis — …"), so a single clipped line made
+                    all 47 of them read identically. */}
+                <div style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 3, lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
                   {assetName(asset)}
                 </div>
                 <div style={{ fontSize: 11, color: '#6b6b7a' }}>

@@ -1182,7 +1182,12 @@ describe('api/ai/chat route', () => {
     const res = await POST(req);
     expect(res.status).toBe(502);
     const data = await res.json();
-    expect(data.error).toMatch(/All AI providers failed/i);
+    // The user-facing `error` is deliberately plain — the provider's raw payload used to
+    // be spliced into it and shown in a chat bubble. The technical reason moved to
+    // `detail` (logged, not rendered) and the classification to `code`.
+    expect(data.error).toMatch(/temporarily unavailable|busy/i);
+    expect(data.error).not.toMatch(/\{|provider/i);
+    expect(data.code).toBe('PROVIDERS_FAILED');
 
     delete process.env.ANTHROPIC_API_KEY;
   });

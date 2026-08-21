@@ -159,10 +159,20 @@ describe('AIDrawer streaming', () => {
     await waitFor(() => expect(screen.getByText(/يعمل بدون سياق/)).toBeTruthy());
   });
 
-  it('surfaces the real reason on an error status', async () => {
-    stubFetch(() => ({ ok: false, status: 429 }) as Response);
+  it('surfaces the real reason from the route\'s error code', async () => {
+    // The route sends an explicit `code`; the drawer must key off THAT, not the status.
+    stubFetch(() => ({ ok: false, status: 429, json: async () => ({ code: 'RATE_LIMIT' }) }) as unknown as Response);
     await ask();
     await waitFor(() => expect(document.body.textContent).toContain('وصلت للحد الأقصى'));
+  });
+
+  // Both of these are HTTP 503. Before the route sent a code, the drawer mapped 503 to a
+  // single message — so a BUSY assistant told the user it was switched off.
+  it('tells BUSY apart from NOT_CONFIGURED, though both are 503', async () => {
+    stubFetch(() => ({ ok: false, status: 503, json: async () => ({ code: 'BUSY' }) }) as unknown as Response);
+    await ask();
+    await waitFor(() => expect(document.body.textContent).toContain('مشغول'));
+    expect(document.body.textContent).not.toContain('مش مفعّل');
   });
 
   it('never leaves an empty bubble when the stream yields no text', async () => {

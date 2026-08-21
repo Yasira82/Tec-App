@@ -18,12 +18,24 @@ const getCsrfToken = (): string => {
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
 
-/** Map a chat-route error status to a clear, honest reason (no silent failures, C-96). */
-function errorMessage(status: number): string {
+/**
+ * Map a chat-route failure to a clear, honest reason (no silent failures, C-96).
+ *
+ * The route's `code` wins over the status, because the status cannot tell two very
+ * different situations apart: "the AI is not configured" and "every provider is busy
+ * right now" are BOTH 503 — so a busy assistant used to tell the user it was switched off.
+ */
+function errorMessage(status: number, code?: string): string {
+  switch (code) {
+    case 'SIGN_IN':        return 'سجّل دخولك الأول عشان تستخدم مساعد TEC.';
+    case 'RATE_LIMIT':     return 'وصلت للحد الأقصى للرسائل — استنى دقيقة وجرّب تاني.';
+    case 'NOT_CONFIGURED': return 'مساعد TEC مش مفعّل حالياً. حاول لاحقاً.';
+    case 'BUSY':           return 'المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.';
+  }
   switch (status) {
     case 401: return 'سجّل دخولك الأول عشان تستخدم مساعد TEC.';
     case 429: return 'وصلت للحد الأقصى للرسائل — استنى دقيقة وجرّب تاني.';
-    case 503: return 'مساعد TEC مش مفعّل حالياً. حاول لاحقاً.';
+    case 503: return 'المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.';
     case 502: return 'مساعد TEC مش متاح دلوقتي — حاول تاني بعد شوية.';
     default:  return 'حصل خطأ مؤقت — حاول مرة أخرى.';
   }
@@ -122,7 +134,8 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
       // JSON body with a non-2xx status. Surface the real reason instead of a generic
       // "no response" that hides it (C-96 — no silent failures).
       if (!res.ok) {
-        settle(errorMessage(res.status));
+        const body = await res.json().catch(() => null) as { code?: string } | null;
+        settle(errorMessage(res.status, body?.code));
         return;
       }
 

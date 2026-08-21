@@ -35,6 +35,9 @@ let lastGoodProvider: string | null = null;
  */
 const MAX_TOKENS = Number(process.env.AI_MAX_TOKENS) || 2048;
 
+/** Pause before re-walking a candidate list where every model reported overload. */
+const OVERLOAD_RETRY_MS = Number(process.env.AI_OVERLOAD_RETRY_MS) || 700;
+
 // ── Auth gate ─────────────────────────────────────────────
 // The AI providers cost real money, so this endpoint is for authenticated TEC
 // users ONLY — an open endpoint can be drained by anyone. Verify the TEC session
@@ -129,8 +132,8 @@ const callClaude = async (
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
-): Promise<Response> => {
-  return fetch('https://api.anthropic.com/v1/messages', {
+): Promise<ProviderResult> => {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
     method:  'POST',
     signal,
     headers: {
@@ -146,6 +149,7 @@ const callClaude = async (
       stream:     true,
     }),
   });
+  return res.ok ? { ok: true, res } : readFailure(res);
 };
 
 /**
@@ -159,17 +163,20 @@ const callClaude = async (
  * costs one fast 404, not an outage. The env override is always tried first, so a
  * known-good model can be pinned without a deploy.
  */
-const GROQ_MODELS = [
+export const GROQ_MODELS = [
   process.env.GROQ_MODEL,
   'llama-3.3-70b-versatile',
   'llama-3.1-8b-instant',
+  'openai/gpt-oss-20b',
+  'gemma2-9b-it',
+  // Older ids, kept LAST: Groq has been retiring these. A retired id costs one fast 404
+  // and the walk continues, so leaving them in is cheap insurance, not a liability.
   'llama3-8b-8192',
   'llama3-70b-8192',
-  'gemma2-9b-it',
   'mixtral-8x7b-32768',
 ].filter(Boolean) as string[];
 
-const GEMINI_MODELS = [
+export const GEMINI_MODELS = [
   process.env.GEMINI_MODEL,
   'gemini-flash-latest',   // Google's own moving alias — survives rotation
   'gemini-2.5-flash',
@@ -177,34 +184,94 @@ const GEMINI_MODELS = [
   'gemini-1.5-flash',
 ].filter(Boolean) as string[];
 
-/** True when a failed response means "this model id is unusable" (so: try the next). */
-async function isModelRejection(res: Response): Promise<boolean> {
-  if (res.status !== 404 && res.status !== 400) return false;
-  const body = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
-  return /model/i.test(body) &&
-    /(not exist|not found|decommission|unsupported|no longer|access to it)/i.test(body);
+/**
+ * A provider call either produced a streaming response, or failed with a reason we can
+ * actually read.
+ *
+ * This type exists because of a real blind spot: a `Response` body can be consumed only
+ * ONCE. The old code read it inside the "is this model retired?" check and then read it
+ * AGAIN when building the failure log — the second read returned an empty string, so
+ * production logged `groq 400:` with nothing after it. The one thing we needed in order
+ * to diagnose the outage was the one thing we destroyed. The body is now read exactly
+ * once, at the point of failure, and carried.
+ */
+interface ProviderFailure { ok: false; status: number; detail: string }
+type ProviderResult = { ok: true; res: Response } | ProviderFailure;
+
+async function readFailure(res: Response): Promise<ProviderFailure> {
+  const detail = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+  return { ok: false, status: res.status, detail };
+}
+
+/** How a failed candidate should be treated. */
+type FailureKind = 'model-gone' | 'overloaded' | 'fatal';
+
+function classify(status: number, body: string): FailureKind {
+  // The model id is retired, or this key has no access to it → the NEXT candidate might.
+  if ((status === 404 || status === 400) &&
+      /model/i.test(body) &&
+      /(not exist|not found|decommission|unsupported|no longer|access to it)/i.test(body)) {
+    return 'model-gone';
+  }
+  // The model is fine but momentarily unavailable. Gemini answers 503 "This model is
+  // currently experiencing high demand. Spikes in demand are usually temporary." — the
+  // API is literally telling us to try again, and a SIBLING model is usually free. The
+  // old code treated this as fatal and returned, leaving three healthy fallback models
+  // in the list untouched while the user got "all providers failed".
+  if (status === 429 || status === 503 ||
+      /(overload|high demand|capacity|try again later|rate.?limit|quota)/i.test(body)) {
+    return 'overloaded';
+  }
+  return 'fatal';
 }
 
 /** Remembers the model that worked, so a healthy request never re-probes the list. */
 const lastGoodModel: Record<string, string> = {};
 
-/** Try each candidate model until one is not rejected as missing/inaccessible. */
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+/**
+ * Try each candidate model until one answers. A retired OR momentarily overloaded model
+ * moves to the next candidate; only a genuine error (bad key, malformed request) stops
+ * the walk, because trying a different model cannot fix those.
+ *
+ * If EVERY candidate was overloaded, the whole list is retried once after a short pause —
+ * "spikes in demand are usually temporary" is worth one retry before telling the user the
+ * assistant is down.
+ */
 async function withModelFallback(
   provider: string,
   candidates: string[],
   call: (model: string) => Promise<Response>,
-): Promise<Response> {
+): Promise<ProviderResult> {
   const known  = lastGoodModel[provider];
   const models = known ? [known, ...candidates.filter(m => m !== known)] : candidates;
 
-  let last: Response | null = null;
-  for (const model of models) {
-    const res = await call(model);
-    if (res.ok) { lastGoodModel[provider] = model; return res; }
-    if (!(await isModelRejection(res))) return res;   // a real error — report it
-    last = res;                                       // retired model — try the next
+  for (let round = 0; round < 2; round++) {
+    if (round > 0) await sleep(OVERLOAD_RETRY_MS);
+
+    let last: ProviderFailure | null = null;
+    let allOverloaded = true;
+
+    for (const model of models) {
+      const res = await call(model);
+      if (res.ok) { lastGoodModel[provider] = model; return { ok: true, res }; }
+
+      const failure = await readFailure(res);
+      const kind    = classify(failure.status, failure.detail);
+      // Name the model in the reason — "groq 400" is useless without knowing WHICH model.
+      last = { ...failure, detail: `[${model}] ${failure.detail}`.trim() };
+
+      if (kind === 'fatal') return last;              // a different model won't help
+      if (kind !== 'overloaded') allOverloaded = false;
+      if (lastGoodModel[provider] === model) delete lastGoodModel[provider];
+    }
+
+    if (!allOverloaded) return last ?? { ok: false, status: 500, detail: 'no model candidates' };
+    if (round === 1)    return last ?? { ok: false, status: 503, detail: 'all models overloaded' };
   }
-  return last ?? new Response('no model candidates', { status: 500 });
+
+  return { ok: false, status: 500, detail: 'no model candidates' };
 }
 
 // ── 2️⃣ Groq ──────────────────────────────────────────────
@@ -213,7 +280,7 @@ const callGroq = async (
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
-): Promise<Response> =>
+): Promise<ProviderResult> =>
   withModelFallback('groq', GROQ_MODELS, (model) =>
     fetch('https://api.groq.com/openai/v1/chat/completions', {
       method:  'POST',
@@ -237,7 +304,7 @@ const callGemini = async (
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
-): Promise<Response> => {
+): Promise<ProviderResult> => {
   const geminiMessages = messages.map(m => ({
     role:  m.role === 'assistant' ? 'model' : 'user',
     parts: [{ text: m.content }],
@@ -333,7 +400,7 @@ export async function POST(req: NextRequest) {
   const userId = await authenticate(req);
   if (!userId) {
     return NextResponse.json(
-      { error: 'Please sign in to use the TEC Assistant.' },
+      { error: 'Please sign in to use the TEC Assistant.', code: 'SIGN_IN' },
       { status: 401, headers: corsHeaders },
     );
   }
@@ -342,7 +409,7 @@ export async function POST(req: NextRequest) {
   const rate = await checkRateLimit(userId);
   if (!rate.ok) {
     return NextResponse.json(
-      { error: 'Rate limit exceeded. Try again in a minute.' },
+      { error: 'Rate limit exceeded. Try again in a minute.', code: 'RATE_LIMIT' },
       { status: 429, headers: { ...corsHeaders, 'Retry-After': '60' } },
     );
   }
@@ -373,7 +440,7 @@ export async function POST(req: NextRequest) {
 
     if (!claudeKey && !groqKey && !geminiKey) {
       return NextResponse.json(
-        { error: 'AI service not configured' },
+        { error: 'AI service not configured', code: 'NOT_CONFIGURED' },
         { status: 503, headers: corsHeaders },
       );
     }
@@ -396,19 +463,20 @@ export async function POST(req: NextRequest) {
     const failures: string[] = [];
     const attempt = async (
       name: string,
-      call: (signal: AbortSignal) => Promise<Response>,
+      call: (signal: AbortSignal) => Promise<ProviderResult>,
       budgetMs: number = PROVIDER_TIMEOUT_MS,
     ): Promise<Response | null> => {
       const controller = new AbortController();
       const timer      = setTimeout(() => controller.abort(), budgetMs);
       try {
-        const res = await call(controller.signal);
+        const out = await call(controller.signal);
         clearTimeout(timer);
-        if (res.ok && res.body) return res;
-        const detail = typeof res.text === 'function'
-          ? await res.text().catch(() => '')
-          : '';
-        failures.push(`${name} ${res.status}: ${detail.replace(/\s+/g, ' ').slice(0, 160)}`);
+        if (out.ok && out.res.body) return out.res;
+        // The detail was read once, at the point of failure, and carried here — reading
+        // the body a second time is what used to produce an empty, useless reason.
+        const detail = out.ok ? 'empty body' : out.detail;
+        const status = out.ok ? 502 : out.status;
+        failures.push(`${name} ${status}: ${detail.replace(/\s+/g, ' ').slice(0, 200)}`);
         return null;
       } catch (e) {
         clearTimeout(timer);
@@ -417,7 +485,7 @@ export async function POST(req: NextRequest) {
       }
     };
 
-    const providers: Array<[string, string | undefined, (s: AbortSignal) => Promise<Response>]> = [
+    const providers: Array<[string, string | undefined, (s: AbortSignal) => Promise<ProviderResult>]> = [
       ['claude', claudeKey, (s) => callClaude(messages, systemPrompt, claudeKey!, s)],
       ['groq',   groqKey,   (s) => callGroq(messages, systemPrompt, groqKey!, s)],
       ['gemini', geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s)],
@@ -442,10 +510,33 @@ export async function POST(req: NextRequest) {
     if (provider) lastGoodProvider = provider;
 
     if (!response || !response.body) {
+      // Full technical reason to the log (that is what it is for). The USER gets a short
+      // sentence — a raw provider JSON blob in a chat bubble tells them nothing they can
+      // act on, and it leaks vendor internals into the product.
       console.error('[AI] all providers failed:', failures.join(' | '));
+
+      // "Every provider is momentarily busy" is a different fact from "the assistant is
+      // broken", and it deserves a different answer: 503 + Retry-After, so a retry is the
+      // obvious next step instead of a dead end.
+      const allBusy = failures.length > 0 &&
+        failures.every(f => /\b(429|503)\b|overload|high demand|capacity|quota|rate.?limit/i.test(f));
+
       return NextResponse.json(
-        { error: `All AI providers failed — ${failures.join(' · ') || 'none configured'}` },
-        { status: 502, headers: corsHeaders },
+        {
+          error: allBusy
+            ? 'The assistant is busy right now — please try again in a moment.'
+            : 'The assistant is temporarily unavailable. Please try again shortly.',
+          // The CLASSIFICATION is the server's job; the WORDING (and its language) is the
+          // client's. Status alone could not carry this: "not configured" and "every
+          // provider is busy" are both 503, and the clients were mapping that one status
+          // to a single message — so a busy assistant told the user it was switched off.
+          code: allBusy ? 'BUSY' : 'PROVIDERS_FAILED',
+          detail: failures.join(' · ') || 'no provider configured',
+        },
+        {
+          status:  allBusy ? 503 : 502,
+          headers: allBusy ? { ...corsHeaders, 'Retry-After': '5' } : corsHeaders,
+        },
       );
     }
 

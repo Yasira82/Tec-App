@@ -150,14 +150,21 @@ export default function AiClient() {
       if (!response.ok) {
         // Surface the ACTUAL reason so failures are diagnosable, not a blanket
         // "something went wrong" (401 sign-in · 429 rate · 503 not configured · else).
-        let serverMsg = '';
-        try { serverMsg = ((await response.json()) as { error?: string })?.error ?? ''; }
-        catch { /* no JSON body */ }
-        const code =
-          response.status === 401 ? 'SIGN_IN'
+        let serverMsg  = '';
+        let serverCode = '';
+        try {
+          const body = (await response.json()) as { error?: string; code?: string };
+          serverMsg  = body?.error ?? '';
+          serverCode = body?.code  ?? '';
+        } catch { /* no JSON body */ }
+        // Trust the server's CODE over the status. Status could not tell these apart:
+        // "AI not configured" and "every provider is busy" are both 503, so a busy
+        // assistant used to tell the user it was switched off.
+        const code = serverCode ||
+          (response.status === 401 ? 'SIGN_IN'
           : response.status === 429 ? 'RATE_LIMIT'
           : response.status === 503 ? 'NOT_CONFIGURED'
-          : 'FAILED';
+          : 'FAILED');
         const e = new Error(code) as Error & { serverMsg?: string };
         e.serverMsg = serverMsg;
         throw e;
@@ -237,10 +244,15 @@ export default function AiClient() {
       } else if (code === 'NOT_CONFIGURED') {
         content = ar ? '🔧 مساعد TEC لسه مش مفعّل. جرّب بعدين.'
                      : '🔧 The TEC Assistant isn’t switched on yet. Try again later.';
+      } else if (code === 'BUSY') {
+        content = ar ? '⏳ المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.'
+                     : '⏳ The assistant is busy right now — try again in a moment.';
       } else {
-        content = ar ? '❌ حدث خطأ. يرجى المحاولة مرة أخرى.'
-                     : '❌ Something went wrong. Please try again.';
-        if (serverMsg) content += ` (${serverMsg})`;
+        content = ar ? '❌ المساعد مش متاح دلوقتي — جرّب تاني بعد شوية.'
+                     : '❌ The assistant is temporarily unavailable — try again shortly.';
+        // Deliberately NOT appending the provider's raw error: a wall of vendor JSON in a
+        // chat bubble tells the user nothing they can act on. The full reason goes to the
+        // server log, where it is actually diagnosable (C-96 — logged, not displayed).
       }
       setMessages(prev => [...prev, {
         id:        (Date.now() + 2).toString(),

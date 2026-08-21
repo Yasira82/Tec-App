@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePiAuth }      from '@/lib-client/hooks/usePiAuth';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
 
 interface Asset {
   id:        string;
   slug:      string;
-  category:  'DOMAIN' | 'REAL_ESTATE' | 'DIGITAL_ASSET';
+  /** Service-defined — NOT a closed set. 'NFT' is returned too, and anything new
+   *  must still render rather than fall through as an uncounted, unlabeled row. */
+  category:  string;
   status:    'ACTIVE' | 'PENDING' | 'LOCKED' | 'ON_SALE';
   metadata:  Record<string, unknown>;
   createdAt: string;
@@ -17,7 +19,29 @@ const CATEGORY_EMOJI: Record<string, string> = {
   DOMAIN:        '🌐',
   REAL_ESTATE:   '🏠',
   DIGITAL_ASSET: '💎',
+  NFT:           '🖼️',
 };
+
+/** Human name for an asset. The service puts it in metadata; the page used to print
+ *  `slug`, so every NFT showed as "nft-cbc4bb46-…" instead of the name its owner gave it. */
+function assetName(a: Asset): string {
+  const m = a.metadata ?? {};
+  for (const k of ['name', 'title', 'nftName']) {
+    const v = m[k];
+    if (typeof v === 'string' && v.trim()) return v;
+  }
+  return a.slug;
+}
+
+/** NFT artwork, when the service stored one (tec-assets writes `metadata.imageUrl`). */
+function assetImage(a: Asset): string | null {
+  const m = a.metadata ?? {};
+  for (const k of ['imageUrl', 'image_url', 'image', 'url']) {
+    const v = m[k];
+    if (typeof v === 'string' && /^https?:\/\//.test(v)) return v;
+  }
+  return null;
+}
 
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE:  '#7ee7c0',
@@ -58,6 +82,17 @@ export default function AssetsPage() {
 
   useEffect(() => { fetchAssets(); }, [fetchAssets]);
 
+  // Every category actually present, biggest first — so the totals always add up to
+  // the list below and a new service category can never go silently uncounted.
+  const categoryCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    assets.forEach(a => {
+      const cat = (a.category ?? 'OTHER').toUpperCase();
+      counts.set(cat, (counts.get(cat) ?? 0) + 1);
+    });
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [assets]);
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
@@ -85,20 +120,22 @@ export default function AssetsPage() {
         </button>
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 20 }}>
-        {['DOMAIN', 'REAL_ESTATE', 'DIGITAL_ASSET'].map(cat => (
-          <div key={cat} style={{ padding: '12px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
-            <div style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_EMOJI[cat]}</div>
-            <div style={{ fontSize: 18, fontWeight: 800, color: '#FBBF24' }}>
-              {assets.filter(a => a.category === cat).length}
+      {/* Stats — derived from the assets actually held, NOT a fixed list of three
+          categories. The old version counted only DOMAIN/REAL_ESTATE/DIGITAL_ASSET,
+          so a wallet of 48 NFTs displayed "1 / 0 / 0" above a list of 48. */}
+      {categoryCounts.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryCounts.length, 3)}, 1fr)`, gap: 10, marginBottom: 20 }}>
+          {categoryCounts.map(([cat, count]) => (
+            <div key={cat} style={{ padding: '12px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
+              <div style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_EMOJI[cat] ?? '📦'}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#FBBF24' }}>{count}</div>
+              <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 0.5 }}>
+                {cat.replace(/_/g, ' ')}
+              </div>
             </div>
-            <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 0.5 }}>
-              {cat.replace('_', ' ')}
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
 
       {/* Error */}
       {error && (
@@ -125,15 +162,20 @@ export default function AssetsPage() {
           {assets.map(asset => (
             <div key={asset.id}
               style={{ padding: '16px 20px', background: '#0B1020', border: '1px solid #FBBF2420', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
-              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#FBBF2410', border: '1px solid #FBBF2420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 }}>
-                {CATEGORY_EMOJI[asset.category] ?? '📦'}
+              <div style={{ width: 48, height: 48, borderRadius: 14, background: '#FBBF2410', border: '1px solid #FBBF2420', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48, overflow: 'hidden' }}>
+                {assetImage(asset)
+                  // eslint-disable-next-line @next/next/no-img-element
+                  ? <img src={assetImage(asset)!} alt="" width={48} height={48}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }} />
+                  : (CATEGORY_EMOJI[(asset.category ?? '').toUpperCase()] ?? '📦')}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {asset.slug}
+                  {assetName(asset)}
                 </div>
                 <div style={{ fontSize: 11, color: '#6b6b7a' }}>
-                  {asset.category.replace(/_/g, ' ')}
+                  {(asset.category ?? 'ASSET').replace(/_/g, ' ')}
                 </div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4 }}>

@@ -38,7 +38,9 @@ const NAV_GROUPS: NavGroup[] = [
       { icon: '◈',  label: 'Subscription', href: '/dashboard/subscription' },
       { icon: '◐',  label: 'KYC',           href: '/dashboard/kyc' },
       { icon: '◉',  label: 'Profile',       href: '/dashboard/profile' },
-      { icon: '◇',  label: 'Security',      href: '/dashboard/security' },
+      // 'Security' is hidden until it is backed by real data. It shipped with
+      // hardcoded sessions/devices/backup-codes and dead Revoke/Remove buttons —
+      // security controls that lie are worse than no security page at all.
     ],
   },
 ];

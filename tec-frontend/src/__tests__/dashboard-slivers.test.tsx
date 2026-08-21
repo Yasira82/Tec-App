@@ -58,9 +58,6 @@ vi.mock('@/styles/tec-design-tokens.css', () => ({}));
 vi.mock('@/app/dashboard/orders/orders.module.css', () => ({
   default: new Proxy({}, { get: (_t, k) => String(k) }),
 }));
-vi.mock('@/app/dashboard/security/security.module.css', () => ({
-  default: new Proxy({}, { get: (_t, k) => String(k) }),
-}));
 vi.mock('@/lib/i18n', () => ({
   useTranslation: () => ({
     locale: 'en', dir: 'ltr', setLanguage: vi.fn(),
@@ -229,35 +226,15 @@ describe('OrdersPage interactions', () => {
   });
 });
 
-describe('SecurityPage 2FA toggle-off flow', () => {
-  it('full enable flow then disable with confirm=true', async () => {
+describe('SecurityPage placeholder', () => {
+  // The 2FA enable/disable flow this used to drive was fake: it toggled local state
+  // and handed out hardcoded backup codes. The page is now an honest placeholder.
+  it('renders without a 2FA toggle or fabricated recovery codes', () => {
     const { container } = render(<SecurityPage />);
-    const toggle = container.querySelector('[id="2fa-toggle"]') as HTMLInputElement;
-    expect(toggle).toBeTruthy();
-    // Enable → qr step
-    fireEvent.click(toggle);
-    await act(async () => {});
-    // OTP step
-    const otpInput = container.querySelector('input[placeholder="000000"]') as HTMLInputElement;
-    fireEvent.change(otpInput, { target: { value: '123456' } });
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Verify'),
-    )!;
-    fireEvent.click(verifyBtn);
-    await act(async () => {});
-    // PIN step
-    const pinInputs = container.querySelectorAll('input[type="password"]');
-    fireEvent.change(pinInputs[0], { target: { value: '4321' } });
-    fireEvent.change(pinInputs[1], { target: { value: '4321' } });
-    const setPinBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Save & Enable 2FA'),
-    )!;
-    fireEvent.click(setPinBtn);
-    await act(async () => {});
-    // Now enabled — toggle off with confirm=true → lines 40-43
-    fireEvent.click(toggle);
-    await act(async () => {});
-    expect(window.confirm).toHaveBeenCalled();
+    expect(container.querySelector('[id="2fa-toggle"]')).toBeNull();
+    const text = container.textContent ?? '';
+    expect(text).toContain('Security Center');
+    expect(text).not.toMatch(/ABC123|DEF456|Backup Codes/i);
   });
 });
 

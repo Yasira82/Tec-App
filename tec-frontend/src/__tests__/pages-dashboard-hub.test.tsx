@@ -581,10 +581,14 @@ describe('dashboard/security/page.tsx', () => {
     expect(document.body.textContent).toMatch(/Two-Factor|2FA/i);
   });
 
-  it('shows active sessions list', async () => {
+  // The "active sessions list" this used to assert was fabricated — hardcoded devices
+  // the user had never signed in from. The page is now an honest placeholder.
+  it('shows the placeholder, not a fabricated sessions list', async () => {
     const { default: Page } = await import('@/app/dashboard/security/page');
     await act(async () => safeRender(<Page />));
-    expect(document.body.textContent).toMatch(/Active Sessions|Current/i);
+    const text = document.body.textContent ?? '';
+    expect(text).toContain('Security Center');
+    expect(text).not.toMatch(/Safari on iPhone|Cairo, EG|minutes ago/i);
   });
 });
 

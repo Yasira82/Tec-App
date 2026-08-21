@@ -42,22 +42,13 @@ const SUGGESTED_QUESTIONS = [
 /** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
 const STORE_KEY = 'tec_ai_page';
 
-const SUPPORT_LINKS = [
-  { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201115141346',      color: '#25D366' },
-  { emoji: '✈️', label: 'Telegram', href: 'https://t.me/Yasira17',           color: '#229ED9' },
-  { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: '#FBBF24' },
-  { emoji: '📞', label: 'Call',     href: 'tel:+201115141346',               color: '#7ee7c0' },
-];
-
 export default function AiClient() {
   const { dir, locale }  = useTranslation();
   const { user }         = usePiAuth();
   const [messages,     setMessages]     = useState<Message[]>([]);
   const [input,        setInput]        = useState('');
   const [isLoading,    setIsLoading]    = useState(false);
-  const [rating,       setRating]       = useState(0);
-  const [ratingDone,   setRatingDone]   = useState(false);
-  const [activePanel,  setActivePanel]  = useState<'services' | 'support' | null>(null);
+  const [menuOpen,     setMenuOpen]     = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef       = useRef<HTMLTextAreaElement>(null);
   // Lets "stop" cut the stream, and stops a previous reply writing into a new bubble.
@@ -357,8 +348,10 @@ export default function AiClient() {
         </div>
       </header>
 
-      {/* Layout */}
-      <div className={styles.layout}>
+      {/* Layout — on a phone an open menu takes the whole panel and the chat steps aside
+          (see .layoutMenuOpen). It used to expand to 400px on top of a still-visible chat
+          with its suggestion chips showing underneath: two competing surfaces at once. */}
+      <div className={`${styles.layout} ${menuOpen ? styles.layoutMenuOpen : ''}`}>
 
         {/* ── Left: the assistant's own menu ──
              This used to be a "Services" panel of Hub links (TEC Hub / Pay with Pi /
@@ -366,10 +359,11 @@ export default function AiClient() {
              to the platform, bypassing sign-in-with-Pi as the single entry. The menu now
              holds only what belongs to the assistant, and the same component runs in the
              Hub drawer. */}
-        <aside className={`${styles.panel} ${activePanel === 'services' ? styles.panelOpen : ''}`}>
+        <aside className={`${styles.panel} ${menuOpen ? styles.panelOpen : ''}`}>
           <button
             className={styles.panelTab}
-            onClick={() => setActivePanel(activePanel === 'services' ? null : 'services')}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen(o => !o)}
           >
             ☰ {locale === 'ar' ? 'القائمة' : 'Menu'}
           </button>
@@ -390,7 +384,7 @@ export default function AiClient() {
               onAsk={q => { setInput(q); inputRef.current?.focus(); }}
               onClearAll={() => { setMessages([welcomeMessage()]); setCanRestore(false); }}
               onSettingsChange={setSettings}
-              onClose={() => setActivePanel(null)}
+              onClose={() => setMenuOpen(false)}
             />
           </div>
         </aside>
@@ -513,63 +507,6 @@ export default function AiClient() {
           </div>
         </div>
 
-        {/* ── Right: Support ── */}
-        <aside className={`${styles.panel} ${activePanel === 'support' ? styles.panelOpen : ''}`}>
-          <button
-            className={styles.panelTab}
-            onClick={() => setActivePanel(activePanel === 'support' ? null : 'support')}
-          >
-            💬 {locale === 'ar' ? 'الدعم' : 'Support'}
-          </button>
-          <div className={styles.panelContent}>
-            <div className={styles.panelSection}>
-              <p className={styles.panelSectionTitle}>
-                {locale === 'ar' ? 'قيّم تجربتك' : 'Rate Your Experience'}
-              </p>
-              {ratingDone ? (
-                <p className={styles.ratingDone}>
-                  ✅ {locale === 'ar' ? 'شكراً على تقييمك!' : 'Thanks for your rating!'}
-                </p>
-              ) : (
-                <div className={styles.stars}>
-                  {[1, 2, 3, 4, 5].map(star => (
-                    <button
-                      key={star}
-                      className={`${styles.star} ${rating >= star ? styles.starActive : ''}`}
-                      onClick={() => { setRating(star); setRatingDone(true); }}
-                    >★</button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className={styles.panelSection}>
-              <p className={styles.panelSectionTitle}>
-                {locale === 'ar' ? 'تواصل معنا' : 'Contact Us'}
-              </p>
-              {SUPPORT_LINKS.map((link, i) => (
-                <a
-                  key={i}
-                  href={link.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className={styles.supportLink}
-                  style={{ '--support-color': link.color } as React.CSSProperties}
-                >
-                  <span className={styles.supportEmoji}>{link.emoji}</span>
-                  <span className={styles.supportLabel}>{link.label}</span>
-                  <span className={styles.supportArrow}>↗</span>
-                </a>
-              ))}
-            </div>
-            <div className={styles.infoBox}>
-              <p className={styles.infoText}>
-                {locale === 'ar'
-                  ? '💡 فريق الدعم متاح 24/7 للمساعدة في أي استفسار'
-                  : '💡 Support team available 24/7 for any inquiries'}
-              </p>
-            </div>
-          </div>
-        </aside>
       </div>
     </main>
   );

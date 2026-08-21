@@ -190,21 +190,20 @@ describe('AiClient', () => {
     expect(screen.getByRole('button', { name: /Menu/ })).toBeInTheDocument();
   });
 
-  it('renders Support panel button', () => {
+  // Support used to be a SECOND panel on this page only — the Hub drawer had no support
+  // at all. It is now a tab of the shared menu, so both surfaces get the same channels.
+  it('has no standalone Support panel — support is a tab of the one menu', () => {
     render(<AiClient />);
-    expect(screen.getByRole('button', { name: /Support/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^💬/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
+    fireEvent.click(screen.getByText('Support'));
+    expect(screen.getByText('WhatsApp')).toBeInTheDocument();
   });
 
   it('opens the Menu showing the assistant own tabs', () => {
     render(<AiClient />);
     fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
     expect(screen.getByText('Chats')).toBeInTheDocument();
-  });
-
-  it('opens Support panel showing Rate Your Experience', () => {
-    render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Support/ }));
-    expect(screen.getByText('Rate Your Experience')).toBeInTheDocument();
   });
 
   it('clicking Menu twice toggles closed', () => {
@@ -291,30 +290,31 @@ describe('AiClient', () => {
     expect(fetch).not.toHaveBeenCalledWith('/api/ai/chat', expect.anything());
   });
 
-  it('shows stars rating UI in Support panel', () => {
+  // Support moved into the shared menu, so these now go through it. The old copy also
+  // promised "24/7" support, which nothing backs — it is gone rather than re-asserted.
+  const openSupport = () => {
+    fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
+    fireEvent.click(screen.getByText('Support'));
+  };
+
+  it('shows stars rating UI under Support', () => {
     render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Support/ }));
-    const stars = screen.getAllByText('★');
-    expect(stars.length).toBe(5);
+    openSupport();
+    expect(screen.getAllByText('★')).toHaveLength(5);
   });
 
   it('clicking a star marks rating done', () => {
     render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Support/ }));
+    openSupport();
     fireEvent.click(screen.getAllByText('★')[2]);
     expect(screen.getByText(/Thanks for your rating!/)).toBeInTheDocument();
   });
 
-  it('shows Contact Us links in Support panel', () => {
+  it('shows the contact channels under Support', () => {
     render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Support/ }));
+    openSupport();
     expect(screen.getByText('WhatsApp')).toBeInTheDocument();
     expect(screen.getByText('Telegram')).toBeInTheDocument();
-  });
-
-  it('shows support 24/7 note in Support panel', () => {
-    render(<AiClient />);
-    expect(screen.getByText(/24\/7/)).toBeInTheDocument();
   });
 
   it('puts NO app links in the Menu — the Hub is the single entry point', () => {

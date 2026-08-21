@@ -24,29 +24,43 @@ import {
 const L = {
   ar: {
     menu: 'القائمة', chats: 'المحادثات', settings: 'الإعدادات',
-    ask: 'أسئلة جاهزة', support: 'الدعم', soon: 'قريباً',
+    ask: 'أسئلة جاهزة', support: 'الدعم',
     empty: 'مفيش محادثات محفوظة لسه.',
     restore: 'استرجاع', remove: 'حذف',
     replyLang: 'لغة الرد', auto: 'تلقائي', arabic: 'عربي', english: 'إنجليزي',
     replyLen: 'طول الرد', short: 'مختصر', detailed: 'مفصّل',
     clearAll: 'مسح كل المحادثات', confirm: 'متأكد؟ مش هينفع ترجعها',
     now: 'دلوقتي', minsAgo: 'من {n} د', hoursAgo: 'من {n} س',
-    supportNote: 'التواصل مع الدعم من جوه المساعد — قريباً.',
+    rate: 'قيّم تجربتك', rated: '✅ شكراً على تقييمك!', contact: 'تواصل معنا',
+    supportNote: '💡 لو المساعد مجاوبش على سؤالك، كلّم الدعم مباشرة.',
     close: 'إغلاق',
   },
   en: {
     menu: 'Menu', chats: 'Chats', settings: 'Settings',
-    ask: 'Starter questions', support: 'Support', soon: 'Soon',
+    ask: 'Starter questions', support: 'Support',
     empty: 'No saved conversations yet.',
     restore: 'Restore', remove: 'Delete',
     replyLang: 'Reply language', auto: 'Auto', arabic: 'Arabic', english: 'English',
     replyLen: 'Reply length', short: 'Short', detailed: 'Detailed',
     clearAll: 'Clear all conversations', confirm: 'Sure? This cannot be undone',
     now: 'just now', minsAgo: '{n}m ago', hoursAgo: '{n}h ago',
-    supportNote: 'Contacting support from inside the assistant — coming soon.',
+    rate: 'Rate your experience', rated: '✅ Thanks for your rating!', contact: 'Contact us',
+    supportNote: "💡 If the assistant couldn't answer, reach a human directly.",
     close: 'Close',
   },
 } as const;
+
+/**
+ * Real support channels — NOT app links. The /ai page already had these in a private
+ * right-hand panel while the Hub drawer had none; keeping them here means one surface
+ * cannot silently have support the other lacks (the drift this component exists to stop).
+ */
+const SUPPORT_LINKS = [
+  { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201115141346',      color: '#25D366' },
+  { emoji: '✈️', label: 'Telegram', href: 'https://t.me/Yasira17',           color: '#229ED9' },
+  { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: '#FBBF24' },
+  { emoji: '📞', label: 'Call',     href: 'tel:+201115141346',               color: '#7ee7c0' },
+] as const;
 
 /** Questions that FILL THE INPUT — they ask the assistant, they do not navigate away. */
 const STARTERS = {
@@ -88,6 +102,7 @@ export function AIMenu({
   const [archives, setArchives] = useState<ArchivedChat[]>(() => listArchives(storeKey));
   const [settings, setSettings] = useState<AiSettings>(() => loadSettings());
   const [confirming, setConfirming] = useState(false);
+  const [rating,   setRating]   = useState(0);
 
   const update = (patch: Partial<AiSettings>) => {
     const next = { ...settings, ...patch };
@@ -171,10 +186,36 @@ export function AIMenu({
         )}
 
         {tab === 'support' && (
-          <div style={S.soonBox}>
-            <div style={{ fontSize: 22, marginBottom: 8 }} aria-hidden>💬</div>
-            <p style={{ ...S.empty, margin: 0 }}>{tr.supportNote}</p>
-            <span style={S.soonPill}>{tr.soon}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <div style={S.groupTitle}>{tr.rate}</div>
+              {rating > 0
+                ? <p style={S.rated}>{tr.rated}</p>
+                : (
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {[1, 2, 3, 4, 5].map(star => (
+                      <button key={star} onClick={() => setRating(star)}
+                        aria-label={`${star}`} style={S.star}>★</button>
+                    ))}
+                  </div>
+                )}
+            </div>
+
+            <div>
+              <div style={S.groupTitle}>{tr.contact}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {SUPPORT_LINKS.map(l => (
+                  <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+                     style={{ ...S.support, borderColor: `${l.color}30` }}>
+                    <span aria-hidden style={{ fontSize: 15 }}>{l.emoji}</span>
+                    <span style={{ flex: 1 }}>{l.label}</span>
+                    <span aria-hidden style={{ opacity: 0.5, fontSize: 11 }}>↗</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <p style={S.note}>{tr.supportNote}</p>
           </div>
         )}
       </div>
@@ -202,7 +243,9 @@ const S: Record<string, React.CSSProperties> = {
   wrap:  { display: 'flex', flexDirection: 'column', minHeight: 0, flex: 1 },
   head:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 4px 10px' },
   close: { background: 'none', border: 'none', color: '#7a7a8a', cursor: 'pointer', fontSize: 16, padding: 4 },
-  tabs:  { display: 'flex', gap: 6, marginBottom: 12, overflowX: 'auto', paddingBottom: 2 },
+  /* WRAP, never scroll. With overflowX the fourth tab sat off the right edge with no hint
+     it existed — a menu entry you cannot see is a menu entry you do not have. */
+  tabs:  { display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 },
   tab:   { padding: '6px 12px', borderRadius: 999, border: '1px solid #ffffff14', background: 'transparent',
            color: '#8a8a9a', fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'inherit' },
   tabOn: { background: '#FBBF2414', borderColor: '#FBBF2440', color: '#FBBF24', fontWeight: 600 },
@@ -226,7 +269,12 @@ const S: Record<string, React.CSSProperties> = {
             border: '1px solid #EF444430', background: 'transparent', color: '#EF4444',
             fontSize: 12, fontFamily: 'inherit' },
   dangerArmed: { background: '#EF444418', borderColor: '#EF444460', fontWeight: 700 },
-  soonBox: { textAlign: 'center', padding: '20px 8px' },
-  soonPill: { display: 'inline-block', marginTop: 10, padding: '4px 12px', borderRadius: 999,
-              border: '1px solid #ffffff14', color: '#7a7a8a', fontSize: 11 },
+  groupTitle: { fontSize: 11, color: '#7a7a8a', marginBottom: 8 },
+  star:  { background: 'none', border: 'none', cursor: 'pointer', fontSize: 22,
+           color: '#FBBF2433', padding: 2, lineHeight: 1 },
+  rated: { fontSize: 12, color: '#22C55E', margin: 0 },
+  support: { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px',
+             borderRadius: 12, border: '1px solid #ffffff10', background: '#ffffff06',
+             color: '#e8e0d0', fontSize: 12, textDecoration: 'none' },
+  note:  { fontSize: 11, color: '#5a5a6a', lineHeight: 1.7, margin: 0 },
 };

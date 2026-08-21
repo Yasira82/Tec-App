@@ -61,7 +61,7 @@
 .layout {
   position: relative; z-index: 1;
   display: grid;
-  grid-template-columns: 260px 1fr 260px;
+  grid-template-columns: 260px 1fr;
   grid-template-rows: 1fr;
   height: 100vh;
   padding-top: 64px;
@@ -75,11 +75,6 @@
   border-inline-end: 1px solid rgba(251,191,36,0.06);
   background: rgba(6,6,14,0.6);
   overflow: hidden;
-}
-
-.panel:last-child {
-  border-inline-end: none;
-  border-inline-start: 1px solid rgba(251,191,36,0.06);
 }
 
 .panelTab {
@@ -97,97 +92,6 @@
   flex: 1; overflow-y: auto; padding: 16px;
   display: flex; flex-direction: column; gap: 20px;
 }
-
-.panelSection { display: flex; flex-direction: column; gap: 8px; }
-
-.panelSectionTitle {
-  font-size: 9px; letter-spacing: 0.2em; text-transform: uppercase;
-  color: rgba(251,191,36,0.4); margin-bottom: 4px;
-}
-
-/* ── Quick Actions ── */
-.actionItem {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.05);
-  background: rgba(255,255,255,0.02);
-  text-decoration: none; color: rgba(232,224,208,0.7);
-  font-size: 12px; transition: all 0.2s;
-}
-.actionItem:hover {
-  border-color: rgba(251,191,36,0.2);
-  background: rgba(251,191,36,0.04);
-  color: #e8e0d0;
-}
-.actionEmoji { font-size: 16px; flex-shrink: 0; }
-.actionLabel { flex: 1; }
-.actionArrow { font-size: 12px; color: rgba(251,191,36,0.3); }
-
-/* ── Popular Topics ── */
-.topicItem {
-  display: flex; align-items: center; gap: 8px;
-  background: none; border: none;
-  color: rgba(216,208,192,0.4); font-size: 12px;
-  cursor: pointer; padding: 6px 4px; text-align: start;
-  font-family: inherit; transition: color 0.2s;
-  width: 100%;
-}
-.topicItem:hover { color: #FBBF24; }
-
-/* ── Status Box ── */
-.statusBox {
-  margin-top: auto;
-  padding: 12px; border-radius: 10px;
-  border: 1px solid rgba(46,204,113,0.15);
-  background: rgba(46,204,113,0.04);
-}
-.statusRow { display: flex; align-items: center; gap: 8px; }
-.statusDotGreen {
-  width: 6px; height: 6px; border-radius: 50%;
-  background: #2ecc71; box-shadow: 0 0 6px #2ecc71;
-  flex-shrink: 0; animation: pulse 2s infinite;
-}
-.statusLabel { font-size: 11px; color: rgba(46,204,113,0.7); }
-
-/* ── Support Links ── */
-.supportLink {
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 12px; border-radius: 10px;
-  border: 1px solid rgba(255,255,255,0.05);
-  background: rgba(255,255,255,0.02);
-  text-decoration: none; color: rgba(232,224,208,0.7);
-  font-size: 12px; transition: all 0.2s;
-}
-.supportLink:hover {
-  border-color: var(--support-color, #FBBF24);
-  color: var(--support-color, #FBBF24);
-  background: rgba(255,255,255,0.04);
-}
-.supportEmoji { font-size: 16px; flex-shrink: 0; }
-.supportLabel { flex: 1; }
-.supportArrow { font-size: 12px; opacity: 0.5; }
-
-/* ── Rating ── */
-.stars { display: flex; gap: 6px; }
-.star {
-  background: none; border: none; cursor: pointer;
-  font-size: 24px; color: rgba(251,191,36,0.2);
-  transition: color 0.2s; padding: 2px;
-}
-.star:hover, .starActive { color: #FBBF24; }
-.ratingDone {
-  font-size: 13px; color: rgba(46,204,113,0.8);
-  padding: 8px 0;
-}
-
-/* ── Info Box ── */
-.infoBox {
-  margin-top: auto;
-  padding: 12px; border-radius: 10px;
-  border: 1px solid rgba(251,191,36,0.1);
-  background: rgba(251,191,36,0.03);
-}
-.infoText { font-size: 11px; color: rgba(216,208,192,0.35); line-height: 1.6; }
 
 /* ── Chat Area ── */
 .chatArea {
@@ -351,11 +255,11 @@
 
 /* ── Responsive ── */
 @media (max-width: 1024px) {
-  .layout { grid-template-columns: 200px 1fr 200px; }
+  .layout { grid-template-columns: 200px 1fr; }
 }
 
 @media (max-width: 768px) {
-  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+  .layout { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
 
   .panel {
     border-inline-end: none;
@@ -363,16 +267,17 @@
     border-bottom: 1px solid rgba(251,191,36,0.06);
     max-height: 52px;
     overflow: hidden;
-    transition: max-height 0.3s ease;
   }
 
-  .panel:last-child { border-bottom: none; border-top: 1px solid rgba(251,191,36,0.06); }
-
-  .panelOpen { max-height: 400px; }
+  /* An open menu is the screen, not a 400px window competing with the chat behind it.
+     `1fr` of the grid — whatever is left under the tab — instead of a fixed cap that
+     clipped the list once a few conversations were archived. */
+  .layoutMenuOpen { grid-template-rows: 1fr; }
+  .layoutMenuOpen .chatArea { display: none; }
+  .panelOpen { max-height: none; min-height: 0; }
 
   .chatArea { order: 2; }
-  .panel:first-child { order: 1; }
-  .panel:last-child { order: 3; }
+  .panel { order: 1; }
 
   /* 78% of a phone screen leaves the answer in a squeezed column with the text
      crowding its own border. On mobile the bubble takes the width it needs. */

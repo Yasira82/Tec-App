@@ -20,8 +20,9 @@ const DISMISS_KEY = 'tec_install_dismissed';
 export default function InstallPrompt() {
   const { t, dir } = useTranslation();
   // Shared with the Dashboard menu entry — one place decides how installing works.
-  const { isStandalone, hasNativePrompt, install } = useInstallApp();
+  const { isStandalone, hasNativePrompt, installUrl, install, copyLink } = useInstallApp();
   const [showSteps, setShowSteps] = useState(false);
+  const [copied,    setCopied]    = useState(false);
   const [dismissed, setDismissed] = useState(true);
 
   useEffect(() => {
@@ -40,6 +41,10 @@ export default function InstallPrompt() {
     const needsSteps = await install();
     if (needsSteps) setShowSteps(true);
     else setDismissed(true);   // native prompt handled it
+  };
+
+  const onCopy = async () => {
+    if (await copyLink()) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
   };
 
   const i = t.home.install;
@@ -134,6 +139,19 @@ export default function InstallPrompt() {
               <span style={{ color: 'rgba(232,224,208,0.75)', fontSize: 13 }}>{step}</span>
             </div>
           ))}
+
+          {/* The link + a copy button. Pi Browser cannot launch the phone's real
+              browser, so pasting the URL there is the only step that works. */}
+          <div style={{ marginTop: 10, fontSize: 12, color: 'rgba(232,224,208,0.8)', wordBreak: 'break-all', userSelect: 'all', padding: '8px 10px', borderRadius: 10, background: 'rgba(0,0,0,0.35)' }}>
+            {installUrl}
+          </div>
+          <button onClick={onCopy}
+            style={{ width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.1)', color: '#FBBF24', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            {copied ? i.copied : i.copyLink}
+          </button>
+          <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(232,224,208,0.45)', lineHeight: 1.6 }}>
+            {i.whyBrowser}
+          </div>
         </div>
       )}
     </section>

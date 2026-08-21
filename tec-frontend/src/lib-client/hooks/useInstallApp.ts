@@ -22,9 +22,14 @@ export interface InstallApp {
   isStandalone: boolean;
   /** A native install dialog is available (otherwise we fall back to the steps). */
   hasNativePrompt: boolean;
-  /** Runs the native prompt, or opens the page in the system browser.
-   *  Resolves true when the manual steps should be shown to the user. */
+  /** The URL to add to the home screen — the app ROOT, not the current page.
+   *  A deep link like /dashboard needs a session the fresh browser won't have. */
+  installUrl: string;
+  /** Runs the native prompt if one exists.
+   *  Resolves true when the manual steps must be shown instead. */
   install: () => Promise<boolean>;
+  /** Copies `installUrl` so the user can paste it into their real browser. */
+  copyLink: () => Promise<boolean>;
 }
 
 export function useInstallApp(): InstallApp {
@@ -56,9 +61,24 @@ export function useInstallApp(): InstallApp {
       setDeferred(null);
       return false;
     }
-    try { window.open(window.location.href, '_blank', 'noopener,noreferrer'); } catch { /* ignore */ }
-    return true;   // caller shows the manual steps
+    // NO window.open here. Pi Browser is an in-app webview and there is no web API
+    // to launch the phone's real browser from it — window.open just opened ANOTHER
+    // Pi Browser tab on the same page, which looked like the button did nothing.
+    // The only route that actually works is: copy the link, paste it in Chrome.
+    return true;
   }, [deferred]);
 
-  return { isStandalone: standalone, hasNativePrompt: !!deferred, install };
+  const copyLink = useCallback(async () => {
+    const url = typeof window !== 'undefined' ? window.location.origin : '';
+    try {
+      await navigator.clipboard.writeText(url);
+      return true;
+    } catch {
+      return false;   // caller shows the URL as selectable text instead
+    }
+  }, []);
+
+  const installUrl = typeof window !== 'undefined' ? window.location.origin : '';
+
+  return { isStandalone: standalone, hasNativePrompt: !!deferred, installUrl, install, copyLink };
 }

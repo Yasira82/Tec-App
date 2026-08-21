@@ -171,3 +171,24 @@ describe('markdown tables', () => {
     expect(container.textContent).toContain('كل تطبيق له مجال.');
   });
 });
+
+describe('table column readability', () => {
+  const TABLE = [
+    '| التطبيق | رابط |',
+    '|---------|------|',
+    '| Commerce | commerce.tecosystem.app |',
+  ].join('\n');
+
+  it('does not wrap cells — a domain must not shred into hub.tec / osyste / m.app', () => {
+    const { container } = render(<RichText text={TABLE} />);
+    const td = container.querySelector('tbody td');
+    expect(td?.getAttribute('style')).toContain('white-space: nowrap');
+  });
+
+  it('lets the table size to its content instead of being squeezed to the container', () => {
+    const { container } = render(<RichText text={TABLE} />);
+    // No min-width forcing the columns into slivers; the wrapper scrolls instead.
+    expect(container.querySelector('table')?.style.minWidth).toBe('');
+    expect(container.querySelector('table')?.parentElement?.style.overflowX).toBe('auto');
+  });
+});

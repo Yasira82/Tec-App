@@ -23,8 +23,10 @@ function Tokens({ tokens }: { tokens: RichToken[] }) {
           // A bare domain the model wrote in prose ("epic.tecosystem.app") was plain
           // text the user had to retype. Opened in a new tab so the conversation is not
           // lost behind the navigation.
+          // `break-all` only in prose, where a long URL must not overflow the bubble.
+          // Inside a table cell `white-space: nowrap` wins and the link stays intact.
           <a key={j} href={tok.href} target="_blank" rel="noopener noreferrer"
-             style={{ color: '#FBBF24', textDecoration: 'underline', wordBreak: 'break-all' }}>
+             style={{ color: '#FBBF24', textDecoration: 'underline', overflowWrap: 'anywhere' }}>
             {tok.value}
           </a>
         )
@@ -44,6 +46,10 @@ const cell: React.CSSProperties = {
   borderBottom: '1px solid rgba(255,255,255,0.07)',
   verticalAlign: 'top',
   textAlign: 'start',
+  // The table already scrolls horizontally, so a cell has no reason to wrap — and
+  // wrapping is what shredded a domain into "hub.tec / osyste / m.app" and split
+  // "Commerce" across two lines. Columns stay readable; the row scrolls instead.
+  whiteSpace: 'nowrap',
 };
 
 export function RichText({ text, className }: { text: string; className?: string }) {
@@ -61,7 +67,10 @@ export function RichText({ text, className }: { text: string; className?: string
           // pipes the user actually saw, which are not readable at any width.
           return (
             <div key={i} dir="auto" style={{ overflowX: 'auto', margin: '8px 0', maxWidth: '100%' }}>
-              <table style={{ borderCollapse: 'collapse', fontSize: '0.92em', minWidth: '100%' }}>
+              {/* No minWidth: the table takes the width its content needs and the
+                  wrapper scrolls. Forcing it to the container width is what squeezed
+                  the columns into unreadable slivers. */}
+              <table style={{ borderCollapse: 'collapse', fontSize: '0.92em' }}>
                 <thead>
                   <tr>
                     {line.header.map((cellTokens, h) => (

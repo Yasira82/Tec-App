@@ -82,7 +82,7 @@ export const en = {
     },
     header: { kycVerified: '✓ KYC Verified', kycPending: '! KYC Pending', refresh: 'Refresh', free: 'Free' },
     tabs: { overview: 'Overview', ecosystem: 'Ecosystem', activity: 'Activity' },
-    chart: { title: 'Spending — Last 7 Days', completed: '{n} completed payments', noData: 'No spending data yet' },
+    chart: { title: 'Spending — Last 7 Days', completed: '{n} completed payments', noData: 'No spending data yet', noneInWindow: 'No spending in the last 7 days' },
     overview: {
       quickActions: 'Quick Actions',
       wallet: 'Wallet', kyc: 'KYC', subscription: 'Subscription', notifications: 'Notifications',

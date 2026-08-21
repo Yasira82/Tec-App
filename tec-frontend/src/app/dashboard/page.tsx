@@ -6,9 +6,10 @@ import { usePiAuth }                                   from '@/lib-client/hooks/
 import { useSubscriptionPlan }                         from '@/lib-client/hooks/useSubscriptionPlan';
 import { useTranslation }                              from '@/lib/i18n';
 import { log, reportError }                            from '@/lib/observability';
+import { normalizePayment, formatTxDate, isKycVerified, type Payment } from '@/lib/dashboard-data';
 import { DashboardShell, DashboardCard }               from '@/components/dashboard';
 import { HubAppsGrid }                                  from '@/components/hub';
-import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
+import { LIVE_DOMAINS, COMING_SOON }                   from '@/domains/_registry';
 
 /** Fill a "{n}" placeholder in an i18n string (word order-safe for RTL). */
 const fmt = (s: string, n: number | string) => s.replace('{n}', String(n));
@@ -17,53 +18,13 @@ const fmt = (s: string, n: number | string) => s.replace('{n}', String(n));
 const planName = (plan: string, freeLabel: string) =>
   plan === 'FREE' ? freeLabel : plan.charAt(0) + plan.slice(1).toLowerCase();
 
-// ── Types ─────────────────────────────────────────────────
-interface Payment {
-  id:        string;
-  amount:    number;
-  status:    string;
-  type:      string;
-  createdAt: string;
-  txHash?:   string;
-}
-
 type TabKey = 'overview' | 'domains' | 'activity';
 
-/**
- * Normalize a raw payment record from the gateway.
- *
- * The services return snake_case (`created_at`) — reading `createdAt` straight off the
- * raw object yielded `undefined` → every row rendered "Invalid Date" and an unlabeled
- * type. Accept BOTH spellings so the row is correct whichever service shape arrives.
- */
-function normalizePayment(raw: Record<string, unknown>): Payment {
-  const pick = (...keys: string[]) => {
-    for (const k of keys) {
-      const v = raw[k];
-      if (v !== undefined && v !== null && v !== '') return v;
-    }
-    return undefined;
-  };
-  return {
-    id:        String(pick('id', 'payment_id', 'paymentId') ?? ''),
-    amount:    Number(pick('amount', 'value') ?? 0),
-    status:    String(pick('status') ?? 'pending').toLowerCase(),
-    type:      String(pick('type', 'payment_type', 'paymentType', 'direction') ?? 'payment').toLowerCase(),
-    createdAt: String(pick('createdAt', 'created_at', 'createdOn', 'timestamp') ?? ''),
-    txHash:    pick('txHash', 'tx_hash', 'transaction_id') as string | undefined,
-  };
-}
-
-/** Format a date, or return null when the source value isn't a usable date. */
-function formatTxDate(value: string, locale: string): string | null {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
 // ── Domain stat helper ─────────────────────────────────────
-const LIVE_APPS = LIVE_DOMAINS.filter(d => d.status === 'live');
+// Apps = live domains EXCLUDING the OS layer (TEC/Hub itself is the platform, not an
+// app in its own grid). The stat card counted the OS layer too, so it read 24 while
+// the grid rendered 23 — two different numbers for the same thing on one screen.
+const LIVE_APPS = LIVE_DOMAINS.filter(d => d.status === 'live' && d.layer !== 'os');
 
 // Map a registry domain → the SAME HubApp shape the Hub feeds to <HubAppsGrid>,
 // so the Dashboard renders the identical polished launcher grid (one component,
@@ -324,13 +285,15 @@ export default function DashboardPage() {
   const sub       = useSubscriptionPlan();
   const planLabel = planName(sub.plan, t.dashboard.header.free);
   const userPro   = sub.isPaid;
-  const userKyc   = kycVerified ?? false;
   const isNewUser = user && !payments.length;
 
-  const visibleLive = getVisibleDomains(userKyc, userPro)
-    .filter(d => d.status === 'live' && d.layer !== 'os');
+  // The SAME filter the Hub uses — every live app, minus the OS layer (TEC itself).
+  // Deliberately NOT getVisibleDomains(): client-side KYC/Pro gating hid apps from
+  // users who actually qualify (a verified user was shown 21 of 23 because the KYC
+  // flag read false). Gating stays enforced by each app and its services (P6).
+  const visibleLive = LIVE_DOMAINS.filter(d => d.status === 'live' && d.layer !== 'os');
 
-  // Same feed the Hub gives <HubAppsGrid> — Dashboard now renders the identical grid.
+  // Same feed the Hub gives <HubAppsGrid> — Dashboard renders the identical grid.
   const hubApps = visibleLive.map(toHubApp);
 
   const fetchData = useCallback(async () => {
@@ -360,7 +323,7 @@ export default function DashboardPage() {
 
     try {
       const res = await fetch('/api/bff/kyc/status', { credentials: 'include', cache: 'no-store' });
-      if (res.ok) { const d = await res.json(); setKycVerified(d.verified ?? d.kycVerified ?? false); }
+      if (res.ok) setKycVerified(isKycVerified(await res.json()));
       else throw new Error(`kyc ${res.status}`);
     } catch (e) { failed = true; reportError(e, { scope: 'dashboard.kyc' }); }
 
@@ -481,7 +444,7 @@ export default function DashboardPage() {
             subtitle={fmt(t.dashboard.chart.completed, completedPayments.length)}
           >
             <BalanceChart payments={payments} locale={locale}
-              noDataLabel={t.dashboard.chart.noData}
+              noDataLabel={completedPayments.length ? t.dashboard.chart.noneInWindow : t.dashboard.chart.noData}
               spentLabel={t.dashboard.stats.piSpent}
               receivedLabel={t.dashboard.tx.received} />
           </DashboardCard>

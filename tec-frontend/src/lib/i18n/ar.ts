@@ -82,7 +82,7 @@ export const ar = {
     },
     header: { kycVerified: '✓ KYC مُوثَّق', kycPending: '! KYC معلّق', refresh: 'تحديث', free: 'مجاني' },
     tabs: { overview: 'نظرة عامة', ecosystem: 'المنظومة', activity: 'النشاط' },
-    chart: { title: 'المصروفات — آخر 7 أيام', completed: '{n} دفعة مكتملة', noData: 'لا توجد بيانات مصروفات بعد' },
+    chart: { title: 'المصروفات — آخر 7 أيام', completed: '{n} دفعة مكتملة', noData: 'لا توجد بيانات مصروفات بعد', noneInWindow: 'لا توجد مصروفات في آخر 7 أيام' },
     overview: {
       quickActions: 'إجراءات سريعة',
       wallet: 'المحفظة', kyc: 'التحقق KYC', subscription: 'الاشتراك', notifications: 'الإشعارات',

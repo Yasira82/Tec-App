@@ -67,9 +67,11 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           )}
         </button>
 
-        {/* Avatar */}
+        {/* Avatar → Dashboard. The chevron is the affordance: without it this reads as
+            a name label, so users never discovered it opens the Dashboard. */}
         <button className="tec-btn" onClick={() => { haptic('light'); router.push('/dashboard'); }}
           aria-label="Open dashboard"
+          title="Open dashboard"
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'rgba(251,191,36,0.08)',
@@ -84,7 +86,8 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 110, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
+          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
+          <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'rgba(251,191,36,0.6)', marginInlineStart: -2 }}>›</span>
         </button>
       </div>
     </header>

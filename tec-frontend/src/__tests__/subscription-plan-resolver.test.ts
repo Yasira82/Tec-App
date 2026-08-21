@@ -12,6 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { resolvePlan } from '@/lib-client/hooks/useSubscriptionPlan';
+import { normalizePayment, formatTxDate, isKycVerified } from '@/lib/dashboard-data';
 
 describe('resolvePlan', () => {
   it('unwraps the NESTED commerce envelope (data.subscription.plan)', () => {
@@ -74,5 +75,65 @@ describe('resolvePlan', () => {
     // Guards the exact inversion: nested is authoritative, flat must not override it.
     const res = resolvePlan({ plan: 'ENTERPRISE', data: { subscription: { plan: 'FREE' } } });
     expect(res.plan).toBe('FREE');
+  });
+});
+
+// ── Dashboard response parsers ───────────────────────────────────────────────
+
+describe('isKycVerified', () => {
+  it('reads the REAL nested shape data.kyc.status', () => {
+    expect(isKycVerified({ success: true, data: { kyc: { status: 'VERIFIED', level: 'L1' } } })).toBe(true);
+  });
+
+  it('is false for a non-verified status', () => {
+    for (const status of ['PENDING', 'NOT_STARTED', 'REJECTED']) {
+      expect(isKycVerified({ data: { kyc: { status } } })).toBe(false);
+    }
+  });
+
+  it('accepts a lowercase status', () => {
+    expect(isKycVerified({ data: { kyc: { status: 'verified' } } })).toBe(true);
+  });
+
+  it('still honours the legacy boolean fallbacks', () => {
+    expect(isKycVerified({ verified: true })).toBe(true);
+    expect(isKycVerified({ data: { kycVerified: true } })).toBe(true);
+  });
+
+  it('fails closed to unverified on junk (P6)', () => {
+    for (const bad of [null, undefined, {}, { data: {} }, { data: { kyc: {} } }, 'nope']) {
+      expect(isKycVerified(bad)).toBe(false);
+    }
+  });
+});
+
+describe('normalizePayment', () => {
+  it('reads snake_case created_at (the "Invalid Date" bug)', () => {
+    const p = normalizePayment({ id: 'p1', amount: '12.5', status: 'COMPLETED', type: 'PAYMENT', created_at: '2026-08-20T10:00:00Z' });
+    expect(p.createdAt).toBe('2026-08-20T10:00:00Z');
+    expect(Number.isNaN(new Date(p.createdAt).getTime())).toBe(false);
+    expect(p.amount).toBe(12.5);
+    expect(p.status).toBe('completed');
+    expect(p.type).toBe('payment');
+  });
+
+  it('also reads camelCase createdAt', () => {
+    expect(normalizePayment({ createdAt: '2026-08-20T10:00:00Z' }).createdAt).toBe('2026-08-20T10:00:00Z');
+  });
+
+  it('defaults type to payment when absent', () => {
+    expect(normalizePayment({ id: 'x' }).type).toBe('payment');
+  });
+});
+
+describe('formatTxDate', () => {
+  it('never returns the string "Invalid Date"', () => {
+    for (const bad of ['', 'not-a-date', 'undefined']) {
+      expect(formatTxDate(bad, 'en')).toBeNull();
+    }
+  });
+
+  it('formats a real date', () => {
+    expect(formatTxDate('2026-08-20T10:00:00Z', 'en')).toBeTruthy();
   });
 });

@@ -5,6 +5,8 @@ import { useTranslation }              from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import { parseNavIntents }             from '@/lib/ai/nav-intents';
 import type { NavIntent, NavFlow }     from '@/lib/ai/nav-intents';
+import { createSseReader }             from '@/lib/ai-stream';
+import { RichText }                    from '@/components/ai/RichText';
 import { t }                           from '@/domains/_types';
 import type { Locale }                 from '@/domains/_types';
 import Link                            from 'next/link';
@@ -172,31 +174,38 @@ export default function AiClient() {
 
       const reader  = response.body?.getReader();
       const decoder = new TextDecoder();
-      let full = '';
+      // Line-buffered SSE. This loop used to split EACH network chunk on its own, so a
+      // `data:` frame that arrived in two pieces — routine on mobile — failed JSON.parse
+      // and was dropped by a bare catch, and the answer stopped mid-sentence with no
+      // error. Same reader as the Hub drawer now (src/lib/ai-stream.ts).
+      const sse = createSseReader();
+      let full      = '';
+      let truncated = false;
+
+      const absorb = (delta: { text: string; truncated: boolean }) => {
+        if (delta.truncated) truncated = true;
+        if (!delta.text) return;
+        full += delta.text;
+        setMessages(prev =>
+          prev.map(m => (m.id === assistantMessage.id ? { ...m, content: full } : m)),
+        );
+      };
 
       if (reader) {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          for (const line of chunk.split('\n')) {
-            if (!line.startsWith('data: ')) continue;
-            const data = line.slice(6).trim();
-            if (data === '[DONE]' || !data) continue;
-            try {
-              const parsed = JSON.parse(data);
-              const delta  = parsed?.text ?? parsed?.delta?.text ?? parsed?.content?.[0]?.text ?? '';
-              if (delta) {
-                full += delta;
-                setMessages(prev =>
-                  prev.map(m =>
-                    m.id === assistantMessage.id ? { ...m, content: full } : m,
-                  )
-                );
-              }
-            } catch { /* skip */ }
-          }
+          absorb(sse.push(decoder.decode(value, { stream: true })));
         }
+        absorb(sse.flush());
+      }
+
+      // The provider hit its output cap. Say so — an answer that just stops reads as a
+      // crash (C-96: a silent cut is an invisible failure).
+      if (truncated) {
+        full += locale === 'ar'
+          ? '\n\n… (الإجابة اتقطعت عند الحد الأقصى — اسأل "كمّل" عشان الباقي)'
+          : '\n\n… (answer cut off at the length limit — ask "continue" for the rest)';
       }
 
       // Resolve navigation intents: strip the machine-read marker from the prose
@@ -343,7 +352,9 @@ export default function AiClient() {
                     <span className={styles.messageAvatar}>🤖</span>
                   )}
                   <div className={styles.messageBubble}>
-                    <p className={styles.messageContent}>{msg.content}</p>
+                    {/* Rendered, not printed: the model emits **bold** and bullets, and
+                        a raw <p> put the asterisks on screen. Same renderer as the Hub. */}
+                    <RichText text={msg.content} className={styles.messageContent} />
                     {msg.intents && msg.intents.length > 0 && (
                       <div className={styles.intentRow}>
                         {msg.intents.map(intent => (

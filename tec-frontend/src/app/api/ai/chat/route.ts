@@ -24,6 +24,17 @@ interface Message {
  */
 let lastGoodProvider: string | null = null;
 
+/**
+ * Output cap for every provider.
+ *
+ * It was 1024 tokens, and a normal "what can I do on TEC?" answer — a list of apps with
+ * a line each — runs past that, so the reply simply stopped mid-sentence with nothing to
+ * explain why. 2048 covers those answers; the stream now also FLAGS the cap when it is
+ * hit (see createUnifiedStream) so a truncated answer says so instead of pretending to
+ * be complete (C-96 — no silent failures). Tunable without a deploy.
+ */
+const MAX_TOKENS = Number(process.env.AI_MAX_TOKENS) || 2048;
+
 // ── Auth gate ─────────────────────────────────────────────
 // The AI providers cost real money, so this endpoint is for authenticated TEC
 // users ONLY — an open endpoint can be drained by anyone. Verify the TEC session
@@ -129,7 +140,7 @@ const callClaude = async (
     },
     body: JSON.stringify({
       model:      'claude-3-5-sonnet-20240620',
-      max_tokens: 1024,
+      max_tokens: MAX_TOKENS,
       system:     systemPrompt,
       messages,
       stream:     true,
@@ -213,7 +224,7 @@ const callGroq = async (
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1024,
+        max_tokens: MAX_TOKENS,
         messages:   [{ role: 'system', content: systemPrompt }, ...messages],
         stream:     true,
       }),
@@ -242,7 +253,7 @@ const callGemini = async (
         body: JSON.stringify({
           system_instruction: { parts: [{ text: systemPrompt }] },
           contents:           geminiMessages,
-          generationConfig:   { maxOutputTokens: 1024 },
+          generationConfig:   { maxOutputTokens: MAX_TOKENS },
         }),
       },
     ),
@@ -271,24 +282,36 @@ function createUnifiedStream(provider: string) {
         try {
           const parsed = JSON.parse(dataStr);
           let text = '';
+          // Every provider says "I stopped because I hit the cap" in its own dialect.
+          // Forwarding it lets the UI mark the answer incomplete instead of showing a
+          // sentence that just ends (C-96 — a silent cut is an invisible failure).
+          let capped = false;
 
           if (provider === 'claude') {
             if (parsed.type === 'content_block_delta' && parsed.delta?.text) {
               text = parsed.delta.text;
             }
+            if (parsed.delta?.stop_reason === 'max_tokens') capped = true;
           } else if (provider === 'groq') {
             if (parsed.choices?.[0]?.delta?.content) {
               text = parsed.choices[0].delta.content;
             }
+            if (parsed.choices?.[0]?.finish_reason === 'length') capped = true;
           } else if (provider === 'gemini') {
             if (parsed.candidates?.[0]?.content?.parts?.[0]?.text) {
               text = parsed.candidates[0].content.parts[0].text;
             }
+            if (parsed.candidates?.[0]?.finishReason === 'MAX_TOKENS') capped = true;
           }
 
           if (text) {
             controller.enqueue(
               encoder.encode(`data: ${JSON.stringify({ text })}\n\n`),
+            );
+          }
+          if (capped) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({ truncated: true })}\n\n`),
             );
           }
         } catch {

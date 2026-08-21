@@ -356,7 +356,7 @@ describe('AIDrawer', () => {
 
   it('shows empty state message', () => {
     render(<AIDrawer open={true} onClose={vi.fn()} />);
-    expect(screen.getByText(/مرحباً/)).toBeInTheDocument();
+    expect(screen.getByText(/TEC Assistant/)).toBeInTheDocument();
   });
 
   it('calls onClose when backdrop clicked', () => {
@@ -391,7 +391,7 @@ describe('AIDrawer', () => {
 
   it('updates input value on change', () => {
     render(<AIDrawer open={true} onClose={vi.fn()} />);
-    const input = screen.getByPlaceholderText(/اسأل/);
+    const input = screen.getByPlaceholderText(/Ask TEC AI/);
     fireEvent.change(input, { target: { value: 'Hello' } });
     expect(input).toHaveValue('Hello');
   });
@@ -408,7 +408,7 @@ describe('AIDrawer', () => {
     } as any);
 
     render(<AIDrawer open={true} onClose={vi.fn()} />);
-    const input = screen.getByPlaceholderText(/اسأل/);
+    const input = screen.getByPlaceholderText(/Ask TEC AI/);
     fireEvent.change(input, { target: { value: 'Test message' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -432,7 +432,7 @@ describe('AIDrawer', () => {
     } as any);
 
     render(<AIDrawer open={true} onClose={vi.fn()} />);
-    const input = screen.getByPlaceholderText(/اسأل/);
+    const input = screen.getByPlaceholderText(/Ask TEC AI/);
     fireEvent.change(input, { target: { value: 'Hello AI' } });
     const sendBtn = screen.getByText('↑');
     fireEvent.click(sendBtn);
@@ -446,13 +446,13 @@ describe('AIDrawer', () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('Network error'));
 
     render(<AIDrawer open={true} onClose={vi.fn()} />);
-    const input = screen.getByPlaceholderText(/اسأل/);
+    const input = screen.getByPlaceholderText(/Ask TEC AI/);
     fireEvent.change(input, { target: { value: 'Hello' } });
     const sendBtn = screen.getByText('↑');
     fireEvent.click(sendBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('خطأ في الاتصال — حاول مرة أخرى.')).toBeInTheDocument();
+      expect(screen.getByText('Connection error — please try again.')).toBeInTheDocument();
     });
   });
 
@@ -481,7 +481,7 @@ describe('AIDrawer', () => {
     } as any);
 
     render(<AIDrawer open={true} onClose={vi.fn()} />);
-    const input = screen.getByPlaceholderText(/اسأل/);
+    const input = screen.getByPlaceholderText(/Ask TEC AI/);
     fireEvent.change(input, { target: { value: 'Test' } });
     fireEvent.click(screen.getByText('↑'));
 

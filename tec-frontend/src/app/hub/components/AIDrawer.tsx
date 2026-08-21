@@ -5,7 +5,9 @@ import { createSseReader } from '@/lib/ai-stream';
 import { RichText }       from '@/components/ai/RichText';
 import { NavChips }       from '@/components/ai/NavChips';
 import { parseNavIntents } from '@/lib/ai/nav-intents';
-import { loadConversation, saveConversation, archiveConversation, hasArchive, restoreConversation } from '@/lib/ai-session';
+import { loadConversation, saveConversation, archiveConversation, hasArchive,
+         loadSettings, type AiSettings, type StoredTurn } from '@/lib/ai-session';
+import { AIMenu } from '@/components/ai/AIMenu';
 import type { NavIntent }  from '@/lib/ai/nav-intents';
 
 /** How many previous turns travel with each question, so follow-ups keep context. */
@@ -15,7 +17,7 @@ const HISTORY_TURNS = 8;
 const CONTEXT_WAIT_MS = 1500;
 
 /** Appended when the provider stopped at its output cap — never pretend it finished. */
-const TRUNCATED_NOTE = '\n\n… (الإجابة اتقطعت — اسأل "كمّل" عشان الباقي)';
+const TRUNCATED_NOTE = '\n\n… (answer cut off at the length limit — ask "continue" for the rest)';
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -31,28 +33,28 @@ const getCsrfToken = (): string => {
  */
 function errorMessage(status: number, code?: string): string {
   switch (code) {
-    case 'SIGN_IN':        return 'سجّل دخولك الأول عشان تستخدم مساعد TEC.';
-    case 'RATE_LIMIT':     return 'وصلت للحد الأقصى للرسائل — استنى دقيقة وجرّب تاني.';
-    case 'NOT_CONFIGURED': return 'مساعد TEC مش مفعّل حالياً. حاول لاحقاً.';
-    case 'BUSY':           return 'المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.';
+    case 'SIGN_IN':        return 'Please sign in to use the TEC Assistant.';
+    case 'RATE_LIMIT':     return 'Too many messages — wait a minute and try again.';
+    case 'NOT_CONFIGURED': return 'The TEC Assistant is not switched on yet. Try later.';
+    case 'BUSY':           return 'The assistant is busy right now — try again in a moment.';
   }
   switch (status) {
-    case 401: return 'سجّل دخولك الأول عشان تستخدم مساعد TEC.';
-    case 429: return 'وصلت للحد الأقصى للرسائل — استنى دقيقة وجرّب تاني.';
-    case 503: return 'المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.';
-    case 502: return 'مساعد TEC مش متاح دلوقتي — حاول تاني بعد شوية.';
-    default:  return 'حصل خطأ مؤقت — حاول مرة أخرى.';
+    case 401: return 'Please sign in to use the TEC Assistant.';
+    case 429: return 'Too many messages — wait a minute and try again.';
+    case 503: return 'The assistant is busy right now — try again in a moment.';
+    case 502: return 'The assistant is temporarily unavailable — try again shortly.';
+    default:  return 'Something went wrong — please try again.';
   }
 }
 
-const WELCOME = `مرحباً! أنا مساعد TEC 🤖 أقدر أساعدك في:
-- استكشاف الـ 24 تطبيق في المنظومة
-- الإجابة على أسئلتك عن Pi Network
-- إرشادك للتطبيق المناسب لاحتياجاتك
+const WELCOME = `Welcome! I'm the TEC Assistant 🤖 I can help you:
+- Explore all 24 apps in the ecosystem
+- Answer your questions about Pi Network
+- Point you to the right app for what you need
 
-إزاي أقدر أساعدك النهاردة؟`;
+How can I help you today?`;
 
-const SUGGESTIONS = ['ايه هو TEC؟', 'وريني رصيدي', 'أنهي تطبيق يناسبني؟'];
+const SUGGESTIONS = ['What is TEC?', 'Show my balance', 'Which app fits me?'];
 
 /** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
 const STORE_KEY = 'tec_ai_drawer';
@@ -82,10 +84,10 @@ function CopyButton({ text }: { text: string }) {
     }
   };
   return (
-    <button onClick={copy} aria-label="نسخ الرد"
+    <button onClick={copy} aria-label="Copy reply"
       style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
                color: done ? '#7ee7c0' : '#5a5a6a', fontSize: 11, fontFamily: 'inherit' }}>
-      {done ? '✓ اتنسخ' : '⧉ نسخ'}
+      {done ? '✓ Copied' : '⧉ Copy'}
     </button>
   );
 }
@@ -115,6 +117,8 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
   // Whether a previous thread is sitting in the archive, waiting to be brought back.
   const [canRestore, setCanRestore] = useState(false);
+  const [menuOpen,   setMenuOpen]   = useState(false);
+  const [settings,   setSettings]   = useState<AiSettings>(() => loadSettings());
   useEffect(() => { if (open) setCanRestore(hasArchive(STORE_KEY)); }, [open]);
 
   // Persist after every settled change. A streaming reply is skipped inside
@@ -223,8 +227,12 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         body: JSON.stringify({
           messages: [...priorTurns, { role: 'user', content: text }],
           userContext: {
-            // The page's own language, so the reply matches the UI the user is reading.
-            locale: typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'ar',
+            // The user's explicit choice wins; 'auto' falls back to the page language, so
+            // the reply matches the UI they are reading.
+            locale: settings.replyLocale !== 'auto'
+              ? settings.replyLocale
+              : (typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'ar'),
+            replyLength: settings.replyLength,
             ...(ctx ?? {}),
           },
         }),
@@ -264,17 +272,17 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
       const final = reply.trim();
       settle(final
         ? final + (truncated ? TRUNCATED_NOTE : '')
-        : 'لم أتمكّن من الرد على هذه الرسالة — جرّب تصيغ سؤالك بشكل أوضح.');
+        : "I couldn't answer that — try rephrasing your question.");
     } catch (e) {
       // "Stop" is a user decision, not a failure: keep the partial answer on screen and
       // say it was stopped. Replacing it with an error would throw away a useful reply.
       if ((e as Error)?.name === 'AbortError') {
         setMessages(prev => prev.map((m, i) =>
           i === prev.length - 1 && m.role === 'ai'
-            ? { role: 'ai', text: m.text.trim() ? `${m.text}\n\n… (اتوقف)` : 'اتوقف قبل ما يبدأ.' }
+            ? { role: 'ai', text: m.text.trim() ? `${m.text}\n\n… (stopped)` : 'Stopped before it began.' }
             : m));
       } else {
-        settle('خطأ في الاتصال — حاول مرة أخرى.', false);
+        settle('Connection error — please try again.', false);
         setFailedQuestion(text);
       }
     } finally {
@@ -283,7 +291,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
     }
     // `messages` is a real dependency — the request carries the prior turns, so reading
     // a stale copy would silently send an empty history and break follow-up questions.
-  }, [input, loading, messages]);
+  }, [input, loading, messages, settings]);
 
   const stop     = useCallback(() => abortRef.current?.abort(), []);
   // "New chat" ARCHIVES rather than deletes — starting a new conversation is not the
@@ -291,13 +299,12 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const newChat = useCallback(() => {
     abortRef.current?.abort();
     archiveConversation(STORE_KEY);
-    setMessages([]); setFailedQuestion(null); setCanRestore(hasArchive(STORE_KEY));
+    setMessages([]); setFailedQuestion(null); setCanRestore(hasArchive(STORE_KEY)); setMenuOpen(false);
   }, []);
 
-  const restore = useCallback(() => {
-    const turns = restoreConversation<ChatMessage>(STORE_KEY);
-    if (turns.length) setMessages(turns);
-    setCanRestore(false);
+  const restoreTurns = useCallback((turns: StoredTurn[]) => {
+    if (turns.length) setMessages(turns as ChatMessage[]);
+    setCanRestore(hasArchive(STORE_KEY));
   }, []);
 
   if (!open) return null;
@@ -322,15 +329,32 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button onClick={() => setMenuOpen(v => !v)} aria-label="Menu" title="Menu"
+              aria-expanded={menuOpen}
+              style={{ background: 'none', border: '1px solid #ffffff12', borderRadius: 10, color: menuOpen ? '#FBBF24' : '#7a7a8a', cursor: 'pointer', fontSize: 14, padding: '5px 10px', fontFamily: 'inherit' }}>
+              ☰
+            </button>
             {messages.length > 0 && (
-              <button onClick={newChat} aria-label="محادثة جديدة" title="محادثة جديدة"
+              <button onClick={newChat} aria-label="New chat" title="New chat"
                 style={{ background: 'none', border: '1px solid #ffffff12', borderRadius: 10, color: '#7a7a8a', cursor: 'pointer', fontSize: 11, padding: '5px 10px', fontFamily: 'inherit' }}>
-                محادثة جديدة
+                New chat
               </button>
             )}
-            <button onClick={onClose} aria-label="إغلاق" style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
+            <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
           </div>
         </div>
+        {menuOpen ? (
+          <div style={{ flex: 1, minHeight: 0, padding: '0 16px', display: 'flex' }}>
+            <AIMenu
+              storeKey={STORE_KEY} locale="en"
+              onRestore={restoreTurns}
+              onAsk={q => { setInput(q); inputRef.current?.focus(); }}
+              onClearAll={() => { setMessages([]); setCanRestore(false); }}
+              onSettingsChange={setSettings}
+              onClose={() => setMenuOpen(false)}
+            />
+          </div>
+        ) : (
         <div ref={scrollRef} role="log" aria-live="polite" aria-relevant="additions text"
           style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {messages.length === 0 && (
@@ -346,9 +370,9 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
                   ))}
                 </div>
                 {canRestore && (
-                  <button onClick={restore}
+                  <button onClick={() => setMenuOpen(true)}
                     style={{ ...suggestionChip, marginTop: 10, borderColor: '#ffffff22', color: '#8a8a9a' }}>
-                    ↺ استرجاع المحادثة السابقة
+                    🗂 Past conversations
                   </button>
                 )}
               </div>
@@ -376,7 +400,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
                 }}>
                   {m.role === 'ai' ? <RichText text={m.text} /> : m.text}
                   {m.streaming && <span style={{ opacity: 0.5 }}>▌</span>}
-                  {m.intents && <NavChips intents={m.intents} dir="rtl" locale="ar" />}
+                  {m.intents && <NavChips intents={m.intents} locale="en" />}
                   {m.role === 'ai' && !m.streaming && m.text.trim() && <CopyButton text={m.text} />}
                 </div>
               </div>
@@ -385,10 +409,11 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
           {failedQuestion && !loading && (
             // An error bubble used to be a dead end — the user had to retype the question.
             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-              <button onClick={() => send(failedQuestion)} style={suggestionChip}>↻ جرّب تاني</button>
+              <button onClick={() => send(failedQuestion)} style={suggestionChip}>↻ Try again</button>
             </div>
           )}
         </div>
+        )}
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', alignItems: 'flex-end' }}>
           <textarea
             ref={inputRef}
@@ -397,19 +422,19 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             // Enter sends, Shift+Enter makes a new line — the field was a single-line
             // <input>, so a longer question could not be written at all.
             onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-            placeholder="اسأل TEC AI..."
+            placeholder="Ask TEC AI..."
             rows={1}
-            aria-label="اسأل TEC AI"
+            aria-label="Ask TEC AI"
             // dir="auto" — the field had NO direction, so mixing Arabic with a Latin word
             // ("ايه dx") rendered the two runs in the wrong order as the user typed.
             dir="auto"
             style={{ flex: 1, background: '#0B1020', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto' }} />
           {loading ? (
             // Stop is only reachable WHILE streaming, and keeps whatever already arrived.
-            <button onClick={stop} aria-label="إيقاف"
+            <button onClick={stop} aria-label="Stop"
               style={{ width: 44, height: 44, borderRadius: 14, background: '#ffffff10', border: '1px solid #ffffff18', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>◼</button>
           ) : (
-            <button onClick={() => send()} disabled={!input.trim()} aria-label="إرسال"
+            <button onClick={() => send()} disabled={!input.trim()} aria-label="Send"
               style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
           )}
         </div>

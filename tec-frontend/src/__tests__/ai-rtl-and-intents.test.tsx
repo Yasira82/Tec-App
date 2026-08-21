@@ -28,7 +28,7 @@ function stubChat(text: string) {
 
 async function ask(q = 'nx ايه') {
   render(<AIDrawer open onClose={vi.fn()} />);
-  const input = screen.getByPlaceholderText('اسأل TEC AI...');
+  const input = screen.getByPlaceholderText('Ask TEC AI...');
   fireEvent.change(input, { target: { value: q } });
   fireEvent.keyDown(input, { key: 'Enter' });
 }
@@ -62,14 +62,14 @@ describe('nav intents in the Hub drawer', () => {
         ? ({ ok: true, json: async () => ({}) } as unknown as Response)
         : ({ ok: false, status: 503, json: async () => ({ code: 'BUSY' }) } as unknown as Response)));
     await ask();
-    await waitFor(() => expect(document.body.textContent).toContain('مشغول'));
+    await waitFor(() => expect(document.body.textContent).toContain('busy'));
   });
 });
 
 describe('bidirectional text', () => {
   it('marks the input dir="auto" so mixed Arabic/Latin types in order', () => {
     render(<AIDrawer open onClose={vi.fn()} />);
-    expect(screen.getByPlaceholderText('اسأل TEC AI...').getAttribute('dir')).toBe('auto');
+    expect(screen.getByPlaceholderText('Ask TEC AI...').getAttribute('dir')).toBe('auto');
   });
 
   it('marks every rendered line dir="auto"', () => {
@@ -80,14 +80,14 @@ describe('bidirectional text', () => {
 
   it('greets the user instead of showing a bare empty panel', () => {
     render(<AIDrawer open onClose={vi.fn()} />);
-    expect(document.body.textContent).toContain('24 تطبيق');
+    expect(document.body.textContent).toContain('24 apps');
   });
 
   it('offers starter questions that prefill the input', () => {
     render(<AIDrawer open onClose={vi.fn()} />);
-    const chip = screen.getByText('وريني رصيدي');
+    const chip = screen.getByText('Show my balance');
     fireEvent.click(chip);
-    expect(screen.getByPlaceholderText('اسأل TEC AI...')).toHaveValue('وريني رصيدي');
+    expect(screen.getByPlaceholderText('Ask TEC AI...')).toHaveValue('Show my balance');
   });
 });
 

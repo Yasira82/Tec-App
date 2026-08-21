@@ -6,7 +6,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import { AIDrawer } from '@/app/hub/components/AIDrawer';
-import { loadConversation, saveConversation, clearConversation, archiveConversation, hasArchive } from '@/lib/ai-session';
+import { loadConversation, saveConversation, clearConversation, archiveConversation, hasArchive, listArchives } from '@/lib/ai-session';
 
 const enc = new TextEncoder();
 const frame = (o: unknown) => enc.encode(`data: ${JSON.stringify(o)}\n\n`);
@@ -22,7 +22,7 @@ function stubChat(text: string) {
 
 async function ask(q = 'سؤال') {
   const view = render(<AIDrawer open onClose={vi.fn()} />);
-  const input = screen.getByPlaceholderText('اسأل TEC AI...');
+  const input = screen.getByPlaceholderText('Ask TEC AI...');
   fireEvent.change(input, { target: { value: q } });
   fireEvent.keyDown(input, { key: 'Enter' });
   return view;
@@ -85,9 +85,9 @@ describe('drawer session features', () => {
     await ask();
     await waitFor(() => expect(screen.getByText(/رد/)).toBeTruthy());
 
-    fireEvent.click(screen.getByLabelText('محادثة جديدة'));
+    fireEvent.click(screen.getByLabelText('New chat'));
     await waitFor(() => expect(loadConversation('tec_ai_drawer')).toEqual([]));
-    expect(document.body.textContent).toContain('24 تطبيق');   // greeting is back
+    expect(document.body.textContent).toContain('24 apps');   // greeting is back
   });
 
   it('offers a retry that resends the question after an error', async () => {
@@ -99,7 +99,7 @@ describe('drawer session features', () => {
     }));
 
     await ask('سؤالي المهم');
-    const retry = await screen.findByText(/جرّب تاني/);
+    const retry = await screen.findByText(/Try again/);
     fireEvent.click(retry);
 
     await waitFor(() => expect(calls).toHaveLength(2));
@@ -108,14 +108,14 @@ describe('drawer session features', () => {
   });
 
   it('shows a stop control while streaming, and a send control otherwise', async () => {
-    expect(screen.queryByLabelText('إيقاف')).toBeNull();
+    expect(screen.queryByLabelText('Stop')).toBeNull();
     render(<AIDrawer open onClose={vi.fn()} />);
-    expect(screen.getByLabelText('إرسال')).toBeTruthy();
+    expect(screen.getByLabelText('Send')).toBeTruthy();
   });
 
   it('lets the user write more than one line', () => {
     render(<AIDrawer open onClose={vi.fn()} />);
-    const field = screen.getByPlaceholderText('اسأل TEC AI...');
+    const field = screen.getByPlaceholderText('Ask TEC AI...');
     expect(field.tagName).toBe('TEXTAREA');
     // Shift+Enter must NOT send.
     fireEvent.change(field, { target: { value: 'سطر' } });
@@ -135,7 +135,7 @@ describe('archive on "new chat"', () => {
     await ask('سؤال مهم');
     await waitFor(() => expect(screen.getByText(/رد مهم/)).toBeTruthy());
 
-    fireEvent.click(screen.getByLabelText('محادثة جديدة'));
+    fireEvent.click(screen.getByLabelText('New chat'));
     await waitFor(() => expect(loadConversation('tec_ai_drawer')).toEqual([]));
     // Deleted from the live thread, but NOT destroyed.
     expect(hasArchive('tec_ai_drawer')).toBe(true);
@@ -145,25 +145,27 @@ describe('archive on "new chat"', () => {
     stubChat('رد مهم');
     await ask('سؤال مهم');
     await waitFor(() => expect(screen.getByText(/رد مهم/)).toBeTruthy());
-    fireEvent.click(screen.getByLabelText('محادثة جديدة'));
+    fireEvent.click(screen.getByLabelText('New chat'));
 
-    const restore = await screen.findByText(/استرجاع المحادثة السابقة/);
-    fireEvent.click(restore);
+    // The archive list lives in the Menu now, not behind a single-slot chip.
+    fireEvent.click(screen.getByLabelText('Menu'));
+    fireEvent.click(await screen.findByText('سؤال مهم'));
     await waitFor(() => expect(screen.getByText(/رد مهم/)).toBeTruthy());
 
-    // One restore, not a toggle — the archive is consumed.
-    expect(hasArchive('tec_ai_drawer')).toBe(false);
+    // Restoring consumes that entry — it is not left duplicated in the list.
+    expect(listArchives('tec_ai_drawer').some(a => a.title === 'سؤال مهم')).toBe(false);
   });
 
   it('does not offer a restore when nothing was ever archived', () => {
     render(<AIDrawer open onClose={vi.fn()} />);
-    expect(screen.queryByText(/استرجاع المحادثة السابقة/)).toBeNull();
+    expect(screen.queryByText(/Past conversations/)).toBeNull();
   });
 
   it('clearing an EMPTY thread does not destroy an existing archive', () => {
     saveConversation('k', [{ role: 'user', text: 'الأصلية' }]);
     archiveConversation('k');                 // archive it
     archiveConversation('k');                 // "new chat" again on an empty thread
-    expect(loadConversation('k:prev')[0].text).toBe('الأصلية');
+    expect(listArchives('k')).toHaveLength(1);
+    expect(listArchives('k')[0].turns[0].text).toBe('الأصلية');
   });
 });

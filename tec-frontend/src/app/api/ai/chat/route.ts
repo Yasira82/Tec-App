@@ -83,6 +83,8 @@ interface UserContext {
   username?: string;
   balance?:  number;
   locale?:   string;
+  /** The user's chosen answer length, from the assistant's settings menu. */
+  replyLength?: 'short' | 'detailed';
   // Personalization (C-104 reasoning input · C-121 pipeline). All OWN-SCOPE, assembled
   // server-side by /api/bff/ai/context. Present only when the user has this data.
   kycVerified?: boolean;
@@ -116,6 +118,9 @@ ${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
 ${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
 ${activityLine}
 ${userContext?.locale ? `- Language preference: ${userContext.locale === 'ar' ? 'Arabic' : 'English'}` : ''}
+${userContext?.replyLength === 'short'
+  ? '- Answer length: SHORT. Two or three sentences, or a handful of bullets. The user chose brevity — respect it over completeness.'
+  : ''}
 `;
 };
 

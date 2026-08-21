@@ -324,6 +324,9 @@ function HubPageInner() {
         {([
           { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
           { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
+          // Labeled entry to the Dashboard. It used to be reachable ONLY by tapping the
+          // header avatar, which reads as a name — not as a link to anything.
+          { icon: 'chart'    as const, label: 'Dashboard', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
           { icon: 'shield'   as const, label: 'Verify',   active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
           { icon: 'sparkles' as const, label: 'Plan',     active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
           { icon: 'settings' as const, label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },

@@ -3,29 +3,28 @@
 import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter }                                   from 'next/navigation';
 import { usePiAuth }                                   from '@/lib-client/hooks/usePiAuth';
+import { useSubscriptionPlan }                         from '@/lib-client/hooks/useSubscriptionPlan';
 import { useTranslation }                              from '@/lib/i18n';
 import { log, reportError }                            from '@/lib/observability';
+import { normalizePayment, formatTxDate, isKycVerified, type Payment } from '@/lib/dashboard-data';
 import { DashboardShell, DashboardCard }               from '@/components/dashboard';
 import { HubAppsGrid }                                  from '@/components/hub';
-import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
+import { LIVE_DOMAINS, COMING_SOON }                   from '@/domains/_registry';
 
 /** Fill a "{n}" placeholder in an i18n string (word order-safe for RTL). */
 const fmt = (s: string, n: number | string) => s.replace('{n}', String(n));
 
-// ── Types ─────────────────────────────────────────────────
-interface Payment {
-  id:        string;
-  amount:    number;
-  status:    string;
-  type:      string;
-  createdAt: string;
-  txHash?:   string;
-}
+/** Display label for a plan id ('ENTERPRISE' → 'Enterprise'). */
+const planName = (plan: string, freeLabel: string) =>
+  plan === 'FREE' ? freeLabel : plan.charAt(0) + plan.slice(1).toLowerCase();
 
 type TabKey = 'overview' | 'domains' | 'activity';
 
 // ── Domain stat helper ─────────────────────────────────────
-const LIVE_APPS = LIVE_DOMAINS.filter(d => d.status === 'live');
+// Apps = live domains EXCLUDING the OS layer (TEC/Hub itself is the platform, not an
+// app in its own grid). The stat card counted the OS layer too, so it read 24 while
+// the grid rendered 23 — two different numbers for the same thing on one screen.
+const LIVE_APPS = LIVE_DOMAINS.filter(d => d.status === 'live' && d.layer !== 'os');
 
 // Map a registry domain → the SAME HubApp shape the Hub feeds to <HubAppsGrid>,
 // so the Dashboard renders the identical polished launcher grid (one component,
@@ -73,7 +72,11 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
       const label = d.toLocaleDateString(locale, { weekday: 'short' });
       let spent = 0, received = 0;
       payments
-        .filter(p => new Date(p.createdAt).toDateString() === key && p.status === 'completed')
+        .filter(p => {
+          if (p.status !== 'completed') return false;
+          const t = new Date(p.createdAt);
+          return !Number.isNaN(t.getTime()) && t.toDateString() === key;
+        })
         .forEach(p => {
           const amt = Number(p.amount);
           if (INFLOW_TYPES.includes((p.type ?? '').toLowerCase())) received += amt;
@@ -211,9 +214,11 @@ function TxRow({ payment, txLabels, detail, locale }: { payment: Payment } & TxL
               {payment.status}
             </span>
           </div>
-          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginTop: 2 }}>
-            {new Date(payment.createdAt).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-          </div>
+          {formatTxDate(payment.createdAt, locale) && (
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginTop: 2 }}>
+              {formatTxDate(payment.createdAt, locale)}
+            </div>
+          )}
         </div>
 
         {/* Amount */}
@@ -276,14 +281,19 @@ export default function DashboardPage() {
   const [loadError,      setLoadError]      = useState(false);  // a fetch failed (C-96: surfaced, not silent)
   const [activeTab,      setActiveTab]      = useState<TabKey>('overview');
 
-  const userPro   = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
-  const userKyc   = kycVerified ?? false;
+  // Real plan from commerce (NOT the auth session — /me never carries it). Fail closed.
+  const sub       = useSubscriptionPlan();
+  const planLabel = planName(sub.plan, t.dashboard.header.free);
+  const userPro   = sub.isPaid;
   const isNewUser = user && !payments.length;
 
-  const visibleLive = getVisibleDomains(userKyc, userPro)
-    .filter(d => d.status === 'live' && d.layer !== 'os');
+  // The SAME filter the Hub uses — every live app, minus the OS layer (TEC itself).
+  // Deliberately NOT getVisibleDomains(): client-side KYC/Pro gating hid apps from
+  // users who actually qualify (a verified user was shown 21 of 23 because the KYC
+  // flag read false). Gating stays enforced by each app and its services (P6).
+  const visibleLive = LIVE_DOMAINS.filter(d => d.status === 'live' && d.layer !== 'os');
 
-  // Same feed the Hub gives <HubAppsGrid> — Dashboard now renders the identical grid.
+  // Same feed the Hub gives <HubAppsGrid> — Dashboard renders the identical grid.
   const hubApps = visibleLive.map(toHubApp);
 
   const fetchData = useCallback(async () => {
@@ -302,14 +312,18 @@ export default function DashboardPage() {
     try {
       setHistoryLoading(true);
       const res = await fetch('/api/bff/payments/history?limit=20&sort=desc', { credentials: 'include', cache: 'no-store' });
-      if (res.ok) { const d = await res.json(); setPayments(d?.data?.payments ?? []); }
+      if (res.ok) {
+        const d = await res.json();
+        const rows = (d?.data?.payments ?? d?.data ?? []) as Record<string, unknown>[];
+        setPayments(Array.isArray(rows) ? rows.map(normalizePayment) : []);
+      }
       else throw new Error(`history ${res.status}`);
     } catch (e) { failed = true; reportError(e, { scope: 'dashboard.history' }); }
     finally { setHistoryLoading(false); }
 
     try {
       const res = await fetch('/api/bff/kyc/status', { credentials: 'include', cache: 'no-store' });
-      if (res.ok) { const d = await res.json(); setKycVerified(d.verified ?? d.kycVerified ?? false); }
+      if (res.ok) setKycVerified(isKycVerified(await res.json()));
       else throw new Error(`kyc ${res.status}`);
     } catch (e) { failed = true; reportError(e, { scope: 'dashboard.kyc' }); }
 
@@ -324,6 +338,9 @@ export default function DashboardPage() {
   const completedPayments = payments.filter(p => p.status === 'completed');
   const totalPiSpent      = completedPayments.reduce((s, p) => s + Number(p.amount), 0);
   const refreshing        = dataLoading && hasLoaded;  // background refresh (keep content)
+
+  // Refresh reloads the plan too, so a just-completed upgrade shows without a reload.
+  const refreshAll = useCallback(() => { fetchData(); sub.refresh(); }, [fetchData, sub]);
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
     { key: 'overview', label: t.dashboard.tabs.overview,  icon: '⊞' },
@@ -377,9 +394,9 @@ export default function DashboardPage() {
             </span>
           )}
           <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', color: 'var(--tec-gold)' }}>
-            ◈ {user?.subscriptionPlan ?? t.dashboard.header.free}
+            ◈ {planLabel}
           </span>
-          <button onClick={fetchData} disabled={refreshing} className="tec-btn"
+          <button onClick={refreshAll} disabled={refreshing} className="tec-btn"
             style={{ padding: '6px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: refreshing ? 'default' : 'pointer', opacity: refreshing ? 0.6 : 1 }}>
             {refreshing ? '⟳' : '↻'} {t.dashboard.header.refresh}
           </button>
@@ -391,7 +408,7 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--sp-5)' }}>
           <span style={{ fontSize: 16 }}>⚠️</span>
           <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{t.dashboard.errors.loadFailed}</span>
-          <button onClick={fetchData} disabled={refreshing} className="tec-btn"
+          <button onClick={refreshAll} disabled={refreshing} className="tec-btn"
             style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', fontWeight: 700, cursor: refreshing ? 'default' : 'pointer' }}>
             {t.dashboard.errors.retry}
           </button>
@@ -403,7 +420,7 @@ export default function DashboardPage() {
         <StatCard icon="π"  label={t.dashboard.stats.piBalance} value={balance !== null ? `${balance.toFixed(2)}π` : '—π'} sub={t.dashboard.stats.walletBalance} accent="var(--tec-gold)" />
         <StatCard icon="📤" label={t.dashboard.stats.piSpent}   value={`${totalPiSpent.toFixed(2)}π`}                    sub={`${completedPayments.length} ${t.dashboard.stats.transactions}`} accent="var(--tec-text-1)" />
         <StatCard icon="🚀" label={t.dashboard.stats.liveApps}  value={`${LIVE_APPS.length}`}                             sub={fmt(t.dashboard.stats.ofTotal, LIVE_DOMAINS.length + COMING_SOON.length)} accent="#22C55E" />
-        <StatCard icon="◈"  label={t.dashboard.stats.plan}      value={user?.subscriptionPlan ?? t.dashboard.header.free} sub={userPro ? t.dashboard.stats.activeSub : t.dashboard.stats.upgradeAvail} accent={userPro ? '#8b5cf6' : 'var(--tec-text-2)'} />
+        <StatCard icon="◈"  label={t.dashboard.stats.plan}      value={planLabel} sub={userPro ? t.dashboard.stats.activeSub : t.dashboard.stats.upgradeAvail} accent={userPro ? '#8b5cf6' : 'var(--tec-text-2)'} />
       </div>
 
       {/* ── Tabs ───────────────────────────────────────── */}
@@ -427,7 +444,7 @@ export default function DashboardPage() {
             subtitle={fmt(t.dashboard.chart.completed, completedPayments.length)}
           >
             <BalanceChart payments={payments} locale={locale}
-              noDataLabel={t.dashboard.chart.noData}
+              noDataLabel={completedPayments.length ? t.dashboard.chart.noneInWindow : t.dashboard.chart.noData}
               spentLabel={t.dashboard.stats.piSpent}
               receivedLabel={t.dashboard.tx.received} />
           </DashboardCard>

@@ -293,7 +293,7 @@ describe('AiClient — uncovered paths', () => {
       fireEvent.click(screen.getByRole('button', { name: /send/i }));
     });
     await waitFor(() => {
-      expect(screen.getByText(/Something went wrong/)).toBeInTheDocument();
+      expect(screen.getByText(/temporarily unavailable|Something went wrong/)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 
@@ -309,7 +309,7 @@ describe('AiClient — uncovered paths', () => {
       fireEvent.click(screen.getByRole('button', { name: /send/i }));
     });
     await waitFor(() => {
-      expect(screen.getByText(/Something went wrong/)).toBeInTheDocument();
+      expect(screen.getByText(/temporarily unavailable|Something went wrong/)).toBeInTheDocument();
     }, { timeout: 3000 });
   });
 

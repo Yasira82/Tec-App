@@ -3,8 +3,8 @@
  * useWallet, usePiBrowser, useWalletRealtime, useRealtimeNotifications,
  * usePiSdkReady, useDiagnostics
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { renderHook, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
+import { renderHook, act, waitFor } from '@testing-library/react';
 
 // ── Shared mocks ──────────────────────────────────────────────────
 vi.mock('@/lib-client/pi/pi-auth', () => ({
@@ -233,99 +233,120 @@ describe('useWallet', () => {
 });
 
 // ── useWalletRealtime ─────────────────────────────────────────────
+const mockIo = vi.hoisted(() => vi.fn());
+vi.mock('socket.io-client', () => ({ io: mockIo }));
+
 describe('useWalletRealtime', () => {
-  let mockWs: any;
+  // The hook talks Socket.IO (the service is a NestJS @WebSocketGateway). It used to
+  // be tested — and written — against a RAW WebSocket, which could never have
+  // connected to that server. These tests now pin the real contract.
+  let handlers: Record<string, (...a: unknown[]) => void>;
+  let mockSocket: { on: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> };
   let originalFetch: typeof global.fetch;
 
-  beforeEach(() => {
-    mockWs = {
-      send:       vi.fn(),
-      close:      vi.fn(),
-      onopen:     null as any,
-      onclose:    null as any,
-      onmessage:  null as any,
-      onerror:    null as any,
-      readyState: 1,
-    };
-    // Use a proper constructor function so `new WebSocket()` works
-    function MockWS() { Object.assign(this as any, mockWs); return mockWs; }
-    (MockWS as any).OPEN = 1;
-    (global as any).WebSocket = MockWS;
+  // The hook loads socket.io-client lazily. Resolving that module the first time
+  // costs far more than a waitFor window, so warm it once here — otherwise only the
+  // first connecting test would flake on a cold module graph.
+  beforeAll(async () => { await import('socket.io-client'); });
 
-    // Mock fetch for /api/bff/realtime
+  beforeEach(async () => {
+    // An earlier test permanently overrides getStoredUser to null; clearAllMocks
+    // wipes call history but NOT implementations, so re-establish a signed-in user
+    // here rather than depending on test order.
+    const auth = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(auth.getAccessToken).mockReturnValue('test-token');
+    vi.mocked(auth.getStoredUser).mockReturnValue({ id: 'user-1', piUsername: 'alice' } as never);
+
+    handlers   = {};
+    mockSocket = {
+      on:         vi.fn((e: string, cb: (...a: unknown[]) => void) => { handlers[e] = cb; }),
+      disconnect: vi.fn(),
+    };
+    mockIo.mockReturnValue(mockSocket);
+
     originalFetch = global.fetch;
     global.fetch = vi.fn(async (url: string) => {
       if (String(url).includes('/api/bff/realtime')) {
-        return { ok: true, json: async () => ({ url: 'ws://test-realtime' }) } as Response;
+        return { ok: true, json: async () => ({ url: 'https://realtime.test', enabled: true }) } as Response;
       }
       return { ok: false, json: async () => ({}) } as Response;
     }) as any;
   });
 
-  afterEach(() => { global.fetch = originalFetch; vi.restoreAllMocks(); });
+  afterEach(() => { global.fetch = originalFetch; vi.clearAllMocks(); });
 
-  it('starts disconnected before open event', async () => {
+  it('starts disconnected', async () => {
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    const { result } = renderHook(() =>
-      useWalletRealtime({ onBalanceUpdate: vi.fn() })
-    );
+    const { result } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
     expect(result.current.isConnected).toBe(false);
   });
 
   it('does not connect when enabled=false', async () => {
-    const wsConstructorCalls: any[] = [];
-    function MockWS() { wsConstructorCalls.push(true); return mockWs; }
-    (global as any).WebSocket = MockWS;
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    renderHook(() =>
-      useWalletRealtime({ onBalanceUpdate: vi.fn(), enabled: false })
-    );
+    renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn(), enabled: false }));
     await act(async () => {});
-    expect(wsConstructorCalls.length).toBe(0);
+    expect(mockIo).not.toHaveBeenCalled();
   });
 
-  it('becomes connected after onopen fires', async () => {
+  it('connects with the token in the handshake auth — where the server reads it', async () => {
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    const { result } = renderHook(() =>
-      useWalletRealtime({ onBalanceUpdate: vi.fn() })
+    renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
+    await waitFor(() => expect(mockIo).toHaveBeenCalled());
+    expect(mockIo).toHaveBeenCalledWith(
+      'https://realtime.test',
+      expect.objectContaining({ auth: expect.objectContaining({ token: expect.any(String) }) }),
     );
-    // Let the async connect resolve (fetch + WebSocket creation)
-    await act(async () => {});
-    act(() => { mockWs.onopen?.(); });
-    expect(typeof mockWs.onopen).toBe('function');
   });
 
-  it('calls onBalanceUpdate on wallet.updated message', async () => {
+  it('never puts the token in the URL', async () => {
+    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
+    renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
+    await waitFor(() => expect(mockIo).toHaveBeenCalled());
+    expect(String(mockIo.mock.calls[0][0])).not.toMatch(/token|userId/i);
+  });
+
+  it('becomes connected on the socket connect event', async () => {
+    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
+    const { result } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
+    await waitFor(() => expect(handlers['connect']).toBeTypeOf('function'));
+    act(() => { handlers['connect'](); });
+    expect(result.current.isConnected).toBe(true);
+  });
+
+  it('calls onBalanceUpdate + onNewTx on wallet.updated', async () => {
     const onBalanceUpdate = vi.fn();
+    const onNewTx         = vi.fn();
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    renderHook(() => useWalletRealtime({ onBalanceUpdate }));
-    await act(async () => {});
-    act(() => { mockWs.onopen?.(); });
-    act(() => {
-      mockWs.onmessage?.({
-        data: JSON.stringify({
-          type: 'wallet.updated', balance: 10.5, amount: 5.0, txType: 'credit', txId: 'tx-1',
-        }),
-      });
-    });
+    renderHook(() => useWalletRealtime({ onBalanceUpdate, onNewTx }));
+    await waitFor(() => expect(handlers['wallet.updated']).toBeTypeOf('function'));
+    act(() => { handlers['wallet.updated']({ balance: 10.5, amount: 5, txType: 'credit', txId: 'tx-1' }); });
     expect(onBalanceUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'wallet.updated' })
+      expect.objectContaining({ type: 'wallet.updated', balance: 10.5 }),
     );
+    expect(onNewTx).toHaveBeenCalled();
   });
 
-  it('ignores malformed JSON messages', async () => {
-    const onBalanceUpdate = vi.fn();
+  it('reports isAvailable=false when realtime is not configured', async () => {
+    global.fetch = vi.fn(async () => (
+      { ok: true, json: async () => ({ url: null, enabled: false }) } as Response
+    )) as any;
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    renderHook(() => useWalletRealtime({ onBalanceUpdate }));
+    const { result } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
     await act(async () => {});
-    act(() => { mockWs.onopen?.(); });
-    act(() => { mockWs.onmessage?.({ data: 'not-json' }); });
-    expect(onBalanceUpdate).not.toHaveBeenCalled();
+    expect(result.current.isAvailable).toBe(false);
+    expect(mockIo).not.toHaveBeenCalled();
+  });
+
+  it('disconnects the socket on unmount', async () => {
+    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
+    const { unmount } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
+    await waitFor(() => expect(mockIo).toHaveBeenCalled());
+    unmount();
+    expect(mockSocket.disconnect).toHaveBeenCalled();
   });
 });
 
 // ── useRealtimeNotifications ──────────────────────────────────────
-vi.mock('socket.io-client', () => ({ io: vi.fn().mockReturnValue(null) }));
 
 describe('useRealtimeNotifications', () => {
   it('returns unread=0, connected=false initially', async () => {

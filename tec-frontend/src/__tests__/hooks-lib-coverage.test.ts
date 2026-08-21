@@ -12,7 +12,7 @@
  *  8. domains/_registry helpers
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -719,163 +719,80 @@ describe('useWallet (extra coverage)', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('useWalletRealtime (extra coverage)', () => {
-  // Capture the ws instance that the hook creates so we can drive it
-  let capturedWs: any = null;
+  // The service is a NestJS Socket.IO gateway, so the hook uses socket.io-client.
+  // These tests previously drove a raw WebSocket — a protocol that server could
+  // never have accepted.
+  let handlers: Record<string, (...a: unknown[]) => void>;
+  let mockSocket: { on: ReturnType<typeof vi.fn>; disconnect: ReturnType<typeof vi.fn> };
+
+  beforeAll(async () => { await import('socket.io-client'); });
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    capturedWs = null;
     // Re-apply mock implementations after clearAllMocks() clears them
     const piAuth = await import('@/lib-client/pi/pi-auth');
     vi.mocked(piAuth.getAccessToken).mockReturnValue('tok-test');
     vi.mocked(piAuth.getStoredUser).mockReturnValue({ id: 'usr-1', piUsername: 'alice' } as any);
-    // Use a constructor that captures the instance
-    function MockWS(this: any) {
-      this.send       = vi.fn();
-      this.close      = vi.fn();
-      this.onopen     = null;
-      this.onclose    = null;
-      this.onmessage  = null;
-      this.onerror    = null;
-      this.readyState = 1;
-      capturedWs = this;
-    }
-    MockWS.OPEN = 1;
-    (global as any).WebSocket = MockWS;
 
-    // Mock fetch for /api/bff/realtime
+    handlers   = {};
+    mockSocket = {
+      on:         vi.fn((e: string, cb: (...a: unknown[]) => void) => { handlers[e] = cb; }),
+      disconnect: vi.fn(),
+    };
+    const { io } = await import('socket.io-client');
+    vi.mocked(io).mockReturnValue(mockSocket as never);
+
     global.fetch = vi.fn(async (url: unknown) => {
       if (String(url).includes('/api/bff/realtime')) {
-        return { ok: true, json: async () => ({ url: 'ws://test-realtime' }) } as Response;
+        return { ok: true, json: async () => ({ url: 'https://rt.test', enabled: true }) } as Response;
       }
       return { ok: false, json: async () => ({}) } as Response;
     }) as any;
   });
 
-  afterEach(() => { vi.restoreAllMocks(); });
-
   it('starts with isConnected=false (initial state)', async () => {
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
     const { result } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
-    // isConnected starts false — always true regardless of connection attempt
     expect(result.current.isConnected).toBe(false);
   });
 
-  it('auth message sent after open', async () => {
-    // Use a fresh ws mock so we can track send calls with certainty
-    const sendFn = vi.fn();
-    let localWs: any = null;
-    function FreshWS(this: any) {
-      this.send = sendFn;
-      this.close = vi.fn();
-      this.onopen = null;
-      this.onclose = null;
-      this.onmessage = null;
-      this.readyState = 1;
-      localWs = this;
-      capturedWs = this;
-    }
-    FreshWS.OPEN = 1;
-    (global as any).WebSocket = FreshWS;
-
+  it('does not connect when there is no session token', async () => {
+    const piAuth = await import('@/lib-client/pi/pi-auth');
+    vi.mocked(piAuth.getAccessToken).mockReturnValue(null as never);
+    const { io } = await import('socket.io-client');
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
     renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
     await act(async () => {});
-    if (localWs?.onopen) {
-      await act(async () => { localWs.onopen(); });
-      // Auth message should be sent immediately on open
-      expect(sendFn).toHaveBeenCalledWith(expect.stringContaining('"type":"auth"'));
-    }
-    // If localWs.onopen is null, hook didn't connect — coverage still exercised
-  });
-
-  it('onBalanceUpdate is invoked when wallet.updated arrives (functional test)', async () => {
-    // This test exercises the onmessage handler branch and verifies send is callable
-    const onBalanceUpdate = vi.fn();
-    const sendFn = vi.fn();
-    let localWs: any = null;
-    function FreshWS2(this: any) {
-      this.send = sendFn;
-      this.close = vi.fn();
-      this.onopen = null;
-      this.onclose = null;
-      this.onmessage = null;
-      this.readyState = 1;
-      localWs = this;
-      capturedWs = this;
-    }
-    FreshWS2.OPEN = 1;
-    (global as any).WebSocket = FreshWS2;
-
-    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    renderHook(() => useWalletRealtime({ onBalanceUpdate }));
-    await act(async () => {});
-    if (localWs?.onopen) {
-      act(() => { localWs.onopen(); });
-      // After open, auth is sent
-      expect(sendFn).toHaveBeenCalledWith(expect.stringContaining('"type":"auth"'));
-      // Send a wallet.updated event
-      act(() => {
-        localWs.onmessage?.({ data: JSON.stringify({ type: 'wallet.updated', balance: 9, amount: 1, txType: 'credit', txId: 'tx' }) });
-      });
-      expect(onBalanceUpdate).toHaveBeenCalled();
-    }
+    expect(io).not.toHaveBeenCalled();
   });
 
   it('calls onNewTx when wallet.updated received', async () => {
     const onBalanceUpdate = vi.fn();
-    const onNewTx = vi.fn();
+    const onNewTx         = vi.fn();
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
     renderHook(() => useWalletRealtime({ onBalanceUpdate, onNewTx }));
-    await act(async () => {});
-    act(() => { capturedWs?.onopen?.(); });
-    act(() => {
-      capturedWs?.onmessage?.({
-        data: JSON.stringify({ type: 'wallet.updated', balance: 5, amount: 1, txType: 'credit', txId: 't-1' }),
-      });
-    });
+    await waitFor(() => expect(handlers['wallet.updated']).toBeTypeOf('function'));
+    act(() => { handlers['wallet.updated']({ balance: 9, amount: 1, txType: 'credit', txId: 'tx' }); });
+    expect(onBalanceUpdate).toHaveBeenCalled();
     expect(onNewTx).toHaveBeenCalled();
   });
 
-  it('ignores pong messages (does not call onBalanceUpdate)', async () => {
-    const onBalanceUpdate = vi.fn();
+  it('tracks connect/disconnect state', async () => {
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    renderHook(() => useWalletRealtime({ onBalanceUpdate }));
-    await act(async () => {});
-    act(() => { capturedWs?.onopen?.(); });
-    act(() => {
-      capturedWs?.onmessage?.({ data: JSON.stringify({ type: 'pong' }) });
-    });
-    expect(onBalanceUpdate).not.toHaveBeenCalled();
+    const { result } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
+    await waitFor(() => expect(handlers['connect']).toBeTypeOf('function'));
+    act(() => { handlers['connect'](); });
+    expect(result.current.isConnected).toBe(true);
+    act(() => { handlers['disconnect'](); });
+    expect(result.current.isConnected).toBe(false);
   });
 
-  it('schedules reconnect on close without throwing', async () => {
-    vi.useFakeTimers();
-    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
-    act(() => { capturedWs?.onopen?.(); });
-    expect(() => {
-      act(() => { capturedWs?.onclose?.(); });
-    }).not.toThrow();
-    vi.useRealTimers();
-  });
-
-  it('cleanup on unmount closes ws', async () => {
+  it('cleanup on unmount disconnects the socket', async () => {
     const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
     const { unmount } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
-    await act(async () => {});
+    await waitFor(() => expect(mockSocket.on).toHaveBeenCalled());
     unmount();
-    expect(capturedWs?.close).toHaveBeenCalled();
-  });
-
-  it('does not reconnect after unmount when close fires', async () => {
-    vi.useFakeTimers();
-    const { useWalletRealtime } = await import('@/lib-client/hooks/useWalletRealtime');
-    const { unmount } = renderHook(() => useWalletRealtime({ onBalanceUpdate: vi.fn() }));
-    act(() => { capturedWs?.onopen?.(); });
-    unmount();
-    act(() => { vi.advanceTimersByTime(5_000); });
-    vi.useRealTimers();
+    expect(mockSocket.disconnect).toHaveBeenCalled();
   });
 });
 

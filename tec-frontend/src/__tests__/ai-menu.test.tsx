@@ -143,22 +143,38 @@ describe('starters and support', () => {
     expect(container.querySelector('a')).toBeNull();
   });
 
-  it('marks support as coming soon rather than pretending it works', () => {
+  it('offers real support channels, the same ones on every surface', () => {
     menu();
     fireEvent.click(screen.getByText('Support'));
-    expect(screen.getByText('Soon')).toBeTruthy();
+    // These lived in a private right-hand panel on /ai only; the Hub drawer had none.
+    for (const channel of ['WhatsApp', 'Telegram', 'Email', 'Call']) {
+      expect(screen.getByText(channel)).toBeTruthy();
+    }
+  });
+
+  it('records a rating without asking twice', () => {
+    menu();
+    fireEvent.click(screen.getByText('Support'));
+    fireEvent.click(screen.getAllByText('★')[3]);
+    expect(screen.getByText(/Thanks for your rating/)).toBeTruthy();
+    expect(screen.queryByText('★')).toBeNull();
   });
 });
 
 describe('the menu is the assistant’s, not the Hub’s', () => {
-  it('contains no link to any app — the Hub is the single entry point', () => {
+  it('links only OUT to support — never in to an app page', () => {
     saveConversation(KEY, [{ role: 'user', text: 'x' }]);
     archiveConversation(KEY);
     const { container } = menu();
 
     for (const tab of ['Chats', 'Starter questions', 'Settings', 'Support']) {
       fireEvent.click(screen.getByText(tab));
-      expect(container.querySelectorAll('a')).toHaveLength(0);
+      for (const a of Array.from(container.querySelectorAll('a'))) {
+        const href = a.getAttribute('href') ?? '';
+        // A relative href is an in-platform destination — that is the thing this menu
+        // must never grow back. Support channels are all off-site schemes/hosts.
+        expect(href).toMatch(/^(https:\/\/(wa\.me|t\.me)\/|mailto:|tel:)/);
+      }
     }
   });
 

@@ -15,16 +15,38 @@
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-html { font-size: 16px; scroll-behavior: smooth; }
+/*
+ * The background lives on BOTH html and body.
+ *
+ * Only `body` was painted, so anything the browser drew outside the body box came out
+ * white: the strip left behind when the mobile URL bar hides, the overscroll area, and
+ * the gap under a `bottom: 0` element. That is the intermittent white line at the bottom
+ * of the screen — it appeared exactly when the viewport and the body box disagreed, which
+ * is why it came and went.
+ *
+ * `color-scheme: dark` additionally tells the browser to paint ITS OWN surfaces dark —
+ * scrollbars, the overscroll glow, form controls — instead of assuming a light page.
+ */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+  background: var(--black);
+  color-scheme: dark;
+}
 
 body {
   background: var(--black);
   color: var(--white);
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
   font-weight: 300;
+  /* dvh follows the VISIBLE viewport as the mobile URL bar shows and hides; the vh line
+     stays first as the fallback for anything that does not support it. */
   min-height: 100vh;
+  min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
+  /* No rubber-band past the page — that bounce is what exposed the unpainted area. */
+  overscroll-behavior-y: none;
 }
 
 ::-webkit-scrollbar { width: 4px; }

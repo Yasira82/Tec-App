@@ -1,316 +1,78 @@
 'use client';
 
-import { useState } from 'react';
-import { useTranslation } from '@/lib/i18n';
-import styles from './security.module.css';
+import { useRouter }                     from 'next/navigation';
+import { useTranslation }                from '@/lib/i18n';
+import { DashboardShell, DashboardCard } from '@/components/dashboard';
 
-const BACKUP_CODES = ['ABC123', 'DEF456', 'GHI789', 'JKL012', 'MNO345', 'PQR678', 'STU901', 'VWX234'];
-
-const SESSIONS = [
-  { id: '1', device: 'Chrome on Android', location: 'Cairo, EG', lastActive: '2 minutes ago', current: true },
-  { id: '2', device: 'Safari on iPhone',  location: 'Cairo, EG', lastActive: '1 hour ago',    current: false },
-];
-
-const DEVICES = [
-  { id: '1', name: 'Android Phone', type: 'mobile',  trusted: true, lastLogin: '2026-03-15' },
-  { id: '2', name: 'iPhone',        type: 'mobile',  trusted: true, lastLogin: '2026-03-14' },
-];
-
-type Step = 'idle' | 'qr' | 'pin' | 'done';
-
+/**
+ * Security Center — placeholder.
+ *
+ * The previous version rendered entirely HARDCODED data and shipped it as if it were
+ * real: fabricated active sessions (a device the user had never signed in from),
+ * fabricated trusted devices, and literal backup codes ('ABC123', 'DEF456', …) offered
+ * as 2FA recovery codes. Its Revoke / Remove buttons had no handlers at all.
+ *
+ * On a financial platform that is not a cosmetic bug — a user who writes down those
+ * codes is locked out for good, and a user who "revokes" a session believes they
+ * removed an intruder when nothing happened. The page stays reachable (bookmarks keep
+ * working) but now states plainly that the feature isn't available yet, and points to
+ * the controls that ARE real.
+ *
+ * To restore it: back each section with real endpoints (sessions, trusted devices,
+ * TOTP enrolment + server-generated single-use backup codes), then re-add the nav item
+ * in components/dashboard/Sidebar.tsx.
+ */
 export default function SecurityPage() {
-  const { locale, dir } = useTranslation();
-  const ar = locale === 'ar';
+  const router     = useRouter();
+  const { t, dir } = useTranslation();
+  const ar         = dir === 'rtl';
 
-  // 2FA
-  const [twoFaEnabled, setTwoFaEnabled]   = useState(false);
-  const [step, setStep]                   = useState<Step>('idle');
-  const [otpCode, setOtpCode]             = useState('');
-  const [otpError, setOtpError]           = useState('');
-
-  // PIN
-  const [pinEnabled, setPinEnabled]       = useState(false);
-  const [pin, setPin]                     = useState('');
-  const [confirmPin, setConfirmPin]       = useState('');
-  const [pinError, setPinError]           = useState('');
-  const [pinDone, setPinDone]             = useState(false);
-
-  // ── 2FA Handlers ──
-  const handleToggle2FA = () => {
-    if (twoFaEnabled) {
-      if (confirm(ar ? 'هل تريد تعطيل المصادقة الثنائية؟' : 'Disable 2FA?')) {
-        setTwoFaEnabled(false);
-        setStep('idle');
-      }
-    } else {
-      setStep('qr');
-    }
-  };
-
-  const handleVerifyOTP = () => {
-    if (otpCode.length !== 6) {
-      setOtpError(ar ? 'أدخل 6 أرقام' : 'Enter 6 digits');
-      return;
-    }
-    setOtpError('');
-    setStep('pin');
-  };
-
-  const handleSetPin = () => {
-    if (pin.length < 4) {
-      setPinError(ar ? 'الـ PIN لازم 4 أرقام على الأقل' : 'PIN must be at least 4 digits');
-      return;
-    }
-    if (pin !== confirmPin) {
-      setPinError(ar ? 'الـ PIN مش متطابق' : 'PINs do not match');
-      return;
-    }
-    setPinError('');
-    setPinDone(true);
-    setPinEnabled(true);
-    setTwoFaEnabled(true);
-    setStep('done');
-  };
+  const actions = [
+    { icon: '🪪', label: ar ? 'التحقق من الهوية (KYC)' : 'Identity verification (KYC)', href: '/dashboard/kyc' },
+    { icon: '◉',  label: ar ? 'الملف الشخصي'            : 'Profile',                    href: '/dashboard/profile' },
+  ];
 
   return (
-    <div className={styles.container} dir={dir}>
-
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          {ar ? 'مركز الأمان' : 'Security Center'}
-        </h1>
-        <p className={styles.subtitle}>
-          {ar ? 'إدارة إعدادات أمان حسابك' : 'Manage your account security settings'}
-        </p>
-      </header>
-
-      {/* ── 2FA Banner (if not enabled) ── */}
-      {!twoFaEnabled && (
-        <div className={styles.securityBanner}>
-          <span className={styles.bannerIcon}>🔐</span>
-          <div className={styles.bannerText}>
-            <p className={styles.bannerTitle}>
-              {ar ? 'فعّل المصادقة الثنائية لحماية حسابك' : 'Enable 2FA to protect your account'}
-            </p>
-            <p className={styles.bannerSub}>
-              {ar ? 'Google Authenticator + PIN يحميان حسابك من الاختراق' : 'Google Authenticator + PIN keeps your account safe'}
-            </p>
-          </div>
-          <button className={styles.bannerBtn} onClick={() => setStep('qr')}>
-            {ar ? 'فعّل الآن' : 'Enable Now'}
-          </button>
-        </div>
-      )}
-
-      {/* ── 2FA Section ── */}
-      <section className={`${styles.section} fade-up`}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h2 className={styles.sectionTitle}>
-              {ar ? 'المصادقة الثنائية (2FA)' : 'Two-Factor Authentication'}
-            </h2>
-            <p className={styles.sectionDescription}>
-              {ar ? 'Google Authenticator + PIN Code' : 'Google Authenticator + PIN Code'}
-            </p>
-          </div>
-          <div className={styles.toggle}>
-            <input
-              type="checkbox"
-              id="2fa-toggle"
-              checked={twoFaEnabled}
-              onChange={handleToggle2FA}
-              className={styles.toggleInput}
-            />
-            <label htmlFor="2fa-toggle" className={styles.toggleLabel}>
-              <span className={styles.toggleSlider} />
-            </label>
+    <DashboardShell dir={dir}>
+      <DashboardCard
+        title={ar ? 'مركز الأمان' : 'Security Center'}
+        subtitle={ar ? 'قريباً' : 'Coming soon'}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)' }}>
+          <span style={{ fontSize: 24 }}>🔒</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 4 }}>
+              {ar ? 'إعدادات الأمان قيد التطوير' : 'Security settings are in development'}
+            </div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', lineHeight: 1.7 }}>
+              {ar
+                ? 'المصادقة الثنائية وإدارة الجلسات والأجهزة الموثوقة لسه مش متاحة. مش هنعرض بيانات أمان غير حقيقية — الصفحة هترجع لما تتوصّل ببيانات فعلية.'
+                : 'Two-factor authentication, session management and trusted devices are not available yet. We will not show security information that isn’t real — this page returns once it is backed by live data.'}
+            </div>
           </div>
         </div>
 
-        {/* Step 1: QR Code */}
-        {step === 'qr' && (
-          <div className={styles.qrSection}>
-            <div className={styles.qrBox}>
-              <div className={styles.qrPlaceholder}>
-                <p className={styles.qrText}>📱</p>
-                <p className={styles.qrText}>
-                  {ar ? 'امسح بـ Google Authenticator' : 'Scan with Google Authenticator'}
-                </p>
-                <p className={styles.qrHint}>
-                  {ar ? 'أو أضف: TECAPP2FA2026' : 'Or enter: TECAPP2FA2026'}
-                </p>
-              </div>
-            </div>
-            <div className={styles.verifyBox}>
-              <div className={styles.steps}>
-                <p className={styles.stepItem}>1. {ar ? 'حمّل Google Authenticator' : 'Download Google Authenticator'}</p>
-                <p className={styles.stepItem}>2. {ar ? 'امسح الـ QR Code' : 'Scan the QR Code'}</p>
-                <p className={styles.stepItem}>3. {ar ? 'أدخل الكود المكوّن من 6 أرقام' : 'Enter the 6-digit code'}</p>
-              </div>
-              <label className={styles.label}>
-                {ar ? 'أدخل الكود' : 'Enter 6-digit code'}
-              </label>
-              <input
-                type="text"
-                inputMode="numeric"
-                className={styles.input}
-                placeholder="000000"
-                maxLength={6}
-                value={otpCode}
-                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ''))}
-              />
-              {otpError && <p className={styles.error}>{otpError}</p>}
-              <button className={styles.verifyBtn} onClick={handleVerifyOTP}>
-                {ar ? 'تحقق وتابع' : 'Verify & Continue'}
-              </button>
-            </div>
+        <div style={{ marginTop: 'var(--sp-4)', display: 'flex', flexDirection: 'column', gap: 'var(--sp-2)' }}>
+          <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>
+            {ar ? 'المتاح دلوقتي' : 'Available now'}
           </div>
-        )}
-
-        {/* Step 2: PIN Setup */}
-        {step === 'pin' && (
-          <div className={styles.pinSection}>
-            <h3 className={styles.pinTitle}>
-              🔑 {ar ? 'إعداد PIN Code' : 'Set PIN Code'}
-            </h3>
-            <p className={styles.pinDesc}>
-              {ar ? 'سيُطلب منك هذا الـ PIN عند كل تسجيل دخول' : 'You\'ll need this PIN every time you log in'}
-            </p>
-            <div className={styles.pinFields}>
-              <div>
-                <label className={styles.label}>
-                  {ar ? 'أدخل PIN (4-6 أرقام)' : 'Enter PIN (4-6 digits)'}
-                </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  className={styles.input}
-                  placeholder="••••"
-                  maxLength={6}
-                  value={pin}
-                  onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-                />
-              </div>
-              <div>
-                <label className={styles.label}>
-                  {ar ? 'تأكيد PIN' : 'Confirm PIN'}
-                </label>
-                <input
-                  type="password"
-                  inputMode="numeric"
-                  className={styles.input}
-                  placeholder="••••"
-                  maxLength={6}
-                  value={confirmPin}
-                  onChange={e => setConfirmPin(e.target.value.replace(/\D/g, ''))}
-                />
-              </div>
-            </div>
-            {pinError && <p className={styles.error}>{pinError}</p>}
-            <button className={styles.verifyBtn} onClick={handleSetPin}>
-              {ar ? 'حفظ وتفعيل 2FA' : 'Save & Enable 2FA'}
+          {actions.map(a => (
+            <button key={a.href} onClick={() => router.push(a.href)} className="tec-btn"
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: ar ? 'right' : 'left', width: '100%' }}>
+              <span style={{ fontSize: 18 }}>{a.icon}</span>
+              <span style={{ flex: 1, fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{a.label}</span>
+              <span style={{ color: 'var(--tec-text-3)' }}>{ar ? '←' : '→'}</span>
             </button>
-          </div>
-        )}
-
-        {/* Step 3: Done */}
-        {step === 'done' && (
-          <div className={styles.doneSection}>
-            <p className={styles.doneIcon}>✅</p>
-            <p className={styles.doneTitle}>
-              {ar ? 'تم تفعيل المصادقة الثنائية بنجاح!' : '2FA Enabled Successfully!'}
-            </p>
-            <p className={styles.doneSub}>
-              {ar ? 'حسابك محمي بـ Google Authenticator + PIN' : 'Your account is protected by Google Authenticator + PIN'}
-            </p>
-            <div className={styles.backupCodes}>
-              <h3 className={styles.codesTitle}>
-                {ar ? 'أكواد الاسترداد' : 'Backup Codes'}
-              </h3>
-              <p className={styles.codesDescription}>
-                {ar ? 'احفظ هذه الأكواد في مكان آمن - كل كود يُستخدم مرة واحدة' : 'Save these codes safely - each can be used once'}
-              </p>
-              <div className={styles.codesGrid}>
-                {BACKUP_CODES.map((code, idx) => (
-                  <div key={idx} className={styles.code}>{code}</div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </section>
-
-      {/* ── Active Sessions ── */}
-      <section className={`${styles.section} fade-up-1`}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h2 className={styles.sectionTitle}>
-              {ar ? 'الجلسات النشطة' : 'Active Sessions'}
-            </h2>
-            <p className={styles.sectionDescription}>
-              {ar ? 'إدارة الأجهزة المتصلة حالياً' : 'Manage devices currently logged in'}
-            </p>
-          </div>
-        </div>
-        <div className={styles.list}>
-          {SESSIONS.map(session => (
-            <div key={session.id} className={styles.listItem}>
-              <div className={styles.itemIcon}>🖥️</div>
-              <div className={styles.itemContent}>
-                <div className={styles.itemTitle}>
-                  {session.device}
-                  {session.current && (
-                    <span className={styles.currentBadge}>
-                      {ar ? 'الجهاز الحالي' : 'Current'}
-                    </span>
-                  )}
-                </div>
-                <div className={styles.itemMeta}>
-                  {session.location} · {session.lastActive}
-                </div>
-              </div>
-              {!session.current && (
-                <button className={styles.revokeBtn}>
-                  {ar ? 'إلغاء' : 'Revoke'}
-                </button>
-              )}
-            </div>
           ))}
         </div>
-      </section>
+      </DashboardCard>
 
-      {/* ── Trusted Devices ── */}
-      <section className={`${styles.section} fade-up-2`}>
-        <div className={styles.sectionHeader}>
-          <div>
-            <h2 className={styles.sectionTitle}>
-              {ar ? 'الأجهزة الموثوقة' : 'Trusted Devices'}
-            </h2>
-            <p className={styles.sectionDescription}>
-              {ar ? 'الأجهزة التي وثّقتها مسبقاً' : 'Devices you\'ve marked as trusted'}
-            </p>
-          </div>
-        </div>
-        <div className={styles.list}>
-          {DEVICES.map(device => (
-            <div key={device.id} className={styles.listItem}>
-              <div className={styles.itemIcon}>
-                {device.type === 'desktop' ? '💻' : '📱'}
-              </div>
-              <div className={styles.itemContent}>
-                <div className={styles.itemTitle}>{device.name}</div>
-                <div className={styles.itemMeta}>
-                  {ar ? 'آخر دخول:' : 'Last login:'} {device.lastLogin}
-                </div>
-              </div>
-              <button className={styles.removeBtn}>
-                {ar ? 'إزالة' : 'Remove'}
-              </button>
-            </div>
-          ))}
-        </div>
-      </section>
-
-    </div>
+      <div style={{ marginTop: 'var(--sp-4)' }}>
+        <button onClick={() => router.push('/dashboard')} className="tec-btn"
+          style={{ padding: '8px 16px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+          {ar ? '← لوحة التحكم' : '← Dashboard'}
+        </button>
+      </div>
+    </DashboardShell>
   );
 }

@@ -76,10 +76,6 @@ vi.mock('@/lib/request-id', () => ({
   buildHeaders: vi.fn(() => ({ 'x-request-id': 'req-id' })),
 }));
 
-// Security page uses a CSS module
-vi.mock('@/app/dashboard/security/security.module.css', () => ({
-  default: new Proxy({}, { get: (_: unknown, prop: string) => String(prop) }),
-}));
 
 vi.mock('@/components/dashboard', () => ({
   DashboardShell: ({
@@ -277,172 +273,47 @@ describe('CheckoutPage (dashboard/orders/checkout)', () => {
 // 2. Security Page
 // ══════════════════════════════════════════════════════════════════
 describe('SecurityPage (dashboard/security)', () => {
-  it('renders Security Center heading', async () => {
+  it('renders the Security Center placeholder', async () => {
     const { default: Page } = await import('@/app/dashboard/security/page');
     const { container } = render(<Page />);
     expect(container.textContent).toContain('Security Center');
+    expect(container.textContent).toMatch(/Coming soon/i);
   });
 
-  it('renders 2FA section with toggle', async () => {
+  // Regression guard: the page once shipped fabricated security data as if it were
+  // real — invented sessions/devices and literal backup codes offered as 2FA recovery
+  // codes, with dead Revoke/Remove buttons. None of it may come back without being
+  // backed by live data.
+  it('shows NO fabricated sessions, devices or backup codes', async () => {
     const { default: Page } = await import('@/app/dashboard/security/page');
     const { container } = render(<Page />);
-    expect(container.textContent).toContain('Two-Factor Authentication');
-    const toggle = container.querySelector('[id="2fa-toggle"]');
-    expect(toggle).toBeTruthy();
+    const text = container.textContent ?? '';
+    for (const fake of ['Safari on iPhone', 'Chrome on Android', 'Cairo, EG', 'Android Phone', 'ABC123', 'DEF456', '2026-03-15']) {
+      expect(text).not.toContain(fake);
+    }
+    // No session/device listing is rendered at all (the prose may still explain that
+    // session management is not available yet — that sentence is honest, the list was not).
+    expect(text).not.toMatch(/Last login|Last active|minutes ago|hour ago/i);
   });
 
-  it('renders Enable Now banner when 2FA is disabled', async () => {
+  it('offers no Revoke/Remove controls (they did nothing)', async () => {
     const { default: Page } = await import('@/app/dashboard/security/page');
     const { container } = render(<Page />);
-    expect(container.textContent).toContain('Enable 2FA');
-    expect(container.textContent).toContain('Enable Now');
+    expect(container.textContent).not.toMatch(/Revoke|Remove/i);
   });
 
-  it('renders Active Sessions section', async () => {
+  it('every button it does render has a handler', async () => {
     const { default: Page } = await import('@/app/dashboard/security/page');
     const { container } = render(<Page />);
-    expect(container.textContent).toContain('Active Sessions');
-    expect(container.textContent).toContain('Chrome on Android');
-    expect(container.textContent).toContain('Current');
+    const buttons = Array.from(container.querySelectorAll('button'));
+    expect(buttons.length).toBeGreaterThan(0);
+    buttons.forEach(b => fireEvent.click(b));   // must not throw — all are wired
   });
 
-  it('renders Trusted Devices section', async () => {
+  it('points the user at the controls that are real', async () => {
     const { default: Page } = await import('@/app/dashboard/security/page');
     const { container } = render(<Page />);
-    expect(container.textContent).toContain('Trusted Devices');
-    expect(container.textContent).toContain('Android Phone');
-    expect(container.textContent).toContain('Remove');
-  });
-
-  it('clicking Enable Now shows QR step', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const enableBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Enable Now'),
-    );
-    expect(enableBtn).toBeTruthy();
-    fireEvent.click(enableBtn!);
-    expect(container.textContent).toContain('Scan with Google Authenticator');
-  });
-
-  it('shows OTP error when code is too short', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const enableBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Enable Now'),
-    );
-    fireEvent.click(enableBtn!);
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Verify'),
-    );
-    fireEvent.click(verifyBtn!);
-    expect(container.textContent).toContain('Enter 6 digits');
-  });
-
-  it('progresses to PIN step after entering valid 6-digit OTP', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const enableBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Enable Now'),
-    );
-    fireEvent.click(enableBtn!);
-    const otpInput = container.querySelector('input[inputMode="numeric"]') as HTMLInputElement;
-    expect(otpInput).toBeTruthy();
-    fireEvent.change(otpInput, { target: { value: '123456' } });
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Verify'),
-    );
-    fireEvent.click(verifyBtn!);
-    expect(container.textContent).toContain('Set PIN Code');
-  });
-
-  it('shows PIN mismatch error when PINs do not match', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const enableBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Enable Now'),
-    );
-    fireEvent.click(enableBtn!);
-    const otpInput = container.querySelector('input[inputMode="numeric"]') as HTMLInputElement;
-    fireEvent.change(otpInput, { target: { value: '123456' } });
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Verify'),
-    );
-    fireEvent.click(verifyBtn!);
-    const pinInputs = container.querySelectorAll('input[type="password"]');
-    fireEvent.change(pinInputs[0], { target: { value: '1234' } });
-    fireEvent.change(pinInputs[1], { target: { value: '5678' } });
-    const saveBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Save'),
-    );
-    fireEvent.click(saveBtn!);
-    expect(container.textContent).toContain('PINs do not match');
-  });
-
-  it('shows PIN too short error', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const enableBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Enable Now'),
-    );
-    fireEvent.click(enableBtn!);
-    const otpInput = container.querySelector('input[inputMode="numeric"]') as HTMLInputElement;
-    fireEvent.change(otpInput, { target: { value: '123456' } });
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Verify'),
-    );
-    fireEvent.click(verifyBtn!);
-    const saveBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Save'),
-    );
-    fireEvent.click(saveBtn!);
-    expect(container.textContent).toContain('PIN must be at least 4 digits');
-  });
-
-  it('shows 2FA enabled success state with backup codes', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const enableBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Enable Now'),
-    );
-    fireEvent.click(enableBtn!);
-    const otpInput = container.querySelector('input[inputMode="numeric"]') as HTMLInputElement;
-    fireEvent.change(otpInput, { target: { value: '123456' } });
-    const verifyBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Verify'),
-    );
-    fireEvent.click(verifyBtn!);
-    const pinInputs = container.querySelectorAll('input[type="password"]');
-    fireEvent.change(pinInputs[0], { target: { value: '1234' } });
-    fireEvent.change(pinInputs[1], { target: { value: '1234' } });
-    const saveBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Save'),
-    );
-    fireEvent.click(saveBtn!);
-    expect(container.textContent).toContain('2FA Enabled Successfully');
-    expect(container.textContent).toContain('Backup Codes');
-    expect(container.textContent).toContain('ABC123');
-  });
-
-  it('2FA checkbox is unchecked by default (twoFaEnabled=false)', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    const toggle = container.querySelector('[id="2fa-toggle"]') as HTMLInputElement;
-    // Initially 2FA is disabled — checkbox is unchecked
-    expect(toggle).toBeTruthy();
-    expect(toggle.checked).toBe(false);
-  });
-
-  it('renders Revoke button for non-current session', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    expect(container.textContent).toContain('Revoke');
-  });
-
-  it('renders Manage your account security settings subtitle', async () => {
-    const { default: Page } = await import('@/app/dashboard/security/page');
-    const { container } = render(<Page />);
-    expect(container.textContent).toContain('Manage your account security settings');
+    expect(container.textContent).toMatch(/KYC/i);
   });
 });
 
@@ -948,14 +819,17 @@ describe('HubProfilePage (hub/profile)', () => {
     expect(container.textContent).toContain('Notifications');
   });
 
-  it('renders user with PRO subscription plan', async () => {
+  // Regression guard: the plan must NOT come from the auth session. `/me` never
+  // carries it (login hardcodes null), so a session claiming PRO is not evidence of
+  // a paid plan — commerce is the owner (C-47). A session-only PRO must read FREE.
+  it('ignores a subscriptionPlan on the session (commerce is the source of truth)', async () => {
     mockUsePiAuth.mockReturnValue({
       ...defaultAuthState,
       user: { ...defaultUser, subscriptionPlan: 'PRO' },
     });
     const { default: Page } = await import('@/app/hub/profile/page');
     const { container } = render(<Page />);
-    expect(container.textContent).toContain('PRO');
+    expect(container.textContent).toContain('FREE');
   });
 
   it('renders N/A for Member Since when no createdAt', async () => {

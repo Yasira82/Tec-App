@@ -3,6 +3,8 @@
 import { useState }      from 'react';
 import { useRouter }     from 'next/navigation';
 import { usePiAuth }     from '@/lib-client/hooks/usePiAuth';
+import { useSubscriptionPlan } from '@/lib-client/hooks/useSubscriptionPlan';
+import { useKyc }        from '@/lib-client/hooks/useKyc';
 import { HubSubShell }   from '@/components/hub';
 import { DashboardCard } from '@/components/dashboard';
 
@@ -35,6 +37,24 @@ function InfoRow({ label, value, mono, copyable }: {
 
 export default function HubProfilePage() {
   const { user, logout } = usePiAuth();
+
+  // Plan comes from commerce, NOT the auth session — /me never carries it, so
+  // `user.subscriptionPlan` reported FREE to paying Pro/Enterprise users.
+  const { plan }  = useSubscriptionPlan();
+  const planLabel = plan === 'FREE' ? 'FREE' : plan;
+
+  // KYC state from the SAME source the KYC page uses, so the two can never disagree.
+  // This block used to be hardcoded to "Pending" with no condition — it said Pending
+  // forever, including to a fully verified user.
+  const { kyc }    = useKyc();
+  const kycStatus  = (kyc?.status ?? '').toUpperCase();
+  const kycVerified = kycStatus === 'VERIFIED';
+  const kycAccent  = kycVerified ? '#22C55E' : kycStatus === 'REJECTED' ? '#ef4444' : '#f59e0b';
+  const kycMessage = kycVerified
+    ? `Verified${kyc?.level ? ` — Level ${kyc.level}` : ''}`
+    : kycStatus === 'REJECTED'  ? 'Rejected — please resubmit your documents'
+    : kycStatus === 'PENDING'   ? 'Under review — we’ll notify you when it’s done'
+    : 'Not started — complete to unlock all features';
   const router           = useRouter();
 
   const handleLogout = () => { logout(); router.push('/'); };
@@ -68,7 +88,7 @@ export default function HubProfilePage() {
               {(user?.role ?? 'USER').toUpperCase()}
             </span>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
-              {user?.subscriptionPlan ?? 'FREE'}
+              {planLabel}
             </span>
           </div>
         </div>
@@ -80,7 +100,7 @@ export default function HubProfilePage() {
         <InfoRow label="Pi UID"       value={user?.piId ?? ''}   mono copyable />
         <InfoRow label="TEC User ID"  value={user?.id ?? ''}     mono copyable />
         <InfoRow label="Role"         value={(user?.role ?? 'user').toUpperCase()} />
-        <InfoRow label="Plan"         value={user?.subscriptionPlan ?? 'FREE'} />
+        <InfoRow label="Plan"         value={planLabel} />
         <InfoRow label="Member Since" value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'} />
       </DashboardCard>
 
@@ -94,13 +114,13 @@ export default function HubProfilePage() {
           </button>
         }
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: `1px solid ${kycAccent}33`, borderRadius: 'var(--radius-md)' }}>
           <span style={{ fontSize: 24 }}>🪪</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)', marginBottom: 2 }}>KYC Verification</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: '#f59e0b' }}>Pending — complete to unlock all features</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: kycAccent }}>{kycMessage}</div>
           </div>
-          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f59e0b', flexShrink: 0 }} />
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: kycAccent, flexShrink: 0 }} />
         </div>
       </DashboardCard>
 

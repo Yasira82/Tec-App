@@ -6,6 +6,7 @@ import { usePiAuth }                                   from '@/lib-client/hooks/
 import { useTranslation }                              from '@/lib/i18n';
 import { getAccessToken }                              from '@/lib-client/pi/pi-auth';
 import { DashboardShell, DashboardCard }               from '@/components/dashboard';
+import { HubAppsGrid }                                  from '@/components/hub';
 import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
 
 // ── Types ─────────────────────────────────────────────────
@@ -20,62 +21,19 @@ interface Payment {
 
 type TabKey = 'overview' | 'domains' | 'activity';
 
-// ── Domain Groups ──────────────────────────────────────────
-const FINANCE      = LIVE_DOMAINS.filter(d => d.group === 'finance');
-const COMMERCE_GRP = LIVE_DOMAINS.filter(d => d.group === 'commerce');
-const REAL_WORLD   = LIVE_DOMAINS.filter(d => d.group === 'real_world');
-const SOCIAL       = LIVE_DOMAINS.filter(d => d.group === 'social');
-const TECH         = LIVE_DOMAINS.filter(d => d.group === 'tech');
-const MONETIZATION = LIVE_DOMAINS.filter(d => d.group === 'monetization');
-const LIVE_APPS    = LIVE_DOMAINS.filter(d => d.status === 'live');
+// ── Domain stat helper ─────────────────────────────────────
+const LIVE_APPS = LIVE_DOMAINS.filter(d => d.status === 'live');
 
-// Open a domain the SAME way the Hub does: external (http) apps go through Hub SSO
-// so they land WITH a session; internal routes navigate directly. Fixes apps that
-// "don't open" — direct nav dropped the session, and router.push can't leave the app.
-function openDomainRoute(route: string) {
-  const href = route.startsWith('http')
+// Map a registry domain → the SAME HubApp shape the Hub feeds to <HubAppsGrid>,
+// so the Dashboard renders the identical polished launcher grid (one component,
+// one open behavior). External (http) apps go through Hub SSO so they land WITH a
+// session; internal routes navigate directly — the fix for apps that "opened wrong".
+function toHubApp(d: (typeof LIVE_DOMAINS)[number]) {
+  const route = d.route ?? `/${d.slug}`;
+  const href  = route.startsWith('http')
     ? `/api/auth/sso?target=${encodeURIComponent(route)}`
     : route;
-  window.location.href = href;
-}
-
-// ── Domain Card ────────────────────────────────────────────
-function DomainCard({ emoji, name, domain, status, onClick }: {
-  emoji: string; name: string; domain: string; status: string; onClick?: () => void;
-}) {
-  const isLive = status === 'live';
-  return (
-    <div onClick={onClick}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-2)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.15)' : 'var(--tec-border)'}`, borderRadius: 'var(--radius-md)', cursor: onClick ? 'pointer' : 'default', transition: 'border-color 0.2s ease' }}>
-      <div style={{ width: 36, height: 36, borderRadius: 10, flexShrink: 0, background: isLive ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.2)' : 'var(--tec-border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{emoji}</div>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{domain}</div>
-      </div>
-      <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: 1, padding: '2px 8px', borderRadius: 'var(--radius-full)', background: isLive ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.05)', color: isLive ? '#22C55E' : 'var(--tec-text-3)', border: `1px solid ${isLive ? 'rgba(34,197,94,0.2)' : 'var(--tec-border)'}` }}>
-        {isLive ? 'LIVE' : 'SOON'}
-      </span>
-    </div>
-  );
-}
-
-function DomainGroup({ title, emoji, domains }: { title: string; emoji: string; domains: typeof LIVE_DOMAINS }) {
-  if (!domains.length) return null;
-  return (
-    <div style={{ marginBottom: 'var(--sp-6)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-3)' }}>
-        <span style={{ fontSize: 16 }}>{emoji}</span>
-        <span style={{ fontSize: 'var(--text-xs)', fontWeight: 700, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase' }}>{title}</span>
-        <span style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginLeft: 'auto' }}>{domains.length}</span>
-      </div>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 8 }}>
-        {domains.map(d => (
-          <DomainCard key={d.slug} emoji={d.emoji} name={d.name.en} domain={d.piDomain}
-            status={d.status} onClick={d.route ? () => openDomainRoute(d.route!) : undefined} />
-        ))}
-      </div>
-    </div>
-  );
+  return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description?.en ?? '', group: d.group };
 }
 
 // ── Stat Card ──────────────────────────────────────────────
@@ -304,6 +262,9 @@ export default function DashboardPage() {
   const visibleLive = getVisibleDomains(userKyc, userPro)
     .filter(d => d.status === 'live' && d.layer !== 'os');
 
+  // Same feed the Hub gives <HubAppsGrid> — Dashboard now renders the identical grid.
+  const hubApps = visibleLive.map(toHubApp);
+
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
     setDataLoading(true);
@@ -458,10 +419,10 @@ export default function DashboardPage() {
             )}
           </DashboardCard>
 
-          {/* Live Apps */}
+          {/* Live Apps — launcher-tile preview matching the Hub (tap → Ecosystem) */}
           <DashboardCard
             title="Live Apps"
-            subtitle={`${visibleLive.length} active`}
+            subtitle={`${hubApps.length} active`}
             action={
               <button onClick={() => setActiveTab('domains')} className="tec-btn"
                 style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
@@ -469,10 +430,17 @@ export default function DashboardPage() {
               </button>
             }
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 'var(--sp-2)' }}>
-              {visibleLive.slice(0, 6).map(d => (
-                <DomainCard key={d.slug} emoji={d.emoji} name={d.name.en} domain={d.piDomain}
-                  status={d.status} onClick={d.route ? () => openDomainRoute(d.route!) : undefined} />
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4 }}>
+              {hubApps.slice(0, 8).map(app => (
+                <button key={app.slug} onClick={() => setActiveTab('domains')} className="tec-btn"
+                  style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
+                  <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05))', border: '1px solid rgba(251,191,36,0.28)', boxShadow: '0 4px 14px rgba(251,191,36,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
+                    {app.emoji}
+                  </div>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                    {app.name}
+                  </span>
+                </button>
               ))}
             </div>
           </DashboardCard>
@@ -494,14 +462,24 @@ export default function DashboardPage() {
       {/* ── Domains Tab ────────────────────────────────── */}
       {activeTab === 'domains' && (
         <div className="tec-fade-in">
-          <DashboardCard title="TEC Ecosystem" subtitle={`${LIVE_DOMAINS.length + COMING_SOON.length} total domains`}>
-            <DomainGroup title="Finance"    emoji="💰" domains={FINANCE}      />
-            <DomainGroup title="Commerce"   emoji="🛒" domains={COMMERCE_GRP} />
-            <DomainGroup title="Real World" emoji="🏙️" domains={REAL_WORLD}   />
-            <DomainGroup title="Social"     emoji="🌍" domains={SOCIAL}       />
-            <DomainGroup title="Tech"       emoji="⚡" domains={TECH}         />
-            <DomainGroup title="Membership" emoji="🏆" domains={MONETIZATION} />
+          {/* Identical polished launcher grid to the Hub — one component, one source */}
+          <DashboardCard title="TEC Ecosystem" subtitle={`${LIVE_DOMAINS.length + COMING_SOON.length} total domains`} padding="0">
+            <HubAppsGrid apps={hubApps} />
           </DashboardCard>
+
+          {/* Coming Soon */}
+          <div style={{ marginTop: 'var(--sp-5)' }}>
+            <DashboardCard title="Coming Soon" subtitle={`${COMING_SOON.length} domains`}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
+                {COMING_SOON.map(d => (
+                  <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
+                    <span style={{ fontSize: 20 }}>{d.emoji}</span>
+                    <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--tec-text-3)', textAlign: 'center' }}>{d.name.en}</span>
+                  </div>
+                ))}
+              </div>
+            </DashboardCard>
+          </div>
         </div>
       )}
 

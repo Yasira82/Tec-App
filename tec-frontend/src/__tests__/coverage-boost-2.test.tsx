@@ -458,17 +458,18 @@ describe('AiClient — uncovered paths', () => {
     await waitFor(() => expect(document.body).toBeTruthy());
   });
 
-  it('clicking a Popular Topic sends a message via sendMessage', async () => {
+  it('a starter question fills the composer (the Hub topic list is gone)', async () => {
+    // The old "Popular Topics" list SENT a message on click. A starter question now fills
+    // the composer instead — the user reviews and sends it, and no request fires on tap.
     render(<AiClient />);
-    // Open services panel
-    fireEvent.click(screen.getByRole('button', { name: /Services/ }));
-    const topicBtn = screen.getByText('Getting Started Guide');
+    fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
+    fireEvent.click(screen.getByText('Starter questions'));
     await act(async () => {
-      fireEvent.click(topicBtn);
+      fireEvent.click(screen.getByText('How do I pay with Pi?'));
     });
-    await waitFor(() => {
-      expect(global.fetch).toHaveBeenCalledWith('/api/ai/chat', expect.anything());
-    }, { timeout: 3000 });
+
+    expect(screen.getByPlaceholderText('Type your message...')).toHaveValue('How do I pay with Pi?');
+    expect(global.fetch).not.toHaveBeenCalledWith('/api/ai/chat', expect.anything());
   });
 
   it('renders Arabic UI when locale=ar', () => {

@@ -66,7 +66,7 @@ afterEach(() => vi.restoreAllMocks());
 
 async function ask(question = 'ما هو TEC؟') {
   render(<AIDrawer open onClose={vi.fn()} />);
-  const input = screen.getByPlaceholderText('اسأل TEC AI...');
+  const input = screen.getByPlaceholderText('Ask TEC AI...');
   fireEvent.change(input, { target: { value: question } });
   fireEvent.keyDown(input, { key: 'Enter' });
 }
@@ -109,7 +109,7 @@ describe('AIDrawer streaming', () => {
     stubFetch(() => okStream(stream));
 
     await ask();
-    await waitFor(() => expect(document.body.textContent).toContain('اتقطعت'));
+    await waitFor(() => expect(document.body.textContent).toContain('cut off'));
   });
 
   it('sends the earlier turns so a follow-up keeps context', async () => {
@@ -121,7 +121,7 @@ describe('AIDrawer streaming', () => {
     await ask('ما هو TEC؟');
     await waitFor(() => expect(screen.getByText(/TEC هي منصة/)).toBeTruthy());
 
-    const input = screen.getByPlaceholderText('اسأل TEC AI...');
+    const input = screen.getByPlaceholderText('Ask TEC AI...');
     fireEvent.change(input, { target: { value: 'وبعدين؟' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
@@ -166,7 +166,7 @@ describe('AIDrawer streaming', () => {
     // The route sends an explicit `code`; the drawer must key off THAT, not the status.
     stubFetch(() => ({ ok: false, status: 429, json: async () => ({ code: 'RATE_LIMIT' }) }) as unknown as Response);
     await ask();
-    await waitFor(() => expect(document.body.textContent).toContain('وصلت للحد الأقصى'));
+    await waitFor(() => expect(document.body.textContent).toContain('Too many messages'));
   });
 
   // Both of these are HTTP 503. Before the route sent a code, the drawer mapped 503 to a
@@ -174,14 +174,14 @@ describe('AIDrawer streaming', () => {
   it('tells BUSY apart from NOT_CONFIGURED, though both are 503', async () => {
     stubFetch(() => ({ ok: false, status: 503, json: async () => ({ code: 'BUSY' }) }) as unknown as Response);
     await ask();
-    await waitFor(() => expect(document.body.textContent).toContain('مشغول'));
-    expect(document.body.textContent).not.toContain('مش مفعّل');
+    await waitFor(() => expect(document.body.textContent).toContain('busy'));
+    expect(document.body.textContent).not.toContain('not switched on');
   });
 
   it('never leaves an empty bubble when the stream yields no text', async () => {
     const stream = new ReadableStream<Uint8Array>({ start(c) { c.close(); } });
     stubFetch(() => okStream(stream));
     await ask();
-    await waitFor(() => expect(document.body.textContent).toContain('لم أتمكّن من الرد'));
+    await waitFor(() => expect(document.body.textContent).toContain("answer that"));
   });
 });

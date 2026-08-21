@@ -185,9 +185,9 @@ describe('AiClient', () => {
     });
   });
 
-  it('renders Services panel button', () => {
+  it('renders the assistant Menu button', () => {
     render(<AiClient />);
-    expect(screen.getByRole('button', { name: /Services/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Menu/ })).toBeInTheDocument();
   });
 
   it('renders Support panel button', () => {
@@ -195,10 +195,10 @@ describe('AiClient', () => {
     expect(screen.getByRole('button', { name: /Support/ })).toBeInTheDocument();
   });
 
-  it('opens Services panel showing Quick Actions', () => {
+  it('opens the Menu showing the assistant own tabs', () => {
     render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Services/ }));
-    expect(screen.getByText('Quick Actions')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
+    expect(screen.getByText('Chats')).toBeInTheDocument();
   });
 
   it('opens Support panel showing Rate Your Experience', () => {
@@ -207,12 +207,12 @@ describe('AiClient', () => {
     expect(screen.getByText('Rate Your Experience')).toBeInTheDocument();
   });
 
-  it('clicking Services twice toggles closed', () => {
+  it('clicking Menu twice toggles closed', () => {
     render(<AiClient />);
-    const btn = screen.getByRole('button', { name: /Services/ });
+    const btn = screen.getByRole('button', { name: /Menu/ });
     fireEvent.click(btn);
     fireEvent.click(btn);
-    expect(screen.getByRole('button', { name: /Services/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Menu/ })).toBeInTheDocument();
   });
 
   it('renders suggested questions', async () => {
@@ -317,16 +317,24 @@ describe('AiClient', () => {
     expect(screen.getByText(/24\/7/)).toBeInTheDocument();
   });
 
-  it('renders quick action links in Services panel', () => {
-    render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Services/ }));
-    expect(screen.getByText('TEC Hub').closest('a')).toHaveAttribute('href', '/hub');
+  it('puts NO app links in the Menu — the Hub is the single entry point', () => {
+    // This panel used to hold "TEC Hub / Pay with Pi / My Dashboard / Digital Assets",
+    // which made the assistant a second front door past sign-in-with-Pi.
+    const { container } = render(<AiClient />);
+    fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
+
+    const panel = screen.getByText('Settings').closest('aside');
+    expect(panel).toBeTruthy();
+    expect(panel!.querySelectorAll('a')).toHaveLength(0);
+    for (const banned of ['My Dashboard', 'Digital Assets', 'Pay with Pi']) {
+      expect(container.textContent).not.toContain(banned);
+    }
   });
 
-  it('shows All systems operational in Services panel', () => {
+  it('offers starter questions instead of Hub shortcuts', () => {
     render(<AiClient />);
-    fireEvent.click(screen.getByRole('button', { name: /Services/ }));
-    expect(screen.getByText('All systems operational')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Menu/ }));
+    expect(screen.getByText('Starter questions')).toBeInTheDocument();
   });
 
   it('calls fetch /api/ai/chat when sending a message', async () => {

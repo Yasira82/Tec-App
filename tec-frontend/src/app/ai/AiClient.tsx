@@ -6,7 +6,9 @@ import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import { parseNavIntents }             from '@/lib/ai/nav-intents';
 import type { NavIntent, NavFlow }     from '@/lib/ai/nav-intents';
 import { createSseReader }             from '@/lib/ai-stream';
-import { loadConversation, saveConversation, archiveConversation, hasArchive, restoreConversation } from '@/lib/ai-session';
+import { loadConversation, saveConversation, archiveConversation, hasArchive,
+         loadSettings, type AiSettings, type StoredTurn } from '@/lib/ai-session';
+import { AIMenu } from '@/components/ai/AIMenu';
 import { RichText }                    from '@/components/ai/RichText';
 // The SHARED chip — this page used to keep a private copy, which is why the drawer got
 // the app emoji on its chips and this page kept rendering a bare "تك".
@@ -37,21 +39,6 @@ const SUGGESTED_QUESTIONS = [
   { en: 'Best app for real estate?', ar: 'أفضل app للعقارات؟'     },
 ];
 
-const QUICK_ACTIONS = [
-  { emoji: '⊞',  en: 'TEC Hub',          ar: 'الرئيسية',            href: '/hub'       },
-  { emoji: '💰', en: 'Pay with Pi',       ar: 'ادفع بـ Pi',          href: '/hub'       },
-  { emoji: '📊', en: 'My Dashboard',      ar: 'لوحة التحكم',         href: '/dashboard' },
-  { emoji: '💎', en: 'Digital Assets',    ar: 'الأصول الرقمية',      href: '/assets'    },
-];
-
-const POPULAR_TOPICS = [
-  { en: 'Getting Started Guide',  ar: 'دليل البداية'         },
-  { en: 'Payment Methods',        ar: 'طرق الدفع'            },
-  { en: 'Domain Categories',      ar: 'تصنيفات التطبيقات'    },
-  { en: 'Pi Network Integration', ar: 'تكامل Pi Network'     },
-  { en: 'Security & Privacy',     ar: 'الأمان والخصوصية'     },
-];
-
 /** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
 const STORE_KEY = 'tec_ai_page';
 
@@ -79,6 +66,7 @@ export default function AiClient() {
   // dead zone until its declaration runs, so reading it from an earlier effect throws.
   const seeded         = useRef(false);
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+  const [settings, setSettings] = useState<AiSettings>(() => loadSettings());
   // Whether a previous thread is sitting in the archive, waiting to be brought back.
   const [canRestore, setCanRestore] = useState(false);
   useEffect(() => { setCanRestore(hasArchive(STORE_KEY)); }, []);
@@ -182,7 +170,13 @@ export default function AiClient() {
           messages: [...messages, userMessage]
             .filter(m => m.id !== 'welcome')
             .map(m => ({ role: m.role, content: m.content })),
-          userContext: { username: user?.piUsername, locale, ...(aiCtx ?? {}) },
+          userContext: {
+            username: user?.piUsername,
+            // The user's explicit choice wins; 'auto' follows the UI locale.
+            locale: settings.replyLocale !== 'auto' ? settings.replyLocale : locale,
+            replyLength: settings.replyLength,
+            ...(aiCtx ?? {}),
+          },
         }),
       });
 
@@ -366,52 +360,38 @@ export default function AiClient() {
       {/* Layout */}
       <div className={styles.layout}>
 
-        {/* ── Left: Services ── */}
+        {/* ── Left: the assistant's own menu ──
+             This used to be a "Services" panel of Hub links (TEC Hub / Pay with Pi /
+             My Dashboard / Digital Assets). Those made the assistant a SECOND front door
+             to the platform, bypassing sign-in-with-Pi as the single entry. The menu now
+             holds only what belongs to the assistant, and the same component runs in the
+             Hub drawer. */}
         <aside className={`${styles.panel} ${activePanel === 'services' ? styles.panelOpen : ''}`}>
           <button
             className={styles.panelTab}
             onClick={() => setActivePanel(activePanel === 'services' ? null : 'services')}
           >
-            ⚡ {locale === 'ar' ? 'الخدمات' : 'Services'}
+            ☰ {locale === 'ar' ? 'القائمة' : 'Menu'}
           </button>
           <div className={styles.panelContent}>
-            <div className={styles.panelSection}>
-              <p className={styles.panelSectionTitle}>
-                {locale === 'ar' ? 'إجراءات سريعة' : 'Quick Actions'}
-              </p>
-              {QUICK_ACTIONS.map((action, i) => (
-                <Link key={i} href={action.href} className={styles.actionItem}>
-                  <span className={styles.actionEmoji}>{action.emoji}</span>
-                  <span className={styles.actionLabel}>
-                    {locale === 'ar' ? action.ar : action.en}
-                  </span>
-                  <span className={styles.actionArrow}>{dir === 'rtl' ? '←' : '→'}</span>
-                </Link>
-              ))}
-            </div>
-            <div className={styles.panelSection}>
-              <p className={styles.panelSectionTitle}>
-                {locale === 'ar' ? 'مواضيع شائعة' : 'Popular Topics'}
-              </p>
-              {POPULAR_TOPICS.map((topic, i) => (
-                <button
-                  key={i}
-                  className={styles.topicItem}
-                  onClick={() => sendMessage(locale === 'ar' ? topic.ar : topic.en)}
-                >
-                  <span>{dir === 'rtl' ? '←' : '→'}</span>
-                  <span>{locale === 'ar' ? topic.ar : topic.en}</span>
-                </button>
-              ))}
-            </div>
-            <div className={styles.statusBox}>
-              <div className={styles.statusRow}>
-                <span className={styles.statusDotGreen} />
-                <span className={styles.statusLabel}>
-                  {locale === 'ar' ? 'جميع الأنظمة تعمل' : 'All systems operational'}
-                </span>
-              </div>
-            </div>
+            <AIMenu
+              storeKey={STORE_KEY}
+              locale={locale === 'ar' ? 'ar' : 'en'}
+              onRestore={turns => {
+                seeded.current = true;
+                setMessages(turns.map((m, i) => ({
+                  id:        `restored-${i}`,
+                  role:      m.role === 'user' ? 'user' as const : 'assistant' as const,
+                  content:   m.text,
+                  timestamp: new Date(),
+                })));
+                setCanRestore(hasArchive(STORE_KEY));
+              }}
+              onAsk={q => { setInput(q); inputRef.current?.focus(); }}
+              onClearAll={() => { setMessages([welcomeMessage()]); setCanRestore(false); }}
+              onSettingsChange={setSettings}
+              onClose={() => setActivePanel(null)}
+            />
           </div>
         </aside>
 
@@ -480,27 +460,6 @@ export default function AiClient() {
             </div>
           </div>
 
-          {messages.length <= 1 && canRestore && (
-            <div className={styles.suggestions}>
-              <button
-                className={styles.suggestionBtn}
-                onClick={() => {
-                  const turns = restoreConversation<{ role: string; text: string }>(STORE_KEY);
-                  if (turns.length) {
-                    seeded.current = true;
-                    setMessages(turns.map((m, i) => ({
-                      id: `restored-${i}`,
-                      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
-                      content: m.text,
-                      timestamp: new Date(),
-                    })));
-                  }
-                  setCanRestore(false);
-                }}>
-                ↺ {locale === 'ar' ? 'استرجاع المحادثة السابقة' : 'Restore previous chat'}
-              </button>
-            </div>
-          )}
 
           {messages.length <= 1 && (
             <div className={styles.suggestions}>

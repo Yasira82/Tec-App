@@ -1,10 +1,14 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { createSseReader, parseRich, type RichLine } from '@/lib/ai-stream';
+import { createSseReader } from '@/lib/ai-stream';
+import { RichText }       from '@/components/ai/RichText';
 
 /** How many previous turns travel with each question, so follow-ups keep context. */
 const HISTORY_TURNS = 8;
+
+/** Longest the first message will wait for personalization before going without it. */
+const CONTEXT_WAIT_MS = 1500;
 
 /** Appended when the provider stopped at its output cap — never pretend it finished. */
 const TRUNCATED_NOTE = '\n\n… (الإجابة اتقطعت — اسأل "كمّل" عشان الباقي)';
@@ -32,41 +36,31 @@ interface ChatMessage {
   streaming?: boolean;
 }
 
-/** Render an assistant reply: `**bold**`, `code`, bullets and headings — no raw markup. */
-function Rich({ text }: { text: string }) {
-  const lines: RichLine[] = parseRich(text);
-  return (
-    <>
-      {lines.map((line, i) => (
-        <div key={i} style={{
-          display:     line.kind === 'bullet' ? 'flex' : 'block',
-          gap:         line.kind === 'bullet' ? 6 : undefined,
-          fontWeight:  line.kind === 'heading' ? 700 : undefined,
-          marginTop:   line.kind === 'heading' && i > 0 ? 6 : undefined,
-          minHeight:   line.tokens.length === 0 ? 6 : undefined,
-        }}>
-          {line.kind === 'bullet' && <span style={{ opacity: 0.6 }}>•</span>}
-          <span>
-            {line.tokens.map((tok, j) =>
-              tok.kind === 'bold' ? <strong key={j}>{tok.value}</strong>
-              : tok.kind === 'code' ? (
-                <code key={j} style={{ background: '#ffffff12', borderRadius: 4, padding: '1px 4px', fontSize: 12 }}>
-                  {tok.value}
-                </code>
-              ) : <span key={j}>{tok.value}</span>,
-            )}
-          </span>
-        </div>
-      ))}
-    </>
-  );
-}
-
 export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
   const [input,    setInput]    = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading,  setLoading]  = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  // The user's OWN context (username, balance, goals, KYC — assembled server-side by the
+  // BFF). The /ai page has always sent this; this drawer never did, so the SAME assistant
+  // answered generically in the Hub and personally on /ai. Fetched once when the drawer
+  // opens, fail-soft: no context just means a less specific answer, never a broken one.
+  // Held as the in-flight PROMISE, not the resolved value: a user who opens the drawer and
+  // types straight away would otherwise send their first — and often only — question
+  // before the context landed, and get the generic answer anyway.
+  const ctxRef = useRef<Promise<Record<string, unknown> | null> | null>(null);
+  useEffect(() => {
+    if (!open || ctxRef.current) return;
+    ctxRef.current = (async () => {
+      try {
+        const res = await fetch('/api/bff/ai/context', { credentials: 'include', cache: 'no-store' });
+        return res.ok ? await res.json().catch(() => null) : null;
+      } catch {
+        return null;   // fail-soft — omit personalization, never block the assistant
+      }
+    })();
+  }, [open]);
 
   // Follow the answer as it is written, instead of leaving it below the fold.
   useEffect(() => {
@@ -94,6 +88,16 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         i === prev.length - 1 && m.role === 'ai' ? { role: 'ai', text: t } : m));
 
     try {
+      // Wait for the context, but never longer than this — a stalled personalization
+      // request must cost a less specific answer, not the answer itself (P6-ish: degrade,
+      // don't block). The bubble with its typing dots is already on screen by now.
+      const ctx = ctxRef.current
+        ? await Promise.race([
+            ctxRef.current,
+            new Promise<null>(r => setTimeout(() => r(null), CONTEXT_WAIT_MS)),
+          ])
+        : null;
+
       // Send the recent turns too — a question like "and the second one?" is
       // unanswerable when the model only ever receives the latest line.
       const priorTurns = history
@@ -104,7 +108,14 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
       const res = await fetch('/api/ai/chat', {
         method: 'POST', headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         credentials: 'include',
-        body: JSON.stringify({ messages: [...priorTurns, { role: 'user', content: text }] }),
+        body: JSON.stringify({
+          messages: [...priorTurns, { role: 'user', content: text }],
+          userContext: {
+            // The page's own language, so the reply matches the UI the user is reading.
+            locale: typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'ar',
+            ...(ctx ?? {}),
+          },
+        }),
       });
 
       // The chat route replies with an SSE stream ONLY on success; every error is a
@@ -190,7 +201,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
                   fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 }}>
-                  {m.role === 'ai' ? <Rich text={m.text} /> : m.text}
+                  {m.role === 'ai' ? <RichText text={m.text} /> : m.text}
                   {m.streaming && <span style={{ opacity: 0.5 }}>▌</span>}
                 </div>
               </div>

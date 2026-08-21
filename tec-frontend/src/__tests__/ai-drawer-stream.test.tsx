@@ -37,6 +37,25 @@ function pacedStream(chunks: Uint8Array[]) {
 const okStream = (body: ReadableStream<Uint8Array>) =>
   ({ ok: true, status: 200, body }) as unknown as Response;
 
+/**
+ * The drawer also fetches /api/bff/ai/context on open (personalization). Route by URL so
+ * a test's chat mocks are not consumed by that call — and so a test can assert on the
+ * chat request specifically.
+ */
+function stubFetch(chat: (n: number) => Response | Promise<Response>) {
+  let n = 0;
+  const chatCalls: RequestInit[] = [];
+  const mock = vi.fn(async (url: string, init?: RequestInit) => {
+    if (String(url).includes('/ai/context')) {
+      return { ok: true, json: async () => ({ username: 'yas55eR82' }) } as unknown as Response;
+    }
+    chatCalls.push(init ?? {});
+    return chat(n++);
+  });
+  vi.stubGlobal('fetch', mock);
+  return { chatCalls };
+}
+
 beforeEach(() => {
   document.cookie = 'tec_csrf=abc';
 });
@@ -52,7 +71,7 @@ async function ask(question = 'ما هو TEC؟') {
 describe('AIDrawer streaming', () => {
   it('renders the reply progressively instead of all at once', async () => {
     const paced = pacedStream([frame({ text: 'أهلاً ' }), frame({ text: 'بيك' })]);
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okStream(paced.stream)));
+    stubFetch(() => okStream(paced.stream));
 
     await ask();
     await paced.release();
@@ -69,7 +88,7 @@ describe('AIDrawer streaming', () => {
     const stream = new ReadableStream<Uint8Array>({
       start(c) { c.enqueue(frame({ text: '**Shop & Sell:** buy things' })); c.close(); },
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okStream(stream)));
+    stubFetch(() => okStream(stream));
 
     await ask();
     await waitFor(() => expect(screen.getByText('Shop & Sell:').tagName).toBe('STRONG'));
@@ -84,7 +103,7 @@ describe('AIDrawer streaming', () => {
         c.close();
       },
     });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okStream(stream)));
+    stubFetch(() => okStream(stream));
 
     await ask();
     await waitFor(() => expect(document.body.textContent).toContain('اتقطعت'));
@@ -94,10 +113,7 @@ describe('AIDrawer streaming', () => {
     const reply = (text: string) => okStream(new ReadableStream<Uint8Array>({
       start(c) { c.enqueue(frame({ text })); c.close(); },
     }));
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(reply('TEC هي منصة'))
-      .mockResolvedValueOnce(reply('نعم'));
-    vi.stubGlobal('fetch', fetchMock);
+    const { chatCalls } = stubFetch(n => (n === 0 ? reply('TEC هي منصة') : reply('نعم')));
 
     await ask('ما هو TEC؟');
     await waitFor(() => expect(screen.getByText(/TEC هي منصة/)).toBeTruthy());
@@ -106,8 +122,8 @@ describe('AIDrawer streaming', () => {
     fireEvent.change(input, { target: { value: 'وبعدين؟' } });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    const sent = JSON.parse((fetchMock.mock.calls[1][1] as { body: string }).body);
+    await waitFor(() => expect(chatCalls).toHaveLength(2));
+    const sent = JSON.parse(chatCalls[1].body as string);
     expect(sent.messages).toEqual([
       { role: 'user',      content: 'ما هو TEC؟' },
       { role: 'assistant', content: 'TEC هي منصة' },
@@ -115,15 +131,43 @@ describe('AIDrawer streaming', () => {
     ]);
   });
 
+  // The /ai page always sent the user's own context; this drawer sent none, so the SAME
+  // assistant answered generically in the Hub and personally on /ai.
+  it('sends the user context so the Hub answer is personalized too', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) { c.enqueue(frame({ text: 'hi' })); c.close(); },
+    });
+    const { chatCalls } = stubFetch(() => okStream(stream));
+
+    await ask();
+    await waitFor(() => expect(chatCalls).toHaveLength(1));
+    const sent = JSON.parse(chatCalls[0].body as string);
+    expect(sent.userContext.username).toBe('yas55eR82');
+    expect(sent.userContext.locale).toBeTruthy();
+  });
+
+  it('still answers when the context fetch fails (fail-soft)', async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(c) { c.enqueue(frame({ text: 'يعمل بدون سياق' })); c.close(); },
+    });
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (String(url).includes('/ai/context')) throw new Error('offline');
+      return okStream(stream);
+    }));
+
+    await ask();
+    await waitFor(() => expect(screen.getByText(/يعمل بدون سياق/)).toBeTruthy());
+  });
+
   it('surfaces the real reason on an error status', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 429 } as Response));
+    stubFetch(() => ({ ok: false, status: 429 }) as Response);
     await ask();
     await waitFor(() => expect(document.body.textContent).toContain('وصلت للحد الأقصى'));
   });
 
   it('never leaves an empty bubble when the stream yields no text', async () => {
     const stream = new ReadableStream<Uint8Array>({ start(c) { c.close(); } });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(okStream(stream)));
+    stubFetch(() => okStream(stream));
     await ask();
     await waitFor(() => expect(document.body.textContent).toContain('لم أتمكّن من الرد'));
   });

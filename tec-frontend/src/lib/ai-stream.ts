@@ -48,8 +48,22 @@ export function createSseReader(): SseReader {
       const data = trimmed.slice(5).trim();
       if (!data || data === '[DONE]') continue;
       try {
-        const parsed = JSON.parse(data) as { text?: unknown; truncated?: unknown };
-        if (typeof parsed.text === 'string') text += parsed.text;
+        const parsed = JSON.parse(data) as {
+          text?:      unknown;
+          truncated?: unknown;
+          delta?:     { text?: unknown };
+          content?:   { text?: unknown }[];
+        };
+        // `{text}` is the contract our route emits — every provider is normalised to it
+        // server-side. `delta.text` / `content[0].text` are raw-Anthropic shapes the /ai
+        // page has tolerated since before that normalisation existed; kept so a stream
+        // that reached a client unnormalised still renders rather than silently vanishing.
+        const delta =
+          typeof parsed.text === 'string'          ? parsed.text
+          : typeof parsed.delta?.text === 'string' ? parsed.delta.text
+          : typeof parsed.content?.[0]?.text === 'string' ? parsed.content[0].text
+          : '';
+        if (delta) text += delta;
         if (parsed.truncated === true) truncated = true;
       } catch {
         // A frame we cannot parse is skipped, but only AFTER buffering has had its

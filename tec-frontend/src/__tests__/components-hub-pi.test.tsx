@@ -382,7 +382,11 @@ describe('AIDrawer', () => {
     render(<AIDrawer open={true} onClose={vi.fn()} />);
     const sendBtn = screen.getByText('↑');
     fireEvent.click(sendBtn);
-    expect(fetch).not.toHaveBeenCalled();
+    // Scoped to the CHAT call: opening the drawer also fetches the user's own
+    // personalization context, which is not a message and must not fail this guard.
+    const chatCalls = (fetch as unknown as { mock?: { calls: unknown[][] } }).mock?.calls
+      ?.filter(c => String(c[0]).includes('/api/ai/chat')) ?? [];
+    expect(chatCalls).toHaveLength(0);
   });
 
   it('updates input value on change', () => {

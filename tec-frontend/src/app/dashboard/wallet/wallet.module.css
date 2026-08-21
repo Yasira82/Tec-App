@@ -24,7 +24,8 @@
   background: linear-gradient(135deg, rgba(201, 168, 76, 0.1), rgba(201, 168, 76, 0.05));
   border: 1px solid var(--gold-dim);
   border-radius: 16px;
-  padding: 48px;
+  /* Fluid padding: a flat 48px left only ~264px of a 360px phone for the amount. */
+  padding: clamp(24px, 7vw, 48px);
   text-align: center;
   margin-bottom: 32px;
 }
@@ -36,10 +37,18 @@
 }
 
 .balanceAmount {
-  font-size: 64px;
+  /* Fluid type: a fixed 64px overflowed the card on a phone, so a balance like
+     "2184.00 π" was clipped mid-digit and the π wrapped onto its own line. */
+  font-size: clamp(30px, 11vw, 64px);
   font-weight: 300;
   font-family: 'Cormorant Garamond', serif;
   margin-bottom: 24px;
+  /* Keep the amount and its π together on one line, and never spill the card. */
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.15;
 }
 
 .balanceActions {

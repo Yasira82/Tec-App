@@ -71,9 +71,13 @@ export function Sidebar({ user, onLogout }: Props) {
   const m      = t.dashboard.menu;
   const groups = buildGroups(m);
 
-  const { isStandalone, install } = useInstallApp();
+  const { isStandalone, installUrl, install, copyLink } = useInstallApp();
   const [installSteps, setInstallSteps] = useState(false);
+  const [copied,       setCopied]       = useState(false);
   const onInstall = async () => setInstallSteps(await install());
+  const onCopy    = async () => {
+    if (await copyLink()) { setCopied(true); setTimeout(() => setCopied(false), 2000); }
+  };
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -215,13 +219,26 @@ export function Sidebar({ user, onLogout }: Props) {
         )}
 
         {installSteps && (
-          <div style={{ padding: '8px 10px', marginBottom: 6, borderRadius: 'var(--radius-md)', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.12)' }}>
+          <div style={{ padding: '10px', marginBottom: 6, borderRadius: 'var(--radius-md)', background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.12)' }}>
             {[t.home.install.step1, t.home.install.step2, t.home.install.step3].map((step, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '4px 0' }}>
                 <span style={{ flexShrink: 0, width: 16, height: 16, borderRadius: 999, background: 'rgba(251,191,36,0.16)', color: 'var(--tec-gold)', fontSize: 9, fontWeight: 700, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>{i + 1}</span>
                 <span style={{ fontSize: 10, color: 'var(--tec-text-3)', lineHeight: 1.5 }}>{step}</span>
               </div>
             ))}
+
+            {/* The link itself + a copy button — the only step Pi Browser can do. */}
+            <div style={{ marginTop: 8, fontSize: 10, color: 'var(--tec-text-2)', wordBreak: 'break-all', userSelect: 'all', padding: '6px 8px', borderRadius: 8, background: 'rgba(0,0,0,0.3)' }}>
+              {installUrl}
+            </div>
+            <button onClick={onCopy} className="tec-btn"
+              style={{ width: '100%', marginTop: 6, padding: '7px 10px', borderRadius: 8, border: '1px solid rgba(251,191,36,0.3)', background: 'rgba(251,191,36,0.1)', color: 'var(--tec-gold)', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+              {copied ? t.home.install.copied : t.home.install.copyLink}
+            </button>
+
+            <div style={{ marginTop: 8, fontSize: 9, color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
+              {t.home.install.whyBrowser}
+            </div>
           </div>
         )}
 

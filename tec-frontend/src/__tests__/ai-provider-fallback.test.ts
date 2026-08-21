@@ -12,8 +12,12 @@
  *    more candidates were sitting in the list unused.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { GEMINI_MODELS } from '@/app/api/ai/chat/route';
 
 const KEY = 'test-key';
+/** The first candidate actually tried — read from the list, never hardcoded, so
+ *  reordering the candidates does not silently invalidate these tests. */
+const FIRST_GEMINI = GEMINI_MODELS[0];
 
 /** Build a fetch mock that answers per-model, and records the models it was asked for. */
 function modelRouter(answers: Record<string, { status: number; body?: string }>) {
@@ -81,8 +85,8 @@ describe('model fallback', () => {
     process.env.GEMINI_API_KEY   = KEY;
     process.env.AI_OVERLOAD_RETRY_MS = '1';
     const { fetchMock, asked } = modelRouter({
-      'gemini-flash-latest': { status: 503, body: '{"message":"This model is currently experiencing high demand."}' },
-      '*':                   { status: 200 },
+      [FIRST_GEMINI]: { status: 503, body: '{"message":"This model is currently experiencing high demand."}' },
+      '*':            { status: 200 },
     });
     vi.stubGlobal('fetch', fetchMock);
 
@@ -90,7 +94,7 @@ describe('model fallback', () => {
     expect(res.status).toBe(200);
     // It did NOT stop at the overloaded model — a sibling answered.
     expect(asked.length).toBeGreaterThan(1);
-    expect(asked[0]).toBe('gemini-flash-latest');
+    expect(asked[0]).toBe(FIRST_GEMINI);
   });
 
   it('retries the whole list once when every candidate is overloaded', async () => {
@@ -129,8 +133,8 @@ describe('model fallback', () => {
   it('keeps walking past a retired model id', async () => {
     process.env.GEMINI_API_KEY = KEY;
     const { fetchMock, asked } = modelRouter({
-      'gemini-flash-latest': { status: 404, body: 'The model `x` does not exist or you do not have access to it' },
-      '*':                   { status: 200 },
+      [FIRST_GEMINI]: { status: 404, body: 'The model `x` does not exist or you do not have access to it' },
+      '*':            { status: 200 },
     });
     vi.stubGlobal('fetch', fetchMock);
 

@@ -163,10 +163,25 @@ const callClaude = async (
  * costs one fast 404, not an outage. The env override is always tried first, so a
  * known-good model can be pinned without a deploy.
  */
+/**
+ * ⚠️ ORDER IS THE CONTRACT — the head of each list is a model VERIFIED in production.
+ *
+ * When these lists were introduced, they were filled from recollection, and that quietly
+ * DROPPED the ids that #154 had already researched and pinned as current:
+ * `gemini-3.6-flash` and `llama-3.1-8b-instant`. Gemini's replacements were all OLDER
+ * (2.5 / 2.0 / 1.5) — on a free tier those are the crowded ones, which is exactly where
+ * the "This model is currently experiencing high demand" 503s came from. A change meant
+ * to make the assistant survive model rotation is what took the working model away.
+ *
+ * The rule this encodes: a newer model id looking unfamiliar is not evidence that it is
+ * wrong — it is evidence that it was released recently. NEVER remove or demote an id that
+ * production has served traffic on. Add candidates BELOW it; verify with /api/ai/health
+ * before reordering. `models-pinned.test.ts` fails the build if a pinned id disappears.
+ */
 export const GROQ_MODELS = [
   process.env.GROQ_MODEL,
+  'llama-3.1-8b-instant',      // pinned by #154 — do not demote without evidence
   'llama-3.3-70b-versatile',
-  'llama-3.1-8b-instant',
   'openai/gpt-oss-20b',
   'gemma2-9b-it',
   // Older ids, kept LAST: Groq has been retiring these. A retired id costs one fast 404
@@ -178,7 +193,8 @@ export const GROQ_MODELS = [
 
 export const GEMINI_MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-flash-latest',   // Google's own moving alias — survives rotation
+  'gemini-3.6-flash',          // pinned by #154 — the model that was actually serving
+  'gemini-flash-latest',       // Google's own moving alias
   'gemini-2.5-flash',
   'gemini-2.0-flash',
   'gemini-1.5-flash',

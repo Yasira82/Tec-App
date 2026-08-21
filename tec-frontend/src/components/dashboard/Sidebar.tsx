@@ -4,6 +4,7 @@ import Link          from 'next/link';
 import { usePathname } from 'next/navigation';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/lib/i18n';
+import { useSubscriptionPlan } from '@/lib-client/hooks/useSubscriptionPlan';
 
 type NavItem  = { icon: string; label: string; href: string };
 type NavGroup = { label: string; items: NavItem[] };
@@ -45,6 +46,9 @@ const NAV_GROUPS: NavGroup[] = [
 export function Sidebar({ user, onLogout }: Props) {
   const pathname    = usePathname();
   const { t }       = useTranslation();
+  // Real plan from commerce — NOT user.subscriptionPlan (the session always says FREE).
+  const { plan, isPaid } = useSubscriptionPlan();
+  const planLabel   = plan === 'FREE' ? 'Free' : plan.charAt(0) + plan.slice(1).toLowerCase();
 
   const isActive = (href: string) =>
     href === '/dashboard'
@@ -97,16 +101,20 @@ export function Sidebar({ user, onLogout }: Props) {
             @{user?.piUsername}
           </div>
           <div style={{ fontSize: 10, color: 'var(--tec-text-3)' }}>
-            {user?.subscriptionPlan ?? 'Free Plan'}
+            {planLabel} Plan
           </div>
         </div>
+        {/* Plan badge — the REAL commerce plan (the auth session always says FREE).
+            Previously this badge rendered the KYC state, so it read "FREE" purely
+            because KYC was pending — two unrelated facts under one label. */}
         <div style={{
           fontSize: 9, fontWeight: 700, letterSpacing: 1,
-          color: 'var(--tec-gold)', background: 'var(--tec-gold-glow)',
-          border: '1px solid var(--tec-border-gold)',
+          color: isPaid ? '#a78bfa' : 'var(--tec-gold)',
+          background: isPaid ? 'rgba(139,92,246,0.12)' : 'var(--tec-gold-glow)',
+          border: `1px solid ${isPaid ? 'rgba(139,92,246,0.35)' : 'var(--tec-border-gold)'}`,
           borderRadius: 'var(--radius-full)', padding: '2px 8px',
         }}>
-          {user?.kycVerified ? 'KYC ✓' : 'FREE'}
+          {plan}
         </div>
       </div>
 

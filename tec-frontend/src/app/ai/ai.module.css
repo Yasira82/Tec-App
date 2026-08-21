@@ -373,4 +373,13 @@
   .chatArea { order: 2; }
   .panel:first-child { order: 1; }
   .panel:last-child { order: 3; }
+
+  /* 78% of a phone screen leaves the answer in a squeezed column with the text
+     crowding its own border. On mobile the bubble takes the width it needs. */
+  .messageBubble { max-width: 92%; }
+
+  /* A wide block (a table the model emitted) must scroll INSIDE the bubble, never
+     stretch it — a bubble wider than the screen pushes the whole page sideways. */
+  .messageBubble > * { max-width: 100%; }
+  .messages { overflow-x: hidden; }
 }

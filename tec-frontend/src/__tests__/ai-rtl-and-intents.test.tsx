@@ -123,3 +123,51 @@ describe('reply formatting polish', () => {
     expect(document.querySelector('a[href="/hub"]')?.textContent).toContain('🔷');
   });
 });
+
+describe('markdown tables', () => {
+  const TABLE = [
+    '| # | التطبيق | النطاق |',
+    '|---|---------|--------|',
+    '| 1 | Hub | hub.tecosystem.app |',
+    '| 2 | Commerce | commerce.tecosystem.app |',
+  ].join('\n');
+
+  it('renders a real table instead of raw pipes', () => {
+    const { container } = render(<RichText text={TABLE} />);
+    expect(container.querySelector('table')).toBeTruthy();
+    expect(container.querySelectorAll('tbody tr')).toHaveLength(2);
+    // The separator row is structure, not content — it must never reach the screen.
+    expect(container.textContent).not.toContain('|');
+    expect(container.textContent).not.toContain('---');
+  });
+
+  it('keeps the header row out of the body', () => {
+    const { container } = render(<RichText text={TABLE} />);
+    expect(container.querySelectorAll('thead th')).toHaveLength(3);
+    expect(container.querySelector('thead')?.textContent).toContain('التطبيق');
+  });
+
+  it('still autolinks inside a table cell', () => {
+    const { container } = render(<RichText text={TABLE} />);
+    const link = container.querySelector('tbody a');
+    expect(link?.getAttribute('href')).toBe('https://hub.tecosystem.app');
+  });
+
+  it('lets a wide table scroll instead of stretching the bubble', () => {
+    const { container } = render(<RichText text={TABLE} />);
+    const wrap = container.querySelector('table')?.parentElement;
+    expect(wrap?.style.overflowX).toBe('auto');
+    expect(wrap?.style.maxWidth).toBe('100%');
+  });
+
+  it('does not mistake a lone pipe in prose for a table', () => {
+    const { container } = render(<RichText text={'اكتب a | b عشان تفصل'} />);
+    expect(container.querySelector('table')).toBeNull();
+  });
+
+  it('resumes normal rendering after the table ends', () => {
+    const { container } = render(<RichText text={`${TABLE}\n\nكل تطبيق له مجال.`} />);
+    expect(container.querySelector('table')).toBeTruthy();
+    expect(container.textContent).toContain('كل تطبيق له مجال.');
+  });
+});

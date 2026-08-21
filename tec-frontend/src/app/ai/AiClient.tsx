@@ -363,7 +363,10 @@ export default function AiClient() {
                   {msg.role === 'assistant' && (
                     <span className={styles.messageAvatar}>🤖</span>
                   )}
-                  <div className={styles.messageBubble}>
+                  {/* dir="auto" — the page direction follows the UI LOCALE, but a reply
+                      follows the QUESTION. An Arabic answer inside an English-locale page
+                      rendered with its punctuation at the wrong end until this was set. */}
+                  <div className={styles.messageBubble} dir="auto">
                     {/* Rendered, not printed: the model emits **bold** and bullets, and
                         a raw <p> put the asterisks on screen. Same renderer as the Hub. */}
                     <RichText text={msg.content} className={styles.messageContent} />
@@ -432,6 +435,7 @@ export default function AiClient() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
+                dir="auto"
                 placeholder={locale === 'ar' ? 'اكتب رسالتك...' : 'Type your message...'}
                 rows={1}
                 disabled={isLoading}

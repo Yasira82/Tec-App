@@ -3,6 +3,9 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createSseReader } from '@/lib/ai-stream';
 import { RichText }       from '@/components/ai/RichText';
+import { NavChips }       from '@/components/ai/NavChips';
+import { parseNavIntents } from '@/lib/ai/nav-intents';
+import type { NavIntent }  from '@/lib/ai/nav-intents';
 
 /** How many previous turns travel with each question, so follow-ups keep context. */
 const HISTORY_TURNS = 8;
@@ -41,11 +44,34 @@ function errorMessage(status: number, code?: string): string {
   }
 }
 
+const WELCOME = `مرحباً! أنا مساعد TEC 🤖 أقدر أساعدك في:
+- استكشاف الـ 24 تطبيق في المنظومة
+- الإجابة على أسئلتك عن Pi Network
+- إرشادك للتطبيق المناسب لاحتياجاتك
+
+إزاي أقدر أساعدك النهاردة؟`;
+
+const SUGGESTIONS = ['ايه هو TEC؟', 'وريني رصيدي', 'أنهي تطبيق يناسبني؟'];
+
+const aiBubble: React.CSSProperties = {
+  padding: '10px 14px', borderRadius: '18px 18px 18px 4px',
+  background: '#0d0d1a', border: '1px solid #ffffff08',
+  fontSize: 13, color: '#fff', lineHeight: 1.6,
+};
+
+const suggestionChip: React.CSSProperties = {
+  padding: '6px 12px', borderRadius: 999, cursor: 'pointer',
+  border: '1px solid #FBBF2440', background: 'transparent',
+  color: '#FBBF24', fontSize: 12, fontFamily: 'inherit',
+};
+
 /** One rendered bubble. `streaming` marks the reply currently being written. */
 interface ChatMessage {
   role:       'user' | 'ai';
   text:       string;
   streaming?: boolean;
+  /** Destinations the model recommended, once the reply is complete. */
+  intents?:   NavIntent[];
 }
 
 export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -95,9 +121,16 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
     const replyAt = (t: string) =>
       setMessages(prev => prev.map((m, i) =>
         i === prev.length - 1 && m.role === 'ai' ? { ...m, text: t } : m));
-    const settle = (t: string) =>
-      setMessages(prev => prev.map((m, i) =>
-        i === prev.length - 1 && m.role === 'ai' ? { role: 'ai', text: t } : m));
+    // Strip the machine-readable nav marker out of the prose and surface it as a chip.
+    // Without this the model's `[[go:nx]]` was printed to the user as literal text — the
+    // /ai page has always parsed it; this drawer never did.
+    const settle = (t: string, withIntents = true) =>
+      setMessages(prev => prev.map((m, i) => {
+        if (i !== prev.length - 1 || m.role !== 'ai') return m;
+        if (!withIntents) return { role: 'ai' as const, text: t };
+        const { clean, intents } = parseNavIntents(t);
+        return { role: 'ai' as const, text: clean, intents: intents.length ? intents : undefined };
+      }));
 
     try {
       // Wait for the context, but never longer than this — a stalled personalization
@@ -135,7 +168,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
       // "no response" that hides it (C-96 — no silent failures).
       if (!res.ok) {
         const body = await res.json().catch(() => null) as { code?: string } | null;
-        settle(errorMessage(res.status, body?.code));
+        settle(errorMessage(res.status, body?.code), false);
         return;
       }
 
@@ -165,7 +198,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         ? final + (truncated ? TRUNCATED_NOTE : '')
         : 'لم أتمكّن من الرد على هذه الرسالة — جرّب تصيغ سؤالك بشكل أوضح.');
     } catch {
-      settle('خطأ في الاتصال — حاول مرة أخرى.');
+      settle('خطأ في الاتصال — حاول مرة أخرى.', false);
     } finally { setLoading(false); }
     // `messages` is a real dependency — the request carries the prior turns, so reading
     // a stale copy would silently send an empty history and break follow-up questions.
@@ -192,7 +225,19 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         </div>
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '0 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '32px 0', color: '#4a4a5a', fontSize: 13 }}>مرحباً! أنا مساعدك الذكي على TEC 🤖</div>
+            // The /ai page greets the user and says what it can do; this drawer showed a
+            // single grey line, so the same assistant looked like two different products.
+            // Rendered, not stored — it must never travel back as conversation history.
+            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+              <div dir="auto" style={{ ...aiBubble, maxWidth: '90%' }}>
+                <RichText text={WELCOME} />
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 10 }}>
+                  {SUGGESTIONS.map(q => (
+                    <button key={q} onClick={() => setInput(q)} style={suggestionChip}>{q}</button>
+                  ))}
+                </div>
+              </div>
+            </div>
           )}
           {messages.map((m, i) => {
             // An empty streaming bubble would be a bare box — the dots stand in for it
@@ -206,16 +251,17 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             }
             return (
               <div key={i} style={{ display: 'flex', justifyContent: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                <div style={{
-                  maxWidth: '80%', padding: '10px 14px',
+                <div dir="auto" style={{
+                  maxWidth: '85%', padding: '10px 14px',
                   borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
                   background: m.role === 'user' ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#0d0d1a',
                   border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
-                  fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.5,
+                  fontSize: 13, color: m.role === 'user' ? '#0a0800' : '#fff', lineHeight: 1.6,
                   whiteSpace: 'pre-wrap', wordBreak: 'break-word',
                 }}>
                   {m.role === 'ai' ? <RichText text={m.text} /> : m.text}
                   {m.streaming && <span style={{ opacity: 0.5 }}>▌</span>}
+                  {m.intents && <NavChips intents={m.intents} dir="rtl" locale="ar" />}
                 </div>
               </div>
             );
@@ -224,6 +270,9 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0' }}>
           <input value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && send()}
             placeholder="اسأل TEC AI..."
+            // dir="auto" — the field had NO direction, so mixing Arabic with a Latin word
+            // ("ايه dx") rendered the two runs in the wrong order as the user typed.
+            dir="auto"
             style={{ flex: 1, background: '#0B1020', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none' }} />
           <button onClick={send} disabled={loading || !input.trim()}
             style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>

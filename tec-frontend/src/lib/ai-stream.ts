@@ -101,10 +101,19 @@ export type RichToken =
   | { kind: 'code'; value: string }
   | { kind: 'link'; value: string; href: string };
 
-export interface RichLine {
-  kind:   'text' | 'bullet' | 'heading' | 'rule';
-  tokens: RichToken[];
+export type RichLine =
+  | { kind: 'text' | 'bullet' | 'heading' | 'rule'; tokens: RichToken[] }
+  /** A markdown table. Without this the pipes reached the screen as raw `| a | b |`. */
+  | { kind: 'table'; header: RichToken[][]; rows: RichToken[][][] };
+
+/** `| a | b |` → ['a', 'b'] — outer pipes dropped, inner cells trimmed. */
+function splitRow(line: string): string[] {
+  return line.trim().replace(/^\||\|$/g, '').split('|').map(c => c.trim());
 }
+
+const isTableRow  = (l: string) => /\|/.test(l) && l.trim().startsWith('|');
+/** The `|---|:--:|` line directly under a header is what makes a table a table. */
+const isTableRule = (l: string) => /^\s*\|?[\s:|-]*-[\s:|-]*\|?\s*$/.test(l) && /\|/.test(l);
 
 /**
  * A bare URL or TEC domain the model wrote in prose. Restricted on purpose: a greedy
@@ -150,17 +159,42 @@ export function parseInline(line: string): RichToken[] {
   return tokens;
 }
 
-/** Split an answer into renderable lines, classifying bullets and headings. */
+/**
+ * Split an answer into renderable blocks.
+ *
+ * Line-by-line for everything except tables, which are the one construct that spans
+ * lines: a header row, a `|---|` rule, then data rows. Asking "what is app N?" produces
+ * one routinely, and every pipe was reaching the user as literal text.
+ */
 export function parseRich(text: string): RichLine[] {
-  return text.split('\n').map((raw) => {
-    const line = raw.trimEnd();
+  const src: string[] = text.split('\n');
+  const out: RichLine[] = [];
+
+  for (let i = 0; i < src.length; i++) {
+    const line = src[i].trimEnd();
+
+    // ── table: a header row followed by a separator row ──
+    if (isTableRow(line) && i + 1 < src.length && isTableRule(src[i + 1])) {
+      const header = splitRow(line).map(parseInline);
+      const rows: RichToken[][][] = [];
+      i += 2;                                     // skip the header and its rule
+      while (i < src.length && isTableRow(src[i])) {
+        rows.push(splitRow(src[i]).map(parseInline));
+        i++;
+      }
+      i--;                                        // the outer loop advances again
+      out.push({ kind: 'table', header, rows });
+      continue;
+    }
+
     // A markdown rule (`---`) was reaching the screen as three literal dashes. Matched
     // BEFORE the bullet rule, which would otherwise claim it.
-    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) return { kind: 'rule' as const, tokens: [] };
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) { out.push({ kind: 'rule', tokens: [] }); continue; }
     const bullet = /^\s*[-*•]\s+(.*)$/.exec(line);
-    if (bullet) return { kind: 'bullet' as const, tokens: parseInline(bullet[1]) };
+    if (bullet)  { out.push({ kind: 'bullet', tokens: parseInline(bullet[1]) }); continue; }
     const heading = /^\s*#{1,6}\s+(.*)$/.exec(line);
-    if (heading) return { kind: 'heading' as const, tokens: parseInline(heading[1]) };
-    return { kind: 'text' as const, tokens: parseInline(line) };
-  });
+    if (heading) { out.push({ kind: 'heading', tokens: parseInline(heading[1]) }); continue; }
+    out.push({ kind: 'text', tokens: parseInline(line) });
+  }
+  return out;
 }

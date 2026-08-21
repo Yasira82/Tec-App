@@ -90,3 +90,36 @@ describe('bidirectional text', () => {
     expect(screen.getByPlaceholderText('اسأل TEC AI...')).toHaveValue('وريني رصيدي');
   });
 });
+
+describe('reply formatting polish', () => {
+  it('renders a markdown rule as a divider, not three dashes', () => {
+    const { container } = render(<RichText text={'قبل\n---\nبعد'} />);
+    expect(container.querySelector('hr')).toBeTruthy();
+    expect(container.textContent).not.toContain('---');
+  });
+
+  it('links a bare TEC domain the model wrote in prose', () => {
+    const { container } = render(<RichText text={'افتح epic.tecosystem.app دلوقتي'} />);
+    const a = container.querySelector('a');
+    expect(a?.getAttribute('href')).toBe('https://epic.tecosystem.app');
+    expect(a?.textContent).toBe('epic.tecosystem.app');
+  });
+
+  it('keeps sentence punctuation out of the link', () => {
+    const { container } = render(<RichText text={'زور nx.tecosystem.app.'} />);
+    expect(container.querySelector('a')?.getAttribute('href')).toBe('https://nx.tecosystem.app');
+    expect(container.textContent).toContain('.');
+  });
+
+  it('does not linkify ordinary prose', () => {
+    const { container } = render(<RichText text={'ده نص عادي. مفيش روابط هنا'} />);
+    expect(container.querySelector('a')).toBeNull();
+  });
+
+  it('shows the app emoji on a nav chip so it is not a bare word', async () => {
+    stubChat('روح للـ Hub.\n\n[[go:tec]]');
+    await ask();
+    await waitFor(() => expect(document.querySelector('a[href="/hub"]')).toBeTruthy());
+    expect(document.querySelector('a[href="/hub"]')?.textContent).toContain('🔷');
+  });
+});

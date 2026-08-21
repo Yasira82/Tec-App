@@ -293,7 +293,11 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   return (
     <>
       <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, backdropFilter: 'blur(4px)' }} />
-      <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0B1020', borderTop: '1px solid #FBBF2420', borderRadius: '24px 24px 0 0', padding: '0 0 32px', maxHeight: '75vh', display: 'flex', flexDirection: 'column' }}>
+      {/* Near-fullscreen. It was capped at 75vh, which on a phone left a long answer
+          scrolling inside a third of the screen while two thirds sat behind a dim
+          overlay. `top`+`bottom` rather than a height unit: it needs no dvh support and
+          keeps the drawer pinned when the mobile URL bar shows or hides. */}
+      <div style={{ position: 'fixed', top: '5vh', bottom: 0, left: 0, right: 0, zIndex: 301, background: '#0B1020', borderTop: '1px solid #FBBF2420', borderRadius: '24px 24px 0 0', padding: '0 0 24px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
         </div>

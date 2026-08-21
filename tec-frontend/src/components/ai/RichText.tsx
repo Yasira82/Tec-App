@@ -18,6 +18,9 @@ export function RichText({ text, className }: { text: string; className?: string
   return (
     <div className={className}>
       {lines.map((line, i) => (
+        line.kind === 'rule' ? (
+          <hr key={i} style={{ border: 0, borderTop: '1px solid rgba(255,255,255,0.10)', margin: '10px 0' }} />
+        ) :
         // dir="auto" per LINE, not per bubble: the browser picks direction from the
         // first strong character, so an Arabic sentence containing "Pi" or "NX" keeps
         // its punctuation at the correct end. Without it, an Arabic reply rendered in an
@@ -33,6 +36,15 @@ export function RichText({ text, className }: { text: string; className?: string
           <span>
             {line.tokens.map((tok, j) =>
               tok.kind === 'bold' ? <strong key={j}>{tok.value}</strong>
+              : tok.kind === 'link' ? (
+                // A bare domain the model wrote in prose ("epic.tecosystem.app") was
+                // plain text the user had to retype. Opened in a new tab so the
+                // conversation is not lost behind the navigation.
+                <a key={j} href={tok.href} target="_blank" rel="noopener noreferrer"
+                   style={{ color: '#FBBF24', textDecoration: 'underline', wordBreak: 'break-all' }}>
+                  {tok.value}
+                </a>
+              )
               : tok.kind === 'code' ? (
                 <code key={j} style={{
                   background: 'rgba(255,255,255,0.08)', borderRadius: 4,

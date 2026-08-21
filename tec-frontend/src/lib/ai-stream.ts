@@ -98,28 +98,55 @@ export function createSseReader(): SseReader {
 export type RichToken =
   | { kind: 'text'; value: string }
   | { kind: 'bold'; value: string }
-  | { kind: 'code'; value: string };
+  | { kind: 'code'; value: string }
+  | { kind: 'link'; value: string; href: string };
 
 export interface RichLine {
-  kind:   'text' | 'bullet' | 'heading';
+  kind:   'text' | 'bullet' | 'heading' | 'rule';
   tokens: RichToken[];
 }
 
+/**
+ * A bare URL or TEC domain the model wrote in prose. Restricted on purpose: a greedy
+ * URL matcher turns ordinary Arabic punctuation into broken links, so only an explicit
+ * https:// or a known TEC host (`*.tecosystem.app`, `*.pi`) is linked.
+ */
+const AUTOLINK = /(https?:\/\/[^\s<>"']+|\b[a-z0-9-]+\.(?:tecosystem\.app|pi)\b)/gi;
+
 /** Split one line into text / **bold** / `code` runs. */
+/** Split plain prose into text and autolinked URLs. */
+function linkify(text: string): RichToken[] {
+  const out: RichToken[] = [];
+  let last = 0;
+  let m: RegExpExecArray | null;
+  AUTOLINK.lastIndex = 0;
+
+  while ((m = AUTOLINK.exec(text)) !== null) {
+    if (m.index > last) out.push({ kind: 'text', value: text.slice(last, m.index) });
+    // Trailing sentence punctuation belongs to the sentence, not the URL.
+    const raw  = m[0].replace(/[.,،؛:)\]]+$/, '');
+    const href = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+    out.push({ kind: 'link', value: raw, href });
+    last = m.index + raw.length;
+  }
+  if (last < text.length) out.push({ kind: 'text', value: text.slice(last) });
+  return out;
+}
+
 export function parseInline(line: string): RichToken[] {
   const tokens: RichToken[] = [];
-  // Matches **bold** or `code`; anything else is literal text.
+  // Matches **bold** or `code`; anything else is prose (and may contain a URL).
   const re = /\*\*([^*]+)\*\*|`([^`]+)`/g;
   let last = 0;
   let m: RegExpExecArray | null;
 
   while ((m = re.exec(line)) !== null) {
-    if (m.index > last) tokens.push({ kind: 'text', value: line.slice(last, m.index) });
+    if (m.index > last) tokens.push(...linkify(line.slice(last, m.index)));
     if (m[1] !== undefined)      tokens.push({ kind: 'bold', value: m[1] });
     else if (m[2] !== undefined) tokens.push({ kind: 'code', value: m[2] });
     last = m.index + m[0].length;
   }
-  if (last < line.length) tokens.push({ kind: 'text', value: line.slice(last) });
+  if (last < line.length) tokens.push(...linkify(line.slice(last)));
   return tokens;
 }
 
@@ -127,6 +154,9 @@ export function parseInline(line: string): RichToken[] {
 export function parseRich(text: string): RichLine[] {
   return text.split('\n').map((raw) => {
     const line = raw.trimEnd();
+    // A markdown rule (`---`) was reaching the screen as three literal dashes. Matched
+    // BEFORE the bullet rule, which would otherwise claim it.
+    if (/^\s*(-{3,}|\*{3,}|_{3,})\s*$/.test(line)) return { kind: 'rule' as const, tokens: [] };
     const bullet = /^\s*[-*•]\s+(.*)$/.exec(line);
     if (bullet) return { kind: 'bullet' as const, tokens: parseInline(bullet[1]) };
     const heading = /^\s*#{1,6}\s+(.*)$/.exec(line);

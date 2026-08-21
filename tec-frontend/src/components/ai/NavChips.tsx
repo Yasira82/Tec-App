@@ -37,7 +37,12 @@ export function NavChips({
         // straight into JSX throws "Objects are not valid as a React child", which
         // unmounts the whole reply — the answer vanished instead of showing a chip.
         const label   = intent.label ?? t(intent.name, locale);
-        const content = <>{label} <span aria-hidden>{arrow}</span></>;
+        // The registry name alone can be a bare transliteration ("تك"), which reads as
+        // nothing on a button. The emoji carries the app identity the Hub grid already
+        // taught the user.
+        const content = (
+          <>{intent.emoji && <span aria-hidden>{intent.emoji}</span>}{label} <span aria-hidden>{arrow}</span></>
+        );
         const key     = intent.action ? `${intent.slug}:${intent.action}` : intent.slug;
 
         // Plain anchors on purpose, internal paths included. next/link needs the app

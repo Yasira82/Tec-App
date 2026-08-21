@@ -10,6 +10,20 @@ interface Message {
   content: string;
 }
 
+/**
+ * Last provider that actually answered, remembered per edge instance.
+ *
+ * Providers were always tried in a FIXED order (claude → groq → gemini). When the
+ * first one is down or throttled, every single request pays its full timeout before
+ * falling through — so one dead provider makes the whole assistant feel slow, request
+ * after request, even though a healthy provider is sitting right behind it.
+ *
+ * Trying the last known-good provider first turns that repeated cost into a one-off.
+ * Best-effort only: it is per-instance memory, never correctness — the full fallback
+ * chain still runs behind it.
+ */
+let lastGoodProvider: string | null = null;
+
 // ── Auth gate ─────────────────────────────────────────────
 // The AI providers cost real money, so this endpoint is for authenticated TEC
 // users ONLY — an open endpoint can be drained by anyone. Verify the TEC session
@@ -123,29 +137,88 @@ const callClaude = async (
   });
 };
 
+/**
+ * Model rotation is the single biggest source of AI outages here: a hardcoded model id
+ * gets retired (or the key loses access to it) and the provider starts answering
+ *   404 "The model `x` does not exist or you do not have access to it"
+ * — which reads as "the whole assistant is down". It has now happened twice.
+ *
+ * So no single model id is trusted. Each provider carries a CANDIDATE LIST, tried in
+ * order, skipping anything the API reports as missing/inaccessible. A rejected model
+ * costs one fast 404, not an outage. The env override is always tried first, so a
+ * known-good model can be pinned without a deploy.
+ */
+const GROQ_MODELS = [
+  process.env.GROQ_MODEL,
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant',
+  'llama3-8b-8192',
+  'llama3-70b-8192',
+  'gemma2-9b-it',
+  'mixtral-8x7b-32768',
+].filter(Boolean) as string[];
+
+const GEMINI_MODELS = [
+  process.env.GEMINI_MODEL,
+  'gemini-flash-latest',   // Google's own moving alias — survives rotation
+  'gemini-2.5-flash',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash',
+].filter(Boolean) as string[];
+
+/** True when a failed response means "this model id is unusable" (so: try the next). */
+async function isModelRejection(res: Response): Promise<boolean> {
+  if (res.status !== 404 && res.status !== 400) return false;
+  const body = typeof res.text === 'function' ? await res.text().catch(() => '') : '';
+  return /model/i.test(body) &&
+    /(not exist|not found|decommission|unsupported|no longer|access to it)/i.test(body);
+}
+
+/** Remembers the model that worked, so a healthy request never re-probes the list. */
+const lastGoodModel: Record<string, string> = {};
+
+/** Try each candidate model until one is not rejected as missing/inaccessible. */
+async function withModelFallback(
+  provider: string,
+  candidates: string[],
+  call: (model: string) => Promise<Response>,
+): Promise<Response> {
+  const known  = lastGoodModel[provider];
+  const models = known ? [known, ...candidates.filter(m => m !== known)] : candidates;
+
+  let last: Response | null = null;
+  for (const model of models) {
+    const res = await call(model);
+    if (res.ok) { lastGoodModel[provider] = model; return res; }
+    if (!(await isModelRejection(res))) return res;   // a real error — report it
+    last = res;                                       // retired model — try the next
+  }
+  return last ?? new Response('no model candidates', { status: 500 });
+}
+
 // ── 2️⃣ Groq ──────────────────────────────────────────────
 const callGroq = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
-): Promise<Response> => {
-  return fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method:  'POST',
-    signal,
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      // Providers rotate models often; override via env when one is retired.
-      model:      process.env.GROQ_MODEL ?? 'llama-3.1-8b-instant',
-      max_tokens: 1024,
-      messages:   [{ role: 'system', content: systemPrompt }, ...messages],
-      stream:     true,
+): Promise<Response> =>
+  withModelFallback('groq', GROQ_MODELS, (model) =>
+    fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method:  'POST',
+      signal,
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 1024,
+        messages:   [{ role: 'system', content: systemPrompt }, ...messages],
+        stream:     true,
+      }),
     }),
-  });
-};
+  );
 
 // ── 3️⃣ Gemini ────────────────────────────────────────────
 const callGemini = async (
@@ -159,18 +232,20 @@ const callGemini = async (
     parts: [{ text: m.content }],
   }));
 
-  return fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GEMINI_MODEL ?? 'gemini-3.6-flash'}:streamGenerateContent?alt=sse&key=${apiKey}`,
-    {
-      method:  'POST',
-      signal,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents:           geminiMessages,
-        generationConfig:   { maxOutputTokens: 1024 },
-      }),
-    },
+  return withModelFallback('gemini', GEMINI_MODELS, (model) =>
+    fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${apiKey}`,
+      {
+        method:  'POST',
+        signal,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          system_instruction: { parts: [{ text: systemPrompt }] },
+          contents:           geminiMessages,
+          generationConfig:   { maxOutputTokens: 1024 },
+        }),
+      },
+    ),
   );
 };
 
@@ -284,7 +359,14 @@ export async function POST(req: NextRequest) {
     // is guarded by a timeout so a HUNG upstream (headers never arrive) can't stall the
     // whole request — we abort and move to the next provider. Once headers arrive the
     // timer is cleared and the body streams freely.
-    const PROVIDER_TIMEOUT_MS = 12_000;
+    // Budget for a provider to return RESPONSE HEADERS. Once they arrive the timer is
+    // cleared and the answer streams for as long as it needs, so this never truncates a
+    // long reply. Tunable without a deploy via AI_PROVIDER_TIMEOUT_MS.
+    const PROVIDER_TIMEOUT_MS = Number(process.env.AI_PROVIDER_TIMEOUT_MS) || 9_000;
+    // The LAST provider left gets a longer budget: there is nothing to fall through to,
+    // so cutting it off early turns a slow answer into NO answer. Gemini was being
+    // aborted at 12s and the user was told "all providers failed".
+    const LAST_PROVIDER_TIMEOUT_MS = Math.max(PROVIDER_TIMEOUT_MS, 20_000);
     // Capture WHY each provider fails (status + body snippet) so a 502 tells us the real
     // cause — invalid key (401), decommissioned model (400/404), quota (429) — instead of
     // a black-box "all failed".
@@ -292,9 +374,10 @@ export async function POST(req: NextRequest) {
     const attempt = async (
       name: string,
       call: (signal: AbortSignal) => Promise<Response>,
+      budgetMs: number = PROVIDER_TIMEOUT_MS,
     ): Promise<Response | null> => {
       const controller = new AbortController();
-      const timer      = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+      const timer      = setTimeout(() => controller.abort(), budgetMs);
       try {
         const res = await call(controller.signal);
         clearTimeout(timer);
@@ -317,13 +400,23 @@ export async function POST(req: NextRequest) {
       ['gemini', geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s)],
     ];
 
+    // Put the last provider that worked at the front, so a provider that is currently
+    // down is not re-tried first on every request (paying its timeout each time).
+    const ordered = lastGoodProvider
+      ? [...providers].sort((a, b) =>
+          (b[0] === lastGoodProvider ? 1 : 0) - (a[0] === lastGoodProvider ? 1 : 0))
+      : providers;
+    const configured = ordered.filter(([, key]) => !!key);
+
     let response: Response | null = null;
     let provider = '';
-    for (const [name, key, call] of providers) {
-      if (!key || response) continue;
-      const res = await attempt(name, call);
+    for (let i = 0; i < configured.length && !response; i++) {
+      const [name, , call] = configured[i];
+      const isLast = i === configured.length - 1;
+      const res = await attempt(name, call, isLast ? LAST_PROVIDER_TIMEOUT_MS : PROVIDER_TIMEOUT_MS);
       if (res) { response = res; provider = name; }
     }
+    if (provider) lastGoodProvider = provider;
 
     if (!response || !response.body) {
       console.error('[AI] all providers failed:', failures.join(' | '));

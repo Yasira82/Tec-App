@@ -7,6 +7,13 @@ import { HubApp }        from '@/lib/hub/types';
 
 interface Props {
   apps: HubApp[];
+  /**
+   * Single-launch-authority override. When set (e.g. the Dashboard passes "/hub"),
+   * tapping any app navigates HERE instead of opening the app directly — so the Hub
+   * stays the ONE place apps launch from (C-47: Hub = Conductor / ecosystem routing;
+   * P1 Single Source of Truth). Unset on the Hub itself → tiles open the app.
+   */
+  openTo?: string;
 }
 
 const FAV_KEY    = 'tec_fav_apps';
@@ -60,7 +67,7 @@ function readList(key: string): string[] {
   } catch { return []; }
 }
 
-export function HubAppsGrid({ apps }: Props) {
+export function HubAppsGrid({ apps, openTo }: Props) {
   const router = useRouter();
   const [query,   setQuery]   = useState('');
   const [favs,    setFavs]    = useState<string[]>([]);
@@ -73,6 +80,14 @@ export function HubAppsGrid({ apps }: Props) {
 
   const openApp = useCallback((app: HubApp) => {
     haptic('light');
+    // Single-launch-authority: on surfaces that pass `openTo` (e.g. the Dashboard),
+    // a tap goes to the Hub to launch — never opens the app directly (P1/P2). No
+    // recents tracking here: the launch (and its recents) happens on the Hub.
+    if (openTo) {
+      if (openTo.startsWith('/api/') || openTo.startsWith('http')) window.location.href = openTo;
+      else router.push(openTo);
+      return;
+    }
     // Track recents (most-recent first, unique, capped).
     setRecents((prev) => {
       const next = [app.slug, ...prev.filter((s) => s !== app.slug)].slice(0, RECENT_MAX);
@@ -81,7 +96,7 @@ export function HubAppsGrid({ apps }: Props) {
     });
     if (app.href.startsWith('/api/') || app.href.startsWith('http')) window.location.href = app.href;
     else router.push(app.href);
-  }, [router]);
+  }, [router, openTo]);
 
   const toggleFav = useCallback((slug: string) => {
     haptic('light');

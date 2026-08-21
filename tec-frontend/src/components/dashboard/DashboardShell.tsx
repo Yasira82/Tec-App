@@ -8,6 +8,8 @@ interface Props {
   badge?:    { text: string; color?: 'gold' | 'green' | 'red' | 'blue' };
   actions?:  ReactNode;
   loading?:  boolean;
+  /** Text direction — pass 'rtl' for Arabic. Defaults to 'ltr' (unchanged for callers). */
+  dir?:      'ltr' | 'rtl';
   children:  ReactNode;
 }
 
@@ -33,13 +35,13 @@ const BADGE_COLORS = {
   blue:  { bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)',  color: '#3b82f6' },
 };
 
-export function DashboardShell({ title, subtitle, badge, actions, loading, children }: Props) {
-  if (loading) return <Skeleton />;
+export function DashboardShell({ title, subtitle, badge, actions, loading, dir = 'ltr', children }: Props) {
+  if (loading) return <div dir={dir}><Skeleton /></div>;
 
   const badgeStyle = badge ? BADGE_COLORS[badge.color ?? 'gold'] : null;
 
   return (
-    <div style={{ maxWidth: 960, margin: '0 auto' }}>
+    <div dir={dir} style={{ maxWidth: 960, margin: '0 auto' }}>
       {/* ── Page header ──────────────────────────── */}
       {(title || actions) && (
         <div style={{

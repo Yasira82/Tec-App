@@ -62,19 +62,13 @@ vi.mock('@/lib-client/pi/pi-auth', () => ({
   isPiBrowser:    vi.fn(() => false),
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: {
-      common:    { loading: 'Loading...' },
-      dashboard: { greeting: 'Good day', title: 'Dashboard' },
-      apps:      {},
-    },
-    locale:      'en',
-    setLanguage: vi.fn(),
-    dir:         'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('@/lib/i18n', async () => {
+  const { en } = await import('@/lib/i18n/en');
+  return {
+    useTranslation: () => ({ t: en, locale: 'en', setLocale: vi.fn(), setLanguage: vi.fn(), dir: 'ltr' }),
+    LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 vi.mock('@/lib/request-id', () => ({
   buildHeaders: vi.fn(() => ({ 'Content-Type': 'application/json', 'x-request-id': 'test-id' })),

@@ -432,7 +432,7 @@ export default function DashboardPage() {
           >
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4 }}>
               {hubApps.slice(0, 8).map(app => (
-                <button key={app.slug} onClick={() => setActiveTab('domains')} className="tec-btn"
+                <button key={app.slug} onClick={() => router.push('/hub')} className="tec-btn"
                   style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
                   <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05))', border: '1px solid rgba(251,191,36,0.28)', boxShadow: '0 4px 14px rgba(251,191,36,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
                     {app.emoji}
@@ -464,7 +464,7 @@ export default function DashboardPage() {
         <div className="tec-fade-in">
           {/* Identical polished launcher grid to the Hub — one component, one source */}
           <DashboardCard title="TEC Ecosystem" subtitle={`${LIVE_DOMAINS.length + COMING_SOON.length} total domains`} padding="0">
-            <HubAppsGrid apps={hubApps} />
+            <HubAppsGrid apps={hubApps} openTo="/hub" />
           </DashboardCard>
 
           {/* Coming Soon */}

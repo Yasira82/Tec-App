@@ -247,15 +247,13 @@ vi.mock('@/domains/_registry', () => ({
 }));
 
 // ─── i18n ────────────────────────────────────────────────────────
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: vi.fn(() => ({
-    t:           { common: { loading: 'Loading...' }, dashboard: { greeting: 'Hello' }, apps: {} },
-    locale:      'en',
-    setLanguage: vi.fn(),
-    dir:         'ltr',
-  })),
-  LocaleProvider: ({ children }: any) => <>{children}</>,
-}));
+vi.mock('@/lib/i18n', async () => {
+  const { en } = await import('@/lib/i18n/en');
+  return {
+    useTranslation: vi.fn(() => ({ t: en, locale: 'en', setLocale: vi.fn(), setLanguage: vi.fn(), dir: 'ltr' })),
+    LocaleProvider: ({ children }: any) => <>{children}</>,
+  };
+});
 
 // ─── haptic ──────────────────────────────────────────────────────
 vi.mock('@/lib/hub/utils', () => ({ haptic: vi.fn() }));

@@ -27,19 +27,13 @@ vi.mock('@/lib-client/hooks/usePiAuth', () => ({
   }),
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: {
-      common:    { loading: 'Loading...', login: 'Login', appName: 'TEC' },
-      dashboard: { title: 'Dashboard', domains: 'Domains', activity: 'Activity' },
-      apps:      {},
-    },
-    locale:      'en',
-    setLanguage: vi.fn(),
-    dir:         'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('@/lib/i18n', async () => {
+  const { en } = await import('@/lib/i18n/en');
+  return {
+    useTranslation: () => ({ t: en, locale: 'en', setLocale: vi.fn(), setLanguage: vi.fn(), dir: 'ltr' }),
+    LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 vi.mock('@/lib-client/hooks/useWallet', () => ({
   useWallet: () => ({

@@ -4,10 +4,13 @@ import { useCallback, useEffect, useState, useMemo } from 'react';
 import { useRouter }                                   from 'next/navigation';
 import { usePiAuth }                                   from '@/lib-client/hooks/usePiAuth';
 import { useTranslation }                              from '@/lib/i18n';
-import { getAccessToken }                              from '@/lib-client/pi/pi-auth';
+import { log, reportError }                            from '@/lib/observability';
 import { DashboardShell, DashboardCard }               from '@/components/dashboard';
 import { HubAppsGrid }                                  from '@/components/hub';
 import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
+
+/** Fill a "{n}" placeholder in an i18n string (word order-safe for RTL). */
+const fmt = (s: string, n: number | string) => s.replace('{n}', String(n));
 
 // ── Types ─────────────────────────────────────────────────
 interface Payment {
@@ -50,51 +53,62 @@ function StatCard({ label, value, sub, icon, accent }: {
   );
 }
 
-// ── Balance Chart (SVG) ────────────────────────────────────
-function BalanceChart({ payments }: { payments: Payment[] }) {
-  const W = 340; const H = 100; const PAD = { t: 10, r: 10, b: 24, l: 36 };
+// ── Balance Chart (SVG) — spent vs received, last 7 days ────
+const INFLOW_TYPES = ['credit', 'receive', 'refund', 'deposit'];
+
+function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale }: {
+  payments: Payment[]; noDataLabel: string; spentLabel: string; receivedLabel: string; locale: string;
+}) {
+  const W = 340; const H = 108; const PAD = { t: 10, r: 10, b: 24, l: 36 };
   const innerW = W - PAD.l - PAD.r;
   const innerH = H - PAD.t - PAD.b;
 
-  // بنبني daily spending من الـ payments
+  // Build daily spent (outflow) + received (inflow) from completed payments.
   const chartData = useMemo(() => {
-    const days: { label: string; amount: number }[] = [];
+    const days: { label: string; spent: number; received: number }[] = [];
     for (let i = 6; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const key = d.toDateString();
-      const label = d.toLocaleDateString('en-US', { weekday: 'short' });
-      const amount = payments
+      const label = d.toLocaleDateString(locale, { weekday: 'short' });
+      let spent = 0, received = 0;
+      payments
         .filter(p => new Date(p.createdAt).toDateString() === key && p.status === 'completed')
-        .reduce((s, p) => s + Number(p.amount), 0);
-      days.push({ label, amount });
+        .forEach(p => {
+          const amt = Number(p.amount);
+          if (INFLOW_TYPES.includes((p.type ?? '').toLowerCase())) received += amt;
+          else spent += amt;
+        });
+      days.push({ label, spent, received });
     }
     return days;
-  }, [payments]);
+  }, [payments, locale]);
 
-  const maxVal = Math.max(...chartData.map(d => d.amount), 1);
+  const maxVal = Math.max(...chartData.flatMap(d => [d.spent, d.received]), 1);
+  const xOf = (i: number) => PAD.l + (i / (chartData.length - 1)) * innerW;
+  const yOf = (v: number) => PAD.t + innerH - (v / maxVal) * innerH;
 
-  const points = chartData.map((d, i) => {
-    const x = PAD.l + (i / (chartData.length - 1)) * innerW;
-    const y = PAD.t + innerH - (d.amount / maxVal) * innerH;
-    return { x, y, ...d };
-  });
+  const seriesPolyline = (key: 'spent' | 'received') =>
+    chartData.map((d, i) => `${xOf(i)},${yOf(d[key])}`).join(' ');
 
-  const polyline = points.map(p => `${p.x},${p.y}`).join(' ');
-  const area = [
-    `${PAD.l},${PAD.t + innerH}`,
-    ...points.map(p => `${p.x},${p.y}`),
-    `${PAD.l + innerW},${PAD.t + innerH}`,
-  ].join(' ');
-
-  const hasData = chartData.some(d => d.amount > 0);
+  const hasData = chartData.some(d => d.spent > 0 || d.received > 0);
 
   return (
     <div style={{ width: '100%', overflowX: 'auto' }}>
+      {/* Legend */}
+      <div style={{ display: 'flex', gap: 16, marginBottom: 6 }}>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--tec-text-3)' }}>
+          <span style={{ width: 10, height: 3, borderRadius: 2, background: '#FBBF24' }} />{spentLabel}
+        </span>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--tec-text-3)' }}>
+          <span style={{ width: 10, height: 3, borderRadius: 2, background: '#22C55E' }} />{receivedLabel}
+        </span>
+      </div>
+
       {!hasData ? (
         <div style={{ height: H, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
           <span style={{ fontSize: 24, opacity: 0.3 }}>📊</span>
-          <span style={{ fontSize: 11, color: 'var(--tec-text-3)' }}>No spending data yet</span>
+          <span style={{ fontSize: 11, color: 'var(--tec-text-3)' }}>{noDataLabel}</span>
         </div>
       ) : (
         <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
@@ -115,13 +129,15 @@ function BalanceChart({ payments }: { payments: Payment[] }) {
             </text>
           ))}
 
-          {/* Area fill */}
-          <polygon points={area} fill="url(#gold-grad)" opacity={0.15} />
+          {/* Spent area + line */}
+          <polygon
+            points={[`${PAD.l},${PAD.t + innerH}`, ...chartData.map((d, i) => `${xOf(i)},${yOf(d.spent)}`), `${PAD.l + innerW},${PAD.t + innerH}`].join(' ')}
+            fill="url(#gold-grad)" opacity={0.15} />
+          <polyline points={seriesPolyline('spent')} fill="none" stroke="#FBBF24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
-          {/* Line */}
-          <polyline points={polyline} fill="none" stroke="#FBBF24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          {/* Received line */}
+          <polyline points={seriesPolyline('received')} fill="none" stroke="#22C55E" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 0" />
 
-          {/* Gradient */}
           <defs>
             <linearGradient id="gold-grad" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#FBBF24" stopOpacity={1} />
@@ -130,16 +146,12 @@ function BalanceChart({ payments }: { payments: Payment[] }) {
           </defs>
 
           {/* Dots + X labels */}
-          {points.map((p, i) => (
+          {chartData.map((d, i) => (
             <g key={i}>
-              {p.amount > 0 && (
-                <>
-                  <circle cx={p.x} cy={p.y} r={4} fill="#FBBF24" />
-                  <circle cx={p.x} cy={p.y} r={7} fill="#FBBF24" opacity={0.2} />
-                </>
-              )}
-              <text x={p.x} y={H - 4} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.4)">
-                {p.label}
+              {d.spent    > 0 && <circle cx={xOf(i)} cy={yOf(d.spent)}    r={3.5} fill="#FBBF24" />}
+              {d.received > 0 && <circle cx={xOf(i)} cy={yOf(d.received)} r={3.5} fill="#22C55E" />}
+              <text x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.4)">
+                {d.label}
               </text>
             </g>
           ))}
@@ -149,23 +161,30 @@ function BalanceChart({ payments }: { payments: Payment[] }) {
   );
 }
 
-// ── Transaction Type Config ────────────────────────────────
-const TX_CONFIG: Record<string, { icon: string; color: string; label: string }> = {
-  payment:   { icon: '💳', color: '#FBBF24', label: 'Payment'   },
-  receive:   { icon: '📥', color: '#22C55E', label: 'Received'  },
-  credit:    { icon: '📥', color: '#22C55E', label: 'Credit'    },
-  debit:     { icon: '📤', color: '#ef4444', label: 'Debit'     },
-  transfer:  { icon: '↔️', color: '#3b82f6', label: 'Transfer'  },
-  refund:    { icon: '↩️', color: '#8b5cf6', label: 'Refund'    },
-  withdraw:  { icon: '📤', color: '#f59e0b', label: 'Withdraw'  },
-  deposit:   { icon: '📥', color: '#22C55E', label: 'Deposit'   },
+// ── Transaction Type Config (icon + color; label comes from i18n) ──
+const TX_CONFIG: Record<string, { icon: string; color: string }> = {
+  payment:   { icon: '💳', color: '#FBBF24' },
+  receive:   { icon: '📥', color: '#22C55E' },
+  credit:    { icon: '📥', color: '#22C55E' },
+  debit:     { icon: '📤', color: '#ef4444' },
+  transfer:  { icon: '↔️', color: '#3b82f6' },
+  refund:    { icon: '↩️', color: '#8b5cf6' },
+  withdraw:  { icon: '📤', color: '#f59e0b' },
+  deposit:   { icon: '📥', color: '#22C55E' },
 };
 
+interface TxLabels {
+  txLabels: Record<string, string>;
+  detail:   { txId: string; amount: string; txHash: string };
+  locale:   string;
+}
+
 // ── Transaction Row (Enhanced) ─────────────────────────────
-function TxRow({ payment }: { payment: Payment }) {
+function TxRow({ payment, txLabels, detail, locale }: { payment: Payment } & TxLabels) {
   const [expanded, setExpanded] = useState(false);
   const type    = payment.type?.toLowerCase() ?? '';
-  const cfg     = TX_CONFIG[type] ?? { icon: '🔄', color: 'var(--tec-text-3)', label: payment.type };
+  const meta    = TX_CONFIG[type] ?? { icon: '🔄', color: 'var(--tec-text-3)' };
+  const cfg     = { ...meta, label: txLabels[type] ?? payment.type };
   const positive = ['credit', 'receive', 'refund', 'deposit'].includes(type);
 
   const statusColor = payment.status === 'completed' ? '#22C55E'
@@ -193,7 +212,7 @@ function TxRow({ payment }: { payment: Payment }) {
             </span>
           </div>
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginTop: 2 }}>
-            {new Date(payment.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+            {new Date(payment.createdAt).toLocaleDateString(locale, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
 
@@ -215,13 +234,13 @@ function TxRow({ payment }: { payment: Payment }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
             <div style={{ background: 'var(--tec-surface-1)', borderRadius: 8, padding: '8px 10px' }}>
-              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Transaction ID</div>
+              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>{detail.txId}</div>
               <div style={{ fontSize: 11, color: 'var(--tec-text-2)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {payment.id.slice(0, 16)}…
               </div>
             </div>
             <div style={{ background: 'var(--tec-surface-1)', borderRadius: 8, padding: '8px 10px' }}>
-              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Amount</div>
+              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>{detail.amount}</div>
               <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color }}>
                 {Number(payment.amount).toFixed(8)}π
               </div>
@@ -230,7 +249,7 @@ function TxRow({ payment }: { payment: Payment }) {
 
           {payment.txHash && (
             <div style={{ background: 'var(--tec-surface-1)', borderRadius: 8, padding: '8px 10px' }}>
-              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>Tx Hash</div>
+              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>{detail.txHash}</div>
               <div style={{ fontSize: 10, color: 'var(--tec-text-2)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                 {payment.txHash}
               </div>
@@ -245,7 +264,7 @@ function TxRow({ payment }: { payment: Payment }) {
 // ── Main Page ──────────────────────────────────────────────
 export default function DashboardPage() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
-  const { t }  = useTranslation();
+  const { t, dir, locale } = useTranslation();
   const router = useRouter();
 
   const [balance,        setBalance]        = useState<number | null>(null);
@@ -253,6 +272,8 @@ export default function DashboardPage() {
   const [kycVerified,    setKycVerified]    = useState<boolean | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [dataLoading,    setDataLoading]    = useState(true);
+  const [hasLoaded,      setHasLoaded]      = useState(false);  // first load done → refresh keeps content
+  const [loadError,      setLoadError]      = useState(false);  // a fetch failed (C-96: surfaced, not silent)
   const [activeTab,      setActiveTab]      = useState<TabKey>('overview');
 
   const userPro   = !!user?.subscriptionPlan && user.subscriptionPlan !== 'Free';
@@ -268,49 +289,66 @@ export default function DashboardPage() {
   const fetchData = useCallback(async () => {
     if (!user?.id || !isAuthenticated) return;
     setDataLoading(true);
-    const token   = getAccessToken();
-    const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+    let failed = false;
 
+    // Each source fails independently (partial data is still useful); a failure is
+    // logged + surfaced (C-96 — never a silent catch), never crashes the page.
     try {
       const res = await fetch('/api/bff/wallet/balance', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setBalance(Number(d.data?.balance ?? d.balance ?? 0)); }
-    } catch {}
+      else throw new Error(`balance ${res.status}`);
+    } catch (e) { failed = true; reportError(e, { scope: 'dashboard.balance' }); }
 
     try {
       setHistoryLoading(true);
       const res = await fetch('/api/bff/payments/history?limit=20&sort=desc', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setPayments(d?.data?.payments ?? []); }
-    } catch {} finally { setHistoryLoading(false); }
+      else throw new Error(`history ${res.status}`);
+    } catch (e) { failed = true; reportError(e, { scope: 'dashboard.history' }); }
+    finally { setHistoryLoading(false); }
 
     try {
       const res = await fetch('/api/bff/kyc/status', { credentials: 'include', cache: 'no-store' });
       if (res.ok) { const d = await res.json(); setKycVerified(d.verified ?? d.kycVerified ?? false); }
-    } catch {}
+      else throw new Error(`kyc ${res.status}`);
+    } catch (e) { failed = true; reportError(e, { scope: 'dashboard.kyc' }); }
 
+    setLoadError(failed);
+    if (!failed) log.info('dashboard.data.loaded', { user: user.id });
     setDataLoading(false);
+    setHasLoaded(true);
   }, [user?.id, isAuthenticated]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const completedPayments = payments.filter(p => p.status === 'completed');
   const totalPiSpent      = completedPayments.reduce((s, p) => s + Number(p.amount), 0);
+  const refreshing        = dataLoading && hasLoaded;  // background refresh (keep content)
 
   const tabs: { key: TabKey; label: string; icon: string }[] = [
-    { key: 'overview', label: 'Overview',  icon: '⊞' },
-    { key: 'domains',  label: 'Ecosystem', icon: '🌐' },
-    { key: 'activity', label: 'Activity',  icon: '📋' },
+    { key: 'overview', label: t.dashboard.tabs.overview,  icon: '⊞' },
+    { key: 'domains',  label: t.dashboard.tabs.ecosystem, icon: '🌐' },
+    { key: 'activity', label: t.dashboard.tabs.activity,  icon: '📋' },
   ];
 
+  // Localized transaction labels (type → label) + detail field labels for TxRow.
+  const txLabels: Record<string, string> = {
+    payment: t.dashboard.tx.payment, receive: t.dashboard.tx.received, credit: t.dashboard.tx.credit,
+    debit: t.dashboard.tx.debit, transfer: t.dashboard.tx.transfer, refund: t.dashboard.tx.refund,
+    withdraw: t.dashboard.tx.withdraw, deposit: t.dashboard.tx.deposit,
+  };
+  const txDetail = { txId: t.dashboard.activity.txId, amount: t.dashboard.activity.amount, txHash: t.dashboard.activity.txHash };
+
   return (
-    <DashboardShell loading={isLoading || dataLoading}>
+    <DashboardShell dir={dir} loading={isLoading || (dataLoading && !hasLoaded)}>
 
       {/* ── Welcome Banner ─────────────────────────────── */}
       {isNewUser && (
         <div className="tec-fade-in" style={{ padding: 'var(--sp-4) var(--sp-5)', background: 'linear-gradient(135deg, rgba(251,191,36,0.1), rgba(251,191,36,0.05))', border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--sp-6)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 24 }}>🎉</span>
           <div>
-            <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--tec-gold)' }}>Welcome to TEC Ecosystem</div>
-            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>Your account is ready — explore 24 sovereign apps on Pi Network</div>
+            <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--tec-gold)' }}>{t.dashboard.welcomeTitle}</div>
+            <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>{t.dashboard.welcomeSub}</div>
           </div>
         </div>
       )}
@@ -335,25 +373,37 @@ export default function DashboardPage() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {kycVerified !== null && (
             <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: kycVerified ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${kycVerified ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, color: kycVerified ? '#22C55E' : '#ef4444' }}>
-              {kycVerified ? '✓ KYC Verified' : '! KYC Pending'}
+              {kycVerified ? t.dashboard.header.kycVerified : t.dashboard.header.kycPending}
             </span>
           )}
           <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', color: 'var(--tec-gold)' }}>
-            ◈ {user?.subscriptionPlan ?? 'Free'}
+            ◈ {user?.subscriptionPlan ?? t.dashboard.header.free}
           </span>
-          <button onClick={fetchData} className="tec-btn"
-            style={{ padding: '6px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
-            ↻ Refresh
+          <button onClick={fetchData} disabled={refreshing} className="tec-btn"
+            style={{ padding: '6px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: refreshing ? 'default' : 'pointer', opacity: refreshing ? 0.6 : 1 }}>
+            {refreshing ? '⟳' : '↻'} {t.dashboard.header.refresh}
           </button>
         </div>
       </div>
 
+      {/* ── Load-error banner (C-96 — surfaced, not silent) ── */}
+      {loadError && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', borderRadius: 'var(--radius-md)', marginBottom: 'var(--sp-5)' }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{t.dashboard.errors.loadFailed}</span>
+          <button onClick={fetchData} disabled={refreshing} className="tec-btn"
+            style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', fontWeight: 700, cursor: refreshing ? 'default' : 'pointer' }}>
+            {t.dashboard.errors.retry}
+          </button>
+        </div>
+      )}
+
       {/* ── Stats Grid ─────────────────────────────────── */}
       <div className="tec-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 'var(--sp-3)', marginBottom: 'var(--sp-6)' }}>
-        <StatCard icon="π"  label="Pi Balance" value={balance !== null ? `${balance.toFixed(2)}π` : '—π'} sub="Wallet balance"         accent="var(--tec-gold)"     />
-        <StatCard icon="📤" label="Pi Spent"   value={`${totalPiSpent.toFixed(2)}π`}                    sub={`${completedPayments.length} transactions`} accent="var(--tec-text-1)" />
-        <StatCard icon="🚀" label="Live Apps"  value={`${LIVE_APPS.length}`}                             sub={`of ${LIVE_DOMAINS.length + COMING_SOON.length} total`} accent="#22C55E" />
-        <StatCard icon="◈"  label="Plan"       value={user?.subscriptionPlan ?? 'Free'}                  sub={userPro ? 'Active subscription' : 'Upgrade available'} accent={userPro ? '#8b5cf6' : 'var(--tec-text-2)'} />
+        <StatCard icon="π"  label={t.dashboard.stats.piBalance} value={balance !== null ? `${balance.toFixed(2)}π` : '—π'} sub={t.dashboard.stats.walletBalance} accent="var(--tec-gold)" />
+        <StatCard icon="📤" label={t.dashboard.stats.piSpent}   value={`${totalPiSpent.toFixed(2)}π`}                    sub={`${completedPayments.length} ${t.dashboard.stats.transactions}`} accent="var(--tec-text-1)" />
+        <StatCard icon="🚀" label={t.dashboard.stats.liveApps}  value={`${LIVE_APPS.length}`}                             sub={fmt(t.dashboard.stats.ofTotal, LIVE_DOMAINS.length + COMING_SOON.length)} accent="#22C55E" />
+        <StatCard icon="◈"  label={t.dashboard.stats.plan}      value={user?.subscriptionPlan ?? t.dashboard.header.free} sub={userPro ? t.dashboard.stats.activeSub : t.dashboard.stats.upgradeAvail} accent={userPro ? '#8b5cf6' : 'var(--tec-text-2)'} />
       </div>
 
       {/* ── Tabs ───────────────────────────────────────── */}
@@ -373,23 +423,26 @@ export default function DashboardPage() {
 
           {/* Balance Chart */}
           <DashboardCard
-            title="Spending — Last 7 Days"
-            subtitle={`${completedPayments.length} completed payments`}
+            title={t.dashboard.chart.title}
+            subtitle={fmt(t.dashboard.chart.completed, completedPayments.length)}
           >
-            <BalanceChart payments={payments} />
+            <BalanceChart payments={payments} locale={locale}
+              noDataLabel={t.dashboard.chart.noData}
+              spentLabel={t.dashboard.stats.piSpent}
+              receivedLabel={t.dashboard.tx.received} />
           </DashboardCard>
 
           {/* Quick Actions */}
-          <DashboardCard title="Quick Actions">
+          <DashboardCard title={t.dashboard.overview.quickActions}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 'var(--sp-3)' }}>
               {[
-                { label: 'Wallet',        icon: '💳', href: '/dashboard/wallet',        color: '#3b82f6' },
-                { label: 'KYC',           icon: '🪪', href: '/dashboard/kyc',           color: '#22C55E' },
-                { label: 'Subscription',  icon: '◈',  href: '/dashboard/subscription',  color: '#8b5cf6' },
-                { label: 'Notifications', icon: '🔔', href: '/dashboard/notifications', color: '#f59e0b' },
+                { label: t.dashboard.overview.wallet,        icon: '💳', href: '/dashboard/wallet',        color: '#3b82f6' },
+                { label: t.dashboard.overview.kyc,           icon: '🪪', href: '/dashboard/kyc',           color: '#22C55E' },
+                { label: t.dashboard.overview.subscription,  icon: '◈',  href: '/dashboard/subscription',  color: '#8b5cf6' },
+                { label: t.dashboard.overview.notifications, icon: '🔔', href: '/dashboard/notifications', color: '#f59e0b' },
               ].map(a => (
-                <button key={a.label} onClick={() => router.push(a.href)} className="tec-btn"
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+                <button key={a.href} onClick={() => router.push(a.href)} className="tec-btn"
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: dir === 'rtl' ? 'right' : 'left', width: '100%' }}>
                   <span style={{ width: 32, height: 32, borderRadius: 8, flexShrink: 0, background: `${a.color}15`, border: `1px solid ${a.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{a.icon}</span>
                   <span style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{a.label}</span>
                 </button>
@@ -397,14 +450,29 @@ export default function DashboardPage() {
             </div>
           </DashboardCard>
 
+          {/* Pro upsell — only for non-Pro users */}
+          {!userPro && (
+            <button onClick={() => router.push('/dashboard/subscription')} className="tec-btn"
+              style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4) var(--sp-5)', width: '100%', textAlign: dir === 'rtl' ? 'right' : 'left', background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(139,92,246,0.05))', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 'var(--radius-lg)', cursor: 'pointer' }}>
+              <span style={{ fontSize: 24 }}>◈</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 'var(--text-base)', fontWeight: 800, color: '#a78bfa' }}>{t.dashboard.pro.title}</div>
+                <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.dashboard.pro.desc}</div>
+              </div>
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#a78bfa', flexShrink: 0 }}>
+                {t.dashboard.pro.cta} {dir === 'rtl' ? '←' : '→'}
+              </span>
+            </button>
+          )}
+
           {/* Recent Activity Preview */}
           <DashboardCard
-            title="Recent Activity"
-            subtitle={`${payments.slice(0, 3).length} of ${payments.length}`}
+            title={t.dashboard.overview.recentActivity}
+            subtitle={`${payments.slice(0, 3).length} / ${payments.length}`}
             action={
               <button onClick={() => setActiveTab('activity')} className="tec-btn"
                 style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                View all →
+                {t.dashboard.overview.viewAll} {dir === 'rtl' ? '←' : '→'}
               </button>
             }
             padding="0"
@@ -412,24 +480,25 @@ export default function DashboardPage() {
             {payments.length === 0 ? (
               <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--tec-text-3)' }}>
                 <div style={{ fontSize: 28, marginBottom: 8 }}>📭</div>
-                <div style={{ fontSize: 'var(--text-sm)' }}>No transactions yet</div>
+                <div style={{ fontSize: 'var(--text-sm)' }}>{t.dashboard.overview.noTx}</div>
               </div>
             ) : (
-              payments.slice(0, 3).map(p => <TxRow key={p.id} payment={p} />)
+              payments.slice(0, 3).map(p => <TxRow key={p.id} payment={p} txLabels={txLabels} detail={txDetail} locale={locale} />)
             )}
           </DashboardCard>
 
-          {/* Live Apps — launcher-tile preview matching the Hub (tap → Ecosystem) */}
+          {/* Live Apps — launcher-tile preview matching the Hub (tap → Hub to launch) */}
           <DashboardCard
-            title="Live Apps"
-            subtitle={`${hubApps.length} active`}
+            title={t.dashboard.overview.liveApps}
+            subtitle={fmt(t.dashboard.overview.active, hubApps.length)}
             action={
               <button onClick={() => setActiveTab('domains')} className="tec-btn"
                 style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                View all →
+                {t.dashboard.overview.viewAll} {dir === 'rtl' ? '←' : '→'}
               </button>
             }
           >
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-3)' }}>{t.dashboard.overview.hubHint}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 4 }}>
               {hubApps.slice(0, 8).map(app => (
                 <button key={app.slug} onClick={() => router.push('/hub')} className="tec-btn"
@@ -446,7 +515,7 @@ export default function DashboardPage() {
           </DashboardCard>
 
           {/* Coming Soon */}
-          <DashboardCard title="Coming Soon" subtitle={`${COMING_SOON.length} domains`}>
+          <DashboardCard title={t.dashboard.overview.comingSoon} subtitle={fmt(t.dashboard.overview.domains, COMING_SOON.length)}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
               {COMING_SOON.slice(0, 12).map(d => (
                 <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
@@ -463,13 +532,13 @@ export default function DashboardPage() {
       {activeTab === 'domains' && (
         <div className="tec-fade-in">
           {/* Identical polished launcher grid to the Hub — one component, one source */}
-          <DashboardCard title="TEC Ecosystem" subtitle={`${LIVE_DOMAINS.length + COMING_SOON.length} total domains`} padding="0">
+          <DashboardCard title={t.dashboard.ecosystem.title} subtitle={fmt(t.dashboard.ecosystem.total, LIVE_DOMAINS.length + COMING_SOON.length)} padding="0">
             <HubAppsGrid apps={hubApps} openTo="/hub" />
           </DashboardCard>
 
           {/* Coming Soon */}
           <div style={{ marginTop: 'var(--sp-5)' }}>
-            <DashboardCard title="Coming Soon" subtitle={`${COMING_SOON.length} domains`}>
+            <DashboardCard title={t.dashboard.overview.comingSoon} subtitle={fmt(t.dashboard.overview.domains, COMING_SOON.length)}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
                 {COMING_SOON.map(d => (
                   <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
@@ -487,12 +556,12 @@ export default function DashboardPage() {
       {activeTab === 'activity' && (
         <div className="tec-fade-in">
           <DashboardCard
-            title="Transaction History"
-            subtitle={`${payments.length} records`}
+            title={t.dashboard.activity.title}
+            subtitle={fmt(t.dashboard.activity.records, payments.length)}
             action={
               <button onClick={() => router.push('/dashboard/wallet')} className="tec-btn"
                 style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', background: 'none', border: 'none', cursor: 'pointer' }}>
-                Wallet →
+                {t.dashboard.activity.wallet} {dir === 'rtl' ? '←' : '→'}
               </button>
             }
             padding="0"
@@ -504,16 +573,16 @@ export default function DashboardPage() {
             ) : payments.length === 0 ? (
               <div style={{ padding: 'var(--sp-8)', textAlign: 'center', color: 'var(--tec-text-3)' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>📭</div>
-                <div style={{ fontSize: 'var(--text-sm)' }}>No transactions yet</div>
+                <div style={{ fontSize: 'var(--text-sm)' }}>{t.dashboard.activity.noTx}</div>
               </div>
             ) : (
               <>
                 {/* Summary Bar */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'var(--tec-border)', marginBottom: 1 }}>
                   {[
-                    { label: 'Total',     value: payments.length,                                      color: 'var(--tec-text-1)' },
-                    { label: 'Completed', value: completedPayments.length,                             color: '#22C55E'           },
-                    { label: 'Volume',    value: `${totalPiSpent.toFixed(1)}π`,                        color: 'var(--tec-gold)'   },
+                    { label: t.dashboard.activity.total,     value: payments.length,               color: 'var(--tec-text-1)' },
+                    { label: t.dashboard.activity.completed, value: completedPayments.length,      color: '#22C55E'           },
+                    { label: t.dashboard.activity.volume,    value: `${totalPiSpent.toFixed(1)}π`, color: 'var(--tec-gold)'   },
                   ].map(s => (
                     <div key={s.label} style={{ padding: 'var(--sp-3)', background: 'var(--tec-surface-2)', textAlign: 'center' }}>
                       <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -521,7 +590,7 @@ export default function DashboardPage() {
                     </div>
                   ))}
                 </div>
-                {payments.map(p => <TxRow key={p.id} payment={p} />)}
+                {payments.map(p => <TxRow key={p.id} payment={p} txLabels={txLabels} detail={txDetail} locale={locale} />)}
               </>
             )}
           </DashboardCard>

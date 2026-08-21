@@ -26,6 +26,8 @@ export interface NavTarget {
   slug: string;
   href: string;
   name: Localized;
+  /** The app's registry emoji — a chip reading "تك ←" is not a call to action. */
+  emoji?: string;
 }
 
 export interface NavIntent extends NavTarget {
@@ -39,7 +41,7 @@ export interface NavIntent extends NavTarget {
 export const NAV_TARGETS: Record<string, NavTarget> = Object.values(DOMAIN_REGISTRY).reduce(
   (acc, d) => {
     if (d.status !== 'live' || !d.route) return acc;
-    acc[d.slug] = { slug: d.slug, href: d.route, name: d.name };
+    acc[d.slug] = { slug: d.slug, href: d.route, name: d.name, emoji: d.emoji };
     return acc;
   },
   {} as Record<string, NavTarget>,

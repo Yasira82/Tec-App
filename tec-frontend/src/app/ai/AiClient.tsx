@@ -6,8 +6,11 @@ import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import { parseNavIntents }             from '@/lib/ai/nav-intents';
 import type { NavIntent, NavFlow }     from '@/lib/ai/nav-intents';
 import { createSseReader }             from '@/lib/ai-stream';
-import { loadConversation, saveConversation, clearConversation } from '@/lib/ai-session';
+import { loadConversation, saveConversation, archiveConversation, hasArchive, restoreConversation } from '@/lib/ai-session';
 import { RichText }                    from '@/components/ai/RichText';
+// The SHARED chip — this page used to keep a private copy, which is why the drawer got
+// the app emoji on its chips and this page kept rendering a bare "تك".
+import { NavChip, NavChips }           from '@/components/ai/NavChips';
 import { t }                           from '@/domains/_types';
 import type { Locale }                 from '@/domains/_types';
 import Link                            from 'next/link';
@@ -17,18 +20,6 @@ const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
-
-// A single navigation-intent chip — an internal Link for Hub paths, an external
-// anchor for another app's domain. Shared by single intents and flow steps.
-function IntentChip({ intent, locale, dir }: { intent: NavIntent; locale: Locale; dir: string }) {
-  const label    = intent.label ?? t(intent.name, locale);
-  const external = /^https?:\/\//.test(intent.href);
-  const arrow    = dir === 'rtl' ? '←' : '→';
-  const inner    = <>{label} <span aria-hidden>{arrow}</span></>;
-  return external
-    ? <a href={intent.href} target="_blank" rel="noopener noreferrer" className={styles.intentChip}>{inner}</a>
-    : <Link href={intent.href} className={styles.intentChip}>{inner}</Link>;
-}
 
 interface Message {
   id:        string;
@@ -88,6 +79,9 @@ export default function AiClient() {
   // dead zone until its declaration runs, so reading it from an earlier effect throws.
   const seeded         = useRef(false);
   const [failedQuestion, setFailedQuestion] = useState<string | null>(null);
+  // Whether a previous thread is sitting in the archive, waiting to be brought back.
+  const [canRestore, setCanRestore] = useState(false);
+  useEffect(() => { setCanRestore(hasArchive(STORE_KEY)); }, []);
 
   // Restore the transcript for this tab. Without it, navigating to an app the assistant
   // recommended and coming back lost the whole conversation.
@@ -350,10 +344,12 @@ export default function AiClient() {
           {messages.filter(m => m.id !== 'welcome').length > 0 && (
             <button
               onClick={() => {
+                // ARCHIVE, never delete — one mis-tap used to lose the conversation.
                 abortRef.current?.abort();
-                clearConversation(STORE_KEY);
+                archiveConversation(STORE_KEY);
                 setFailedQuestion(null);
                 setMessages([welcomeMessage()]);
+                setCanRestore(hasArchive(STORE_KEY));
               }}
               aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New chat'}
               style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
@@ -440,12 +436,8 @@ export default function AiClient() {
                     <RichText text={msg.content} className={styles.messageContent} />
                     {msg.intents && msg.intents.length > 0 && (
                       <div className={styles.intentRow}>
-                        {msg.intents.map(intent => (
-                          <IntentChip
-                            key={intent.action ? `${intent.slug}:${intent.action}` : intent.slug}
-                            intent={intent} locale={locale} dir={dir}
-                          />
-                        ))}
+                        <NavChips intents={msg.intents} locale={locale} dir={dir}
+                          className={styles.intentChip} />
                       </div>
                     )}
                     {msg.flows && msg.flows.map((flow, fi) => (
@@ -456,7 +448,8 @@ export default function AiClient() {
                         {flow.steps.map((step, si) => (
                           <div key={si} className={styles.flowStep}>
                             <span className={styles.flowNum}>{si + 1}</span>
-                            <IntentChip intent={step} locale={locale} dir={dir} />
+                            <NavChip intent={step} locale={locale} dir={dir}
+                              className={styles.intentChip} />
                           </div>
                         ))}
                       </div>
@@ -486,6 +479,28 @@ export default function AiClient() {
               <div ref={messagesEndRef} />
             </div>
           </div>
+
+          {messages.length <= 1 && canRestore && (
+            <div className={styles.suggestions}>
+              <button
+                className={styles.suggestionBtn}
+                onClick={() => {
+                  const turns = restoreConversation<{ role: string; text: string }>(STORE_KEY);
+                  if (turns.length) {
+                    seeded.current = true;
+                    setMessages(turns.map((m, i) => ({
+                      id: `restored-${i}`,
+                      role: m.role === 'user' ? 'user' as const : 'assistant' as const,
+                      content: m.text,
+                      timestamp: new Date(),
+                    })));
+                  }
+                  setCanRestore(false);
+                }}>
+                ↺ {locale === 'ar' ? 'استرجاع المحادثة السابقة' : 'Restore previous chat'}
+              </button>
+            </div>
+          )}
 
           {messages.length <= 1 && (
             <div className={styles.suggestions}>

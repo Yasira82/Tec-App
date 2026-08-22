@@ -151,6 +151,11 @@ input[type=number] { -moz-appearance: textfield; }
 .tec-slide-up  { animation: tec-slide-up var(--dur-slow) var(--ease-out) both; }
 .tec-pulse     { animation: tec-pulse 2s ease-in-out infinite; }
 .tec-spin      { animation: tec-spin 0.8s linear infinite; }
+/* Unused, and kept unused deliberately. An `infinite` bob on a fixed control is
+   permanent motion in the corner of every screen it appears on, with no way for
+   the reader to stop it — it was on the Hub's assistant button and it made the
+   button hard to ignore and hard to scroll past. If something must draw the eye,
+   animate it ONCE on arrival (`tec-slide-up`), not forever. */
 .tec-float     { animation: tec-float 3s ease-in-out infinite; }
 
 .tec-glass {

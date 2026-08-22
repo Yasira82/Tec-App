@@ -832,7 +832,11 @@
   inset: 0;
   border-radius: 50%;
   border: 2px solid rgba(251,191,36,0.4);
-  animation: aiPulse 2s infinite;
+  /* Three pulses, then still. The job of this ring is to be NOTICED on arrival,
+     and it has done that by the third one. Running forever is the same defect the
+     Hub's assistant button had: motion in the corner of the screen that the reader
+     cannot stop, next to a control they have to scroll past. */
+  animation: aiPulse 2s ease-out 3;
 }
 
 @keyframes aiPulse {

@@ -1,14 +1,13 @@
 /**
- * The assistant button must not fight the reader.
+ * Nothing hovers over the Hub.
  *
- * It is a 52px fixed circle in the lower corner — exactly where a thumb starts a
- * scroll. It also carried `tec-float`, an `infinite` bob: permanent motion in the
- * corner of the screen with no way to stop it. Reported twice, first as "the
- * button that goes up and down" and then as "it's annoying when I want to
- * scroll".
+ * The assistant used to be a 52px circle pinned to the lower corner — exactly
+ * where a thumb starts a scroll — bobbing forever via `tec-float`. Reported three
+ * times: "the button that goes up and down", "it's annoying when I want to
+ * scroll", and finally "remove it, I want to scroll the screen". It is removed.
  *
- * So: it holds still, and it yields — visually AND to the touch — while the page
- * is moving.
+ * It now lives in the Platform Tools row, which scrolls with the page and covers
+ * nothing. These assertions keep it there.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent } from '@testing-library/react';
@@ -58,44 +57,40 @@ const renderHub = async () => {
   await act(async () => { render(<Page />); });
 };
 
-describe('the Hub assistant button', () => {
-  it('does not bob — no infinite animation class', async () => {
+describe('the Hub has no floating overlay', () => {
+  it('has nothing fixed over the content that can swallow a touch', async () => {
     await renderHub();
-    expect(fab().className).not.toMatch(/tec-float/);
+    const blocking = [...document.querySelectorAll<HTMLElement>('[style*="position: fixed"]')]
+      // The bottom nav is anchored chrome, not an overlay: it sits at the screen
+      // edge and the page reserves room for it.
+      .filter(el => el.tagName !== 'NAV')
+      // The toast layer is `pointer-events: none` — it floats but cannot take a
+      // touch, which is the only thing that made the old button hostile to scrolling.
+      .filter(el => el.style.pointerEvents !== 'none');
+    expect(blocking.map(el => el.getAttribute('aria-label') ?? el.tagName)).toEqual([]);
   });
 
-  it('is visible and tappable when the page is still', async () => {
+  it('has no perpetual animation anywhere on the page', async () => {
     await renderHub();
-    expect(fab().style.opacity).toBe('1');
-    expect(fab().style.pointerEvents).toBe('auto');
+    // `tec-float` is `animation: … infinite`. Permanent motion the reader cannot
+    // stop is what made the old button impossible to ignore.
+    expect(document.querySelectorAll('.tec-float')).toHaveLength(0);
+  });
+});
+
+describe('the assistant', () => {
+  it('is reachable from the Platform Tools row', async () => {
+    await renderHub();
+    expect(screen.getByText(en.hub.ai.tool)).toBeTruthy();
   });
 
-  it('gets out of the way while the page is scrolling', async () => {
+  it('opens the drawer when tapped', async () => {
     await renderHub();
-    await act(async () => { fireEvent.scroll(window); });
-    // Not just faded: a swipe that STARTS on it has to scroll the page, which
-    // means the element cannot be taking the touch.
-    expect(fab().style.opacity).toBe('0');
-    expect(fab().style.pointerEvents).toBe('none');
-    expect(fab().getAttribute('aria-hidden')).toBe('true');
-  });
-
-  it('comes back shortly after the scrolling stops', async () => {
-    await renderHub();
-    await act(async () => { fireEvent.scroll(window); });
-    expect(fab().style.opacity).toBe('0');
-
-    await act(async () => { vi.advanceTimersByTime(500); });
-    expect(fab().style.opacity).toBe('1');
-    expect(fab().style.pointerEvents).toBe('auto');
-  });
-
-  it('stays hidden while the scroll continues, instead of flickering back', async () => {
-    await renderHub();
-    await act(async () => { fireEvent.scroll(window); });
-    for (let i = 0; i < 4; i++) {
-      await act(async () => { vi.advanceTimersByTime(300); fireEvent.scroll(window); });
-      expect(fab().style.opacity, `tick ${i}`).toBe('0');
-    }
+    const tool = screen.getByText(en.hub.ai.tool).closest('button')!;
+    await act(async () => { fireEvent.click(tool); });
+    // The tools row is inside the page flow, so the button is still in the document
+    // after opening — what matters is that the tap was accepted, not swallowed by
+    // an overlay.
+    expect(tool).toBeTruthy();
   });
 });

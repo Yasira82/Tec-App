@@ -19,6 +19,18 @@ export const tecSession = {
     accessToken = token || null;
     sessionUser = user ?? null;
   },
+  /**
+   * Record WHO is signed in without touching the token.
+   *
+   * `/api/auth/me` resolves the user from a cookie the SERVER can read — a Pi
+   * Browser context may send that cookie while hiding it from JavaScript. In
+   * that case the browser holds no readable token and never will, but the
+   * session is entirely real. Without this, `tecSession.user` stayed empty and
+   * every screen that asked it "who is this?" concluded nobody was signed in.
+   */
+  setUser(user: TecUser | null): void {
+    sessionUser = user ?? null;
+  },
   clear(): void {
     accessToken = null;
     sessionUser = null;

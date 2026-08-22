@@ -595,19 +595,19 @@
   margin-bottom: 4px;
 }
 
-/* Emoji have wildly different widths, heights and baselines. Left loose they
-   make a 23-card grid look pasted together; a fixed tile gives every glyph the
-   same visual weight and ties the card to its group colour. */
+/* A fixed tile gives every glyph the same visual weight and ties the card to
+   its group colour. Sized to match the Hub launcher (54px tile / 26px glyph):
+   a stroke icon covers far less area than the emoji it replaced, and at 46/23
+   it read as an afterthought next to a 36px serif title. */
 .appIconTile {
-  width: 46px;
-  height: 46px;
+  width: 54px;
+  height: 54px;
   flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 23px;
   line-height: 1;
-  border-radius: 13px;
+  border-radius: 15px;
   background: color-mix(in srgb, var(--cat-color, #FBBF24) 12%, transparent);
   border: 1px solid color-mix(in srgb, var(--cat-color, #FBBF24) 24%, transparent);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);

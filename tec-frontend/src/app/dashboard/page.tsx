@@ -535,7 +535,7 @@ export default function DashboardPage() {
 
           {/* Coming Soon */}
           <DashboardCard title={t.dashboard.overview.comingSoon} subtitle={fmt(t.dashboard.overview.domains, COMING_SOON.length)}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--sp-2)' }}>
               {COMING_SOON.slice(0, 12).map(d => (
                 <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
                   <Icon name={iconOf(d.slug)} size={20} color="var(--tec-text-3)" strokeWidth={1.8} />
@@ -558,7 +558,7 @@ export default function DashboardPage() {
           {/* Coming Soon */}
           <div style={{ marginTop: 'var(--sp-5)' }}>
             <DashboardCard title={t.dashboard.overview.comingSoon} subtitle={fmt(t.dashboard.overview.domains, COMING_SOON.length)}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 'var(--sp-2)' }}>
                 {COMING_SOON.map(d => (
                   <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
                     <Icon name={iconOf(d.slug)} size={20} color="var(--tec-text-3)" strokeWidth={1.8} />

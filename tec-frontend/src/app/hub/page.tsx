@@ -347,10 +347,15 @@ function HubPageInner() {
       {!aiOpen && (
         <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label={t.hub.ai.open}
-          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', touchAction: 'pan-y', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
       )}
 
-      <nav aria-label={t.hub.nav.main} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
+      <nav aria-label={t.hub.nav.main} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150,
+        // The nav owns the bottom strip of the screen — which is exactly where a
+        // thumb swipes. Without this it eats every scroll that starts down here and
+        // the page simply does not move. `pan-y` hands vertical drags to the page
+        // and keeps taps for the buttons. */
+        touchAction: 'pan-y' }}>
         {([
           { icon: 'hub'      as const, label: t.hub.nav.hub,      active: true,  action: () => {} },
           { icon: 'wallet'   as const, label: t.hub.nav.wallet,   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },

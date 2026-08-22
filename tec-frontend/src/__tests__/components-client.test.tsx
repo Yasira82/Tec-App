@@ -1,6 +1,6 @@
 /**
  * Smoke tests for client-side components with low/zero coverage:
- * PiTestClient, PiIntegration, PiPaymentButton, AmountSelector, AIDrawer
+ * PiTestClient, PiIntegration, PiPaymentButton, AIDrawer
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, act } from '@/test-utils/render-with-locale';
@@ -170,29 +170,6 @@ describe('AIDrawer coverage', () => {
   it('renders closed state', async () => {
     const { AIDrawer } = await import('@/app/hub/components/AIDrawer');
     const { container } = render(<AIDrawer open={false} onClose={vi.fn()} />);
-    expect(container).toBeTruthy();
-  });
-});
-
-// ── AmountSelector ─────────────────────────────────────────────
-describe('AmountSelector', () => {
-  it('renders without crash', async () => {
-    const mod = await import('@/app/hub/components/AmountSelector');
-    const AmountSelector = mod.AmountSelector ?? mod.default;
-    if (!AmountSelector) return;
-    const { container } = render(
-      <AmountSelector amount={5} onChange={vi.fn()} />
-    );
-    expect(container).toBeTruthy();
-  });
-
-  it('renders with custom min and max', async () => {
-    const mod = await import('@/app/hub/components/AmountSelector');
-    const AmountSelector = mod.AmountSelector ?? mod.default;
-    if (!AmountSelector) return;
-    const { container } = render(
-      <AmountSelector amount={10} onChange={vi.fn()} min={1} max={100} />
-    );
     expect(container).toBeTruthy();
   });
 });

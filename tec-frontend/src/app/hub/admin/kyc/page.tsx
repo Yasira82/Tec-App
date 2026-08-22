@@ -42,7 +42,7 @@ function DocImage({ label, docKey }: { label: string; docKey: string | null }) {
         {!src ? (
           <span style={{ fontSize: 11, color: 'var(--tec-text-3)' }}>—</span>
         ) : err ? (
-          <span style={{ fontSize: 11, color: '#ef4444' }}>Unavailable</span>
+          <span style={{ fontSize: 11, color: 'var(--tec-red)' }}>Unavailable</span>
         ) : (
           <a href={src} target="_blank" rel="noreferrer" style={{ width: '100%', height: '100%' }}>
             {/* eslint-disable-next-line @next/next/no-img-element -- private streamed document, not an optimizable asset */}
@@ -93,7 +93,7 @@ function ReviewCard({ kyc, onDone }: { kyc: PendingKyc; onDone: (userId: string)
             Submitted {kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleString() : '—'} · current {kyc.level}
           </div>
         </div>
-        <span style={{ fontSize: 10, color: '#f59e0b', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1, textTransform: 'uppercase' }}>Pending</span>
+        <span style={{ fontSize: 10, color: 'var(--tec-gold-dark)', background: 'rgba(245,158,11,0.1)', border: '1px solid rgba(245,158,11,0.3)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1, textTransform: 'uppercase' }}>Pending</span>
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--sp-3)', marginBottom: 'var(--sp-4)' }}>
@@ -103,18 +103,18 @@ function ReviewCard({ kyc, onDone }: { kyc: PendingKyc; onDone: (userId: string)
       </div>
 
       {err && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 'var(--sp-3)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
-          <Icon name="alert" size={15} color="#ef4444" /> {err}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 'var(--sp-3)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)' }}>
+          <Icon name="alert" size={15} color="var(--tec-red)" /> {err}
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'flex-end' }}>
         <button onClick={reject} disabled={busy !== null}
-          style={{ padding: '10px 22px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid rgba(239,68,68,0.4)', color: '#ef4444', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
+          style={{ padding: '10px 22px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid rgba(239,68,68,0.4)', color: 'var(--tec-red)', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
           {busy === 'reject' ? 'Rejecting…' : 'Reject'}
         </button>
         <button onClick={() => act('/api/kyc/admin/verify', { userId: kyc.user_id, level: 'L1' }, 'verify')} disabled={busy !== null}
-          style={{ padding: '10px 26px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,#22C55E,#16A34A)', border: 'none', color: '#05130a', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
+          style={{ padding: '10px 26px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,var(--tec-green),#16A34A)', border: 'none', color: '#05130a', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer', opacity: busy ? 0.6 : 1 }}>
           {busy === 'verify' ? 'Verifying…' : 'Verify ✓'}
         </button>
       </div>
@@ -152,19 +152,19 @@ export default function AdminKycReviewPage() {
       {(denied || (!authLoading && !isAdmin)) ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ width: 60, height: 60, borderRadius: 16, margin: '0 auto var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
-            <Icon name="shield" size={28} color="#ef4444" />
+            <Icon name="shield" size={28} color="var(--tec-red)" />
           </div>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>Access restricted</div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>This page is for platform admins only.</div>
         </div>
       ) : error ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', color: '#ef4444', fontSize: 'var(--text-sm)' }}>
-          <Icon name="alert" size={16} color="#ef4444" /> {error}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)' }}>
+          <Icon name="alert" size={16} color="var(--tec-red)" /> {error}
         </div>
       ) : items.length === 0 ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ width: 60, height: 60, borderRadius: 16, margin: '0 auto var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)' }}>
-            <Icon name="check" size={28} color="#22C55E" />
+            <Icon name="check" size={28} color="var(--tec-green)" />
           </div>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>All caught up</div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>No KYC submissions are waiting for review.</div>

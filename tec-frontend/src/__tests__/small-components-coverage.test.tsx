@@ -2,8 +2,7 @@
  * Coverage for small page wrappers and hub components:
  *   app/ai/page.tsx, app/pay/page.tsx, app/pi-test/page.tsx, app/login/page.tsx,
  *   app/error.tsx, components/AppCardSkeleton.tsx,
- *   components/hub/HubHeader.tsx, components/hub/HubWalletCard.tsx,
- *   components/hub/WalletCard.tsx
+ *   components/hub/HubHeader.tsx, components/hub/HubWalletCard.tsx
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
@@ -49,9 +48,6 @@ vi.mock('@/lib-client/pi/pi-auth', () => ({
 vi.mock('@/components/AppCardSkeleton.module.css', () => ({
   default: new Proxy({}, { get: (_: any, p: string) => p }),
 }));
-vi.mock('@/components/hub/WalletCard.module.css', () => ({
-  default: new Proxy({}, { get: (_: any, p: string) => p }),
-}));
 
 import AiPage          from '@/app/ai/page';
 import PayPage         from '@/app/pay/page';
@@ -61,7 +57,6 @@ import GlobalError     from '@/app/error';
 import { AppCardSkeleton, AppGridSkeleton } from '@/components/AppCardSkeleton';
 import { HubHeader }      from '@/components/hub/HubHeader';
 import { HubWalletCard }  from '@/components/hub/HubWalletCard';
-import WalletCard         from '@/components/hub/WalletCard';
 
 beforeEach(() => {
   mockRouterPush.mockClear();
@@ -222,58 +217,5 @@ describe('HubWalletCard', () => {
     const btn = container.querySelector('button');
     fireEvent.click(btn!);
     expect(mockRouterPush).toHaveBeenCalledWith('/dashboard/wallet');
-  });
-});
-
-describe('WalletCard', () => {
-  it('shows placeholder dash before balance loads', () => {
-    const { container } = render(<WalletCard userId="" />);
-    expect(container.textContent).toContain('—');
-  });
-
-  it('fetches and displays balance for a user', async () => {
-    const { container } = render(<WalletCard userId="u-1" />);
-    await act(async () => {});
-    expect(container.textContent).toContain('12.34');
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      '/api/bff/wallet/balance',
-      expect.objectContaining({ credentials: 'include' }),
-    );
-  });
-
-  it('omits Authorization header when token missing', async () => {
-    mockGetAccessToken.mockReturnValue(null as any);
-    render(<WalletCard userId="u-2" />);
-    await act(async () => {});
-    const call = (globalThis.fetch as any).mock.calls.find((c: any[]) =>
-      String(c[0]).includes('/api/bff/wallet/balance'),
-    );
-    expect(call).toBeTruthy();
-    expect(call[1].credentials).toBe('include');
-  });
-
-  it('keeps placeholder on fetch failure', async () => {
-    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('net down'));
-    const { container } = render(<WalletCard userId="u-3" />);
-    await act(async () => {});
-    expect(container.textContent).toContain('—');
-  });
-
-  it('keeps placeholder on non-ok response', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: false, json: async () => ({}),
-    } as Response);
-    const { container } = render(<WalletCard userId="u-4" />);
-    await act(async () => {});
-    expect(container.textContent).toContain('—');
-  });
-
-  it('defaults balance to 0 when payload has no balance field', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
-      ok: true, json: async () => ({}),
-    } as Response);
-    const { container } = render(<WalletCard userId="u-5" />);
-    await act(async () => {});
-    expect(container.textContent).toContain('0.00');
   });
 });

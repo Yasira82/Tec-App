@@ -164,13 +164,13 @@ await new Promise(r => setTimeout(r, 1000));
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{
         width: '100%', maxWidth: 360, borderRadius: 28,
-        background: '#0B1020', border: '1px solid #FBBF2430',
+        background: 'var(--tec-surface-1)', border: '1px solid #FBBF2430',
         padding: 32, textAlign: 'center',
         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 20,
-          background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800',
         }}>T</div>
@@ -178,7 +178,7 @@ await new Promise(r => setTimeout(r, 1000));
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
           {getSourceLabel(payment.source)}
         </div>
-        <div style={{ fontSize: 48, fontWeight: 900, color: '#FBBF24', marginBottom: 4 }}>
+        <div style={{ fontSize: 48, fontWeight: 900, color: 'var(--tec-gold)', marginBottom: 4 }}>
           {payment.amount}π
         </div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>
@@ -192,7 +192,7 @@ await new Promise(r => setTimeout(r, 1000));
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
                 <div style={{
                   width: 16, height: 16, borderRadius: '50%',
-                  border: '2px solid #FBBF2430', borderTop: '2px solid #FBBF24',
+                  border: '2px solid #FBBF2430', borderTop: '2px solid var(--tec-gold)',
                   animation: 'spin 0.8s linear infinite',
                 }} />
                 <span style={{ fontSize: 11, color: '#4a4a5a' }}>{p.authenticating}</span>
@@ -203,7 +203,7 @@ await new Promise(r => setTimeout(r, 1000));
               disabled={!isReady}
               style={{
                 padding: '18px 48px', borderRadius: 20,
-                background: isReady ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#333',
+                background: isReady ? 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))' : '#333',
                 border: 'none',
                 color: isReady ? '#0a0800' : '#666',
                 fontSize: 18, fontWeight: 900,
@@ -227,7 +227,7 @@ await new Promise(r => setTimeout(r, 1000));
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%',
-              border: '3px solid #FBBF2430', borderTop: '3px solid #FBBF24',
+              border: '3px solid #FBBF2430', borderTop: '3px solid var(--tec-gold)',
               animation: 'spin 0.8s linear infinite',
             }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>{p.processing}</div>
@@ -285,7 +285,7 @@ await new Promise(r => setTimeout(r, 1000));
                 }}
                 style={{
                   padding: '12px 24px', borderRadius: 14,
-                  background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                  background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
                   border: 'none', color: '#0a0800',
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}

@@ -49,39 +49,39 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
           {/* 1 — Founding 100 · Marketing missions entry */}
           <div style={{ minWidth: '100%' }}>
             <button className="tec-btn" onClick={goToPioneers}
-              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(251,191,36,0.14), #111627)', border: '1px solid rgba(251,191,36,0.3)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(251,191,36,0.14), var(--tec-surface-2))', border: '1px solid rgba(251,191,36,0.3)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#FBBF24' }}>★</div>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1a1208,var(--tec-surface-2))', border: '1px solid rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'var(--tec-gold)' }}>★</div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{t.hub.carousel.foundingTitle}</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{t.hub.carousel.foundingSub}</div>
                 </div>
               </div>
-              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#FBBF24', letterSpacing: 1.5 }}>{t.hub.carousel.foundingCta} →</div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5 }}>{t.hub.carousel.foundingCta} →</div>
             </button>
           </div>
 
           {/* 2 — Invite & Earn (referral growth) */}
           <div style={{ minWidth: '100%' }}>
             <button className="tec-btn" onClick={goToReferral}
-              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(34,197,94,0.14), #111627)', border: '1px solid rgba(34,197,94,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(34,197,94,0.14), var(--tec-surface-2))', border: '1px solid rgba(34,197,94,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#0d2417,#111627)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#0d2417,var(--tec-surface-2))', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{t.hub.carousel.inviteTitle}</div>
                   <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{t.hub.carousel.inviteSub}</div>
                 </div>
               </div>
-              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#22C55E', letterSpacing: 1.5 }}>{t.hub.carousel.inviteCta} →</div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-green)', letterSpacing: 1.5 }}>{t.hub.carousel.inviteCta} →</div>
             </button>
           </div>
 
           {/* 3 — Pi Price (kept as-is) */}
           <div style={{ minWidth: '100%' }}>
-            <div style={{ borderRadius: 20, background: '#111627', border: '1px solid rgba(251,191,36,0.12)', padding: '16px 20px' }}>
+            <div style={{ borderRadius: 20, background: 'var(--tec-surface-2)', border: '1px solid rgba(251,191,36,0.12)', padding: '16px 20px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#FBBF24' }}>π</div>
+                  <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,var(--tec-surface-2))', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'var(--tec-gold)' }}>π</div>
                   <div>
                     <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{t.hub.carousel.piNetwork}</div>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>PI/USDT · OKX</div>
@@ -89,8 +89,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
                 </div>
                 {piPrice
                   ? <div style={{ textAlign: 'end' }}>
-                      <div style={{ fontSize: 24, fontWeight: 900, color: '#FBBF24', fontVariantNumeric: 'tabular-nums' }}>$<CountUp value={piPrice.price} decimals={4} duration={700} /></div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: priceUp ? '#22C55E' : '#ef4444' }}>{priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%</div>
+                      <div style={{ fontSize: 24, fontWeight: 900, color: 'var(--tec-gold)', fontVariantNumeric: 'tabular-nums' }}>$<CountUp value={piPrice.price} decimals={4} duration={700} /></div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)' }}>{priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%</div>
                     </div>
                   : <div className="tec-skeleton" style={{ width: 80, height: 40 }} />
                 }
@@ -98,8 +98,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
               {piPrice
                 ? <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     {[
-                      { label: '24H HIGH', value: `$${piPrice.high24h.toFixed(4)}`, color: '#22C55E' },
-                      { label: '24H LOW',  value: `$${piPrice.low24h.toFixed(4)}`,  color: '#ef4444' },
+                      { label: '24H HIGH', value: `$${piPrice.high24h.toFixed(4)}`, color: 'var(--tec-green)' },
+                      { label: '24H LOW',  value: `$${piPrice.low24h.toFixed(4)}`,  color: 'var(--tec-red)' },
                     ].map(s => (
                       <div key={s.label} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
                         <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, marginBottom: 4 }}>{s.label}</div>
@@ -124,7 +124,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             aria-label={`Slide ${i + 1}`}
             style={{
               width: carouselIdx === i ? 20 : 6, height: 6, borderRadius: 3,
-              background: carouselIdx === i ? '#FBBF24' : 'rgba(255,255,255,0.15)',
+              background: carouselIdx === i ? 'var(--tec-gold)' : 'rgba(255,255,255,0.15)',
               border: 'none', cursor: 'pointer',
               transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', padding: 0,
             }} />

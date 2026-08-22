@@ -73,7 +73,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 }}
               >
                 <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
-                <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 700 }}>↻ {t.hub.wallet.retry}</span>
+                <span style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 700 }}>↻ {t.hub.wallet.retry}</span>
               </span>
             ) : balance === '—' ? (
               <div className="tec-skeleton" style={{ width: 120, height: 44 }} />
@@ -82,7 +82,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 <CountUp
                   value={parseFloat(balance) || 0}
                   decimals={2}
-                  style={{ fontSize: 42, fontWeight: 900, color: '#FBBF24', letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+                  style={{ fontSize: 42, fontWeight: 900, color: 'var(--tec-gold)', letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
                 />
                 <span style={{ fontSize: 22, color: 'rgba(251,191,36,0.6)', fontWeight: 300 }}>π</span>
               </>
@@ -99,7 +99,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
+              <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
               <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.hub.wallet.viewTransactions} →</span>
             </div>
             {piPrice && (
@@ -109,7 +109,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 border: `1px solid ${priceUp ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
                 borderRadius: 999, padding: '3px 10px',
               }}>
-                <span style={{ fontSize: 10, color: priceUp ? '#22C55E' : '#ef4444', fontWeight: 700 }}>
+                <span style={{ fontSize: 10, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)', fontWeight: 700 }}>
                   {priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
                 </span>
                 <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>${piPrice.price.toFixed(4)}</span>
@@ -128,7 +128,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
               padding: '11px 0', borderRadius: 16, cursor: 'pointer',
               background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.16)',
             }}>
-            <span style={{ fontSize: 17, fontWeight: 900, color: '#FBBF24', lineHeight: 1 }}>{a.icon}</span>
+            <span style={{ fontSize: 17, fontWeight: 900, color: 'var(--tec-gold)', lineHeight: 1 }}>{a.icon}</span>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3 }}>{a.label}</span>
           </button>
         ))}

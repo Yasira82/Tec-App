@@ -20,15 +20,15 @@ const statusConfig = (t: Translations): Record<KycStatus, {
   },
   PENDING: {
     icon: 'clock', label: t.hub.kyc.status.pending, desc: t.hub.kyc.status.pendingDesc,
-    bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: '#f59e0b',
+    bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: 'var(--tec-gold-dark)',
   },
   VERIFIED: {
     icon: 'shieldCheck', label: t.hub.kyc.status.verified, desc: t.hub.kyc.status.verifiedDesc,
-    bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: '#22C55E',
+    bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: 'var(--tec-green)',
   },
   REJECTED: {
     icon: 'x', label: t.hub.kyc.status.rejected, desc: t.hub.kyc.status.rejectedDesc,
-    bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: '#ef4444',
+    bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: 'var(--tec-red)',
   },
 });
 
@@ -128,9 +128,9 @@ function StepIndicator({ step }: { step: 'docs' | 'review' }) {
                 border: `1px solid ${isDone  ? 'rgba(34,197,94,0.4)'
                                     : isActive ? 'var(--tec-border-gold)'
                                     : 'var(--tec-border)'}`,
-                color: isDone ? '#22C55E' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
+                color: isDone ? 'var(--tec-green)' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
               }}>
-                {isDone ? <Icon name="check" size={14} color="#22C55E" /> : i + 1}
+                {isDone ? <Icon name="check" size={14} color="var(--tec-green)" /> : i + 1}
               </div>
               <span style={{
                 fontSize: 'var(--text-sm)', fontWeight: isActive ? 600 : 400,
@@ -202,14 +202,14 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
 
           {uploadErr && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
-              <Icon name="alert" size={16} color="#ef4444" /> {uploadErr}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)' }}>
+              <Icon name="alert" size={16} color="var(--tec-red)" /> {uploadErr}
             </div>
           )}
 
           {/* Security reassurance */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-5)', fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>
-            <Icon name="shield" size={14} color="#22C55E" />
+            <Icon name="shield" size={14} color="var(--tec-green)" />
             {t.hub.kyc.upload.encrypted}
           </div>
 
@@ -217,7 +217,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={handleUpload} disabled={uploading || !idFrontUrl || !selfieUrl}
               style={{
                 padding: '12px 28px', borderRadius: 'var(--radius-md)',
-                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
                 border: 'none', color: '#0a0800', fontWeight: 700, fontSize: 'var(--text-sm)',
                 cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
                 opacity: uploading ? 0.6 : 1,
@@ -237,7 +237,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
           <div style={{ border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 'var(--sp-5)' }}>
             {reviewItems.map((item, i) => {
               const state = item.value ? 'ok' : item.required ? 'missing' : 'optional';
-              const color = state === 'ok' ? '#22C55E' : state === 'missing' ? '#ef4444' : 'var(--tec-text-3)';
+              const color = state === 'ok' ? 'var(--tec-green)' : state === 'missing' ? 'var(--tec-red)' : 'var(--tec-text-3)';
               return (
                 <div key={item.label} style={{
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -273,7 +273,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={onSubmit} disabled={isSubmitting}
               style={{
                 padding: '11px 28px', borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
                 border: 'none', color: '#0a0800', fontWeight: 700,
                 fontSize: 'var(--text-sm)', cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
@@ -288,12 +288,14 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
 }
 
 // Centered icon badge for the terminal states.
-function StateBadge({ icon, color, ring }: { icon: IconName; color: string; ring: string }) {
+// `edge` is passed rather than derived: the icon colour is a design token now, and
+// a token cannot carry an appended alpha (`var(--x)33` is not a colour).
+function StateBadge({ icon, color, ring, edge }: { icon: IconName; color: string; ring: string; edge: string }) {
   return (
     <div style={{
       width: 68, height: 68, borderRadius: 20, margin: '0 auto var(--sp-4)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: ring, border: `1px solid ${color}33`,
+      background: ring, border: `1px solid ${edge}`,
     }}>
       <Icon name={icon} size={34} color={color} strokeWidth={1.8} />
     </div>
@@ -305,7 +307,7 @@ function PendingState() {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
-        <StateBadge icon="clock" color="#f59e0b" ring="rgba(245,158,11,0.1)" />
+        <StateBadge icon="clock" color="var(--tec-gold-dark)" ring="rgba(245,158,11,0.1)" edge="rgba(245,158,11,0.2)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-3)' }}>
           {t.hub.kyc.pending.heading}
         </div>
@@ -318,10 +320,10 @@ function PendingState() {
             { label: t.hub.kyc.pending.inProgress, state: 'active' },
             { label: t.hub.kyc.pending.decision,   state: 'todo' },
           ].map(s => (
-            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: s.state === 'done' ? '#22C55E' : s.state === 'active' ? '#f59e0b' : 'var(--tec-text-3)' }}>
+            <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: s.state === 'done' ? 'var(--tec-green)' : s.state === 'active' ? 'var(--tec-gold-dark)' : 'var(--tec-text-3)' }}>
               {s.state === 'done'
-                ? <Icon name="check" size={16} color="#22C55E" />
-                : <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${s.state === 'active' ? '#f59e0b' : 'var(--tec-border)'}`, background: s.state === 'active' ? '#f59e0b' : 'transparent', flexShrink: 0 }} />}
+                ? <Icon name="check" size={16} color="var(--tec-green)" />
+                : <span style={{ width: 14, height: 14, borderRadius: '50%', border: `2px solid ${s.state === 'active' ? 'var(--tec-gold-dark)' : 'var(--tec-border)'}`, background: s.state === 'active' ? 'var(--tec-gold-dark)' : 'transparent', flexShrink: 0 }} />}
               <span>{s.label}</span>
             </div>
           ))}
@@ -336,8 +338,8 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
-        <StateBadge icon="shieldCheck" color="#22C55E" ring="rgba(34,197,94,0.1)" />
-        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#22C55E', marginBottom: 'var(--sp-3)' }}>
+        <StateBadge icon="shieldCheck" color="var(--tec-green)" ring="rgba(34,197,94,0.1)" edge="rgba(34,197,94,0.2)" />
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-green)', marginBottom: 'var(--sp-3)' }}>
           {t.hub.kyc.verified.heading}
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, marginBottom: 'var(--sp-6)' }}>
@@ -371,8 +373,8 @@ function RejectedState({ reason, isSubmitting, onReset }: {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-8) var(--sp-6)' }}>
-        <StateBadge icon="x" color="#ef4444" ring="rgba(239,68,68,0.1)" />
-        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#ef4444', marginBottom: 'var(--sp-3)' }}>
+        <StateBadge icon="x" color="var(--tec-red)" ring="rgba(239,68,68,0.1)" edge="rgba(239,68,68,0.2)" />
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-red)', marginBottom: 'var(--sp-3)' }}>
           {t.hub.kyc.rejected.heading}
         </div>
         {reason && (
@@ -381,7 +383,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6, textAlign: 'start',
           }}>
-            <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>{t.hub.kyc.rejected.reason}</span>
+            <span style={{ display: 'block', fontSize: 10, color: 'var(--tec-red)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>{t.hub.kyc.rejected.reason}</span>
             {reason}
           </div>
         )}
@@ -391,7 +393,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
         <button onClick={onReset} disabled={isSubmitting}
           style={{
             padding: '12px 32px', borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+            background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
             border: 'none', color: '#0a0800', fontWeight: 700,
             fontSize: 'var(--text-sm)', cursor: 'pointer',
             opacity: isSubmitting ? 0.6 : 1,
@@ -428,9 +430,9 @@ export default function HubKycPage() {
           display: 'flex', alignItems: 'center', gap: 8,
           padding: 'var(--sp-3) var(--sp-5)', marginBottom: 'var(--sp-4)',
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-          borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444',
+          borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)',
         }}>
-          <Icon name="alert" size={16} color="#ef4444" /> {error}
+          <Icon name="alert" size={16} color="var(--tec-red)" /> {error}
         </div>
       )}
 

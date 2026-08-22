@@ -49,8 +49,14 @@ export function Icon({ name, size = 24, color = 'currentColor', strokeWidth = 2,
   return (
     <svg
       width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
-      aria-hidden="true" focusable="false" style={style}
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true" focusable="false"
+      // `stroke` goes through inline STYLE, not the presentation attribute.
+      // Callers now pass design tokens (`var(--tec-gold)`); a presentation
+      // attribute that fails to resolve leaves stroke unset and the icon
+      // invisible, so the value belongs where var() is guaranteed to work.
+      // An explicit style from the caller still wins.
+      style={{ stroke: color, ...style }}
       dangerouslySetInnerHTML={{ __html: PATHS[name] }}
     />
   );

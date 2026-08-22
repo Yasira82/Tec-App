@@ -20,7 +20,7 @@ const defaultStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '6px 12px', borderRadius: 999,
   border: '1px solid #FBBF2440', background: '#FBBF2412',
-  color: '#FBBF24', fontSize: 12, fontWeight: 600,
+  color: 'var(--tec-gold)', fontSize: 12, fontWeight: 600,
   textDecoration: 'none', whiteSpace: 'nowrap',
 };
 

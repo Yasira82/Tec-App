@@ -119,15 +119,6 @@ describe('ToastContainer', () => {
   });
 });
 
-// ── PullIndicator component ────────────────────────────────────────
-describe('PullIndicator', () => {
-  it('renders without crash', async () => {
-    const { PullIndicator } = await import('@/app/hub/components/PullIndicator');
-    const { container } = render(<PullIndicator progress={0} isRefreshing={false} />);
-    expect(container).toBeTruthy();
-  });
-});
-
 // ── AiClient page — skipped: uses streaming SSE response ──────────
 // AiClient uses response.body.getReader() for SSE streaming, which hangs in happy-dom.
 // Coverage via integration test only.
@@ -146,15 +137,6 @@ describe('MobileTopbar', () => {
   it('renders without crash', async () => {
     const { MobileTopbar } = await import('@/components/dashboard/MobileTopbar');
     const { container } = render(<MobileTopbar />);
-    expect(container).toBeTruthy();
-  });
-});
-
-// ── Hub WalletCard component ───────────────────────────────────────
-describe('Hub WalletCard', () => {
-  it('renders with userId', async () => {
-    const WalletCard = (await import('@/components/hub/WalletCard')).default;
-    const { container } = render(<WalletCard userId="u1" />);
     expect(container).toBeTruthy();
   });
 });

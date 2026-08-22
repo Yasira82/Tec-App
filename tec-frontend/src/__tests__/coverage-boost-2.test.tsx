@@ -110,10 +110,6 @@ vi.mock('@/app/hub/components/HubSkeleton', () => ({
   HubSkeleton: () => <div data-testid="hub-skeleton">Loading…</div>,
 }));
 
-vi.mock('@/app/hub/components/PullIndicator', () => ({
-  PullIndicator: () => null,
-}));
-
 vi.mock('@/app/hub/components/PaymentModal', () => ({
   PaymentModal: ({ onClose, onSuccess }: {
     payment: unknown; onClose: () => void; onSuccess: (txid: string, paymentId: string) => void;
@@ -126,7 +122,10 @@ vi.mock('@/app/hub/components/PaymentModal', () => ({
   ExternalPayment: {},
 }));
 
-vi.mock('@/components/hub', () => ({
+// Spread the real module and override only what this file stubs — a hand-listed
+// mock breaks whenever the barrel gains an export.
+vi.mock('@/components/hub', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/components/hub')>()),
   HubHeader:    ({ notifCount }: { notifCount: number }) => <div data-testid="hub-header">{notifCount}</div>,
   HubWalletCard: () => <div data-testid="hub-wallet-card" />,
   HubCarousel:   () => <div data-testid="hub-carousel" />,

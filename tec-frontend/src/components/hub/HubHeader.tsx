@@ -25,11 +25,15 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       backdropFilter: 'blur(24px) saturate(1.8)',
       WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
       borderBottom: '1px solid rgba(255,255,255,0.05)',
+      // A header that overflows does not just look wrong — it gives the whole page
+      // a horizontal scrollbar and slides the account chip past the screen edge.
+      // Everything inside is allowed to shrink; nothing is allowed to escape.
+      gap: 8, overflow: 'hidden',
     }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <div style={{
-          width: 34, height: 34, borderRadius: 10,
+          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
           background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: '#0a0800',
@@ -43,9 +47,11 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
 
       {/* Right */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
-        <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time}</span>
+        {/* The phone already shows the time in its status bar. Here it is the first
+            thing to drop when the row runs out of room. */}
+        <span className="tec-hide-narrow" style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time}</span>
 
-        <LanguageSwitcher />
+        <LanguageSwitcher compact />
 
         {/* Notifications */}
         <button className="tec-btn" onClick={onNotifClick}
@@ -55,7 +61,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             background: notifCount > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.06)',
             border: `1px solid ${notifCount > 0 ? 'rgba(251,191,36,0.25)' : 'rgba(255,255,255,0.08)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            cursor: 'pointer', position: 'relative',
+            cursor: 'pointer', position: 'relative', flexShrink: 0,
           }}>
           <Icon name="bell" size={18} color={notifCount > 0 ? '#FBBF24' : 'rgba(255,255,255,0.6)'} />
           {notifCount > 0 && (
@@ -82,6 +88,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             background: 'rgba(251,191,36,0.08)',
             border: '1px solid rgba(251,191,36,0.2)',
             borderRadius: 12, padding: '5px 10px 5px 5px', cursor: 'pointer',
+            minWidth: 0, flexShrink: 1,
           }}>
           <div style={{
             width: 26, height: 26, borderRadius: '50%',
@@ -91,7 +98,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
+          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
           <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'rgba(251,191,36,0.6)', marginInlineStart: -2 }}>›</span>
         </button>
       </div>

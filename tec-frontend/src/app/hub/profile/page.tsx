@@ -47,6 +47,11 @@ export default function HubProfilePage() {
   const { plan }  = useSubscriptionPlan();
   // `plan` is the enum from commerce; the reader gets its translated name.
   const planLabel = t.hub.plans[normalizePlan(plan)].name.toUpperCase();
+  // `role` is a backend enum ('admin'), but it renders where a WORD belongs. An
+  // unknown role falls back to the raw value rather than silently reading "User" —
+  // a role we cannot name is something to notice, not to paper over (P6).
+  const roleKey   = String(user?.role ?? 'user').toLowerCase();
+  const roleLabel = (t.hub.profile.roles as Record<string, string>)[roleKey] ?? roleKey.toUpperCase();
 
   // KYC state from the SAME source the KYC page uses, so the two can never disagree.
   // This block used to be hardcoded to "Pending" with no condition — it said Pending
@@ -90,7 +95,7 @@ export default function HubProfilePage() {
           </div>
           <div style={{ display: 'flex', gap: 'var(--sp-2)', flexWrap: 'wrap' }}>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: 'var(--tec-gold)', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
-              {(user?.role ?? 'USER').toUpperCase()}
+              {roleLabel}
             </span>
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
               {planLabel}
@@ -104,7 +109,7 @@ export default function HubProfilePage() {
         <InfoRow label={t.hub.profile.piUsername}  value={`@${user?.piUsername ?? ''}`} />
         <InfoRow label={t.hub.profile.piUid}       value={user?.piId ?? ''}   mono copyable />
         <InfoRow label={t.hub.profile.tecUserId}   value={user?.id ?? ''}     mono copyable />
-        <InfoRow label={t.hub.profile.role}        value={(user?.role ?? 'user').toUpperCase()} />
+        <InfoRow label={t.hub.profile.role}        value={roleLabel} />
         <InfoRow label={t.hub.profile.plan}        value={planLabel} />
         <InfoRow label={t.hub.profile.memberSince} value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : t.hub.profile.na} />
       </DashboardCard>

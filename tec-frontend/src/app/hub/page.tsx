@@ -9,6 +9,7 @@ import { useRealtimeNotifications }                  from '@/lib-client/hooks/us
 import { getAccessToken, getStoredUser }             from '@/lib-client/pi/pi-auth';
 import { tecSession }                                from '@/lib-client/pi/tec-session';
 import { LIVE_DOMAINS }                              from '@/domains/_registry';
+import { t as tr, type Locale }                      from '@/domains/_types';
 import { ErrorBoundary }                             from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }                     from './components/ToastContainer';
 import { AIDrawer }                                  from './components/AIDrawer';
@@ -34,6 +35,7 @@ const getCsrfToken = (): string => {
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
   const { t, dir } = useTranslation();
+  const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
 
   // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup):
   // wake the gateway while auth resolves so wallet/apps data lands warm.
@@ -52,7 +54,13 @@ function HubPageInner() {
       const href  = route.startsWith('http')
         ? `/api/auth/sso?target=${encodeURIComponent(route)}`
         : route;
-      return { slug: d.slug, name: d.name.en, emoji: d.emoji, href, desc: d.description.en, group: d.group };
+      // The registry already carries `name.ar` / `description.ar`; the Hub grid was
+      // pinned to `.en`, so every tile stayed English on an otherwise Arabic screen.
+      return {
+        slug: d.slug, emoji: d.emoji, href, group: d.group,
+        name: tr(d.name, locale),
+        desc: tr(d.valueProp ?? d.description, locale),
+      };
     });
 
   const { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =

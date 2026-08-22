@@ -19,3 +19,21 @@
 .switcher:active {
   transform: translateY(0);
 }
+
+/* Header-sized: a fixed square that cannot grow with the language name. */
+.compact {
+  padding: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* The lift on hover is a pointer affordance; on a touch header it just makes the
+   row jitter, and `transform` on a sticky child can detach it from the top. */
+.compact:hover { transform: none; }

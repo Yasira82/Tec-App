@@ -15,6 +15,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, act, fireEvent, waitFor } from '@/test-utils/render-with-locale';
+import { en } from '@/lib/i18n/en';
 
 // ──────────────────────────────────────────────────────────────────
 // Hoisted mock references
@@ -847,14 +848,30 @@ describe('HubProfilePage (hub/profile)', () => {
     expect(window.confirm).toHaveBeenCalled();
   });
 
-  it('renders user ADMIN role badge', async () => {
+  it('names the role instead of printing the enum', async () => {
+    // `role` arrives as the backend enum ('admin') but renders where a word
+    // belongs, so it is looked up like any other label.
     mockUsePiAuth.mockReturnValue({
       ...defaultAuthState,
       user: { ...defaultUser, role: 'admin' },
     });
     const { default: Page } = await import('@/app/hub/profile/page');
     const { container } = render(<Page />);
-    expect(container.textContent).toContain('ADMIN');
+    expect(container.textContent).toContain(en.hub.profile.roles.admin);
+  });
+
+  it('shows an unrecognised role as-is rather than defaulting to "User"', async () => {
+    // A role we cannot name is something to notice (P6) — silently reading it as
+    // the lowest privilege would hide a backend change behind a plausible label.
+    mockUsePiAuth.mockReturnValue({
+      ...defaultAuthState,
+      user: { ...defaultUser, role: 'auditor' },
+    });
+    const { default: Page } = await import('@/app/hub/profile/page');
+    const { container } = render(<Page />);
+    // Showing the raw value IS the proof it did not fall back — "User" also appears
+    // in the "TEC User ID" label, so a page-wide absence check proves nothing.
+    expect(container.textContent).toContain('AUDITOR');
   });
 });
 

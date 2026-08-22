@@ -187,7 +187,13 @@ export const ar = {
       morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير',
       sub: 'اقتصادك على Pi، كله في مكان واحد.',
     },
-    wallet: { loadFailed: 'تعذّر تحميل الرصيد', retry: 'إعادة المحاولة', viewTransactions: 'عرض المعاملات' },
+    wallet: {
+      loadFailed: 'تعذّر تحميل الرصيد', retry: 'إعادة المحاولة', viewTransactions: 'عرض المعاملات',
+      internalBalance: 'رصيد TEC الداخلي',
+      notPiWallet: 'هذه ليست محفظة Pi Network الخاصة بك · ولا يمكن سحبها إلى Pi Network.',
+      send: 'إرسال', receive: 'استقبال', history: 'السجل',
+      internalOnly: 'الإرسال والاستقبال ينقلان π بين حسابات TEC فقط.',
+    },
     carousel: {
       foundingTitle: 'المئة المؤسِّسة',
       foundingSub: 'ابدأ مهام الرواد — واكسب الشارة',
@@ -205,7 +211,13 @@ export const ar = {
       noMatch: 'لا يوجد تطبيق يطابق «{q}».',
       results: '{n} نتيجة', resultOne: 'نتيجة واحدة',
     },
-    comingSoon: { title: 'قريبًا', count: '{n} من {total}' },
+    comingSoon: {
+      title: 'قريبًا', count: '{n} من {total}',
+      groups: {
+        finance: 'المال', commerce: 'التجارة', real_world: 'العالم الواقعي',
+        social: 'التواصل', tech: 'التقنية', monetization: 'العضوية',
+      },
+    },
     tools: { analytics: 'التحليلات', kyc: 'التوثيق', plan: 'الاشتراك', invite: 'دعوة' },
     payment: {
       preparing: 'جارٍ تجهيز الدفع...',
@@ -312,6 +324,7 @@ export const ar = {
       title: 'الملف الشخصي', subtitle: 'إدارة معلومات حسابك',
       accountInfo: 'معلومات الحساب', accountInfoSub: 'هوية Pi Network',
       piUsername: 'اسم المستخدم في Pi', piUid: 'معرّف Pi', tecUserId: 'معرّف المستخدم في TEC',
+      roles: { user: 'مستخدم', admin: 'مسؤول', merchant: 'تاجر' },
       role: 'الدور', plan: 'الاشتراك', memberSince: 'عضو منذ', na: 'غير متاح',
       verification: 'التوثيق', goToKyc: 'اذهب للتوثيق',
       kycTitle: 'توثيق الهوية',

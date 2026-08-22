@@ -22,7 +22,11 @@ interface Props {
 const SLIDES = 3;
 
 export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers, goToReferral }: Props) {
-  const { t } = useTranslation();
+  const { t, dir } = useTranslation();
+  // An RTL flex row starts at the RIGHT, so the slides advance the other way.
+  // A fixed `translateX(-N%)` pushed the track off-screen and left the Hub's top
+  // slot blank in Arabic — the carousel was there, just nowhere visible.
+  const rtl = dir === 'rtl';
   const touchStartX = useRef(0);
   const priceUp     = (piPrice?.change24h ?? 0) >= 0;
 
@@ -32,15 +36,20 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
         onTouchStart={e => { touchStartX.current = e.targetTouches[0].clientX; }}
         onTouchEnd={e => {
           const diff = touchStartX.current - e.changedTouches[0].clientX;
-          if (Math.abs(diff) > 40) { haptic('light'); setCarouselIdx(diff > 0 ? Math.min(carouselIdx + 1, SLIDES - 1) : Math.max(carouselIdx - 1, 0)); }
+          // A swipe means "next" in the direction the user reads, so RTL inverts it.
+          if (Math.abs(diff) > 40) {
+            haptic('light');
+            const forward = rtl ? diff < 0 : diff > 0;
+            setCarouselIdx(forward ? Math.min(carouselIdx + 1, SLIDES - 1) : Math.max(carouselIdx - 1, 0));
+          }
         }}
         style={{ overflow: 'hidden', borderRadius: 20 }}>
-        <div style={{ display: 'flex', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: `translateX(-${carouselIdx * 100}%)` }}>
+        <div style={{ display: 'flex', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: `translateX(${rtl ? '' : '-'}${carouselIdx * 100}%)` }}>
 
           {/* 1 — Founding 100 · Marketing missions entry */}
           <div style={{ minWidth: '100%' }}>
             <button className="tec-btn" onClick={goToPioneers}
-              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(251,191,36,0.14), #111627)', border: '1px solid rgba(251,191,36,0.3)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(251,191,36,0.14), #111627)', border: '1px solid rgba(251,191,36,0.3)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#FBBF24' }}>★</div>
                 <div style={{ minWidth: 0 }}>
@@ -55,7 +64,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
           {/* 2 — Invite & Earn (referral growth) */}
           <div style={{ minWidth: '100%' }}>
             <button className="tec-btn" onClick={goToReferral}
-              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(34,197,94,0.14), #111627)', border: '1px solid rgba(34,197,94,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left', gap: 12 }}>
+              style={{ width: '100%', borderRadius: 20, background: 'linear-gradient(135deg, rgba(34,197,94,0.14), #111627)', border: '1px solid rgba(34,197,94,0.28)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#0d2417,#111627)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
                 <div style={{ minWidth: 0 }}>
@@ -79,7 +88,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
                   </div>
                 </div>
                 {piPrice
-                  ? <div style={{ textAlign: 'right' }}>
+                  ? <div style={{ textAlign: 'end' }}>
                       <div style={{ fontSize: 24, fontWeight: 900, color: '#FBBF24', fontVariantNumeric: 'tabular-nums' }}>$<CountUp value={piPrice.price} decimals={4} duration={700} /></div>
                       <div style={{ fontSize: 12, fontWeight: 700, color: priceUp ? '#22C55E' : '#ef4444' }}>{priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%</div>
                     </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation, fill, type Translations } from '@/lib/i18n';
+import { useTranslation, fill, bcp47, type Translations } from '@/lib/i18n';
 
 import { useState, useEffect, useCallback } from 'react';
 import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
@@ -63,7 +63,7 @@ function RenewalNotice({ endISO, daysRemaining, isExpired }: {
 }) {
   const { t, locale } = useTranslation();
   const s       = t.hub.subscription;
-  const dateStr = new Date(endISO).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  const dateStr = new Date(endISO).toLocaleDateString(bcp47(locale), { month: 'long', day: 'numeric', year: 'numeric' });
   const days    = typeof daysRemaining === 'number' ? daysRemaining : null;
   const expired = isExpired === true || days === 0;
   const soon    = !expired && days !== null && days <= 7;
@@ -353,7 +353,7 @@ export default function HubSubscriptionPage() {
               <span style={{ fontSize: 'var(--text-2xl)', fontWeight: 900, color: meta.color }}>{planName(t, plan)}</span>
             </div>
           </div>
-          <div style={{ textAlign: 'right' }}>
+          <div style={{ textAlign: 'end' }}>
             <div style={{ fontSize: 'var(--text-2xl)', fontWeight: 900, color: 'var(--tec-text-1)' }}>
               {meta.price === 0 ? t.hub.subscription.free : `${meta.price} π`}
             </div>

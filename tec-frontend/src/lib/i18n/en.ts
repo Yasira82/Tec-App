@@ -195,10 +195,19 @@ export const en = {
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {
-      morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
+      morning: 'Good morning,', afternoon: 'Good afternoon,', evening: 'Good evening,',
       sub: 'Your Pi economy, all in one place.',
     },
-    wallet: { loadFailed: "Couldn't load balance", retry: 'Retry', viewTransactions: 'View transactions' },
+    wallet: {
+      loadFailed: "Couldn't load balance", retry: 'Retry', viewTransactions: 'View transactions',
+      internalBalance: 'TEC Internal Balance',
+      // The disclosure is a promise, not decoration: this π is an internal ledger
+      // balance and there is no withdrawal path (payment-service is the only Pi
+      // custodian — C-47 Invariant #8). It must read as plainly in Arabic.
+      notPiWallet: 'Not your Pi Network wallet · not withdrawable to Pi Network.',
+      send: 'Send', receive: 'Receive', history: 'History',
+      internalOnly: 'Send / Receive move π between TEC accounts only.',
+    },
     carousel: {
       foundingTitle: 'Founding 100',
       foundingSub: 'Start your Pioneer missions — earn the badge',
@@ -209,6 +218,7 @@ export const en = {
       piNetwork: 'Pi Network',
     },
     apps: {
+      other: 'More',
       title: 'Apps', edit: 'Edit', done: 'Done', live: 'LIVE',
       search: 'Search apps', clearSearch: 'Clear search',
       editHint: 'Tap an app to pin it to ★ Favorites.',
@@ -216,7 +226,13 @@ export const en = {
       noMatch: 'No apps match “{q}”.',
       results: '{n} results', resultOne: '1 result',
     },
-    comingSoon: { title: 'Coming Soon', count: '{n} of {total}' },
+    comingSoon: {
+      title: 'Coming Soon', count: '{n} of {total}',
+      groups: {
+        finance: 'Finance', commerce: 'Commerce', real_world: 'Real World',
+        social: 'Social', tech: 'Tech', monetization: 'Membership',
+      },
+    },
     tools: { analytics: 'Analytics', kyc: 'KYC', plan: 'Plan', invite: 'Invite' },
     payment: {
       preparing: 'Preparing payment...',
@@ -328,6 +344,7 @@ export const en = {
       title: 'Profile', subtitle: 'Manage your account information',
       accountInfo: 'Account Information', accountInfoSub: 'Pi Network identity',
       piUsername: 'Pi Username', piUid: 'Pi UID', tecUserId: 'TEC User ID',
+      roles: { user: 'User', admin: 'Admin', merchant: 'Merchant' },
       role: 'Role', plan: 'Plan', memberSince: 'Member Since', na: 'N/A',
       verification: 'Verification', goToKyc: 'Go to KYC',
       kycTitle: 'KYC Verification',
@@ -420,6 +437,7 @@ export const en = {
         '- Point you to the right app for what you need' + '\n\n' +
         'How can I help you today?',
       placeholder: 'Ask TEC AI...', ask: 'Ask TEC AI',
+      poweredBy: 'Powered by tec.pi', close: 'Close', send: 'Send',
       newChat: 'New chat', menu: 'Menu', stop: 'Stop',
       copyReply: 'Copy reply', copied: '✓ Copied', copyShort: '⧉ Copy',
       stopped: '… (stopped)', stoppedEmpty: 'Stopped before it began.',

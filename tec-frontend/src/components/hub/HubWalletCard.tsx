@@ -24,9 +24,9 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
   // flow on the wallet page (payment-service owns the transaction — P2/ADR-004).
   const go = (path: string) => { haptic('light'); router.push(path); };
   const ACTIONS = [
-    { key: 'send',    label: 'Send',    icon: '↑', path: '/dashboard/wallet?action=send' },
-    { key: 'receive', label: 'Receive', icon: '↓', path: '/dashboard/wallet?action=receive' },
-    { key: 'history', label: 'History', icon: '⇄', path: '/dashboard/wallet' },
+    { key: 'send',    label: t.hub.wallet.send,    icon: '↑', path: '/dashboard/wallet?action=send' },
+    { key: 'receive', label: t.hub.wallet.receive, icon: '↓', path: '/dashboard/wallet?action=receive' },
+    { key: 'history', label: t.hub.wallet.history, icon: '⇄', path: '/dashboard/wallet' },
   ];
 
   return (
@@ -37,7 +37,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
           width: '100%', borderRadius: 24, overflow: 'hidden',
           background: 'linear-gradient(135deg,#0f0c1e 0%,#0a1628 50%,#0c1a0e 100%)',
           border: '1px solid rgba(251,191,36,0.15)',
-          padding: '24px', cursor: 'pointer', textAlign: 'left',
+          padding: '24px', cursor: 'pointer', textAlign: 'start',
           boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
           position: 'relative',
         }}>
@@ -49,7 +49,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
 
         <div style={{ position: 'relative' }}>
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
-            TEC INTERNAL BALANCE
+            {t.hub.wallet.internalBalance}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
@@ -73,7 +73,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 }}
               >
                 <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
-                <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 700 }}>↻ Retry</span>
+                <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 700 }}>↻ {t.hub.wallet.retry}</span>
               </span>
             ) : balance === '—' ? (
               <div className="tec-skeleton" style={{ width: 120, height: 44 }} />
@@ -94,7 +94,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
               only Pi custodian — C-47 Invariant #8). Stating it plainly avoids any
               impression that this π can be moved to a Pi Network wallet. */}
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, marginBottom: 14 }}>
-            Not your Pi Network wallet · not withdrawable to Pi Network.
+            {t.hub.wallet.notPiWallet}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -138,7 +138,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
           NOT send to a Pi Network wallet. Kept explicit so the actions aren't mistaken
           for on-chain Pi transfers. */}
       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: 8 }}>
-        Send / Receive move π between TEC accounts only.
+        {t.hub.wallet.internalOnly}
       </div>
     </div>
   );

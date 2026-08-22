@@ -184,10 +184,16 @@ export const ar = {
     },
     header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
     greeting: {
-      morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير',
+      morning: 'صباح الخير،', afternoon: 'مساء الخير،', evening: 'مساء الخير،',
       sub: 'اقتصادك على Pi، كله في مكان واحد.',
     },
-    wallet: { loadFailed: 'تعذّر تحميل الرصيد', retry: 'إعادة المحاولة', viewTransactions: 'عرض المعاملات' },
+    wallet: {
+      loadFailed: 'تعذّر تحميل الرصيد', retry: 'إعادة المحاولة', viewTransactions: 'عرض المعاملات',
+      internalBalance: 'رصيد TEC الداخلي',
+      notPiWallet: 'هذه ليست محفظة Pi Network الخاصة بك · ولا يمكن سحبها إلى Pi Network.',
+      send: 'إرسال', receive: 'استقبال', history: 'السجل',
+      internalOnly: 'الإرسال والاستقبال ينقلان π بين حسابات TEC فقط.',
+    },
     carousel: {
       foundingTitle: 'المئة المؤسِّسة',
       foundingSub: 'ابدأ مهام الرواد — واكسب الشارة',
@@ -198,14 +204,21 @@ export const ar = {
       piNetwork: 'شبكة Pi',
     },
     apps: {
-      title: 'التطبيقات', edit: 'تعديل', done: 'تم', live: 'تعمل',
+      other: 'أخرى',
+      title: 'التطبيقات', edit: 'تعديل', done: 'تم', live: 'نشط',
       search: 'ابحث عن تطبيق', clearSearch: 'مسح البحث',
       editHint: 'اضغط على تطبيق لتثبيته في ★ المفضلة.',
       favorites: '★ المفضلة', recent: 'آخر استخدام',
       noMatch: 'لا يوجد تطبيق يطابق «{q}».',
       results: '{n} نتيجة', resultOne: 'نتيجة واحدة',
     },
-    comingSoon: { title: 'قريبًا', count: '{n} من {total}' },
+    comingSoon: {
+      title: 'قريبًا', count: '{n} من {total}',
+      groups: {
+        finance: 'المال', commerce: 'التجارة', real_world: 'العالم الواقعي',
+        social: 'التواصل', tech: 'التقنية', monetization: 'العضوية',
+      },
+    },
     tools: { analytics: 'التحليلات', kyc: 'التوثيق', plan: 'الاشتراك', invite: 'دعوة' },
     payment: {
       preparing: 'جارٍ تجهيز الدفع...',
@@ -229,8 +242,8 @@ export const ar = {
       title: 'الاشتراك', subtitle: 'إدارة خطتك في TEC',
       currentPlan: 'خطتك الحالية', free: 'مجاني', perMonth: '/شهريًا',
       assetsUsed: 'الأصول المستخدمة',
-      atLimit: 'وصلت لحد الخطة المجانية — ارتقِ إلى Pro لأصول بلا حدود.',
-      unlimited: '✓ أصول بلا حدود', created: '{n} تم إنشاؤها',
+      atLimit: 'وصلت لحد الخطة المجانية — ارتقِ إلى PRO لأصول بلا حدود.',
+      unlimited: '✓ أصول بلا حدود', created: 'تم إنشاء {n}',
       cancelling: 'جارٍ الإلغاء…', cancel: 'إلغاء الاشتراك',
       cancelConfirm: 'إلغاء اشتراكك؟ سيتم نقلك للخطة المجانية.',
       cancelFailed: 'تعذّر الإلغاء',
@@ -257,7 +270,7 @@ export const ar = {
     },
     plans: {
       FREE:       { name: 'مجانية',  tagline: 'ابدأ رحلتك في TEC' },
-      PRO:        { name: 'برو',     tagline: 'للبنّائين والتجّار النشطين' },
+      PRO:        { name: 'PRO',     tagline: 'للبنّائين والتجّار النشطين' },
       ENTERPRISE: { name: 'المؤسسات', tagline: 'للفرق والأعمال بعلامة خاصة' },
     },
     planFeatures: {
@@ -293,7 +306,7 @@ export const ar = {
       title: 'الإشعارات', allCaught: 'لا يوجد جديد', empty: 'لا توجد إشعارات بعد',
       unread: 'غير مقروء', earlier: 'أقدم', justNow: 'الآن',
       unreadCount: '{n} غير مقروء', markAllRead: 'تعليم الكل كمقروء', retry: 'إعادة المحاولة',
-      minsAgo: 'منذ {n} د', hrsAgo: 'منذ {n} س', daysAgo: 'منذ {n} ي',
+      minsAgo: 'منذ {n} دقيقة', hrsAgo: 'منذ {n} ساعة', daysAgo: 'منذ {n} يوم',
     },
     analytics: {
       title: 'التحليلات', subtitle: 'نظرة عامة على أداء المنصّة',
@@ -302,7 +315,7 @@ export const ar = {
       payments24h: 'المدفوعات — آخر 24 ساعة',
       completed: 'مكتملة', failed: 'فاشلة', cancelled: 'ملغاة',
       volume: 'الحجم', successRate: 'معدّل النجاح', na: 'غير متاح',
-      healthy: 'سليم', degraded: 'متدهور',
+      healthy: 'سليم', degraded: 'غير مستقر',
       totals: 'إجماليات المنصّة',
       totalPayments: 'إجمالي المدفوعات', totalUsers: 'إجمالي المستخدمين', totalEvents: 'إجمالي الأحداث',
       recentEvents: 'أحدث الأحداث', live: 'مباشر',
@@ -312,6 +325,7 @@ export const ar = {
       title: 'الملف الشخصي', subtitle: 'إدارة معلومات حسابك',
       accountInfo: 'معلومات الحساب', accountInfoSub: 'هوية Pi Network',
       piUsername: 'اسم المستخدم في Pi', piUid: 'معرّف Pi', tecUserId: 'معرّف المستخدم في TEC',
+      roles: { user: 'مستخدم', admin: 'مسؤول', merchant: 'تاجر' },
       role: 'الدور', plan: 'الاشتراك', memberSince: 'عضو منذ', na: 'غير متاح',
       verification: 'التوثيق', goToKyc: 'اذهب للتوثيق',
       kycTitle: 'توثيق الهوية',
@@ -404,6 +418,7 @@ export const ar = {
         '- توجيهك للتطبيق المناسب لاحتياجك' + '\n\n' +
         'أقدر أساعدك بإيه النهاردة؟',
       placeholder: 'اسأل مساعد TEC...', ask: 'اسأل مساعد TEC',
+      poweredBy: 'مدعوم من tec.pi', close: 'إغلاق', send: 'إرسال',
       newChat: 'محادثة جديدة', menu: 'القائمة', stop: 'إيقاف',
       copyReply: 'نسخ الرد', copied: '✓ تم النسخ', copyShort: '⧉ نسخ',
       stopped: '… (تم الإيقاف)', stoppedEmpty: 'تم الإيقاف قبل أن يبدأ.',

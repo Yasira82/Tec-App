@@ -107,7 +107,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
     .map(({ key, label }) => ({ group: key as string, label: tr(label, locale), items: apps.filter((a) => CATEGORY_OF[a.slug] === key) }))
     .filter((s) => s.items.length > 0);
   const others = apps.filter((a) => !CATEGORY_OF[a.slug]);
-  if (others.length) grouped.push({ group: 'other', label: locale === 'ar' ? 'أخرى' : 'More', items: others });
+  if (others.length) grouped.push({ group: 'other', label: t.hub.apps.other, items: others });
 
   // Compact icon tile (WeChat/iOS-style launcher) — dense so all apps fit in a few
   // rows. Tap opens (or toggles the pin while in Edit mode). The pin control only

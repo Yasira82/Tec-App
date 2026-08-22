@@ -205,3 +205,17 @@ input[type=number] { -moz-appearance: textfield; }
     transition-duration:  0.01ms !important;
   }
 }
+
+/* ── Narrow phones ───────────────────────────────────── */
+/* Secondary chrome that yields before anything important does. The Hub header
+   carries a logo, a clock, a language switcher, a bell and the account chip;
+   on a 360-390px phone that row overflowed and pushed the account chip past the
+   screen edge. The clock is the piece the phone's own status bar already shows. */
+@media (max-width: 420px) {
+  .tec-hide-narrow { display: none !important; }
+}
+
+/* A page must never scroll sideways. One over-wide row used to turn the whole
+   Hub into a horizontally scrollable surface, which on a phone reads as broken
+   rather than as "one element is too wide". */
+html, body { overflow-x: hidden; max-width: 100%; }

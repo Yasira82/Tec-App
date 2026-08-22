@@ -1,7 +1,7 @@
 'use client';
 
 import { useState }                         from 'react';
-import { useTranslation }                   from '@/lib/i18n';
+import { useTranslation, bcp47 }            from '@/lib/i18n';
 import type { Translations }                from '@/lib/i18n';
 import { useKyc, KycRecord, KycStatus }     from '@/lib-client/hooks/useKyc';
 import { HubSubShell }                      from '@/components/hub';
@@ -350,7 +350,7 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
               // The date follows the interface language too — an Arabic screen showing
               // "Mar 2026" is the same half-translation this change is undoing.
               value: kyc.verified_at
-                ? new Date(kyc.verified_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' })
+                ? new Date(kyc.verified_at).toLocaleDateString(bcp47(locale), { month: 'short', year: 'numeric' })
                 : '—' },
           ].map(m => (
             <div key={m.label} style={{ textAlign: 'center' }}>
@@ -379,7 +379,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
           <div style={{
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-            borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6, textAlign: 'left',
+            borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6, textAlign: 'start',
           }}>
             <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>{t.hub.kyc.rejected.reason}</span>
             {reason}

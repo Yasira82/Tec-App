@@ -15,6 +15,7 @@
  * note. It lives here now, and `app-taxonomy.test.ts` holds both surfaces to it.
  */
 import type { Localized } from './_types';
+import type { IconName }  from '@/components/ui/Icon';
 
 export type AppCategory =
   | 'money'
@@ -39,6 +40,43 @@ export const CATEGORY_OF: Record<string, AppCategory> = {
   // Trust & Intelligence — verification, governance, data, coordination
   zone: 'trust', system: 'trust', analytics: 'trust', alert: 'trust', nexus: 'trust',
 };
+
+/**
+ * The launcher glyph for each app — one picture per app, everywhere it appears.
+ *
+ * The registry's `emoji` is kept (marketing copy, the AI's nav chips, plain-text
+ * contexts) but it is NOT what the launcher draws any more. Two reasons:
+ *
+ *  1. It was not one picture per app. 🧭 was BOTH Nexus and Explorer; 🛡️ was BOTH
+ *     Zone and Insure. Two tiles with the identical glyph in a 23-tile grid is a
+ *     wrong answer to "which one is which", not a style preference.
+ *  2. It was not one style. The platform emoji font draws 👑 🎖️ 🔔 as glossy 3D
+ *     objects and 🔗 ⚖️ 🛠️ 🏛️ as flat grey line art, so neighbouring tiles looked
+ *     like they came from different products — and it changes per device, so
+ *     there was no fixing it in CSS.
+ *
+ * These are stroke glyphs on the shared 24×24 grid (see `Icon.tsx`), tinted with
+ * the category accent, so a section reads as one family.
+ */
+export const ICON_OF: Record<string, IconName> = {
+  // Money & Commerce
+  commerce: 'cart', ecommerce: 'store', assets: 'gem', fundx: 'trending', insure: 'shield',
+  // Business & Work
+  nbf: 'briefcase', titan: 'landmark', nx: 'target', epic: 'rocket', dx: 'code',
+  // Real World
+  estate: 'home', brookfield: 'towers', explorer: 'search',
+  // Identity & Social
+  life: 'sprout', connection: 'link',
+  // Reputation — evidence → recognition → privilege, and visibly three things
+  legend: 'trophy', elite: 'award', vip: 'crown',
+  // Trust & Intelligence
+  zone: 'shieldCheck', system: 'scale', analytics: 'chart', alert: 'bell', nexus: 'network',
+};
+
+/** Fallback for an app added to the registry before it is given a glyph. */
+export const UNCLASSIFIED_ICON: IconName = 'box';
+
+export const iconOf = (slug: string): IconName => ICON_OF[slug] ?? UNCLASSIFIED_ICON;
 
 export interface CategoryMeta {
   key:    AppCategory;

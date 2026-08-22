@@ -12,6 +12,8 @@ import { getDomain, ALL_DOMAINS } from '@/domains/_registry';
 import { t as tr }               from '@/domains/_types';
 import type { Locale } from '@/domains/_types';
 import type { AppCategory } from '@/domains/_categories';
+import { iconOf }            from '@/domains/_categories';
+import { Icon }              from '@/components/ui/Icon';
 import styles                    from './page.module.css';
 
 /**
@@ -165,7 +167,9 @@ export default function HomePage() {
           resolve yet, so the one call-to-action above the fold was a dead link. */}
       <section className={styles.featuredSection}>
         <div className={styles.featuredCard}>
-          <span className={styles.featuredEmoji}>{nexus?.emoji ?? '🧭'}</span>
+          <span className={styles.featuredEmoji}>
+            <Icon name={iconOf('nexus')} size={48} color="var(--tec-gold)" strokeWidth={1.6} />
+          </span>
           <h2 className={styles.featuredTitle}>TEC Nexus</h2>
           <p className={styles.featuredDesc}>
             {nexus ? tr(nexus.valueProp ?? nexus.description, locale) : t.apps.Nexus}

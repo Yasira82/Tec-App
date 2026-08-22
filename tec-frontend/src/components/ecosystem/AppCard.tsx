@@ -4,6 +4,8 @@ import { type EcosystemApp } from '@/lib/apps';
 import { categoryMeta } from '@/domains/_categories';
 import { t, type Locale } from '@/domains/_types';
 import styles from '@/app/page.module.css';
+import { Icon }   from '@/components/ui/Icon';
+import { iconOf } from '@/domains/_categories';
 
 /**
  * ONE ecosystem card, rendered by the landing page and by /demo.
@@ -45,7 +47,9 @@ export function AppCard({
       <div className={styles.appCardGlow} />
 
       <div className={styles.appCardTop}>
-        <span className={styles.appIconTile} aria-hidden>{app.emoji}</span>
+        <span className={styles.appIconTile} aria-hidden>
+          <Icon name={iconOf(app.slug)} size={23} color="var(--cat-color, #FBBF24)" strokeWidth={1.8} />
+        </span>
         {app.live && (
           <span className={styles.appLive}>
             <i className={styles.appLiveDot} />LIVE

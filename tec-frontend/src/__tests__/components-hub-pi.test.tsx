@@ -35,7 +35,7 @@ import {
   act,
   fireEvent,
   waitFor,
-} from '@testing-library/react';
+} from '@/test-utils/render-with-locale';
 
 // ─── Common Mocks ─────────────────────────────────────────────────────────────
 
@@ -169,28 +169,11 @@ vi.mock('@/lib/hub/utils', () => ({
   haptic: vi.fn(),
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    locale: 'en',
-    setLocale: vi.fn(),
-    dir: 'ltr',
-    t: {
-      common: { loading: 'Loading...', login: 'Login', appName: 'TEC' },
-      dashboard: {
-        piIntegration: {
-          title: 'Pi Integration',
-          connectBtn: 'Connect Pi',
-          authenticated: 'Authenticated as',
-          testSdk: 'Test SDK',
-          processing: 'Processing...',
-          payDemo: 'Pay Demo',
-        },
-      },
-      apps: {},
-    },
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// `@/lib/i18n` is NOT mocked. These files used to stub it with a hand-written `t`
+// object holding a handful of keys — so a component reading a key the real
+// dictionary does not have still passed. The suite renders through the REAL
+// LocaleProvider (see @/test-utils/render-with-locale); a missing or misspelled
+// translation key now fails here instead of at runtime.
 
 // CSS modules
 vi.mock('./PiIntegration.module.css', () => ({ default: {} }));
@@ -1527,7 +1510,7 @@ describe('PiIntegration', () => {
 
   it('renders Pi Integration title', async () => {
     await act(async () => render(<PiIntegration />));
-    expect(screen.getByText(/Pi Integration/)).toBeInTheDocument();
+    expect(screen.getByText(/Pi Network Integration/)).toBeInTheDocument();
   });
 
   it('shows authenticated username', async () => {
@@ -1559,7 +1542,7 @@ describe('PiIntegration', () => {
     });
 
     await act(async () => render(<PiIntegration />));
-    expect(screen.getByText('Connect Pi')).toBeInTheDocument();
+    expect(screen.getByText('Connect with Pi')).toBeInTheDocument();
   });
 
   it('shows loading state', async () => {
@@ -1630,7 +1613,7 @@ describe('PiIntegration', () => {
     await act(async () => render(<PiIntegration />));
     // The component renders success only after state change
     // Just verify initial render is fine
-    expect(screen.getByText(/Pay Demo/)).toBeInTheDocument();
+    expect(screen.getByText(/Pay 1 Pi/)).toBeInTheDocument();
   });
 
   it('shows sandbox mode indicator', async () => {
@@ -1659,7 +1642,7 @@ describe('PiIntegration', () => {
     } as any);
 
     await act(async () => render(<PiIntegration />));
-    fireEvent.click(screen.getByText(/Test SDK/));
+    fireEvent.click(screen.getByText(/Test Pi SDK/));
     expect(testSDK).toHaveBeenCalled();
   });
 

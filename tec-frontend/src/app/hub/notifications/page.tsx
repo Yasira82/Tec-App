@@ -1,19 +1,24 @@
 'use client';
 
 import { useNotifications, Notification, NotifType } from '@/lib-client/hooks/useNotifications';
+import { useTranslation, fill, type Translations }   from '@/lib/i18n';
 import { HubSubShell }                               from '@/components/hub';
 import { DashboardCard }                             from '@/components/dashboard';
 
-function formatDate(iso: string) {
+/** Relative time, in the reader's language. Beyond a week it falls back to a real
+ *  date — formatted by the locale, so Arabic gets Arabic month names rather than
+ *  "Aug" sitting inside an Arabic sentence. */
+function formatDate(iso: string, t: Translations, locale: 'en' | 'ar') {
+  const n    = t.hub.notifications;
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);
   const hrs  = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
-  if (mins <  1) return 'Just now';
-  if (mins < 60) return `${mins}m ago`;
-  if (hrs  < 24) return `${hrs}h ago`;
-  if (days <  7) return `${days}d ago`;
-  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (mins <  1) return n.justNow;
+  if (mins < 60) return fill(n.minsAgo, { n: mins });
+  if (hrs  < 24) return fill(n.hrsAgo,  { n: hrs  });
+  if (days <  7) return fill(n.daysAgo, { n: days });
+  return new Date(iso).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' });
 }
 
 const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }> = {
@@ -25,6 +30,7 @@ const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }
 };
 
 function NotifCard({ notif, onRead }: { notif: Notification; onRead: (id: string) => void }) {
+  const { t, locale } = useTranslation();
   const cfg = TYPE_CONFIG[notif.type] ?? TYPE_CONFIG.SYSTEM;
   return (
     <div
@@ -46,7 +52,7 @@ function NotifCard({ notif, onRead }: { notif: Notification; onRead: (id: string
             {notif.title}
           </div>
           <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', whiteSpace: 'nowrap', flexShrink: 0 }}>
-            {formatDate(notif.created_at)}
+            {formatDate(notif.created_at, t, locale)}
           </div>
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
@@ -66,11 +72,12 @@ function NotifCard({ notif, onRead }: { notif: Notification; onRead: (id: string
 }
 
 function EmptyState() {
+  const { t } = useTranslation();
   return (
     <div style={{ padding: 'var(--sp-12)', textAlign: 'center', color: 'var(--tec-text-3)' }}>
       <div style={{ fontSize: 40, marginBottom: 'var(--sp-3)' }}>🔔</div>
-      <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, marginBottom: 6 }}>All caught up</div>
-      <div style={{ fontSize: 'var(--text-sm)' }}>No notifications yet</div>
+      <div style={{ fontSize: 'var(--text-base)', fontWeight: 600, marginBottom: 6 }}>{t.hub.notifications.allCaught}</div>
+      <div style={{ fontSize: 'var(--text-sm)' }}>{t.hub.notifications.empty}</div>
     </div>
   );
 }
@@ -94,14 +101,16 @@ function NotifSection({ title, count, notifications, onRead }: {
 
 export default function HubNotificationsPage() {
   const { notifications, unreadCount, isLoading, isRefreshing, error, refetch, markAsRead, markAllAsRead } = useNotifications();
+  const { t } = useTranslation();
+  const n     = t.hub.notifications;
 
-  const unread = notifications.filter(n => !n.read);
-  const read   = notifications.filter(n =>  n.read);
+  const unread = notifications.filter(x => !x.read);
+  const read   = notifications.filter(x =>  x.read);
 
   return (
     <HubSubShell
-      title="Notifications"
-      subtitle={unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
+      title={n.title}
+      subtitle={unreadCount > 0 ? fill(n.unreadCount, { n: unreadCount }) : n.allCaught}
       badge={unreadCount > 0 ? { text: `${unreadCount}`, color: 'gold' } : undefined}
       loading={isLoading}
       actions={
@@ -109,7 +118,7 @@ export default function HubNotificationsPage() {
           {unreadCount > 0 && (
             <button onClick={markAllAsRead}
               style={{ padding: '7px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-gold-dim)', border: '1px solid var(--tec-border-gold)', color: 'var(--tec-gold)', fontSize: 'var(--text-xs)', fontWeight: 600, cursor: 'pointer' }}>
-              ✓ Mark all read
+              ✓ {n.markAllRead}
             </button>
           )}
           <button onClick={refetch} disabled={isRefreshing}
@@ -125,7 +134,7 @@ export default function HubNotificationsPage() {
           <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: '#ef4444' }}>{error}</span>
           <button onClick={refetch}
             style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
-            Retry
+            {n.retry}
           </button>
         </div>
       )}
@@ -135,8 +144,8 @@ export default function HubNotificationsPage() {
           <EmptyState />
         ) : (
           <>
-            <NotifSection title="Unread" count={unread.length} notifications={unread} onRead={markAsRead} />
-            <NotifSection title="Earlier" count={read.length}  notifications={read}   onRead={markAsRead} />
+            <NotifSection title={n.unread}  count={unread.length} notifications={unread} onRead={markAsRead} />
+            <NotifSection title={n.earlier} count={read.length}   notifications={read}   onRead={markAsRead} />
           </>
         )}
       </DashboardCard>

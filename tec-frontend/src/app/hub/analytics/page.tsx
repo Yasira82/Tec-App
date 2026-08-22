@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
+import { useTranslation }                   from '@/lib/i18n';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
 
@@ -70,9 +71,13 @@ const EVENT_ICONS: Record<string, string> = {
 };
 
 function EventRow({ event }: { event: AnalyticsEvent }) {
+  const { locale } = useTranslation();
   const icon  = EVENT_ICONS[event.type] ?? '📡';
+  // The event NAME stays as emitted (`payment.completed.v1`) — it is a C-70 contract
+  // identifier, not prose, and translating it would break the link to the catalog.
+  // Only the clock around it follows the reader's locale.
   const label = event.type.replace(/\./g, ' › ');
-  const ts    = new Date(event.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  const ts    = new Date(event.createdAt).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--tec-border)' }}>
       <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>
@@ -98,6 +103,8 @@ export default function HubAnalyticsPage() {
   const [events,   setEvents]   = useState<AnalyticsEvent[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState(false);
+  const { t } = useTranslation();
+  const a     = t.hub.analytics;
 
   const load = useCallback(async () => {
     const token   = getAccessToken();
@@ -132,7 +139,7 @@ export default function HubAnalyticsPage() {
     r === null ? 'var(--tec-text-3)' : r >= 80 ? '#22C55E' : r >= 60 ? '#f0c040' : '#ef4444';
 
   return (
-    <HubSubShell title="Analytics" subtitle="Platform performance overview">
+    <HubSubShell title={a.title} subtitle={a.subtitle}>
 
       {/* ── Refresh button ──────────────────────────────── */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 'var(--sp-4)' }}>
@@ -148,64 +155,64 @@ export default function HubAnalyticsPage() {
           }}
         >
           <span style={{ display: 'inline-block', animation: loading ? 'tec-spin 0.8s linear infinite' : 'none' }}>↻</span>
-          Refresh
+          {a.refresh}
         </button>
       </div>
 
       {error && (
         <div style={{ padding: 'var(--sp-5)', borderRadius: 'var(--radius-xl)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)', textAlign: 'center' }}>
-          Failed to load analytics. Check that the analytics service is running.
+          {a.loadFailed}
         </div>
       )}
 
       {/* ── 24h Payments ────────────────────────────────── */}
-      <DashboardCard title="Payments — last 24h" glass>
+      <DashboardCard title={a.payments24h} glass>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--sp-3)', padding: 'var(--sp-5)' }}>
-          <StatTile label="Completed" value={loading ? '…' : (metrics?.completed ?? '—')} accent="#22C55E" />
-          <StatTile label="Failed"    value={loading ? '…' : (metrics?.failed ?? '—')}    accent="#ef4444" />
-          <StatTile label="Cancelled" value={loading ? '…' : (metrics?.cancelled ?? '—')} accent="#f0c040" />
+          <StatTile label={a.completed} value={loading ? '…' : (metrics?.completed ?? '—')} accent="#22C55E" />
+          <StatTile label={a.failed}    value={loading ? '…' : (metrics?.failed ?? '—')}    accent="#ef4444" />
+          <StatTile label={a.cancelled} value={loading ? '…' : (metrics?.cancelled ?? '—')} accent="#f0c040" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)', padding: '0 var(--sp-5) var(--sp-5)' }}>
           <StatTile
-            label="Volume"
+            label={a.volume}
             value={loading ? '…' : metrics ? `${metrics.volume.toFixed(4)} π` : '—'}
             accent="#FBBF24"
           />
           <StatTile
-            label="Success Rate"
-            value={loading ? '…' : metrics?.successRate != null ? `${metrics.successRate}%` : 'N/A'}
-            sub={metrics ? (metrics.healthy ? '✓ Healthy' : '⚠ Degraded') : undefined}
+            label={a.successRate}
+            value={loading ? '…' : metrics?.successRate != null ? `${metrics.successRate}%` : a.na}
+            sub={metrics ? (metrics.healthy ? `✓ ${a.healthy}` : `⚠ ${a.degraded}`) : undefined}
             accent={metrics ? successColor(metrics.successRate ?? null) : undefined}
           />
         </div>
       </DashboardCard>
 
       {/* ── Platform Totals ──────────────────────────────── */}
-      <DashboardCard title="Platform Totals" glass>
+      <DashboardCard title={a.totals} glass>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--sp-3)', padding: 'var(--sp-5)' }}>
-          <StatTile label="Total Payments" value={loading ? '…' : (overview?.totalPayments ?? '—')} />
-          <StatTile label="Total Users"    value={loading ? '…' : (overview?.totalUsers    ?? '—')} />
-          <StatTile label="Total Events"   value={loading ? '…' : (overview?.totalEvents   ?? '—')} />
+          <StatTile label={a.totalPayments} value={loading ? '…' : (overview?.totalPayments ?? '—')} />
+          <StatTile label={a.totalUsers}    value={loading ? '…' : (overview?.totalUsers    ?? '—')} />
+          <StatTile label={a.totalEvents}   value={loading ? '…' : (overview?.totalEvents   ?? '—')} />
         </div>
       </DashboardCard>
 
       {/* ── Recent Events ───────────────────────────────── */}
       <DashboardCard
-        title="Recent Events"
+        title={a.recentEvents}
         action={
           <span style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', fontFamily: 'var(--font-mono)' }}>
-            live
+            {a.live}
           </span>
         }
         glass
       >
         {loading ? (
           <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--tec-text-3)', fontSize: 'var(--text-sm)' }}>
-            Loading…
+            {a.loading}
           </div>
         ) : events.length === 0 ? (
           <div style={{ padding: 'var(--sp-6)', textAlign: 'center', color: 'var(--tec-text-3)', fontSize: 'var(--text-sm)' }}>
-            No recent events
+            {a.noEvents}
           </div>
         ) : (
           <div>

@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, fireEvent, act } from '@testing-library/react';
+import { render, fireEvent, act } from '@/test-utils/render-with-locale';
 
 const mockRouterPush = vi.hoisted(() => vi.fn());
 const mockNotFound   = vi.hoisted(() => vi.fn(() => { throw new Error('NEXT_NOT_FOUND'); }));

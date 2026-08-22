@@ -4,7 +4,7 @@
  * whole message array, so switching language destroyed the thread).
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@/test-utils/render-with-locale';
 import { AIDrawer } from '@/app/hub/components/AIDrawer';
 import { loadConversation, saveConversation, clearConversation, archiveConversation, hasArchive, listArchives } from '@/lib/ai-session';
 

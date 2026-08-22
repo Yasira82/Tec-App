@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useSearchParams }                  from 'next/navigation';
 import { usePiAuth }                         from '@/lib-client/hooks/usePiAuth';
+import { useTranslation, fill }              from '@/lib/i18n';
 import { HubSubShell }                       from '@/components/hub';
 import { DashboardCard }                     from '@/components/dashboard';
 
@@ -43,6 +44,8 @@ function StatTile({ label, value, color }: { label: string; value: number; color
 
 function HubReferralInner() {
   const { isAuthenticated, isLoading } = usePiAuth();
+  const { t }        = useTranslation();
+  const r            = t.hub.referral;
   const searchParams = useSearchParams();
 
   const [data,    setData]    = useState<ReferralData | null>(null);
@@ -68,11 +71,11 @@ function HubReferralInner() {
       setData(json?.data?.referral ?? null);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to load');
+      setError(e instanceof Error ? e.message : r.loadFailed);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [r.loadFailed]);
 
   const applyCode = useCallback(async (raw: string) => {
     const code = raw.trim().toUpperCase();
@@ -87,17 +90,14 @@ function HubReferralInner() {
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(json?.error ?? json?.message ?? 'Could not apply code');
+        throw new Error(json?.error ?? json?.message ?? r.applyFailed);
       }
       try { sessionStorage.removeItem(REF_KEY); } catch { /* ignore */ }
-      setApply({
-        kind: 'ok',
-        msg:  `Invite locked in 🎉 — you and your inviter each get a free ${bonusDays}-day PRO month when you take your first subscription.`,
-      });
+      setApply({ kind: 'ok', msg: fill(r.applied, { days: bonusDays }) });
     } catch (e) {
-      setApply({ kind: 'error', msg: e instanceof Error ? e.message : 'Could not apply code' });
+      setApply({ kind: 'error', msg: e instanceof Error ? e.message : r.applyFailed });
     }
-  }, [bonusDays]);
+  }, [bonusDays, r.applied, r.applyFailed]);
 
   // Load my referral card once authenticated.
   useEffect(() => {
@@ -133,8 +133,8 @@ function HubReferralInner() {
     if (typeof navigator !== 'undefined' && 'share' in navigator && inviteLink) {
       (navigator as Navigator & { share: (d: ShareData) => Promise<void> })
         .share({
-          title: 'Join me on TEC',
-          text:  `Join TEC on Pi — we both get a free ${bonusDays}-day PRO month.`,
+          title: r.shareText,
+          text:  fill(r.shareBody, { days: bonusDays }),
           url:   inviteLink,
         }).catch(() => { /* user cancelled */ });
     } else {
@@ -143,7 +143,7 @@ function HubReferralInner() {
   };
 
   return (
-    <HubSubShell title="Invite & Earn" subtitle={`Invite friends — you both get a free ${bonusDays}-day PRO month`}>
+    <HubSubShell title={r.title} subtitle={fill(r.subtitle, { days: bonusDays })}>
 
       {/* ── How it works ─────────────────────────────── */}
       <div className="tec-fade-in" style={{
@@ -152,13 +152,10 @@ function HubReferralInner() {
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 6 }}>
-          Give a free month, get a free month 🎁
+          {r.howTitle}
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
-          Share your link. When someone you invite takes their <strong>first subscription</strong>,
-          you <strong>both</strong> get a free <strong>{bonusDays}-day PRO month</strong> — added on
-          top of any time you already have. The reward is a subscription month, not Pi, and it only
-          unlocks on a real subscription (so it stays fair).
+          {fill(r.howBody, { days: bonusDays })}
         </div>
       </div>
 
@@ -172,17 +169,18 @@ function HubReferralInner() {
 
       {loading && (
         <div style={{ textAlign: 'center', color: 'var(--tec-text-3)', padding: 'var(--sp-8)' }}>
-          Loading…
+          {r.loading}
         </div>
       )}
 
       {!loading && data && (
         <>
           {/* ── My link + code ── */}
-          <DashboardCard title="Your invite link" subtitle="Share it anywhere">
+          <DashboardCard title={r.linkTitle} subtitle={r.linkSub}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>
               <input
                 readOnly
+                dir="ltr"
                 value={inviteLink}
                 onFocus={(e) => e.currentTarget.select()}
                 style={{
@@ -194,34 +192,34 @@ function HubReferralInner() {
               />
               <button onClick={() => copy(inviteLink, 'link')}
                 style={btn(copied === 'link')}>
-                {copied === 'link' ? '✓ Copied' : 'Copy link'}
+                {copied === 'link' ? `✓ ${r.copied}` : r.copyLink}
               </button>
-              <button onClick={share} style={btnGold()}>Share</button>
+              <button onClick={share} style={btnGold()}>{r.share}</button>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <span style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', textTransform: 'uppercase', letterSpacing: 1 }}>
-                Code
+                {r.code}
               </span>
-              <span style={{
+              <span dir="ltr" style={{
                 fontFamily: 'var(--font-mono)', fontSize: 'var(--text-lg)', fontWeight: 800,
                 letterSpacing: 2, color: 'var(--tec-gold)',
               }}>{data.code}</span>
               <button onClick={() => copy(data.code, 'code')} style={btn(copied === 'code')}>
-                {copied === 'code' ? '✓' : 'Copy'}
+                {copied === 'code' ? '✓' : t.common.copy}
               </button>
             </div>
           </DashboardCard>
 
           {/* ── Stats ── */}
           <div style={{ display: 'flex', gap: 12, marginTop: 'var(--sp-4)' }}>
-            <StatTile label="Pending"  value={data.stats.pending}  color="var(--tec-text-1)" />
-            <StatTile label="Rewarded" value={data.stats.rewarded} color="#22C55E" />
-            <StatTile label="Total"    value={data.stats.total}    color="var(--tec-gold)" />
+            <StatTile label={r.pending}  value={data.stats.pending}  color="var(--tec-text-1)" />
+            <StatTile label={r.rewarded} value={data.stats.rewarded} color="#22C55E" />
+            <StatTile label={r.total}    value={data.stats.total}    color="var(--tec-gold)" />
           </div>
 
           {/* ── Apply a code ── */}
           <div style={{ marginTop: 'var(--sp-4)' }}>
-            <DashboardCard title="Have an invite code?" subtitle="Apply it before your first subscription">
+            <DashboardCard title={r.haveCode} subtitle={r.haveCodeSub}>
               {apply.kind === 'ok' ? (
                 <div style={{
                   background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
@@ -234,7 +232,8 @@ function HubReferralInner() {
                     <input
                       value={manual}
                       onChange={(e) => setManual(e.target.value.toUpperCase())}
-                      placeholder="Enter code"
+                      placeholder={r.enterCode}
+                      dir="ltr"
                       maxLength={16}
                       style={{
                         flex: 1, minWidth: 160, padding: '10px 12px',
@@ -248,7 +247,7 @@ function HubReferralInner() {
                       disabled={apply.kind === 'applying' || !manual.trim()}
                       style={btnGold(apply.kind === 'applying' || !manual.trim())}
                     >
-                      {apply.kind === 'applying' ? 'Applying…' : 'Apply'}
+                      {apply.kind === 'applying' ? r.applying : r.apply}
                     </button>
                   </div>
                   {apply.kind === 'error' && (
@@ -265,20 +264,30 @@ function HubReferralInner() {
 
       {!loading && !data && !error && (
         <div style={{ textAlign: 'center', color: 'var(--tec-text-3)', padding: 'var(--sp-8)' }}>
-          Sign in to get your invite link.
+          {r.signIn}
         </div>
       )}
     </HubSubShell>
   );
 }
 
+/** The Suspense fallback is a full shell of its own, so it needs the dictionary too —
+ *  an English "Loading…" flashing before an Arabic page is the kind of seam that makes
+ *  a translated app feel bolted on. */
+function ReferralFallback() {
+  const { t } = useTranslation();
+  return (
+    <HubSubShell title={t.hub.referral.title} subtitle={fill(t.hub.referral.subtitle, { days: 30 })}>
+      <div style={{ textAlign: 'center', color: 'var(--tec-text-3)', padding: 'var(--sp-8)' }}>
+        {t.hub.referral.loading}
+      </div>
+    </HubSubShell>
+  );
+}
+
 export default function HubReferralPage() {
   return (
-    <Suspense fallback={
-      <HubSubShell title="Invite & Earn" subtitle="Invite friends — you both get a free PRO month">
-        <div style={{ textAlign: 'center', color: 'var(--tec-text-3)', padding: 'var(--sp-8)' }}>Loading…</div>
-      </HubSubShell>
-    }>
+    <Suspense fallback={<ReferralFallback />}>
       <HubReferralInner />
     </Suspense>
   );

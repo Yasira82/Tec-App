@@ -3,7 +3,7 @@
  * PiTestClient, PiIntegration, PiPaymentButton, AmountSelector, AIDrawer
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { render, act } from '@/test-utils/render-with-locale';
 
 // ── Hoisted mock refs (must come before vi.mock calls) ────────────
 const mockUsePiAuthFn = vi.hoisted(() => vi.fn());
@@ -47,29 +47,9 @@ vi.mock('@/lib-client/hooks/usePiPayment', () => ({
   }),
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: {
-      common: { loading: 'Loading...', login: 'Login', appName: 'TEC' },
-      dashboard: {
-        piIntegration: {
-          title:         'Pi Integration',
-          connectBtn:    'Connect Pi',
-          authenticated: 'Authenticated as',
-          testSdk:       'Test SDK',
-          processing:    'Processing...',
-          payDemo:       'Pay Demo',
-        },
-      },
-      apps: {},
-      payment: { connect: 'Connect', test: 'Test SDK', demo: 'Pay Demo' },
-    },
-    locale: 'en',
-    setLanguage: vi.fn(),
-    dir: 'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// `@/lib/i18n` is deliberately NOT mocked — this stub carried a hand-written
+// dictionary, so the assertions below were checking the stub's wording rather than
+// the copy that ships. Tests render through the real provider instead.
 
 const defaultAuthState = {
   user:            { id: 'u1', piUsername: 'alice', role: 'user', subscriptionPlan: 'Free' },

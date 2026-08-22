@@ -6,7 +6,7 @@
  * URL params parsing (pay=1), payment create success/failure, handlePaymentSuccess.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, act, waitFor } from '@/test-utils/render-with-locale';
 
 // ── next/navigation ────────────────────────────────────────────────
 const mockPush    = vi.fn();
@@ -66,15 +66,11 @@ vi.mock('@/lib-client/pi/pi-session', () => ({
 
 vi.mock('@/lib/hub/utils', () => ({ haptic: vi.fn() }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t:    { common: { loading: 'Loading...' }, dashboard: {}, apps: {} },
-    locale: 'en',
-    setLanguage: vi.fn(),
-    dir:  'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// `@/lib/i18n` is NOT mocked. These files used to stub it with a hand-written `t`
+// object holding a handful of keys — so a component reading a key the real
+// dictionary does not have still passed. The suite renders through the REAL
+// LocaleProvider (see @/test-utils/render-with-locale); a missing or misspelled
+// translation key now fails here instead of at runtime.
 
 // ── Stub hub sub-components so we don't need their deps ────────────
 vi.mock('@/components/hub', () => ({

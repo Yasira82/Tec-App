@@ -2,15 +2,18 @@
 
 import { useState }      from 'react';
 import { useRouter }     from 'next/navigation';
+import { useTranslation }  from '@/lib/i18n';
 import { usePiAuth }     from '@/lib-client/hooks/usePiAuth';
 import { useSubscriptionPlan } from '@/lib-client/hooks/useSubscriptionPlan';
 import { useKyc }        from '@/lib-client/hooks/useKyc';
+import { normalizePlan } from '@/lib/subscription/entitlements';
 import { HubSubShell }   from '@/components/hub';
 import { DashboardCard } from '@/components/dashboard';
 
 function InfoRow({ label, value, mono, copyable }: {
   label: string; value: string; mono?: boolean; copyable?: boolean;
 }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard.writeText(value).then(() => {
@@ -28,7 +31,7 @@ function InfoRow({ label, value, mono, copyable }: {
       {copyable && (
         <button onClick={copy}
           style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: copied ? 'rgba(34,197,94,0.1)' : 'var(--tec-surface-1)', border: `1px solid ${copied ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`, color: copied ? '#22C55E' : 'var(--tec-text-2)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-          {copied ? '✓' : 'Copy'}
+          {copied ? '✓' : t.common.copy}
         </button>
       )}
     </div>
@@ -36,12 +39,14 @@ function InfoRow({ label, value, mono, copyable }: {
 }
 
 export default function HubProfilePage() {
+  const { t, locale } = useTranslation();
   const { user, logout } = usePiAuth();
 
   // Plan comes from commerce, NOT the auth session — /me never carries it, so
   // `user.subscriptionPlan` reported FREE to paying Pro/Enterprise users.
   const { plan }  = useSubscriptionPlan();
-  const planLabel = plan === 'FREE' ? 'FREE' : plan;
+  // `plan` is the enum from commerce; the reader gets its translated name.
+  const planLabel = t.hub.plans[normalizePlan(plan)].name.toUpperCase();
 
   // KYC state from the SAME source the KYC page uses, so the two can never disagree.
   // This block used to be hardcoded to "Pending" with no condition — it said Pending
@@ -51,15 +56,15 @@ export default function HubProfilePage() {
   const kycVerified = kycStatus === 'VERIFIED';
   const kycAccent  = kycVerified ? '#22C55E' : kycStatus === 'REJECTED' ? '#ef4444' : '#f59e0b';
   const kycMessage = kycVerified
-    ? `Verified${kyc?.level ? ` — Level ${kyc.level}` : ''}`
-    : kycStatus === 'REJECTED'  ? 'Rejected — please resubmit your documents'
-    : kycStatus === 'PENDING'   ? 'Under review — we’ll notify you when it’s done'
-    : 'Not started — complete to unlock all features';
+    ? (kyc?.level ? t.hub.profile.kycVerifiedLevel.replace('{n}', String(kyc.level)) : t.hub.profile.kycVerified)
+    : kycStatus === 'REJECTED'  ? t.hub.profile.kycRejected
+    : kycStatus === 'PENDING'   ? t.hub.profile.kycPending
+    : t.hub.profile.kycNotStarted;
   const router           = useRouter();
 
   const handleLogout = () => { logout(); router.push('/'); };
   const handleDelete = () => {
-    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+    if (confirm(t.hub.profile.deleteConfirm)) {
       // TODO: DELETE /api/auth/profile
     }
   };
@@ -67,7 +72,7 @@ export default function HubProfilePage() {
   const initial = user?.piUsername?.[0]?.toUpperCase() ?? '?';
 
   return (
-    <HubSubShell title="Profile" subtitle="Manage your account information">
+    <HubSubShell title={t.hub.profile.title} subtitle={t.hub.profile.subtitle}>
 
       {/* ── Avatar ──────────────────────────────────── */}
       <div className="tec-fade-in" style={{
@@ -95,29 +100,29 @@ export default function HubProfilePage() {
       </div>
 
       {/* ── Account Info ────────────────────────────── */}
-      <DashboardCard title="Account Information" subtitle="Pi Network identity" padding="0">
-        <InfoRow label="Pi Username"  value={`@${user?.piUsername ?? ''}`} />
-        <InfoRow label="Pi UID"       value={user?.piId ?? ''}   mono copyable />
-        <InfoRow label="TEC User ID"  value={user?.id ?? ''}     mono copyable />
-        <InfoRow label="Role"         value={(user?.role ?? 'user').toUpperCase()} />
-        <InfoRow label="Plan"         value={planLabel} />
-        <InfoRow label="Member Since" value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'N/A'} />
+      <DashboardCard title={t.hub.profile.accountInfo} subtitle={t.hub.profile.accountInfoSub} padding="0">
+        <InfoRow label={t.hub.profile.piUsername}  value={`@${user?.piUsername ?? ''}`} />
+        <InfoRow label={t.hub.profile.piUid}       value={user?.piId ?? ''}   mono copyable />
+        <InfoRow label={t.hub.profile.tecUserId}   value={user?.id ?? ''}     mono copyable />
+        <InfoRow label={t.hub.profile.role}        value={(user?.role ?? 'user').toUpperCase()} />
+        <InfoRow label={t.hub.profile.plan}        value={planLabel} />
+        <InfoRow label={t.hub.profile.memberSince} value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : t.hub.profile.na} />
       </DashboardCard>
 
       {/* ── KYC Status ──────────────────────────────── */}
       <DashboardCard
-        title="Verification"
+        title={t.hub.profile.verification}
         action={
           <button onClick={() => router.push('/hub/kyc')}
             style={{ padding: '6px 14px', borderRadius: 'var(--radius-sm)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
-            Go to KYC →
+            {t.hub.profile.goToKyc} →
           </button>
         }
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: `1px solid ${kycAccent}33`, borderRadius: 'var(--radius-md)' }}>
           <span style={{ fontSize: 24 }}>🪪</span>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)', marginBottom: 2 }}>KYC Verification</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)', marginBottom: 2 }}>{t.hub.profile.kycTitle}</div>
             <div style={{ fontSize: 'var(--text-xs)', color: kycAccent }}>{kycMessage}</div>
           </div>
           <span style={{ width: 8, height: 8, borderRadius: '50%', background: kycAccent, flexShrink: 0 }} />
@@ -126,13 +131,13 @@ export default function HubProfilePage() {
 
       {/* ── Admin: KYC Review (admins only) ──────────── */}
       {user?.role === 'admin' && (
-        <DashboardCard title="Admin">
+        <DashboardCard title={t.hub.profile.admin}>
           <button onClick={() => router.push('/hub/admin/kyc')}
             style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left' }}>
             <span style={{ fontSize: 22 }}>🛡️</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>KYC Review</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Approve or reject identity submissions</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{t.hub.profile.adminKyc}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.adminKycSub}</div>
             </div>
             <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
           </button>
@@ -140,25 +145,25 @@ export default function HubProfilePage() {
       )}
 
       {/* ── Connected Apps ───────────────────────────── */}
-      <DashboardCard title="Connected Apps">
+      <DashboardCard title={t.hub.profile.connectedApps}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 'var(--radius-md)' }}>
           <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800', flexShrink: 0 }}>T</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>TEC Platform</div>
-            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Pi Network</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{t.hub.profile.tecPlatform}</div>
+            <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.piNetwork}</div>
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 10px', borderRadius: 'var(--radius-full)', letterSpacing: 1 }}>CONNECTED</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 10px', borderRadius: 'var(--radius-full)', letterSpacing: 1 }}>{t.hub.profile.connected}</span>
         </div>
       </DashboardCard>
 
       {/* ── Quick Actions ────────────────────────────── */}
-      <DashboardCard title="Quick Actions">
+      <DashboardCard title={t.hub.profile.quickActions}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 'var(--sp-3)' }}>
           {[
-            { icon: '💎', label: 'Assets',        sub: 'View your assets',      href: '/dashboard/assets'    },
-            { icon: '💳', label: 'Wallet',         sub: 'Pi balance',            href: '/dashboard/wallet'    },
-            { icon: '🔔', label: 'Notifications',  sub: 'View notifications',    href: '/hub/notifications'   },
-            { icon: '🪪', label: 'KYC',            sub: 'Identity verification', href: '/hub/kyc'             },
+            { icon: '💎', label: t.hub.profile.assets,        sub: t.hub.profile.assetsSub,        href: '/dashboard/assets'  },
+            { icon: '💳', label: t.hub.profile.wallet,        sub: t.hub.profile.walletSub,        href: '/dashboard/wallet'  },
+            { icon: '🔔', label: t.hub.profile.notifications, sub: t.hub.profile.notificationsSub, href: '/hub/notifications' },
+            { icon: '🪪', label: t.hub.profile.kyc,           sub: t.hub.profile.kycSub,           href: '/hub/kyc'           },
           ].map(a => (
             <button key={a.href} onClick={() => router.push(a.href)}
               style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
@@ -173,25 +178,25 @@ export default function HubProfilePage() {
       </DashboardCard>
 
       {/* ── Account Actions ─────────────────────────── */}
-      <DashboardCard title="Account">
+      <DashboardCard title={t.hub.profile.account}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
           <button onClick={handleLogout}
             style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
             <span style={{ fontSize: 20 }}>🚪</span>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>Sign Out</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Log out of TEC</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{t.hub.profile.signOut}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.signOutSub}</div>
             </div>
           </button>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 'var(--radius-md)', flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#ef4444', marginBottom: 2 }}>Delete Account</div>
-              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Permanently delete your account and all data.</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#ef4444', marginBottom: 2 }}>{t.hub.profile.deleteAccount}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.deleteAccountSub}</div>
             </div>
             <button onClick={handleDelete}
               style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-              Delete
+              {t.hub.profile.delete}
             </button>
           </div>
         </div>

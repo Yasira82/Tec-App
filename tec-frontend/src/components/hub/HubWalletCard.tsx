@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/lib/i18n';
+
 import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
 import { PiPrice }   from '@/lib/hub/types';
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }: Props) {
+  const { t } = useTranslation();
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
 
@@ -69,7 +72,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                   borderRadius: 12, padding: '9px 14px',
                 }}
               >
-                <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>Couldn&apos;t load balance</span>
+                <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
                 <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 700 }}>↻ Retry</span>
               </span>
             ) : balance === '—' ? (
@@ -97,7 +100,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>View transactions →</span>
+              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.hub.wallet.viewTransactions} →</span>
             </div>
             {piPrice && (
               <div style={{

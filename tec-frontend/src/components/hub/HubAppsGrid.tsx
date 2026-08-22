@@ -2,6 +2,9 @@
 
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter }     from 'next/navigation';
+import { useTranslation } from '@/lib/i18n';
+import { t as tr } from '@/domains/_types';
+import type { Locale } from '@/domains/_types';
 import { haptic }        from '@/lib/hub/utils';
 import { HubApp }        from '@/lib/hub/types';
 // The user-facing taxonomy is SHARED (see src/domains/_categories.ts). It used to
@@ -41,6 +44,8 @@ function readList(key: string): string[] {
 }
 
 export function HubAppsGrid({ apps, openTo }: Props) {
+  const { t, dir } = useTranslation();
+  const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
   const router = useRouter();
   const [query,   setQuery]   = useState('');
   const [favs,    setFavs]    = useState<string[]>([]);
@@ -99,10 +104,10 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   // Category sections in a stable order (only categories that have apps). Any app not
   // in the map falls into a "More" bucket so nothing is ever dropped.
   const grouped = CATEGORIES
-    .map(({ key, label }) => ({ group: key as string, label: label.en, items: apps.filter((a) => CATEGORY_OF[a.slug] === key) }))
+    .map(({ key, label }) => ({ group: key as string, label: tr(label, locale), items: apps.filter((a) => CATEGORY_OF[a.slug] === key) }))
     .filter((s) => s.items.length > 0);
   const others = apps.filter((a) => !CATEGORY_OF[a.slug]);
-  if (others.length) grouped.push({ group: 'other', label: 'More', items: others });
+  if (others.length) grouped.push({ group: 'other', label: locale === 'ar' ? 'أخرى' : 'More', items: others });
 
   // Compact icon tile (WeChat/iOS-style launcher) — dense so all apps fit in a few
   // rows. Tap opens (or toggles the pin while in Edit mode). The pin control only
@@ -162,7 +167,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="tec-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, textTransform: 'uppercase' }}>Apps</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.apps.title}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={() => { haptic('light'); setEditing((e) => !e); }}
@@ -173,9 +178,9 @@ export function HubAppsGrid({ apps, openTo }: Props) {
               background: editing ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${editing ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.1)'}`,
               color: editing ? '#FBBF24' : 'rgba(255,255,255,0.55)',
-            }}>{editing ? 'Done' : 'Edit'}</button>
+            }}>{editing ? t.hub.apps.done : t.hub.apps.edit}</button>
           <span style={{ fontSize: 10, color: '#22C55E', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1 }}>
-            {apps.length} LIVE
+            {apps.length} {t.hub.apps.live}
           </span>
         </div>
       </div>
@@ -183,7 +188,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
       {/* Edit-mode hint */}
       {editing && (
         <div style={{ fontSize: 11, color: 'rgba(251,191,36,0.7)', marginBottom: 8 }}>
-          Tap an app to pin it to ★ Favorites.
+          {t.hub.apps.editHint}
         </div>
       )}
 
@@ -193,8 +198,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search apps"
-          aria-label="Search apps"
+          placeholder={t.hub.apps.search}
+          aria-label={t.hub.apps.search}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '11px 14px 11px 40px',
             borderRadius: 14, background: '#111627', border: '1px solid rgba(255,255,255,0.08)',
@@ -202,7 +207,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
           }}
         />
         {query && (
-          <button onClick={() => setQuery('')} aria-label="Clear search"
+          <button onClick={() => setQuery('')} aria-label={t.hub.apps.clearSearch}
             style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 12 }}>✕</button>
         )}
       </div>
@@ -210,12 +215,16 @@ export function HubAppsGrid({ apps, openTo }: Props) {
       {searching ? (() => {
         const results = apps.filter(matches);
         return results.length
-          ? <Section title={`${results.length} result${results.length === 1 ? '' : 's'}`} items={results} />
-          : <div style={{ padding: '28px 0', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>No apps match “{query}”.</div>;
+          ? <Section
+              title={results.length === 1 ? t.hub.apps.resultOne : t.hub.apps.results.replace('{n}', String(results.length))}
+              items={results} />
+          : <div style={{ padding: '28px 0', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+              {t.hub.apps.noMatch.replace('{q}', query)}
+            </div>;
       })() : (
         <>
-          {favApps.length    > 0 && <Section title="★ Favorites" items={favApps}    accent="#FBBF24" />}
-          {recentApps.length > 0 && !editing && <Section title="Recent" items={recentApps} />}
+          {favApps.length    > 0 && <Section title={t.hub.apps.favorites} items={favApps}    accent="#FBBF24" />}
+          {recentApps.length > 0 && !editing && <Section title={t.hub.apps.recent} items={recentApps} />}
           {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} accent={hexRgba(categoryMeta(s.group as AppCategory)?.accent ?? UNCLASSIFIED_ACCENT, 0.75)} />)}
         </>
       )}

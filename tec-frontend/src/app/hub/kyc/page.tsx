@@ -1,6 +1,8 @@
 'use client';
 
 import { useState }                         from 'react';
+import { useTranslation }                   from '@/lib/i18n';
+import type { Translations }                from '@/lib/i18n';
 import { useKyc, KycRecord, KycStatus }     from '@/lib-client/hooks/useKyc';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
@@ -8,34 +10,31 @@ import { Icon, IconName }                   from '@/components/ui/Icon';
 import { CameraCapture }                     from '@/components/kyc/CameraCapture';
 
 // ── Status config ──────────────────────────────────────────────
-const STATUS_CONFIG: Record<KycStatus, {
+const statusConfig = (t: Translations): Record<KycStatus, {
   icon: IconName; label: string; desc: string;
   bg: string; border: string; color: string;
-}> = {
+}> => ({
   NOT_STARTED: {
-    icon: 'shield', label: 'Not Started',
-    desc: 'Complete your identity verification to unlock all TEC features.',
+    icon: 'shield', label: t.hub.kyc.status.notStarted, desc: t.hub.kyc.status.notStartedDesc,
     bg: 'rgba(255,255,255,0.03)', border: 'var(--tec-border)', color: 'var(--tec-text-2)',
   },
   PENDING: {
-    icon: 'clock', label: 'Under Review',
-    desc: 'Your documents are being reviewed. This usually takes 1–2 business days.',
+    icon: 'clock', label: t.hub.kyc.status.pending, desc: t.hub.kyc.status.pendingDesc,
     bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: '#f59e0b',
   },
   VERIFIED: {
-    icon: 'shieldCheck', label: 'Verified',
-    desc: 'Your identity has been successfully verified.',
+    icon: 'shieldCheck', label: t.hub.kyc.status.verified, desc: t.hub.kyc.status.verifiedDesc,
     bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: '#22C55E',
   },
   REJECTED: {
-    icon: 'x', label: 'Rejected',
-    desc: 'Your verification was rejected. Please resubmit with correct documents.',
+    icon: 'x', label: t.hub.kyc.status.rejected, desc: t.hub.kyc.status.rejectedDesc,
     bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: '#ef4444',
   },
-};
+});
 
 function StatusCard({ kyc }: { kyc: KycRecord }) {
-  const cfg = STATUS_CONFIG[kyc.status];
+  const { t } = useTranslation();
+  const cfg = statusConfig(t)[kyc.status];
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: 16,
@@ -64,7 +63,7 @@ function StatusCard({ kyc }: { kyc: KycRecord }) {
         background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)',
         color: 'var(--tec-gold)', flexShrink: 0,
       }}>
-        Level {kyc.level}
+        {t.hub.kyc.level} {kyc.level}
       </div>
     </div>
   );
@@ -73,10 +72,12 @@ function StatusCard({ kyc }: { kyc: KycRecord }) {
 // Trust / benefits panel — shown before a user starts. States WHY verification
 // matters + that it is secure, the way a professional KYC flow opens.
 function VerifyIntro() {
+  const { t } = useTranslation();
+  const b = t.hub.kyc.benefits;
   const benefits: { icon: IconName; title: string; desc: string }[] = [
-    { icon: 'wallet', title: 'Unlock full access',   desc: 'Higher limits and all TEC financial features.' },
-    { icon: 'check',  title: 'One-time process',       desc: 'Verify once — it applies across the ecosystem.' },
-    { icon: 'shield', title: 'Bank-grade security',    desc: 'Your documents are encrypted and never shared.' },
+    { icon: 'wallet', title: b.accessTitle, desc: b.accessDesc },
+    { icon: 'check',  title: b.onceTitle,   desc: b.onceDesc   },
+    { icon: 'shield', title: b.secureTitle, desc: b.secureDesc },
   ];
   return (
     <div style={{
@@ -104,9 +105,10 @@ function VerifyIntro() {
 }
 
 function StepIndicator({ step }: { step: 'docs' | 'review' }) {
+  const { t } = useTranslation();
   const steps = [
-    { key: 'docs',   label: 'Upload Documents' },
-    { key: 'review', label: 'Review & Submit' },
+    { key: 'docs',   label: t.hub.kyc.steps.docs   },
+    { key: 'review', label: t.hub.kyc.steps.review },
   ];
   return (
     <div style={{ display: 'flex', alignItems: 'center', marginBottom: 'var(--sp-6)' }}>
@@ -150,6 +152,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
   onUpload: (data: { idFrontUrl: string; idBackUrl?: string; selfieUrl: string }) => Promise<void>;
   onSubmit: () => Promise<void>;
 }) {
+  const { t } = useTranslation();
   const [step,       setStep]       = useState<'docs' | 'review'>(kyc.id_front_url ? 'review' : 'docs');
   const [idFrontUrl, setIdFrontUrl] = useState(kyc.id_front_url ?? '');
   const [idBackUrl,  setIdBackUrl]  = useState(kyc.id_back_url  ?? '');
@@ -158,7 +161,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
   const [uploadErr,  setUploadErr]  = useState<string | null>(null);
 
   const handleUpload = async () => {
-    if (!idFrontUrl || !selfieUrl) { setUploadErr('ID front and selfie are required'); return; }
+    if (!idFrontUrl || !selfieUrl) { setUploadErr(t.hub.kyc.upload.required); return; }
     setUploading(true); setUploadErr(null);
     try {
       await onUpload({ idFrontUrl, idBackUrl: idBackUrl || undefined, selfieUrl });
@@ -168,9 +171,9 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
   };
 
   const reviewItems = [
-    { label: 'ID Front', value: kyc.id_front_url, required: true  },
-    { label: 'ID Back',  value: kyc.id_back_url,  required: false },
-    { label: 'Selfie',   value: kyc.selfie_url,   required: true  },
+    { label: t.hub.kyc.review.idFront, value: kyc.id_front_url, required: true  },
+    { label: t.hub.kyc.review.idBack,  value: kyc.id_back_url,  required: false },
+    { label: t.hub.kyc.review.selfie,  value: kyc.selfie_url,   required: true  },
   ];
 
   return (
@@ -181,22 +184,21 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
         <div>
           <div style={{ marginBottom: 'var(--sp-6)' }}>
             <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>
-              Upload Your Documents
+              {t.hub.kyc.upload.heading}
             </div>
             <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6 }}>
-              Take a photo or choose a clear image of your ID. Make sure all corners are
-              visible and the text is readable.
+              {t.hub.kyc.upload.help}
             </div>
           </div>
 
-          <CameraCapture label="ID / Passport — Front" required facing="environment" guide="rect"
-            title="Take a photo of your ID" hint="Opens your camera · fit all corners in the frame"
+          <CameraCapture label={t.hub.kyc.upload.frontLabel} required facing="environment" guide="rect"
+            title={t.hub.kyc.upload.frontTitle} hint={t.hub.kyc.upload.frontHint}
             initialValue={kyc.id_front_url} onChange={setIdFrontUrl} />
-          <CameraCapture label="ID / Passport — Back (optional)" facing="environment" guide="rect"
-            title="Take a photo of the back" hint="Opens your camera · optional"
+          <CameraCapture label={t.hub.kyc.upload.backLabel} facing="environment" guide="rect"
+            title={t.hub.kyc.upload.backTitle} hint={t.hub.kyc.upload.backHint}
             initialValue={kyc.id_back_url} onChange={setIdBackUrl} />
-          <CameraCapture label="Live Selfie (camera)" required facing="user" guide="oval"
-            title="Take a selfie" hint="Opens your front camera · look straight at it"
+          <CameraCapture label={t.hub.kyc.upload.selfieLabel} required facing="user" guide="oval"
+            title={t.hub.kyc.upload.selfieTitle} hint={t.hub.kyc.upload.selfieHint}
             initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
 
           {uploadErr && (
@@ -208,7 +210,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
           {/* Security reassurance */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 'var(--sp-5)', fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>
             <Icon name="shield" size={14} color="#22C55E" />
-            Encrypted end-to-end. Your documents are used only for verification.
+            {t.hub.kyc.upload.encrypted}
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -220,7 +222,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
                 cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
                 opacity: uploading ? 0.6 : 1,
               }}>
-              {uploading ? 'Uploading…' : 'Continue →'}
+              {uploading ? t.hub.kyc.upload.uploading : `${t.hub.kyc.upload.continue} →`}
             </button>
           </div>
         </div>
@@ -229,7 +231,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
       {step === 'review' && (
         <div>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-5)' }}>
-            Review & Submit
+            {t.hub.kyc.review.heading}
           </div>
 
           <div style={{ border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: 'var(--sp-5)' }}>
@@ -246,7 +248,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
                   <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{item.label}</span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--text-sm)', fontWeight: 600, color }}>
                     <Icon name={state === 'ok' ? 'check' : state === 'missing' ? 'x' : 'info'} size={15} color={color} />
-                    {state === 'ok' ? 'Uploaded' : state === 'missing' ? 'Missing' : 'Optional'}
+                    {state === 'ok' ? t.hub.kyc.review.uploaded : state === 'missing' ? t.hub.kyc.review.missing : t.hub.kyc.review.optional}
                   </span>
                 </div>
               );
@@ -260,13 +262,13 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
           }}>
             <span style={{ flexShrink: 0, marginTop: 2 }}><Icon name="info" size={16} color="var(--tec-gold)" /></span>
-            By submitting, you confirm these documents are authentic and belong to you.
+            {t.hub.kyc.review.confirm}
           </div>
 
           <div style={{ display: 'flex', gap: 'var(--sp-3)', justifyContent: 'flex-end' }}>
             <button onClick={() => setStep('docs')}
               style={{ padding: '11px 20px', borderRadius: 'var(--radius-md)', background: 'transparent', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)', fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
-              ← Back
+              ← {t.hub.kyc.review.back}
             </button>
             <button onClick={onSubmit} disabled={isSubmitting}
               style={{
@@ -276,7 +278,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
                 fontSize: 'var(--text-sm)', cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
               }}>
-              {isSubmitting ? 'Submitting…' : 'Submit for Review'}
+              {isSubmitting ? t.hub.kyc.review.submitting : t.hub.kyc.review.submit}
             </button>
           </div>
         </div>
@@ -299,21 +301,22 @@ function StateBadge({ icon, color, ring }: { icon: IconName; color: string; ring
 }
 
 function PendingState() {
+  const { t } = useTranslation();
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
         <StateBadge icon="clock" color="#f59e0b" ring="rgba(245,158,11,0.1)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-3)' }}>
-          Under Review
+          {t.hub.kyc.pending.heading}
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, maxWidth: 400, margin: '0 auto' }}>
-          Your documents are being reviewed. You&apos;ll receive a notification once complete — usually within 1–2 business days.
+          {t.hub.kyc.pending.body}
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, maxWidth: 260, margin: 'var(--sp-6) auto 0' }}>
           {[
-            { label: 'Documents submitted',       state: 'done' },
-            { label: 'Manual review in progress', state: 'active' },
-            { label: 'Decision notification',     state: 'todo' },
+            { label: t.hub.kyc.pending.submitted,  state: 'done' },
+            { label: t.hub.kyc.pending.inProgress, state: 'active' },
+            { label: t.hub.kyc.pending.decision,   state: 'todo' },
           ].map(s => (
             <div key={s.label} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: s.state === 'done' ? '#22C55E' : s.state === 'active' ? '#f59e0b' : 'var(--tec-text-3)' }}>
               {s.state === 'done'
@@ -329,20 +332,26 @@ function PendingState() {
 }
 
 function VerifiedState({ kyc }: { kyc: KycRecord }) {
+  const { t, locale } = useTranslation();
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
         <StateBadge icon="shieldCheck" color="#22C55E" ring="rgba(34,197,94,0.1)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#22C55E', marginBottom: 'var(--sp-3)' }}>
-          Identity Verified
+          {t.hub.kyc.verified.heading}
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, marginBottom: 'var(--sp-6)' }}>
-          Your identity has been verified. You now have full access to all TEC features.
+          {t.hub.kyc.verified.body}
         </div>
         <div style={{ display: 'flex', gap: 'var(--sp-8)', justifyContent: 'center' }}>
           {[
-            { label: 'Level',    value: kyc.level },
-            { label: 'Verified', value: kyc.verified_at ? new Date(kyc.verified_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : '—' },
+            { label: t.hub.kyc.level, value: kyc.level },
+            { label: t.hub.kyc.verified.verifiedOn,
+              // The date follows the interface language too — an Arabic screen showing
+              // "Mar 2026" is the same half-translation this change is undoing.
+              value: kyc.verified_at
+                ? new Date(kyc.verified_at).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' })
+                : '—' },
           ].map(m => (
             <div key={m.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 4 }}>{m.label}</div>
@@ -358,12 +367,13 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
 function RejectedState({ reason, isSubmitting, onReset }: {
   reason?: string | null; isSubmitting: boolean; onReset: () => void | Promise<void>;
 }) {
+  const { t } = useTranslation();
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-8) var(--sp-6)' }}>
         <StateBadge icon="x" color="#ef4444" ring="rgba(239,68,68,0.1)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#ef4444', marginBottom: 'var(--sp-3)' }}>
-          Verification Rejected
+          {t.hub.kyc.rejected.heading}
         </div>
         {reason && (
           <div style={{
@@ -371,12 +381,12 @@ function RejectedState({ reason, isSubmitting, onReset }: {
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6, textAlign: 'left',
           }}>
-            <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Reason</span>
+            <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>{t.hub.kyc.rejected.reason}</span>
             {reason}
           </div>
         )}
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-6)', lineHeight: 1.6 }}>
-          Please resubmit with clearer, valid documents.
+          {t.hub.kyc.rejected.body}
         </div>
         <button onClick={onReset} disabled={isSubmitting}
           style={{
@@ -386,7 +396,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
             fontSize: 'var(--text-sm)', cursor: 'pointer',
             opacity: isSubmitting ? 0.6 : 1,
           }}>
-          {isSubmitting ? 'Resetting…' : 'Try Again →'}
+          {isSubmitting ? t.hub.kyc.rejected.resetting : `${t.hub.kyc.rejected.tryAgain} →`}
         </button>
       </div>
     </DashboardCard>
@@ -394,19 +404,20 @@ function RejectedState({ reason, isSubmitting, onReset }: {
 }
 
 export default function HubKycPage() {
+  const { t } = useTranslation();
   const { kyc, isLoading, isSubmitting, error, uploadDocs, submit, reset } = useKyc();
 
   const badge = kyc ? {
-    NOT_STARTED: { text: 'Action Required', color: 'blue'  as const },
-    PENDING:     { text: 'Under Review',    color: 'gold'  as const },
-    VERIFIED:    { text: 'Verified',        color: 'green' as const },
-    REJECTED:    { text: 'Rejected',        color: 'red'   as const },
+    NOT_STARTED: { text: t.hub.kyc.badge.notStarted, color: 'blue'  as const },
+    PENDING:     { text: t.hub.kyc.badge.pending,    color: 'gold'  as const },
+    VERIFIED:    { text: t.hub.kyc.badge.verified,   color: 'green' as const },
+    REJECTED:    { text: t.hub.kyc.badge.rejected,   color: 'red'   as const },
   }[kyc.status] : undefined;
 
   return (
     <HubSubShell
-      title="Identity Verification"
-      subtitle="KYC — Know Your Customer"
+      title={t.hub.kyc.title}
+      subtitle={t.hub.kyc.subtitle}
       badge={badge}
       loading={isLoading}
     >

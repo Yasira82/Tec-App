@@ -11,7 +11,7 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@/test-utils/render-with-locale';
 
 // ─── next/navigation ────────────────────────────────────────────
 vi.mock('next/navigation', () => ({
@@ -247,13 +247,10 @@ vi.mock('@/domains/_registry', () => ({
 }));
 
 // ─── i18n ────────────────────────────────────────────────────────
-vi.mock('@/lib/i18n', async () => {
-  const { en } = await import('@/lib/i18n/en');
-  return {
-    useTranslation: vi.fn(() => ({ t: en, locale: 'en', setLocale: vi.fn(), setLanguage: vi.fn(), dir: 'ltr' })),
-    LocaleProvider: ({ children }: any) => <>{children}</>,
-  };
-});
+// Deliberately NOT mocked. A hand-listed mock has to be extended every time the
+// module gains an export — adding `fill` broke this file with "No 'fill' export
+// is defined on the mock", which is a test-harness failure dressed up as a page
+// failure. `safeRender` supplies the real provider instead.
 
 // ─── haptic ──────────────────────────────────────────────────────
 vi.mock('@/lib/hub/utils', () => ({ haptic: vi.fn() }));

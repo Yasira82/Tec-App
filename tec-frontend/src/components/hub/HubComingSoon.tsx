@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslation } from '@/lib/i18n';
 import { ALL_DOMAINS, COMING_SOON } from '@/domains/_registry';
 
 const GROUPS = [
@@ -12,6 +13,7 @@ const GROUPS = [
 ] as const;
 
 export function HubComingSoon() {
+  const { t } = useTranslation();
   // Every one of the 24 apps is `live`, so this list is empty — and an empty list
   // used to render as a bare "COMING SOON · 24 APPS" heading with nothing under it,
   // sitting at the bottom of the Hub. A section with no content is not a section.
@@ -20,9 +22,9 @@ export function HubComingSoon() {
   return (
     <div style={{ padding: '24px 16px 0', animation: 'tec-fade-in 0.65s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textTransform: 'uppercase' }}>Coming Soon</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.comingSoon.title}</span>
         <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: 1 }}>
-          {COMING_SOON.length} OF {ALL_DOMAINS.length}
+          {t.hub.comingSoon.count.replace('{n}', String(COMING_SOON.length)).replace('{total}', String(ALL_DOMAINS.length))}
         </span>
       </div>
 

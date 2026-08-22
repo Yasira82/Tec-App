@@ -3,7 +3,7 @@
  *   /hub/kyc, /hub/subscription, /hub/notifications, /hub/profile
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render } from '@testing-library/react';
+import { render } from '@/test-utils/render-with-locale';
 
 // ── Shared component mocks ────────────────────────────────────────
 vi.mock('@/components/hub', () => ({

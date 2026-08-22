@@ -4,14 +4,14 @@ export function HubSkeleton() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--tec-bg)', padding: '0 0 90px' }}>
       <style>{`@keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.8}}.sk{animation:shimmer 1.4s ease infinite;background:var(--tec-surface-1);border-radius:18px}`}</style>
-      <div style={{ padding: '14px 20px', borderBottom: '1px solid #ffffff08', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--tec-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 32, height: 32, borderRadius: 10, background: '#FBBF2430' }} />
-          <div style={{ width: 60, height: 20, borderRadius: 6, background: '#ffffff08' }} />
+          <div style={{ width: 60, height: 20, borderRadius: 6, background: 'var(--tec-surface-2)' }} />
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: '#ffffff08' }} />
-          <div style={{ width: 90, height: 36, borderRadius: 12, background: '#ffffff08' }} />
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tec-surface-2)' }} />
+          <div style={{ width: 90, height: 36, borderRadius: 12, background: 'var(--tec-surface-2)' }} />
         </div>
       </div>
       <div style={{ padding: '16px 16px 0' }}><div className="sk" style={{ height: 120 }} /></div>

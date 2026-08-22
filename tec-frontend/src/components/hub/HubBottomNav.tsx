@@ -28,7 +28,7 @@ export function HubBottomNav() {
   return (
     <nav aria-label={t.hub.nav.main} style={{
       position: 'fixed', bottom: 0, left: 0, right: 0,
-      background: 'rgba(5,5,10,0.92)',
+      background: 'var(--tec-bg)',
       backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
       borderTop: '1px solid var(--tec-border)',
       display: 'flex', padding: '10px 4px',
@@ -44,9 +44,9 @@ export function HubBottomNav() {
           aria-label={item.label} aria-current={item.active ? 'page' : undefined}
           style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
           {item.active && (
-            <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'var(--tec-gold-grad)', boxShadow: '0 0 8px rgba(251,191,36,0.6)' }} />
+            <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'var(--tec-gold-grad)', }} />
           )}
-          <Icon name={item.icon} size={21} color={item.active ? 'var(--tec-gold)' : 'rgba(255,255,255,0.4)'} strokeWidth={item.active ? 2.2 : 1.9} />
+          <Icon name={item.icon} size={21} color={item.active ? 'var(--tec-gold)' : 'var(--tec-text-3)'} strokeWidth={item.active ? 2.2 : 1.9} />
           <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: item.active ? 700 : 400, color: item.active ? 'var(--tec-gold)' : 'var(--tec-text-3)' }}>
             {item.label}
           </span>

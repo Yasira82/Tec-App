@@ -6,6 +6,7 @@ import './globals.css';
 // utility classes); defining it once removes that class of bug entirely.
 import '@/styles/tec-design-tokens.css';
 import Script from 'next/script';
+import { THEME_BOOT_SCRIPT } from '@/lib-client/theme';
 import localFont from 'next/font/local';
 import { ClientProviders } from '@/components/ClientProviders';
 import PiSdkLoader from '@/components/PiSdkLoader';
@@ -114,7 +115,17 @@ const sdkTimeout = sdkTimeoutEnv > 0 && sdkTimeoutEnv < 120000 ? sdkTimeoutEnv :
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" dir="ltr" className={`${cormorantGaramond.variable} ${dmSans.variable}`}>
+    /* `suppressHydrationWarning`: the boot script below stamps `data-theme` on
+       this element before React hydrates, so the server markup and the client
+       DOM differ here on purpose. */
+    <html lang="en" dir="ltr" className={`${cormorantGaramond.variable} ${dmSans.variable}`} suppressHydrationWarning>
+      <head>
+        {/* Applies the stored theme BEFORE first paint. Without it the page
+            renders dark, then snaps to light — a flash on every single load,
+            which is worse than not offering the choice at all. Inline and
+            synchronous by necessity: anything deferred paints too late. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body>
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
         <PiSdkLoader sandbox={piSandbox} timeout={sdkTimeout} />

@@ -35,20 +35,24 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
         onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
         style={{
           width: '100%', borderRadius: 24, overflow: 'hidden',
-          background: 'linear-gradient(135deg,#0f0c1e 0%,#0a1628 50%,#0c1a0e 100%)',
-          border: '1px solid rgba(251,191,36,0.15)',
+          // Deliberately dark in BOTH themes — see --tec-hero. It used to be a
+          // purple→navy→green gradient with a cyan glow behind it: three hues in
+          // one component, on the single element the user looks at first.
+          background: 'var(--tec-hero)',
+          border: '1px solid var(--tec-border-gold)',
           padding: '24px', cursor: 'pointer', textAlign: 'start',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05)',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
           position: 'relative',
         }}>
-        {/* Glow — dual-tone EVL (WEALTH gold + a cool accent) for depth */}
+        {/* One warm wash, in the brand colour only — enough to keep the card from
+            reading as flat grey, not enough to become decoration. */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 80% 60% at 18% 35%, rgba(251,191,36,0.09) 0%, transparent 62%), radial-gradient(ellipse 70% 60% at 95% 100%, rgba(6,182,212,0.07) 0%, transparent 60%)',
+          background: 'radial-gradient(ellipse 85% 65% at 15% 30%, rgba(251,191,36,0.08) 0%, transparent 65%)',
         }} />
 
         <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
+          <div style={{ fontSize: 10, color: 'var(--tec-hero-ink-3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
             {t.hub.wallet.internalBalance}
           </div>
 
@@ -93,14 +97,14 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
               Pi Network wallet. No A2U/withdrawal path exists (payment-service is the
               only Pi custodian — C-47 Invariant #8). Stating it plainly avoids any
               impression that this π can be moved to a Pi Network wallet. */}
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4, marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: 'var(--tec-hero-ink-3)', lineHeight: 1.4, marginBottom: 14 }}>
             {t.hub.wallet.notPiWallet}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
-              <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t.hub.wallet.viewTransactions} →</span>
+              <span style={{ fontSize: 11, color: 'var(--tec-hero-ink-2)' }}>{t.hub.wallet.viewTransactions} →</span>
             </div>
             {piPrice && (
               <div style={{
@@ -112,7 +116,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 <span style={{ fontSize: 10, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)', fontWeight: 700 }}>
                   {priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
                 </span>
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>${piPrice.price.toFixed(4)}</span>
+                <span style={{ fontSize: 10, color: 'var(--tec-hero-ink-2)' }}>${piPrice.price.toFixed(4)}</span>
               </div>
             )}
           </div>
@@ -126,10 +130,10 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
               padding: '11px 0', borderRadius: 16, cursor: 'pointer',
-              background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.16)',
+              background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)',
             }}>
             <span style={{ fontSize: 17, fontWeight: 900, color: 'var(--tec-gold)', lineHeight: 1 }}>{a.icon}</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 0.3 }}>{a.label}</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-1)', letterSpacing: 0.3 }}>{a.label}</span>
           </button>
         ))}
       </div>
@@ -137,7 +141,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
       {/* Send/Receive move π between TEC accounts on the internal ledger — they do
           NOT send to a Pi Network wallet. Kept explicit so the actions aren't mistaken
           for on-chain Pi transfers. */}
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', textAlign: 'center', marginTop: 8 }}>
+      <div style={{ fontSize: 10, color: 'var(--tec-text-3)', textAlign: 'center', marginTop: 8 }}>
         {t.hub.wallet.internalOnly}
       </div>
     </div>

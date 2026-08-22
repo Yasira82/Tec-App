@@ -28,8 +28,15 @@ describe('page paint', () => {
     expect(bodyBlock).toMatch(/background:/);
   });
 
-  it('declares a dark color-scheme so browser chrome is not painted light', () => {
-    expect(htmlBlock).toMatch(/color-scheme:\s*dark/);
+  it('leaves color-scheme to the theme layer instead of pinning it dark', () => {
+    // This used to be a hardcoded `color-scheme: dark` here. Once the page could
+    // actually be light, a stylesheet declaration was the wrong owner: it would
+    // keep painting scrollbars and native controls dark on a light page. The boot
+    // script sets it inline on <html> before first paint, so it always matches
+    // the theme actually in effect.
+    expect(htmlBlock).not.toMatch(/color-scheme:/);
+    const boot = readFileSync(join(process.cwd(), 'src/lib-client/theme.ts'), 'utf8');
+    expect(boot).toMatch(/colorScheme/);
   });
 
   it('sizes body to the visible viewport on mobile, with a vh fallback', () => {

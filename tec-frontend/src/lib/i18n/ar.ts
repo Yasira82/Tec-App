@@ -184,7 +184,7 @@ export const ar = {
     },
     header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
     greeting: {
-      morning: 'صباح الخير', afternoon: 'مساء الخير', evening: 'مساء الخير',
+      morning: 'صباح الخير،', afternoon: 'مساء الخير،', evening: 'مساء الخير،',
       sub: 'اقتصادك على Pi، كله في مكان واحد.',
     },
     wallet: {
@@ -204,7 +204,8 @@ export const ar = {
       piNetwork: 'شبكة Pi',
     },
     apps: {
-      title: 'التطبيقات', edit: 'تعديل', done: 'تم', live: 'تعمل',
+      other: 'أخرى',
+      title: 'التطبيقات', edit: 'تعديل', done: 'تم', live: 'نشط',
       search: 'ابحث عن تطبيق', clearSearch: 'مسح البحث',
       editHint: 'اضغط على تطبيق لتثبيته في ★ المفضلة.',
       favorites: '★ المفضلة', recent: 'آخر استخدام',
@@ -241,8 +242,8 @@ export const ar = {
       title: 'الاشتراك', subtitle: 'إدارة خطتك في TEC',
       currentPlan: 'خطتك الحالية', free: 'مجاني', perMonth: '/شهريًا',
       assetsUsed: 'الأصول المستخدمة',
-      atLimit: 'وصلت لحد الخطة المجانية — ارتقِ إلى Pro لأصول بلا حدود.',
-      unlimited: '✓ أصول بلا حدود', created: '{n} تم إنشاؤها',
+      atLimit: 'وصلت لحد الخطة المجانية — ارتقِ إلى PRO لأصول بلا حدود.',
+      unlimited: '✓ أصول بلا حدود', created: 'تم إنشاء {n}',
       cancelling: 'جارٍ الإلغاء…', cancel: 'إلغاء الاشتراك',
       cancelConfirm: 'إلغاء اشتراكك؟ سيتم نقلك للخطة المجانية.',
       cancelFailed: 'تعذّر الإلغاء',
@@ -269,7 +270,7 @@ export const ar = {
     },
     plans: {
       FREE:       { name: 'مجانية',  tagline: 'ابدأ رحلتك في TEC' },
-      PRO:        { name: 'برو',     tagline: 'للبنّائين والتجّار النشطين' },
+      PRO:        { name: 'PRO',     tagline: 'للبنّائين والتجّار النشطين' },
       ENTERPRISE: { name: 'المؤسسات', tagline: 'للفرق والأعمال بعلامة خاصة' },
     },
     planFeatures: {
@@ -305,7 +306,7 @@ export const ar = {
       title: 'الإشعارات', allCaught: 'لا يوجد جديد', empty: 'لا توجد إشعارات بعد',
       unread: 'غير مقروء', earlier: 'أقدم', justNow: 'الآن',
       unreadCount: '{n} غير مقروء', markAllRead: 'تعليم الكل كمقروء', retry: 'إعادة المحاولة',
-      minsAgo: 'منذ {n} د', hrsAgo: 'منذ {n} س', daysAgo: 'منذ {n} ي',
+      minsAgo: 'منذ {n} دقيقة', hrsAgo: 'منذ {n} ساعة', daysAgo: 'منذ {n} يوم',
     },
     analytics: {
       title: 'التحليلات', subtitle: 'نظرة عامة على أداء المنصّة',
@@ -314,7 +315,7 @@ export const ar = {
       payments24h: 'المدفوعات — آخر 24 ساعة',
       completed: 'مكتملة', failed: 'فاشلة', cancelled: 'ملغاة',
       volume: 'الحجم', successRate: 'معدّل النجاح', na: 'غير متاح',
-      healthy: 'سليم', degraded: 'متدهور',
+      healthy: 'سليم', degraded: 'غير مستقر',
       totals: 'إجماليات المنصّة',
       totalPayments: 'إجمالي المدفوعات', totalUsers: 'إجمالي المستخدمين', totalEvents: 'إجمالي الأحداث',
       recentEvents: 'أحدث الأحداث', live: 'مباشر',
@@ -417,6 +418,7 @@ export const ar = {
         '- توجيهك للتطبيق المناسب لاحتياجك' + '\n\n' +
         'أقدر أساعدك بإيه النهاردة؟',
       placeholder: 'اسأل مساعد TEC...', ask: 'اسأل مساعد TEC',
+      poweredBy: 'مدعوم من tec.pi', close: 'إغلاق', send: 'إرسال',
       newChat: 'محادثة جديدة', menu: 'القائمة', stop: 'إيقاف',
       copyReply: 'نسخ الرد', copied: '✓ تم النسخ', copyShort: '⧉ نسخ',
       stopped: '… (تم الإيقاف)', stoppedEmpty: 'تم الإيقاف قبل أن يبدأ.',

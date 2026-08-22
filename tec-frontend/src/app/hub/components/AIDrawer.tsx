@@ -326,7 +326,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             <div style={{ width: 32, height: 32, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
             <div>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#fff' }}>TEC AI</div>
-              <div style={{ fontSize: 10, color: '#4a4a5a' }}>Powered by tec.pi</div>
+              <div style={{ fontSize: 10, color: '#4a4a5a' }}>{t.hub.ai.poweredBy}</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
@@ -341,7 +341,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
                 {t.hub.ai.newChat}
               </button>
             )}
-            <button onClick={onClose} aria-label="Close" style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
+            <button onClick={onClose} aria-label={t.hub.ai.close} style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
           </div>
         </div>
         {menuOpen ? (
@@ -435,7 +435,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             <button onClick={stop} aria-label={t.hub.ai.stop}
               style={{ width: 44, height: 44, borderRadius: 14, background: '#ffffff10', border: '1px solid #ffffff18', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>◼</button>
           ) : (
-            <button onClick={() => send()} disabled={!input.trim()} aria-label="Send"
+            <button onClick={() => send()} disabled={!input.trim()} aria-label={t.hub.ai.send}
               style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'linear-gradient(135deg,#FBBF24,#F59E0B)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
           )}
         </div>

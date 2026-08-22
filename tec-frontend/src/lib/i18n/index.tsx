@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { en } from './en';
 import { ar } from './ar';
 
-type Locale = 'en' | 'ar';
+export type Locale = 'en' | 'ar';
 export type Translations = typeof en;
 
 interface LocaleContextValue {
@@ -60,6 +60,15 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 
   return <LocaleContext.Provider value={contextValue}>{children}</LocaleContext.Provider>;
 }
+
+/**
+ * The BCP-47 tag for `Intl` (dates, numbers, relative time).
+ *
+ * It is NOT the same string as our locale code, and it was inlined as
+ * `locale === 'ar' ? 'ar-EG' : 'en-US'` at five call sites — five copies of one
+ * mapping, all of which would need finding the day a third language lands.
+ */
+export const bcp47 = (locale: Locale): string => (locale === 'ar' ? 'ar-EG' : 'en-US');
 
 /**
  * Fill `{name}` placeholders in a dictionary string.

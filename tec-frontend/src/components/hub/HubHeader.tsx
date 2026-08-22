@@ -98,7 +98,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
+          <span dir="ltr" style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
           <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'rgba(251,191,36,0.6)', marginInlineStart: -2 }}>›</span>
         </button>
       </div>

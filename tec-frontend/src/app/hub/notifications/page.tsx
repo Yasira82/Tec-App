@@ -1,7 +1,7 @@
 'use client';
 
 import { useNotifications, Notification, NotifType } from '@/lib-client/hooks/useNotifications';
-import { useTranslation, fill, type Translations }   from '@/lib/i18n';
+import { useTranslation, fill, bcp47, type Translations } from '@/lib/i18n';
 import { HubSubShell }                               from '@/components/hub';
 import { DashboardCard }                             from '@/components/dashboard';
 
@@ -18,7 +18,7 @@ function formatDate(iso: string, t: Translations, locale: 'en' | 'ar') {
   if (mins < 60) return fill(n.minsAgo, { n: mins });
   if (hrs  < 24) return fill(n.hrsAgo,  { n: hrs  });
   if (days <  7) return fill(n.daysAgo, { n: days });
-  return new Date(iso).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric' });
+  return new Date(iso).toLocaleDateString(bcp47(locale), { month: 'short', day: 'numeric' });
 }
 
 const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }> = {

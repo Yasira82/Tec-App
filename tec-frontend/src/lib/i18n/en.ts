@@ -195,7 +195,7 @@ export const en = {
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {
-      morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
+      morning: 'Good morning,', afternoon: 'Good afternoon,', evening: 'Good evening,',
       sub: 'Your Pi economy, all in one place.',
     },
     wallet: {
@@ -218,6 +218,7 @@ export const en = {
       piNetwork: 'Pi Network',
     },
     apps: {
+      other: 'More',
       title: 'Apps', edit: 'Edit', done: 'Done', live: 'LIVE',
       search: 'Search apps', clearSearch: 'Clear search',
       editHint: 'Tap an app to pin it to ★ Favorites.',
@@ -436,6 +437,7 @@ export const en = {
         '- Point you to the right app for what you need' + '\n\n' +
         'How can I help you today?',
       placeholder: 'Ask TEC AI...', ask: 'Ask TEC AI',
+      poweredBy: 'Powered by tec.pi', close: 'Close', send: 'Send',
       newChat: 'New chat', menu: 'Menu', stop: 'Stop',
       copyReply: 'Copy reply', copied: '✓ Copied', copyShort: '⧉ Copy',
       stopped: '… (stopped)', stoppedEmpty: 'Stopped before it began.',

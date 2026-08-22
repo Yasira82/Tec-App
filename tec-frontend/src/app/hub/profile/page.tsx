@@ -2,7 +2,7 @@
 
 import { useState }      from 'react';
 import { useRouter }     from 'next/navigation';
-import { useTranslation }  from '@/lib/i18n';
+import { useTranslation, bcp47 }  from '@/lib/i18n';
 import { usePiAuth }     from '@/lib-client/hooks/usePiAuth';
 import { useSubscriptionPlan } from '@/lib-client/hooks/useSubscriptionPlan';
 import { useKyc }        from '@/lib-client/hooks/useKyc';
@@ -13,7 +13,7 @@ import { DashboardCard } from '@/components/dashboard';
 function InfoRow({ label, value, mono, copyable }: {
   label: string; value: string; mono?: boolean; copyable?: boolean;
 }) {
-  const { t } = useTranslation();
+  const { t, dir } = useTranslation();
   const [copied, setCopied] = useState(false);
   const copy = () => {
     navigator.clipboard.writeText(value).then(() => {
@@ -22,9 +22,16 @@ function InfoRow({ label, value, mono, copyable }: {
   };
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 'var(--sp-4) var(--sp-5)', borderBottom: '1px solid var(--tec-border)' }}>
-      <div style={{ flex: 1, minWidth: 0, marginRight: 'var(--sp-4)' }}>
-        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 3 }}>{label}</div>
-        <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-1)', fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)', fontWeight: mono ? 400 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+      <div style={{ flex: 1, minWidth: 0, marginInlineEnd: 'var(--sp-4)' }}>
+        {/* Upper-casing is a Latin typographic device — Arabic has no case, so on an
+            Arabic label it reaches only the embedded brand token and turns "Pi" into
+            "PI". Worth keeping in English, worth dropping in Arabic. */}
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: dir === 'rtl' ? 'none' : 'uppercase', marginBottom: 3 }}>{label}</div>
+        {/* A UUID or a Pi handle is Latin data sitting in an Arabic row. Without an
+            explicit direction the bidi algorithm reorders its runs — a hyphenated id
+            can come back with its segments swapped, which looks like a different id.
+            `mono` marks exactly the rows that hold such data. */}
+        <div dir={mono ? 'ltr' : undefined} style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-1)', fontFamily: mono ? 'var(--font-mono)' : 'var(--font-sans)', fontWeight: mono ? 400 : 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value || '—'}
         </div>
       </div>
@@ -106,12 +113,12 @@ export default function HubProfilePage() {
 
       {/* ── Account Info ────────────────────────────── */}
       <DashboardCard title={t.hub.profile.accountInfo} subtitle={t.hub.profile.accountInfoSub} padding="0">
-        <InfoRow label={t.hub.profile.piUsername}  value={`@${user?.piUsername ?? ''}`} />
+        <InfoRow label={t.hub.profile.piUsername}  value={`@${user?.piUsername ?? ''}`} mono />
         <InfoRow label={t.hub.profile.piUid}       value={user?.piId ?? ''}   mono copyable />
         <InfoRow label={t.hub.profile.tecUserId}   value={user?.id ?? ''}     mono copyable />
         <InfoRow label={t.hub.profile.role}        value={roleLabel} />
         <InfoRow label={t.hub.profile.plan}        value={planLabel} />
-        <InfoRow label={t.hub.profile.memberSince} value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : t.hub.profile.na} />
+        <InfoRow label={t.hub.profile.memberSince} value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(bcp47(locale), { month: 'long', day: 'numeric', year: 'numeric' }) : t.hub.profile.na} />
       </DashboardCard>
 
       {/* ── KYC Status ──────────────────────────────── */}
@@ -138,7 +145,7 @@ export default function HubProfilePage() {
       {user?.role === 'admin' && (
         <DashboardCard title={t.hub.profile.admin}>
           <button onClick={() => router.push('/hub/admin/kyc')}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(251,191,36,0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
             <span style={{ fontSize: 22 }}>🛡️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{t.hub.profile.adminKyc}</div>
@@ -171,7 +178,7 @@ export default function HubProfilePage() {
             { icon: '🪪', label: t.hub.profile.kyc,           sub: t.hub.profile.kycSub,           href: '/hub/kyc'           },
           ].map(a => (
             <button key={a.href} onClick={() => router.push(a.href)}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start', width: '100%' }}>
               <span style={{ fontSize: 20 }}>{a.icon}</span>
               <div>
                 <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{a.label}</div>
@@ -186,7 +193,7 @@ export default function HubProfilePage() {
       <DashboardCard title={t.hub.profile.account}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--sp-3)' }}>
           <button onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left', width: '100%' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start', width: '100%' }}>
             <span style={{ fontSize: 20 }}>🚪</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{t.hub.profile.signOut}</div>

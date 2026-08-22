@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
-import { useTranslation }                   from '@/lib/i18n';
+import { useTranslation, bcp47 }            from '@/lib/i18n';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
 
@@ -77,7 +77,7 @@ function EventRow({ event }: { event: AnalyticsEvent }) {
   // identifier, not prose, and translating it would break the link to the catalog.
   // Only the clock around it follows the reader's locale.
   const label = event.type.replace(/\./g, ' › ');
-  const ts    = new Date(event.createdAt).toLocaleTimeString(locale === 'ar' ? 'ar-EG' : 'en-US', { hour: '2-digit', minute: '2-digit' });
+  const ts    = new Date(event.createdAt).toLocaleTimeString(bcp47(locale), { hour: '2-digit', minute: '2-digit' });
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--sp-3)', padding: 'var(--sp-3) var(--sp-5)', borderBottom: '1px solid var(--tec-border)' }}>
       <span style={{ fontSize: 16, flexShrink: 0 }}>{icon}</span>

@@ -305,13 +305,10 @@ describe('HubPage — authenticated render', () => {
     expect(screen.getByTestId('hub-coming-soon')).toBeInTheDocument();
   });
 
-  it('offers the assistant in the Platform Tools row, not as a floating button', async () => {
-    // The floating circle is gone: it sat in the thumb-scroll corner, over the
-    // content, bobbing forever. The assistant is a tool in the tools row now.
+  it('renders the assistant button', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    expect(screen.getByText('Assistant')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Open AI assistant')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Open AI assistant')).toBeInTheDocument();
   });
 
   it('renders bottom nav bar', async () => {
@@ -391,21 +388,21 @@ describe('HubPage — AI drawer', () => {
     expect(screen.queryByTestId('ai-drawer')).not.toBeInTheDocument();
   });
 
-  it('the Assistant tool opens the drawer', async () => {
+  it('the assistant button opens the drawer', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByText('Assistant'));
+    fireEvent.click(screen.getByLabelText('Open AI assistant'));
     expect(screen.getByTestId('ai-drawer')).toBeInTheDocument();
   });
 
-  it('closing the drawer leaves the Assistant tool in place', async () => {
+  it('closing the drawer brings the button back', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByText('Assistant'));
+    fireEvent.click(screen.getByLabelText('Open AI assistant'));
     expect(screen.getByTestId('ai-drawer')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Close AI'));
     expect(screen.queryByTestId('ai-drawer')).not.toBeInTheDocument();
-    expect(screen.getByText('Assistant')).toBeInTheDocument();
+    expect(screen.getByLabelText('Open AI assistant')).toBeInTheDocument();
   });
 });
 

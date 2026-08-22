@@ -49,9 +49,16 @@ body {
   overscroll-behavior-y: none;
 }
 
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: var(--dark); }
-::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+/* A painted scrollbar belongs to a MOUSE. A phone renders its own overlay bar
+   that appears while you scroll and fades away; styling `::-webkit-scrollbar`
+   overrides that with a gold rail pinned to the edge of every screen, always
+   visible, sitting on top of the content. `pointer: fine` is the actual question
+   — "is there a cursor?" — not a screen-width guess. */
+@media (pointer: fine) {
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: var(--dark); }
+  ::-webkit-scrollbar-thumb { background: var(--gold-dim); border-radius: 2px; }
+}
 
 h1, h2, h3 {
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;

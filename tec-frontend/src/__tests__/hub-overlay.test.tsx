@@ -1,13 +1,12 @@
 /**
- * Nothing hovers over the Hub.
+ * The assistant button stays, and it holds still.
  *
- * The assistant used to be a 52px circle pinned to the lower corner — exactly
- * where a thumb starts a scroll — bobbing forever via `tec-float`. Reported three
- * times: "the button that goes up and down", "it's annoying when I want to
- * scroll", and finally "remove it, I want to scroll the screen". It is removed.
+ * It carried `tec-float` — `animation: … infinite` — so a 52px circle bobbed up
+ * and down forever in the corner of every Hub screen. That is what "the button
+ * that goes up and down" meant. The bob is gone; the button is not.
  *
- * It now lives in the Platform Tools row, which scrolls with the page and covers
- * nothing. These assertions keep it there.
+ * (I removed the button itself for one release, reading "the Hub's scroll button"
+ * as this. It was the painted scrollbar down the side of the screen. Restored.)
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent } from '@testing-library/react';
@@ -57,40 +56,20 @@ const renderHub = async () => {
   await act(async () => { render(<Page />); });
 };
 
-describe('the Hub has no floating overlay', () => {
-  it('has nothing fixed over the content that can swallow a touch', async () => {
+describe('the Hub assistant button', () => {
+  it('is there', async () => {
     await renderHub();
-    const blocking = [...document.querySelectorAll<HTMLElement>('[style*="position: fixed"]')]
-      // The bottom nav is anchored chrome, not an overlay: it sits at the screen
-      // edge and the page reserves room for it.
-      .filter(el => el.tagName !== 'NAV')
-      // The toast layer is `pointer-events: none` — it floats but cannot take a
-      // touch, which is the only thing that made the old button hostile to scrolling.
-      .filter(el => el.style.pointerEvents !== 'none');
-    expect(blocking.map(el => el.getAttribute('aria-label') ?? el.tagName)).toEqual([]);
+    expect(screen.getByLabelText(en.hub.ai.open)).toBeTruthy();
   });
 
-  it('has no perpetual animation anywhere on the page', async () => {
+  it('holds still — no perpetual animation anywhere on the page', async () => {
     await renderHub();
-    // `tec-float` is `animation: … infinite`. Permanent motion the reader cannot
-    // stop is what made the old button impossible to ignore.
     expect(document.querySelectorAll('.tec-float')).toHaveLength(0);
   });
-});
 
-describe('the assistant', () => {
-  it('is reachable from the Platform Tools row', async () => {
+  it('opens the drawer', async () => {
     await renderHub();
-    expect(screen.getByText(en.hub.ai.tool)).toBeTruthy();
-  });
-
-  it('opens the drawer when tapped', async () => {
-    await renderHub();
-    const tool = screen.getByText(en.hub.ai.tool).closest('button')!;
-    await act(async () => { fireEvent.click(tool); });
-    // The tools row is inside the page flow, so the button is still in the document
-    // after opening — what matters is that the tap was accepted, not swallowed by
-    // an overlay.
-    expect(tool).toBeTruthy();
+    await act(async () => { fireEvent.click(screen.getByLabelText(en.hub.ai.open)); });
+    expect(screen.queryByLabelText(en.hub.ai.open)).toBeNull();
   });
 });

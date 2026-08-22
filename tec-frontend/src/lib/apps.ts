@@ -1,56 +1,79 @@
-// Single source of truth for the ecosystem app list, shared by the landing grid
-// and the /demo preview so they never drift (icons / order / live status).
-// A change here updates every surface at once.
+/**
+ * The ecosystem list shown to a VISITOR (landing + /demo), derived from the ONE
+ * registry the signed-in Hub already uses.
+ *
+ * This file used to hand-type all 24 apps — a second source of truth beside
+ * `@/domains/_registry`, and it had drifted badly: the first page a user ever
+ * sees showed Dx with a hospital icon under "HEALTH" (it is the developer
+ * platform), Zone as "Digital Communities" (it is the verification runtime),
+ * Legend as "Gamification" (it is the reputation runtime), a card literally
+ * titled "Tec / Tec" for the platform itself, and 22 of 24 live apps with no
+ * LIVE badge. None of that was a rendering bug — it was a copy that nobody
+ * updated when the registry moved. P1/P2: define it once.
+ *
+ * Everything below is now COMPUTED. To change an icon, a name, or a status,
+ * edit the registry; both surfaces follow.
+ */
+import { ALL_DOMAINS } from '@/domains/_registry';
+import type { DomainGroup, Localized } from '@/domains/_types';
 
 export interface EcosystemApp {
-  name: string;
-  emoji: string;
-  domain: string;
-  category: string;
+  slug:   string;
+  name:   Localized;
+  emoji:  string;
+  /** The host that actually serves the app TODAY. */
+  host:   string;
+  group:  DomainGroup;
+  live:   boolean;
+  /** The user-facing "why would I use this" line, not the engineering blurb. */
+  blurb:  Localized;
 }
 
-export const APPS: EcosystemApp[] = [
-  { name: 'Life',        emoji: '🌱', domain: 'life.pi',        category: 'Personal'      },
-  { name: 'Insure',      emoji: '🛡️', domain: 'insure.pi',      category: 'Finance'       },
-  { name: 'Commerce',    emoji: '🛒', domain: 'commerce.pi',    category: 'Business'      },
-  { name: 'Ecommerce',   emoji: '📦', domain: 'ecommerce.pi',   category: 'Business'      },
-  { name: 'Assets',      emoji: '💼', domain: 'assets.pi',      category: 'Finance'       },
-  { name: 'Fundx',       emoji: '📊', domain: 'fundx.pi',       category: 'Finance'       },
-  { name: 'Dx',          emoji: '🏥', domain: 'dx.pi',          category: 'Health'        },
-  { name: 'Analytics',   emoji: '📈', domain: 'analytics.pi',   category: 'Business'      },
-  { name: 'Nbf',         emoji: '🏦', domain: 'nbf.pi',         category: 'Finance'       },
-  { name: 'Epic',        emoji: '🎮', domain: 'epic.pi',        category: 'Entertainment' },
-  { name: 'Legend',      emoji: '⭐', domain: 'legend.pi',      category: 'Premium'       },
-  { name: 'Connection',  emoji: '🔗', domain: 'connection.pi',  category: 'Social'        },
-  { name: 'System',      emoji: '⚙️', domain: 'system.pi',      category: 'Tech'          },
-  { name: 'Alert',       emoji: '🔔', domain: 'alert.pi',       category: 'Tech'          },
-  { name: 'Tec',         emoji: '👑', domain: 'tec.pi',         category: 'Premium'       },
-  { name: 'Estate',      emoji: '🏠', domain: 'estate.pi',      category: 'Premium'       },
-  { name: 'Nx',          emoji: '🚀', domain: 'nx.pi',          category: 'Tech'          },
-  { name: 'Explorer',    emoji: '✈️', domain: 'explorer.pi',    category: 'Premium'       },
-  { name: 'Nexus',       emoji: '🌐', domain: 'nexus.pi',       category: 'Hub'           },
-  { name: 'Brookfield',  emoji: '🏙️', domain: 'brookfield.pi',  category: 'Premium'       },
-  { name: 'Vip',         emoji: '💎', domain: 'vip.pi',         category: 'Premium'       },
-  { name: 'Titan',       emoji: '🦾', domain: 'titan.pi',       category: 'Business'      },
-  { name: 'Zone',        emoji: '🎯', domain: 'zone.pi',        category: 'Personal'      },
-  { name: 'Elite',       emoji: '🏆', domain: 'elite.pi',       category: 'Premium'       },
-];
-
-// Apps a signed-in Hub user can open right now (proves the ecosystem is real).
-// Adding a key here marks that app LIVE everywhere at once.
-export const LIVE_APPS: Record<string, string> = {
-  'Assets':   'https://assets.tecosystem.app',
-  'Commerce': 'https://tec-commerce-app.vercel.app',
+/** `https://life.tecosystem.app/app` → `life.tecosystem.app` */
+const hostOf = (route: string | null, slug: string): string => {
+  if (route?.startsWith('http')) {
+    try { return new URL(route).host; } catch { /* fall through */ }
+  }
+  return `${slug}.tecosystem.app`;
 };
 
-export const CATEGORY_COLORS: Record<string, string> = {
-  Finance:       '#f0c040',
-  Premium:       '#FBBF24',
-  Business:      '#7eb8f7',
-  Tech:          '#7ee7c0',
-  Personal:      '#f09898',
-  Health:        '#98e0a8',
-  Entertainment: '#c898f0',
-  Social:        '#f0b878',
-  Hub:           '#ffffff',
+export const APPS: EcosystemApp[] = ALL_DOMAINS
+  // The OS layer is the platform itself (Hub · Dashboard · AI), not a tile you
+  // open — the Hub grid excludes it for the same reason.
+  .filter(d => d.layer !== 'os')
+  .map(d => ({
+    slug:  d.slug,
+    name:  d.name,
+    emoji: d.emoji,
+    host:  hostOf(d.route, d.slug),
+    group: d.group,
+    live:  d.status === 'live',
+    blurb: d.valueProp ?? d.description,
+  }));
+
+export const GROUP_LABEL: Record<DomainGroup, Localized> = {
+  platform:     { en: 'Platform',   ar: 'المنصة'   },
+  finance:      { en: 'Finance',    ar: 'المال'    },
+  commerce:     { en: 'Commerce',   ar: 'التجارة'  },
+  social:       { en: 'Social',     ar: 'اجتماعي'  },
+  real_world:   { en: 'Real World', ar: 'الواقع'   },
+  tech:         { en: 'Tech',       ar: 'التقنية'  },
+  monetization: { en: 'Premium',    ar: 'بريميوم'  },
 };
+
+/** One colour per group — the card's accent, its chip, and its icon tint. */
+export const GROUP_COLOR: Record<DomainGroup, string> = {
+  platform:     '#FBBF24',
+  finance:      '#22C55E',
+  commerce:     '#3B82F6',
+  social:       '#8B5CF6',
+  real_world:   '#F0A868',
+  tech:         '#06B6D4',
+  monetization: '#E8E0D0',
+};
+
+/** Filter chips, in registry order, each with its live count. */
+export const GROUPS: { key: DomainGroup; count: number }[] =
+  (Object.keys(GROUP_LABEL) as DomainGroup[])
+    .map(key => ({ key, count: APPS.filter(a => a.group === key).length }))
+    .filter(g => g.count > 0);

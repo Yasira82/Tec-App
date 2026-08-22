@@ -1,73 +1,65 @@
 'use client';
 
-import { LIVE_DOMAINS, COMING_SOON, getVisibleDomains } from '@/domains/_registry';
 import { useState, useMemo, useEffect } from 'react';
 import Link                      from 'next/link';
 import { useTranslation }        from '@/lib/i18n';
 import LanguageSwitcher          from '@/components/LanguageSwitcher';
 import PiPaymentButton           from '@/components/payment/PiPaymentButton';
 import InstallPrompt             from '@/components/InstallPrompt';
-import { APPS, LIVE_APPS, CATEGORY_COLORS } from '@/lib/apps';
+import { AppCard }               from '@/components/ecosystem/AppCard';
+import { APPS, GROUPS, GROUP_LABEL, type EcosystemApp } from '@/lib/apps';
+import { getDomain, ALL_DOMAINS } from '@/domains/_registry';
+import { t as tr }               from '@/domains/_types';
+import type { DomainGroup, Locale } from '@/domains/_types';
 import styles                    from './page.module.css';
 
-const CATEGORIES = [
-  'All', 'Finance', 'Premium', 'Business', 'Tech',
-  'Personal', 'Health', 'Entertainment', 'Social', 'Hub',
-];
+/**
+ * The ecosystem's public size — 24 — counted from the registry rather than typed
+ * into copy, so it can never fall out of step with the platform again. It counts
+ * every domain INCLUDING the OS layer (TEC itself): the grid lists the 23 apps a
+ * visitor can open, because the 24th is the Hub they are standing in.
+ */
+const ECOSYSTEM_SIZE = ALL_DOMAINS.length;
+const withCount = (s: string) => s.replace('{count}', String(ECOSYSTEM_SIZE));
 
 export default function HomePage() {
   // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
   useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
 
-  const { t, dir }                          = useTranslation();
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [searchQuery,    setSearchQuery]    = useState('');
+  const { t, dir }                        = useTranslation();
+  const locale: Locale                    = dir === 'rtl' ? 'ar' : 'en';
+  const [activeGroup, setActiveGroup]     = useState<DomainGroup | 'all'>('all');
+  const [searchQuery, setSearchQuery]     = useState('');
 
   const filteredApps = useMemo(() => {
     let result = APPS;
-    if (activeCategory !== 'All') {
-      result = result.filter((app) => app.category === activeCategory);
-    }
+    if (activeGroup !== 'all') result = result.filter(a => a.group === activeGroup);
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (app) =>
-          app.name.toLowerCase().includes(q) ||
-          app.domain.toLowerCase().includes(q) ||
-          app.category.toLowerCase().includes(q) ||
-          (t.apps[app.name as keyof typeof t.apps] ?? '').toLowerCase().includes(q)
+      // Search BOTH languages regardless of UI locale — a visitor reading the
+      // Arabic page still types "commerce".
+      result = result.filter(a =>
+        a.slug.includes(q) ||
+        a.name.en.toLowerCase().includes(q) ||
+        (a.name.ar ?? '').includes(q) ||
+        a.host.includes(q) ||
+        a.blurb.en.toLowerCase().includes(q) ||
+        (a.blurb.ar ?? '').includes(q)
       );
     }
     return result;
-  }, [activeCategory, searchQuery, t]);
+  }, [activeGroup, searchQuery]);
 
-  const openApp = (_app: typeof APPS[0]) => {
-    // Pre-login page: apps open only from the authenticated Hub (after Sign in with Pi),
-    // so a tap here takes the visitor to the Sign in section instead of a dead link.
+  const nexus = getDomain('nexus');
+
+  // Pre-login page: apps open only from the authenticated Hub (after Sign in with Pi),
+  // so every "open" on this page lands on the Sign in section, never a dead link.
+  const goToSignIn = () => {
     const el = typeof document !== 'undefined' ? document.getElementById('payment') : null;
     if (el && typeof el.scrollIntoView === 'function') el.scrollIntoView({ behavior: 'smooth' });
     window.location.hash = 'payment';
   };
-
-  const handleKey = (e: React.KeyboardEvent, app: typeof APPS[0]) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      openApp(app);
-    }
-  };
-
-  const createRipple = (e: React.MouseEvent<HTMLDivElement>) => {
-    const card   = e.currentTarget;
-    const ripple = document.createElement('span');
-    ripple.className = 'ripple';
-    const rect = card.getBoundingClientRect();
-    const size = Math.max(rect.width, rect.height);
-    ripple.style.width  = ripple.style.height = `${size}px`;
-    ripple.style.left   = `${e.clientX - rect.left - size / 2}px`;
-    ripple.style.top    = `${e.clientY - rect.top  - size / 2}px`;
-    card.appendChild(ripple);
-    ripple.addEventListener('animationend', () => ripple.remove());
-  };
+  const openApp = (_app: EcosystemApp) => goToSignIn();
 
   return (
     <main className={styles.main} dir={dir}>
@@ -109,24 +101,29 @@ export default function HomePage() {
           <span className={styles.heroTitleAccent}>{t.common.tagline}</span>
         </h1>
         <p className={styles.heroSub}>
-          {t.home.description}
+          {withCount(t.home.description)}
           <br />
           {t.home.subDescription}
         </p>
+        {/* Every number here is TEC's own, and the app count is derived rather than
+            typed. The middle slot used to read "47M+ / PI USERS" — that is Pi
+            Network's population, and sitting in TEC's stat row it reads as TEC's
+            userbase. The tagline's own promise (one identity, one wallet) is both
+            true and ours. */}
         <div className={styles.heroStats}>
           <div className={styles.heroStat}>
-            <span className={styles.heroStatNum}>24</span>
+            <span className={styles.heroStatNum}>{ECOSYSTEM_SIZE}</span>
             <span className={styles.heroStatLabel}>{t.home.stats.apps}</span>
-          </div>
-          <div className={styles.heroStatDivider} />
-          <div className={styles.heroStat}>
-            <span className={styles.heroStatNum}>47M+</span>
-            <span className={styles.heroStatLabel}>{t.home.stats.piUsers}</span>
           </div>
           <div className={styles.heroStatDivider} />
           <div className={styles.heroStat}>
             <span className={styles.heroStatNum}>1</span>
             <span className={styles.heroStatLabel}>{t.home.stats.identity}</span>
+          </div>
+          <div className={styles.heroStatDivider} />
+          <div className={styles.heroStat}>
+            <span className={styles.heroStatNum}>1</span>
+            <span className={styles.heroStatLabel}>{locale === 'ar' ? 'محفظة' : 'Wallet'}</span>
           </div>
         </div>
 
@@ -160,16 +157,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Nexus */}
+      {/* Featured Nexus — icon, copy and destination all from the registry.
+          The button used to open `https://nexus.pi`: a domain that does not
+          resolve yet, so the one call-to-action above the fold was a dead link. */}
       <section className={styles.featuredSection}>
         <div className={styles.featuredCard}>
-          <span className={styles.featuredEmoji}>🌐</span>
+          <span className={styles.featuredEmoji}>{nexus?.emoji ?? '🧭'}</span>
           <h2 className={styles.featuredTitle}>TEC Nexus</h2>
-          <p className={styles.featuredDesc}>{t.apps.Nexus}</p>
-          <button
-            className={styles.featuredBtn}
-            onClick={() => window.open('https://nexus.pi', '_blank', 'noopener,noreferrer')}
-          >
+          <p className={styles.featuredDesc}>
+            {nexus ? tr(nexus.valueProp ?? nexus.description, locale) : t.apps.Nexus}
+          </p>
+          <button className={styles.featuredBtn} onClick={goToSignIn}>
             {dir === 'rtl' ? 'استكشف Nexus ←' : 'Explore Nexus →'}
           </button>
         </div>
@@ -180,10 +178,10 @@ export default function HomePage() {
         <div className={styles.ecosystemHeader}>
           <p className={styles.sectionEyebrow}>{t.home.ecosystem}</p>
           <h2 className={styles.sectionTitle}>
-            {t.home.ecosystemTitle.split('—')[0]}—{' '}
-            <span className={styles.goldText}>{t.home.ecosystemTitle.split('—')[1]}</span>
+            {withCount(t.home.ecosystemTitle).split('—')[0]}—{' '}
+            <span className={styles.goldText}>{withCount(t.home.ecosystemTitle).split('—')[1]}</span>
           </h2>
-          <p className={styles.sectionDesc}>{t.home.description}</p>
+          <p className={styles.sectionDesc}>{withCount(t.home.description)}</p>
         </div>
 
         {/* Search */}
@@ -208,15 +206,23 @@ export default function HomePage() {
           )}
         </div>
 
-        {/* Category Filter */}
-        <div className={styles.filterBar}>
-          {CATEGORIES.map((cat) => (
+        {/* Group filter — the registry's own groups, each with its real count.
+            The old list was 10 hand-typed categories that no longer matched the
+            registry, so "Health" filtered to one app that is a developer tool. */}
+        <div className={styles.filterBar} role="group" aria-label={locale === 'ar' ? 'تصفية التطبيقات' : 'Filter apps'}>
+          <button
+            onClick={() => setActiveGroup('all')}
+            className={`${styles.filterBtn} ${activeGroup === 'all' ? styles.filterBtnActive : ''}`}
+          >
+            {locale === 'ar' ? 'الكل' : 'All'} <span className={styles.filterCount}>{APPS.length}</span>
+          </button>
+          {GROUPS.map(g => (
             <button
-              key={cat}
-              onClick={() => setActiveCategory(cat)}
-              className={`${styles.filterBtn} ${activeCategory === cat ? styles.filterBtnActive : ''}`}
+              key={g.key}
+              onClick={() => setActiveGroup(g.key)}
+              className={`${styles.filterBtn} ${activeGroup === g.key ? styles.filterBtnActive : ''}`}
             >
-              {cat}
+              {tr(GROUP_LABEL[g.key], locale)} <span className={styles.filterCount}>{g.count}</span>
             </button>
           ))}
         </div>
@@ -228,61 +234,16 @@ export default function HomePage() {
             <p>{dir === 'rtl' ? 'لا توجد نتائج' : 'No apps found'}</p>
             <button
               className={styles.noResultsBtn}
-              onClick={() => { setSearchQuery(''); setActiveCategory('All'); }}
+              onClick={() => { setSearchQuery(''); setActiveGroup('all'); }}
             >
               {dir === 'rtl' ? 'مسح البحث' : 'Clear search'}
             </button>
           </div>
         ) : (
           <div className={styles.appsGrid}>
-            {filteredApps.map((app, i) => {
-              const isLive = !!LIVE_APPS[app.name];
-              return (
-                <div
-                  key={app.name}
-                  className={styles.appCard}
-                  style={{
-                    animationDelay: `${i * 0.05}s`,
-                    '--cat-color': CATEGORY_COLORS[app.category] ?? '#FBBF24',
-                    ...(isLive ? { border: '1px solid #7ee7c040' } : {}),
-                  } as React.CSSProperties}
-                  onClick={(e) => { createRipple(e); openApp(app); }}
-                  onKeyDown={(e) => handleKey(e, app)}
-                  role="button"
-                  tabIndex={0}
-                >
-                  <div className={styles.appCardGlow} />
-                  <div className={styles.appCardTop}>
-                    <span className={styles.appEmoji}>{app.emoji}</span>
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                      <span
-                        className={styles.appCategory}
-                        style={{ color: CATEGORY_COLORS[app.category] ?? '#FBBF24' }}
-                      >
-                        {app.category}
-                      </span>
-                      {isLive && (
-                        <span style={{
-                          fontSize: 8, color: '#7ee7c0', letterSpacing: 1,
-                          background: '#7ee7c010', border: '1px solid #7ee7c030',
-                          borderRadius: 4, padding: '1px 4px',
-                        }}>
-                          LIVE
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                  <span className={styles.appName}>{app.name}</span>
-                  <span className={styles.appDesc}>
-                    {t.apps[app.name as keyof typeof t.apps] ?? app.name}
-                  </span>
-                  <div className={styles.appFooter}>
-                    <span className={styles.appDomain}>{app.domain}</span>
-                    <span className={styles.appArrow}>{dir === 'rtl' ? '←' : '→'}</span>
-                  </div>
-                </div>
-              );
-            })}
+            {filteredApps.map((app, i) => (
+              <AppCard key={app.slug} app={app} locale={locale} index={i} onOpen={openApp} />
+            ))}
           </div>
         )}
 

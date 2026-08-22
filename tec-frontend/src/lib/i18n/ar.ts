@@ -10,7 +10,7 @@ export const ar = {
     live: 'نشط',
   },
   home: {
-    description: 'منظومة متكاملة من 24 تطبيق مبنية على Pi Network',
+    description: 'منظومة متكاملة من {count} تطبيق مبنية على Pi Network',
     subDescription: 'هوية واحدة — محفظة واحدة — عالم كامل',
     warningTitle: 'يجب فتح التطبيق داخل Pi Browser',
     warningText: 'افتح tec.pi من داخل تطبيق Pi Network',
@@ -60,7 +60,7 @@ export const ar = {
       back: 'رجوع',
     },
     ecosystem: 'المنظومة',
-    ecosystemTitle: '24 تطبيق — عالم واحد',
+    ecosystemTitle: '{count} تطبيق — عالم واحد',
     moreApps: 'تطبيق آخر',
   },
   dashboard: {

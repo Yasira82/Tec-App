@@ -4,9 +4,12 @@
  *          no-results state, clear search, LTR/RTL direction, footer links.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 
 // ── Mocks ─────────────────────────────────────────────────────────
+
+import { APPS, GROUPS, GROUP_LABEL } from '@/lib/apps';
+import { getDomain } from '@/domains/_registry';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -102,11 +105,10 @@ const makeMockTRtl = () => ({
 });
 
 // Mock domains/_registry
-vi.mock('@/domains/_registry', () => ({
-  LIVE_DOMAINS:     [],
-  COMING_SOON:      [],
-  getVisibleDomains: vi.fn(() => []),
-}));
+// NOT mocked, deliberately. The landing grid's entire job is to render the real
+// registry — the same one the signed-in Hub renders. Stubbing it out with empty
+// arrays is what let this page drift onto a hand-typed app list for months while
+// every test stayed green.
 
 // Suppress CSS module warnings
 vi.mock('@/app/page.module.css', () => ({ default: {} }));
@@ -133,6 +135,13 @@ async function getPage() {
 // ─────────────────────────────────────────────────────────────────
 // Basic render
 // ─────────────────────────────────────────────────────────────────
+
+/** Chips and app cards are both role=button and can share a name ("Commerce" is a
+ *  group AND an app), so chip lookups are scoped to the labelled filter group. */
+const chipIn = (label: string) =>
+  within(screen.getByRole('group', { name: 'Filter apps' }))
+    .getByRole('button', { name: new RegExp(`^${label}`) });
+
 describe('HomePage — basic render', () => {
   it('renders the navbar logo', async () => {
     const HomePage = await getPage();
@@ -153,9 +162,12 @@ describe('HomePage — basic render', () => {
   it('renders hero stats section', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    expect(screen.getByText('24')).toBeInTheDocument();
-    expect(screen.getByText('47M+')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
+    // The count is DERIVED from the registry, so it cannot go stale the way a
+    // typed "24" did. 47M+ is gone: that is Pi Network's population, and in TEC's
+    // own stat row it read as TEC's userbase.
+    expect(screen.getAllByText(String(APPS.length)).length).toBeGreaterThan(0);
+    expect(screen.queryByText('47M+')).not.toBeInTheDocument();
+    expect(screen.getAllByText('1').length).toBeGreaterThan(0);
   });
 
   it('renders hero sub text', async () => {
@@ -224,26 +236,23 @@ describe('HomePage — Featured Nexus section', () => {
     expect(screen.getByRole('heading', { level: 2, name: /TEC Nexus/ })).toBeInTheDocument();
   });
 
-  it('renders Nexus description from t.apps.Nexus', async () => {
+  it('describes Nexus from the registry, not a hand-typed string', async () => {
     const HomePage = await getPage();
-    const { container } = render(<HomePage />);
-    // t.apps.Nexus ('TEC Nexus App') appears both in the featured card and the apps grid
-    const matches = container.querySelectorAll('*');
-    const hasText = Array.from(matches).some(el =>
-      el.textContent === 'TEC Nexus App' && el.children.length === 0,
-    );
-    expect(hasText).toBe(true);
+    render(<HomePage />);
+    const nexus = getDomain('nexus')!;
+    const copy  = (nexus.valueProp ?? nexus.description).en;
+    expect(screen.getAllByText(copy).length).toBeGreaterThan(0);
   });
 
-  it('Explore Nexus button opens nexus.pi', async () => {
+  it('never opens nexus.pi — that domain does not resolve yet', async () => {
+    // The single call-to-action above the fold used to open `https://nexus.pi`,
+    // a .pi address that is the FUTURE home of the app. A visitor's first tap
+    // landed on nothing. Pre-login, every "open" goes to Sign in.
     const HomePage = await getPage();
     render(<HomePage />);
     fireEvent.click(screen.getByText('Explore Nexus →'));
-    expect(window.open).toHaveBeenCalledWith(
-      'https://nexus.pi',
-      '_blank',
-      'noopener,noreferrer',
-    );
+    expect(window.open).not.toHaveBeenCalled();
+    expect(String(window.location.hash)).toContain('payment');
   });
 
   it('RTL direction renders Arabic explore label', async () => {
@@ -257,94 +266,65 @@ describe('HomePage — Featured Nexus section', () => {
 // ─────────────────────────────────────────────────────────────────
 // Category filter
 // ─────────────────────────────────────────────────────────────────
-describe('HomePage — category filter', () => {
-  it('renders all category buttons', async () => {
+describe('HomePage — group filter', () => {
+  // The old filter was ten hand-typed categories that no longer matched the
+  // registry: "Health" filtered to Dx (the DEVELOPER platform) and "Premium"
+  // contained a card called "Tec" for the platform itself. The chips are now the
+  // registry's own groups, so a filter cannot describe an app the Hub disagrees
+  // with. Each chip carries its count, hence the anchored name matches.
+  const chip = chipIn;
+
+  it('renders one chip per registry group, plus All', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    const categories = ['All', 'Finance', 'Premium', 'Business', 'Tech',
-      'Personal', 'Health', 'Entertainment', 'Social', 'Hub'];
-    for (const cat of categories) {
-      expect(screen.getByRole('button', { name: cat })).toBeInTheDocument();
+    expect(chip('All')).toBeInTheDocument();
+    for (const g of GROUPS) {
+      expect(chip(GROUP_LABEL[g.key].en)).toBeInTheDocument();
     }
   });
 
-  it('clicking Finance filter shows only Finance apps', async () => {
+  it('every chip shows the real number of apps behind it', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Finance' }));
-    // Insure, Assets, Fundx, Nbf are Finance category
-    expect(screen.getByText('Insure')).toBeInTheDocument();
-    expect(screen.getByText('Assets')).toBeInTheDocument();
-    // Life is Personal — should not appear
+    for (const g of GROUPS) {
+      expect(chip(GROUP_LABEL[g.key].en).textContent).toContain(String(g.count));
+    }
+  });
+
+  it('filtering by a group shows exactly that group', async () => {
+    const HomePage = await getPage();
+    render(<HomePage />);
+    fireEvent.click(chip('Finance'));
+    for (const app of APPS.filter(a => a.group === 'finance')) {
+      expect(screen.getByText(app.name.en)).toBeInTheDocument();
+    }
+    // Life is social, not finance.
     expect(screen.queryByText('Life')).not.toBeInTheDocument();
   });
 
-  it('clicking Premium filter shows only Premium apps', async () => {
+  it('Dx is Tech, not Health — it is the developer platform', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Premium' }));
-    expect(screen.getByText('Legend')).toBeInTheDocument();
-    expect(screen.getByText('Tec')).toBeInTheDocument();
-    // Commerce is Business — should not appear
-    expect(screen.queryByText('Commerce')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Health/ })).not.toBeInTheDocument();
+    fireEvent.click(chip('Tech'));
+    expect(screen.getByText('DX')).toBeInTheDocument();
   });
 
-  it('clicking Business filter shows Commerce and Ecommerce', async () => {
+  it('All returns every app', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Business' }));
-    expect(screen.getByText('Commerce')).toBeInTheDocument();
-    expect(screen.getByText('Ecommerce')).toBeInTheDocument();
-    expect(screen.getByText('Analytics')).toBeInTheDocument();
-  });
-
-  it('clicking All returns all apps', async () => {
-    const HomePage = await getPage();
-    render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Finance' }));
-    fireEvent.click(screen.getByRole('button', { name: 'All' }));
+    fireEvent.click(chip('Finance'));
+    fireEvent.click(chip('All'));
     expect(screen.getByText('Life')).toBeInTheDocument();
-    expect(screen.getByText('Commerce')).toBeInTheDocument();
+    expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);
   });
 
-  it('clicking Tech filter shows Tech apps only', async () => {
+  it('app count label follows the filter', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Tech' }));
-    expect(screen.getByText('System')).toBeInTheDocument();
-    expect(screen.getByText('Alert')).toBeInTheDocument();
-    expect(screen.getByText('Nx')).toBeInTheDocument();
-    expect(screen.queryByText('Life')).not.toBeInTheDocument();
-  });
-
-  it('clicking Entertainment filter shows Epic', async () => {
-    const HomePage = await getPage();
-    render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Entertainment' }));
-    expect(screen.getByText('Epic')).toBeInTheDocument();
-    expect(screen.queryByText('Commerce')).not.toBeInTheDocument();
-  });
-
-  it('clicking Social filter shows Connection', async () => {
-    const HomePage = await getPage();
-    render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Social' }));
-    expect(screen.getByText('Connection')).toBeInTheDocument();
-  });
-
-  it('clicking Health filter shows Dx', async () => {
-    const HomePage = await getPage();
-    render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Health' }));
-    expect(screen.getByText('Dx')).toBeInTheDocument();
-  });
-
-  it('app count label shows filtered count', async () => {
-    const HomePage = await getPage();
-    render(<HomePage />);
-    // Finance apps: Insure, Assets, Fundx, Nbf = 4
-    fireEvent.click(screen.getByRole('button', { name: 'Finance' }));
-    expect(screen.getByText(/4 Apps/)).toBeInTheDocument();
+    const finance = GROUPS.find(g => g.key === 'finance')!;
+    fireEvent.click(chip('Finance'));
+    expect(screen.getByText(new RegExp(`${finance.count} Apps`))).toBeInTheDocument();
   });
 });
 
@@ -363,7 +343,7 @@ describe('HomePage — search', () => {
     render(<HomePage />);
     const input = screen.getByLabelText('Search apps');
     fireEvent.change(input, { target: { value: 'Commerce' } });
-    expect(screen.getByText('Commerce')).toBeInTheDocument();
+    expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);
     // Life should be gone
     expect(screen.queryByText('Life')).not.toBeInTheDocument();
   });
@@ -373,7 +353,7 @@ describe('HomePage — search', () => {
     render(<HomePage />);
     const input = screen.getByLabelText('Search apps');
     fireEvent.change(input, { target: { value: 'commerce' } });
-    expect(screen.getByText('Commerce')).toBeInTheDocument();
+    expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);
   });
 
   it('shows clear button when search has value', async () => {
@@ -417,32 +397,33 @@ describe('HomePage — search', () => {
     const clearBtns = screen.getAllByRole('button', { name: 'Clear search' });
     fireEvent.click(clearBtns[0]);
     // Grid should show apps again
-    expect(screen.getByText('Commerce')).toBeInTheDocument();
+    expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);
   });
 
-  it('search by domain shows matching app', async () => {
+  it('search by host shows matching app', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const input = screen.getByLabelText('Search apps');
-    fireEvent.change(input, { target: { value: 'fundx.pi' } });
-    expect(screen.getByText('Fundx')).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'fundx.tecosystem.app' } });
+    expect(screen.getByText('FundX')).toBeInTheDocument();
   });
 
-  it('search by category name shows matching apps', async () => {
+  it('search matches the value-prop copy, not just names', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     const input = screen.getByLabelText('Search apps');
-    fireEvent.change(input, { target: { value: 'finance' } });
-    expect(screen.getByText('Assets')).toBeInTheDocument();
+    fireEvent.change(input, { target: { value: 'wallet' } });
+    expect(screen.getAllByRole('button').length).toBeGreaterThan(0);
+    expect(screen.queryByText('No apps found')).not.toBeInTheDocument();
   });
 
   it('search combined with category filter', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(screen.getByRole('button', { name: 'Business' }));
+    fireEvent.click(chipIn('Platform'));
     const input = screen.getByLabelText('Search apps');
     fireEvent.change(input, { target: { value: 'Commerce' } });
-    expect(screen.getByText('Commerce')).toBeInTheDocument();
+    expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);
     expect(screen.queryByText('Analytics')).not.toBeInTheDocument();
   });
 
@@ -490,7 +471,7 @@ describe('HomePage — app card interaction', () => {
   it('clicking a LIVE Commerce card also routes to Sign in', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    const commerceCard = screen.getByText('Commerce').closest('[role="button"]') as HTMLElement;
+    const commerceCard = screen.getByRole('button', { name: 'Commerce' });
     expect(commerceCard).toBeTruthy();
     fireEvent.click(commerceCard);
     expect(window.location.hash).toBe('payment');
@@ -499,7 +480,7 @@ describe('HomePage — app card interaction', () => {
   it('Enter key on an app card routes to Sign in', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    const fundxCard = screen.getByText('Fundx').closest('[role="button"]') as HTMLElement;
+    const fundxCard = screen.getByText('FundX').closest('[role="button"]') as HTMLElement;
     expect(fundxCard).toBeTruthy();
     fireEvent.keyDown(fundxCard, { key: 'Enter' });
     expect(window.location.hash).toBe('payment');
@@ -517,7 +498,7 @@ describe('HomePage — app card interaction', () => {
   it('other keys on app card do NOT navigate', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    const fundxCard = screen.getByText('Fundx').closest('[role="button"]') as HTMLElement;
+    const fundxCard = screen.getByText('FundX').closest('[role="button"]') as HTMLElement;
     fireEvent.keyDown(fundxCard, { key: 'Tab' });
     expect(window.location.hash).not.toBe('payment');
     expect(window.open).not.toHaveBeenCalled();
@@ -530,10 +511,14 @@ describe('HomePage — app card interaction', () => {
     expect(lifeCard).toHaveAttribute('tabindex', '0');
   });
 
-  it('app cards show domain text', async () => {
+  it('claims no .pi address — those are the FUTURE homes, and none resolve today', async () => {
+    // Every card used to print `<app>.pi` as if it were the live address. It is
+    // where each app is going, not where it is; a visitor who typed one got
+    // nothing. The registry keeps piDomain for later; the visitor sees the host
+    // that actually serves the app.
     const HomePage = await getPage();
-    render(<HomePage />);
-    expect(screen.getByText('life.pi')).toBeInTheDocument();
+    const { container } = render(<HomePage />);
+    expect(container.textContent).not.toMatch(/\b[a-z]+\.pi\b/);
   });
 
   it('live app cards show LIVE badge', async () => {
@@ -577,10 +562,10 @@ describe('HomePage — RTL direction', () => {
 // App count label
 // ─────────────────────────────────────────────────────────────────
 describe('HomePage — app count', () => {
-  it('shows total count (24) when All category and no search', async () => {
+  it('shows the registry total when unfiltered', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    expect(screen.getByText('24 Apps')).toBeInTheDocument();
+    expect(screen.getByText(`${APPS.length} Apps`)).toBeInTheDocument();
   });
 
   it('shows 0 count when no results', async () => {

@@ -159,24 +159,6 @@ describe('Hub WalletCard', () => {
   });
 });
 
-// ── Hub AppCard component ──────────────────────────────────────────
-describe('Hub AppCard', () => {
-  it('renders without crash', async () => {
-    const AppCard = (await import('@/components/hub/AppCard')).default;
-    const { container } = render(<AppCard name="Shop" emoji="🛒" href="/shop" />);
-    expect(container).toBeTruthy();
-  });
-});
-
-// ── Hub AppsGrid component ─────────────────────────────────────────
-describe('Hub AppsGrid (standalone)', () => {
-  it('renders app grid', async () => {
-    const AppsGrid = (await import('@/components/hub/AppsGrid')).default;
-    const { container } = render(<AppsGrid />);
-    expect(container).toBeTruthy();
-  });
-});
-
 // ── PiSdkLoader component ──────────────────────────────────────────
 describe('PiSdkLoader', () => {
   it('renders without crash', async () => {

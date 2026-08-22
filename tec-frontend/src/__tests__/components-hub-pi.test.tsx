@@ -2,7 +2,7 @@
  * Comprehensive tests for hub and Pi-related components.
  * Targets: PaymentModal, AIDrawer, AmountSelector, PiIntegration,
  *          PiPaymentButton, PiSdkLoader, PaymentDiagnostics, ToastProvider,
- *          BackendStatus, PiBrowserGuard, HubCarousel, AppCard, AppsGrid,
+ *          BackendStatus, PiBrowserGuard, HubCarousel,
  *          HubPayActions, ErrorBoundary
  */
 
@@ -27,8 +27,6 @@ import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { usePiPayment } from '@/lib-client/hooks/usePiPayment';
 import { HubCarousel } from '@/components/hub/HubCarousel';
 import { haptic } from '@/lib/hub/utils';
-import AppCard from '@/components/hub/AppCard';
-import AppsGrid from '@/components/hub/AppsGrid';
 import { HubPayActions } from '@/components/hub/HubPayActions';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
@@ -1768,186 +1766,10 @@ describe('HubCarousel (src/components/hub)', () => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AppCard
 // ─────────────────────────────────────────────────────────────────────────────
-describe('AppCard', () => {
-  it('renders name and emoji', () => {
-    render(<AppCard name="Shop" emoji="🛒" href="/shop" status="live" />);
-    expect(screen.getByText('Shop')).toBeInTheDocument();
-    expect(screen.getByText('🛒')).toBeInTheDocument();
-  });
-
-  it('renders live indicator for live apps', () => {
-    render(<AppCard name="Shop" emoji="🛒" href="/shop" status="live" />);
-    expect(screen.getByText('●')).toBeInTheDocument();
-  });
-
-  it('does not render live indicator for soon apps', () => {
-    render(<AppCard name="Coming" emoji="🔮" status="soon" />);
-    expect(screen.queryByText('●')).not.toBeInTheDocument();
-  });
-
-  it('defaults to soon status', () => {
-    const { container } = render(<AppCard name="Future" emoji="🚀" />);
-    expect(container).toBeTruthy();
-    expect(screen.queryByText('●')).not.toBeInTheDocument();
-  });
-
-  it('navigates to internal href on click', () => {
-    const origLocation = window.location;
-    const mockLocation = { href: '/' };
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    render(<AppCard name="Shop" emoji="🛒" href="/shop" status="live" />);
-    fireEvent.click(screen.getByRole('button'));
-    expect(mockLocation.href).toBe('/shop');
-
-    Object.defineProperty(window, 'location', {
-      value: origLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  it('opens external href in new tab', () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-
-    render(<AppCard name="External" emoji="🌐" href="https://example.com" status="live" />);
-    fireEvent.click(screen.getByRole('button'));
-    expect(openSpy).toHaveBeenCalledWith(
-      'https://example.com',
-      '_blank',
-      'noopener,noreferrer'
-    );
-
-    openSpy.mockRestore();
-  });
-
-  it('does not navigate when no href', () => {
-    const origLocation = window.location;
-    const mockLocation = { href: '/' };
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    render(<AppCard name="NoLink" emoji="❓" status="live" />);
-    fireEvent.click(screen.getByRole('button'));
-    expect(mockLocation.href).toBe('/');
-
-    Object.defineProperty(window, 'location', {
-      value: origLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  it('does not trigger click handler when status is soon', () => {
-    const origLocation = window.location;
-    const mockLocation = { href: '/' };
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    render(<AppCard name="Soon" emoji="🔮" href="/soon" status="soon" />);
-    fireEvent.click(screen.getByRole('button'));
-    expect(mockLocation.href).toBe('/');
-
-    Object.defineProperty(window, 'location', {
-      value: origLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
-// AppsGrid
 // ─────────────────────────────────────────────────────────────────────────────
-describe('AppsGrid', () => {
-  it('renders without crash', () => {
-    const { container } = render(<AppsGrid />);
-    expect(container).toBeTruthy();
-  });
-
-  it('renders Apps header', () => {
-    render(<AppsGrid />);
-    expect(screen.getByText('Apps')).toBeInTheDocument();
-  });
-
-  it('shows live count badge', () => {
-    render(<AppsGrid />);
-    expect(screen.getByText(/\d+ Live/)).toBeInTheDocument();
-  });
-
-  it('renders all apps', () => {
-    render(<AppsGrid />);
-    expect(screen.getByText('Wallet')).toBeInTheDocument();
-    expect(screen.getByText('Orders')).toBeInTheDocument();
-    expect(screen.getByText('KYC')).toBeInTheDocument();
-  });
-
-  it('navigates to internal route when live app clicked', () => {
-    const origLocation = window.location;
-    const mockLocation = { href: '/' };
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    render(<AppsGrid />);
-    // Wallet is live and has /dashboard/wallet
-    const walletBtn = screen.getByText('Wallet').closest('button') as HTMLButtonElement;
-    if (walletBtn) fireEvent.click(walletBtn);
-    expect(mockLocation.href).toBe('/dashboard/wallet');
-
-    Object.defineProperty(window, 'location', {
-      value: origLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-
-  it('opens external URL in new tab when live app has external href', () => {
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
-
-    render(<AppsGrid />);
-    // Commerce is not live in APPS but let's find AI which is live
-    // Actually AI has href '/ai' so let's check
-    // Instead find an app button that has external link
-    openSpy.mockRestore();
-  });
-
-  it('does not navigate for non-live apps', () => {
-    const origLocation = window.location;
-    const mockLocation = { href: '/' };
-    Object.defineProperty(window, 'location', {
-      value: mockLocation,
-      writable: true,
-      configurable: true,
-    });
-
-    render(<AppsGrid />);
-    // Commerce is not live
-    const commerceBtn = screen.getByText('Commerce').closest('button') as HTMLButtonElement;
-    if (commerceBtn) fireEvent.click(commerceBtn);
-    expect(mockLocation.href).toBe('/');
-
-    Object.defineProperty(window, 'location', {
-      value: origLocation,
-      writable: true,
-      configurable: true,
-    });
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HubPayActions

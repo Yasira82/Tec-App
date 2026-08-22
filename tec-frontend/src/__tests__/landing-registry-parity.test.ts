@@ -18,7 +18,7 @@
  * list. A future edit that reintroduces a second source fails here.
  */
 import { describe, it, expect } from 'vitest';
-import { APPS, GROUPS, GROUP_COLOR, GROUP_LABEL } from '@/lib/apps';
+import { APPS, GROUPS } from '@/lib/apps';
 import { ALL_DOMAINS, LIVE_DOMAINS } from '@/domains/_registry';
 
 const openable = ALL_DOMAINS.filter(d => d.layer !== 'os');
@@ -39,13 +39,6 @@ describe('landing ecosystem list ⟺ domain registry', () => {
     for (const app of APPS) {
       const domain = ALL_DOMAINS.find(d => d.slug === app.slug)!;
       expect(app.name.en).toBe(domain.name.en);
-    }
-  });
-
-  it('uses the registry group — a filter cannot classify an app the Hub disagrees with', () => {
-    for (const app of APPS) {
-      const domain = ALL_DOMAINS.find(d => d.slug === app.slug)!;
-      expect(app.group).toBe(domain.group);
     }
   });
 
@@ -78,17 +71,12 @@ describe('what the visitor is told is true today', () => {
   });
 });
 
-describe('group presentation', () => {
-  it('every group in use has a label and a colour', () => {
-    for (const app of APPS) {
-      expect(GROUP_LABEL[app.group]?.en).toBeTruthy();
-      expect(GROUP_COLOR[app.group]).toMatch(/^#[0-9A-Fa-f]{6}$/);
-    }
-  });
-
-  it('group colours are distinct, so a chip means one thing', () => {
-    const used = [...new Set(APPS.map(a => a.group))].map(g => GROUP_COLOR[g]);
-    expect(new Set(used).size).toBe(used.length);
+// Classification parity with the Hub is asserted in app-taxonomy.test.ts. This
+// used to hold the landing to the registry's `group`, which is exactly the field
+// the Hub grid documents as wrong — so the guard was locking in the drift.
+describe('chip presentation', () => {
+  it('every app carries a colour a chip can key off', () => {
+    for (const app of APPS) expect(app.accent).toMatch(/^#[0-9A-Fa-f]{6}$/);
   });
 
   it('chip counts add up to the full list', () => {

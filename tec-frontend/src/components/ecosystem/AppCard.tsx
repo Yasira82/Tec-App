@@ -1,6 +1,7 @@
 'use client';
 
-import { GROUP_COLOR, GROUP_LABEL, type EcosystemApp } from '@/lib/apps';
+import { type EcosystemApp } from '@/lib/apps';
+import { categoryMeta } from '@/domains/_categories';
 import { t, type Locale } from '@/domains/_types';
 import styles from '@/app/page.module.css';
 
@@ -25,7 +26,8 @@ export function AppCard({
   index:  number;
   onOpen: (app: EcosystemApp) => void;
 }) {
-  const color = GROUP_COLOR[app.group];
+  const color = app.accent;
+  const meta  = app.category ? categoryMeta(app.category) : undefined;
   const rtl   = locale === 'ar';
 
   return (
@@ -55,7 +57,7 @@ export function AppCard({
       <span className={styles.appDesc} dir="auto">{t(app.blurb, locale)}</span>
 
       <div className={styles.appFooter}>
-        <span className={styles.appCategory}>{t(GROUP_LABEL[app.group], locale)}</span>
+        <span className={styles.appCategory}>{meta ? t(meta.label, locale) : (rtl ? 'أخرى' : 'More')}</span>
         <span className={styles.appArrow}>{rtl ? '←' : '→'}</span>
       </div>
     </div>

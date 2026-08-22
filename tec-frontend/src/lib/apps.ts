@@ -12,10 +12,13 @@
  * updated when the registry moved. P1/P2: define it once.
  *
  * Everything below is now COMPUTED. To change an icon, a name, or a status,
- * edit the registry; both surfaces follow.
+ * edit the registry; to change how an app is CLASSIFIED, edit
+ * `@/domains/_categories` — the same taxonomy the Hub grid groups by.
  */
 import { ALL_DOMAINS } from '@/domains/_registry';
-import type { DomainGroup, Localized } from '@/domains/_types';
+import { CATEGORIES, categoryOf, accentOf, UNCLASSIFIED_ACCENT,
+         type AppCategory } from '@/domains/_categories';
+import type { Localized } from '@/domains/_types';
 
 export interface EcosystemApp {
   slug:   string;
@@ -23,7 +26,9 @@ export interface EcosystemApp {
   emoji:  string;
   /** The host that actually serves the app TODAY. */
   host:   string;
-  group:  DomainGroup;
+  /** The user-facing category — the SAME one the Hub groups its grid by. */
+  category: AppCategory | undefined;
+  accent: string;
   live:   boolean;
   /** The user-facing "why would I use this" line, not the engineering blurb. */
   blurb:  Localized;
@@ -42,38 +47,29 @@ export const APPS: EcosystemApp[] = ALL_DOMAINS
   // open — the Hub grid excludes it for the same reason.
   .filter(d => d.layer !== 'os')
   .map(d => ({
-    slug:  d.slug,
-    name:  d.name,
-    emoji: d.emoji,
-    host:  hostOf(d.route, d.slug),
-    group: d.group,
-    live:  d.status === 'live',
-    blurb: d.valueProp ?? d.description,
+    slug:     d.slug,
+    name:     d.name,
+    emoji:    d.emoji,
+    host:     hostOf(d.route, d.slug),
+    category: categoryOf(d.slug),
+    accent:   accentOf(d.slug),
+    live:     d.status === 'live',
+    blurb:    d.valueProp ?? d.description,
   }));
 
-export const GROUP_LABEL: Record<DomainGroup, Localized> = {
-  platform:     { en: 'Platform',   ar: 'المنصة'   },
-  finance:      { en: 'Finance',    ar: 'المال'    },
-  commerce:     { en: 'Commerce',   ar: 'التجارة'  },
-  social:       { en: 'Social',     ar: 'اجتماعي'  },
-  real_world:   { en: 'Real World', ar: 'الواقع'   },
-  tech:         { en: 'Tech',       ar: 'التقنية'  },
-  monetization: { en: 'Premium',    ar: 'بريميوم'  },
-};
+/** Filter chips, in taxonomy order, each with its count. An unclassified app
+ *  falls into a visible "More" chip rather than disappearing. */
+export const GROUPS: { key: AppCategory | 'other'; label: Localized; count: number }[] = [
+  ...CATEGORIES.map(c => ({
+    key:   c.key as AppCategory | 'other',
+    label: c.label,
+    count: APPS.filter(a => a.category === c.key).length,
+  })),
+  {
+    key:   'other' as const,
+    label: { en: 'More', ar: 'أخرى' },
+    count: APPS.filter(a => !a.category).length,
+  },
+].filter(g => g.count > 0);
 
-/** One colour per group — the card's accent, its chip, and its icon tint. */
-export const GROUP_COLOR: Record<DomainGroup, string> = {
-  platform:     '#FBBF24',
-  finance:      '#22C55E',
-  commerce:     '#3B82F6',
-  social:       '#8B5CF6',
-  real_world:   '#F0A868',
-  tech:         '#06B6D4',
-  monetization: '#E8E0D0',
-};
-
-/** Filter chips, in registry order, each with its live count. */
-export const GROUPS: { key: DomainGroup; count: number }[] =
-  (Object.keys(GROUP_LABEL) as DomainGroup[])
-    .map(key => ({ key, count: APPS.filter(a => a.group === key).length }))
-    .filter(g => g.count > 0);
+export const UNCLASSIFIED = UNCLASSIFIED_ACCENT;

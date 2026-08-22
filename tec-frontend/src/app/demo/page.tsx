@@ -17,7 +17,9 @@ import type { CSSProperties } from 'react';
 import Link                from 'next/link';
 import { useTranslation }  from '@/lib/i18n';
 import LanguageSwitcher    from '@/components/LanguageSwitcher';
-import { APPS, LIVE_APPS, CATEGORY_COLORS } from '@/lib/apps';
+import { APPS }            from '@/lib/apps';
+import { AppCard }         from '@/components/ecosystem/AppCard';
+import type { Locale }     from '@/domains/_types';
 import styles              from '../page.module.css';
 
 const GOLD = '#FBBF24';
@@ -28,6 +30,7 @@ const MUTE = 'rgba(232,224,208,0.45)';
 
 export default function DemoPage() {
   const { t, dir } = useTranslation();
+  const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
   const d = t.home.demo;
 
   // Pre-login: every app tile takes the visitor to Sign in (apps open from the Hub).
@@ -85,48 +88,12 @@ export default function DemoPage() {
         </div>
       </div>
 
-      {/* apps grid — SAME source + SAME card styles as the landing; tap → Sign in */}
+      {/* apps grid — the SAME shared <AppCard> the landing renders, so the two
+          cannot drift again (they had already: same styles, duplicated JSX). */}
       <div className={styles.appsGrid} style={{ marginBottom: 28 }}>
-        {APPS.map((app, i) => {
-          const isLive = !!LIVE_APPS[app.name];
-          return (
-            <div
-              key={app.name}
-              className={styles.appCard}
-              style={{
-                animationDelay: `${i * 0.04}s`,
-                '--cat-color': CATEGORY_COLORS[app.category] ?? GOLD,
-                ...(isLive ? { border: '1px solid #7ee7c040' } : {}),
-              } as CSSProperties}
-              onClick={toSignIn}
-              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toSignIn(); } }}
-              role="button"
-              tabIndex={0}
-            >
-              <div className={styles.appCardGlow} />
-              <div className={styles.appCardTop}>
-                <span className={styles.appEmoji}>{app.emoji}</span>
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                  <span className={styles.appCategory} style={{ color: CATEGORY_COLORS[app.category] ?? GOLD }}>
-                    {app.category}
-                  </span>
-                  {isLive && (
-                    <span style={{ fontSize: 8, color: '#7ee7c0', letterSpacing: 1,
-                      background: '#7ee7c010', border: '1px solid #7ee7c030', borderRadius: 4, padding: '1px 4px' }}>
-                      LIVE
-                    </span>
-                  )}
-                </div>
-              </div>
-              <span className={styles.appName}>{app.name}</span>
-              <span className={styles.appDesc}>{t.apps[app.name as keyof typeof t.apps] ?? app.name}</span>
-              <div className={styles.appFooter}>
-                <span className={styles.appDomain}>{app.domain}</span>
-                <span className={styles.appArrow}>{dir === 'rtl' ? '←' : '→'}</span>
-              </div>
-            </div>
-          );
-        })}
+        {APPS.map((app, i) => (
+          <AppCard key={app.slug} app={app} locale={locale} index={i} onOpen={toSignIn} />
+        ))}
       </div>
 
       {/* what you can do */}

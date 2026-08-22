@@ -10,7 +10,7 @@ export const en = {
     live: 'Live',
   },
   home: {
-    description: 'A complete ecosystem of 24 apps built on Pi Network',
+    description: 'A complete ecosystem of {count} apps built on Pi Network',
     subDescription: 'One identity — One wallet — One world',
     warningTitle: 'Please open the app inside Pi Browser',
     warningText: 'Open tec.pi from within the Pi Network app',
@@ -60,7 +60,7 @@ export const en = {
       back: 'Back',
     },
     ecosystem: 'Ecosystem',
-    ecosystemTitle: '24 Apps — One World',
+    ecosystemTitle: '{count} Apps — One World',
     moreApps: 'more apps',
   },
   dashboard: {

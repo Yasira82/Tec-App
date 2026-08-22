@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 export type KycStatus = 'NOT_STARTED' | 'PENDING' | 'VERIFIED' | 'REJECTED';
 export type KycLevel  = 'L0' | 'L1' | 'L2';
@@ -39,7 +40,7 @@ const getCsrfToken = (): string => {
 // ✅ P1-3: BFF /api/* بدل Gateway مباشرة
 const makeHeaders = (): Record<string, string> => ({
   'Content-Type':  'application/json',
-  Authorization:   `Bearer ${getAccessToken() ?? ''}`,
+  Authorization:   `Bearer ${sessionToken() ?? ''}`,
   'x-csrf-token':  getCsrfToken(),
 });
 

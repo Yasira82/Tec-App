@@ -9,6 +9,7 @@ export const ar = {
     comingSoon: 'قريباً',
     live: 'نشط',
     copy: 'نسخ',
+    notAuthenticated: 'انتهت الجلسة — سجّل الدخول مرة أخرى',
   },
   home: {
     description: 'منظومة متكاملة من {count} تطبيق مبنية على Pi Network',

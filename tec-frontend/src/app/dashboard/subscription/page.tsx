@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback }  from 'react';
 import { getAccessToken }                    from '@/lib-client/pi/pi-auth';
 import { DashboardShell, DashboardCard }     from '@/components/dashboard';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -194,7 +195,7 @@ export default function SubscriptionPage() {
 
   const fetchData = useCallback(async () => {
   setLoading(true);
-  const token = getAccessToken();
+  const token = sessionToken();
   setPlans(STATIC_PLANS);
   try {
     const subRes = await fetch('/api/subscriptions?endpoint=status', {
@@ -216,7 +217,7 @@ export default function SubscriptionPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const handleSubscribe = async (planId: string) => {
-    const token = getAccessToken();
+    const token = sessionToken();
     if (!token) return;
     setPaying(planId); setError(null); setSuccess(null);
     try {
@@ -234,7 +235,7 @@ export default function SubscriptionPage() {
   };
 
   const handleCancel = async () => {
-    const token = getAccessToken();
+    const token = sessionToken();
     if (!token || !confirm('Cancel your subscription?')) return;
     setCancelling(true); setError(null); setSuccess(null);
     try {

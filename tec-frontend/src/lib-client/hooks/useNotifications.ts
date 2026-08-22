@@ -1,6 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { sessionToken } from '@/lib-client/pi/session-source';
+import { bffFetch } from '@/lib-client/pi/bff-client';
+
+/** Sentinel, not prose: a hook has no locale. The page maps it to the reader's
+ *  language — this string used to reach the screen as English inside Arabic. */
+export const NOT_AUTHENTICATED = 'NOT_AUTHENTICATED';
 
 const getCsrfToken = (): string =>
   (typeof document !== 'undefined'
@@ -43,8 +48,8 @@ export function useNotifications(): UseNotificationsReturn {
 
   const fetchNotifications = useCallback(async (silent = false) => {
     // ✅ P1-1: cookie بدل localStorage
-    const token = getAccessToken();
-    if (!token) { setIsLoading(false); setError('Not authenticated'); return; }
+    const token = sessionToken();
+    if (!token) { setIsLoading(false); setError(NOT_AUTHENTICATED); return; }
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -56,7 +61,7 @@ export function useNotifications(): UseNotificationsReturn {
 
     try {
       // ✅ P1-3: BFF /api/* بدل Gateway مباشرة
-      const res = await fetch('/api/bff/notifications/list?limit=50', {
+      const res = await bffFetch('/api/bff/notifications/list?limit=50', {
         credentials: 'include',
         signal:      ctrl.signal,
       });
@@ -78,13 +83,13 @@ export function useNotifications(): UseNotificationsReturn {
   const refetch = useCallback(() => fetchNotifications(true), [fetchNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
-    const token = getAccessToken();
+    const token = sessionToken();
     if (!token) return;
     // Optimistic update for a snappy UI…
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
     try {
-      const res = await fetch('/api/bff/notifications/list', {
+      const res = await bffFetch('/api/bff/notifications/list', {
         method:      'PATCH',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
@@ -97,12 +102,12 @@ export function useNotifications(): UseNotificationsReturn {
   }, [fetchNotifications]);
 
   const markAllAsRead = useCallback(async () => {
-    const token = getAccessToken();
+    const token = sessionToken();
     if (!token) return;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
     try {
-      const res = await fetch('/api/bff/notifications/list', {
+      const res = await bffFetch('/api/bff/notifications/list', {
         method:      'PATCH',
         credentials: 'include',
         headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },

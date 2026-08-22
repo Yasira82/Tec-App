@@ -4,7 +4,7 @@
  *   - src/app/mint/page.tsx              (target: raise from 31.13%)
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { render, act, fireEvent, screen, waitFor } from '@/test-utils/render-with-locale';
 
 // ── Hoisted mock refs ────────────────────────────────────────────────────────
 const mockUseWallet         = vi.hoisted(() => vi.fn());
@@ -80,19 +80,9 @@ vi.mock('@/lib/request-id', () => ({
   })),
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t: {
-      common:    { loading: 'Loading...', login: 'Login', appName: 'TEC' },
-      dashboard: { title: 'Dashboard', domains: 'Domains', activity: 'Activity' },
-      apps:      {},
-    },
-    locale:      'en',
-    setLanguage: vi.fn(),
-    dir:         'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// `@/lib/i18n` is deliberately NOT mocked. This stub listed three keys by hand,
+// so every export added to the module later — `errorText` here — was `undefined`
+// at the call site. Tests render through the real provider instead.
 
 // CSS Module stub — wallet page uses wallet.module.css
 // Must export a `default` plain object (Proxy won't work here)

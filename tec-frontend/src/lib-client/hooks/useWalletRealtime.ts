@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { getAccessToken, getStoredUser } from '@/lib-client/pi/pi-auth';
+import { sessionToken, sessionUserId } from '@/lib-client/pi/session-source';
 
 /**
  * Live wallet updates from tec-realtime-service.
@@ -71,9 +72,8 @@ export function useWalletRealtime({
     if (!mountedRef.current || socketRef.current) return;
 
     // ✅ P1-2: token from the cookie, not localStorage.
-    const token  = getAccessToken();
-    const user   = getStoredUser() as { id?: string; uid?: string } | null;
-    const userId = user?.id ?? user?.uid ?? null;
+    const token  = sessionToken();
+    const userId = sessionUserId();
     if (!token || !userId) return;
 
     // ✅ P1: service URL from the BFF — no NEXT_PUBLIC_ env var (NEW-A).

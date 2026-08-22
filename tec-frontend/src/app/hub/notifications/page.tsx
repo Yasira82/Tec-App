@@ -1,7 +1,7 @@
 'use client';
 
 import { useNotifications, Notification, NotifType } from '@/lib-client/hooks/useNotifications';
-import { useTranslation, fill, bcp47, type Translations } from '@/lib/i18n';
+import { useTranslation, fill, bcp47, errorText, type Translations } from '@/lib/i18n';
 import { HubSubShell }                               from '@/components/hub';
 import { DashboardCard }                             from '@/components/dashboard';
 
@@ -131,7 +131,7 @@ export default function HubNotificationsPage() {
       {error && (
         <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span>⚠️</span>
-          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: '#ef4444' }}>{error}</span>
+          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: '#ef4444' }}>{errorText(t, error)}</span>
           <button onClick={refetch}
             style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
             {n.retry}

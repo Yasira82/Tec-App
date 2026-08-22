@@ -9,6 +9,7 @@ export const en = {
     comingSoon: 'Coming Soon',
     live: 'Live',
     copy: 'Copy',
+    notAuthenticated: 'Session expired — sign in again',
   },
   home: {
     description: 'A complete ecosystem of {count} apps built on Pi Network',

@@ -25,6 +25,7 @@ import { useTranslation }  from '@/lib/i18n';
 import LanguageSwitcher   from '@/components/LanguageSwitcher';
 import { haptic }      from '@/lib/hub/utils';
 import '@/styles/tec-design-tokens.css';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 
 const getCsrfToken = (): string => {
@@ -65,6 +66,22 @@ function HubPageInner() {
 
   const { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
+
+  // The assistant button lives in the thumb-scroll zone, so while the page is
+  // actually moving it gets out of the way: faded and non-interactive, back a
+  // moment after the scroll stops. `setScrolling(true)` on an already-true state
+  // is a no-op in React, so a scroll burst costs two renders, not one per tick.
+  const [scrolling, setScrolling] = useState(false);
+  useEffect(() => {
+    let idle: ReturnType<typeof setTimeout>;
+    const onScroll = () => {
+      setScrolling(true);
+      clearTimeout(idle);
+      idle = setTimeout(() => setScrolling(false), 400);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => { window.removeEventListener('scroll', onScroll); clearTimeout(idle); };
+  }, []);
 
   const [carouselIdx,     setCarouselIdx]     = useState(0);
   const [aiOpen,          setAiOpen]          = useState(false);
@@ -127,7 +144,7 @@ function HubPageInner() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization:  `Bearer ${tecSession.token ?? getAccessToken()}`,
+            Authorization:  `Bearer ${tecSession.token ?? sessionToken()}`,
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
@@ -200,7 +217,7 @@ function HubPageInner() {
   }, [isLoading, isAuthenticated, pendingPayment, router]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
-    userId: user?.id, token: getAccessToken(),
+    userId: user?.id, token: sessionToken(),
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
@@ -255,7 +272,10 @@ function HubPageInner() {
   return (
     <div
       dir={dir}
-      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88 }}
+      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)',
+        // Room for the bottom nav AND the floating assistant above it: without this
+        // the last row of content was permanently covered, not just while scrolling.
+        paddingBottom: 168 }}
     >
       {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (
@@ -269,10 +289,32 @@ function HubPageInner() {
       <ToastContainer toasts={toasts} onDismiss={id => setToasts(p => p.filter(t => t.id !== id))} />
       <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
 
+      {/* The assistant button stays on the RIGHT in both languages — deliberately NOT
+          mirrored. Mirroring it for RTL is the textbook move and it was wrong here:
+          it jumped sides for existing users, and on the start side it lands on top of
+          the Platform Tools row. One fixed corner in both languages is the muscle
+          memory people already have. */}
+      {/* `tec-float` is gone from here on purpose: it bobbed this button up and down
+          FOREVER. A 52px control that never stops moving, parked over the content
+          you are reading, is not liveliness — it is a distraction you cannot turn
+          off. It holds still now, and yields while you scroll. */}
       {!aiOpen && (
-        <button className="tec-float tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
+        <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label={t.hub.ai.open}
-          style={{ position: 'fixed', bottom: 100, insetInlineEnd: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
+          aria-hidden={scrolling}
+          tabIndex={scrolling ? -1 : 0}
+          style={{
+            position: 'fixed', bottom: 100, right: 16, zIndex: 200,
+            width: 52, height: 52, borderRadius: '50%',
+            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none',
+            boxShadow: '0 8px 24px rgba(251,191,36,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+            // Out of the way — and out of the way of the TOUCH too, so a swipe that
+            // starts on it scrolls the page instead of doing nothing.
+            opacity: scrolling ? 0 : 1,
+            pointerEvents: scrolling ? 'none' : 'auto',
+            transition: 'opacity 0.2s ease',
+          }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
       )}
 
       <HubHeader

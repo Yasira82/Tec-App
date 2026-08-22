@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { usePiAuth }      from '@/lib-client/hooks/usePiAuth';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 interface Asset {
   id:        string;
@@ -84,7 +85,7 @@ export default function AssetsPage() {
   const fetchAssets = useCallback(async (silent = false) => {
     if (!user?.id || !isAuthenticated) return;
     // ✅ VM-004: cookie بدل localStorage
-    const token = getAccessToken();
+    const token = sessionToken();
     if (silent) setIsRefreshing(true);
     else        setIsLoading(true);
     setError(null);

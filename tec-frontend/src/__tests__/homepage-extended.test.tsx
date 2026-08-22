@@ -8,7 +8,7 @@ import { render, screen, fireEvent, within } from '@testing-library/react';
 
 // ── Mocks ─────────────────────────────────────────────────────────
 
-import { APPS, GROUPS, GROUP_LABEL } from '@/lib/apps';
+import { APPS, GROUPS } from '@/lib/apps';
 import { getDomain } from '@/domains/_registry';
 
 vi.mock('next/navigation', () => ({
@@ -274,12 +274,12 @@ describe('HomePage — group filter', () => {
   // with. Each chip carries its count, hence the anchored name matches.
   const chip = chipIn;
 
-  it('renders one chip per registry group, plus All', async () => {
+  it('renders one chip per shared category, plus All', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
     expect(chip('All')).toBeInTheDocument();
     for (const g of GROUPS) {
-      expect(chip(GROUP_LABEL[g.key].en)).toBeInTheDocument();
+      expect(chip(g.label.en)).toBeInTheDocument();
     }
   });
 
@@ -287,33 +287,41 @@ describe('HomePage — group filter', () => {
     const HomePage = await getPage();
     render(<HomePage />);
     for (const g of GROUPS) {
-      expect(chip(GROUP_LABEL[g.key].en).textContent).toContain(String(g.count));
+      expect(chip(g.label.en).textContent).toContain(String(g.count));
     }
   });
 
-  it('filtering by a group shows exactly that group', async () => {
+  it('filtering by a category shows exactly that category', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(chip('Finance'));
-    for (const app of APPS.filter(a => a.group === 'finance')) {
-      expect(screen.getByText(app.name.en)).toBeInTheDocument();
+    fireEvent.click(chip('Money'));
+    for (const app of APPS.filter(a => a.category === 'money')) {
+      expect(screen.getAllByText(app.name.en).length, app.slug).toBeGreaterThan(0);
     }
-    // Life is social, not finance.
+    // Life is Identity & Social, not Money.
     expect(screen.queryByText('Life')).not.toBeInTheDocument();
   });
 
-  it('Dx is Tech, not Health — it is the developer platform', async () => {
+  it('files DX under Business & Work, and has no Health chip at all', async () => {
+    // "Health" was a hand-typed category that matched one app: the developer platform.
     const HomePage = await getPage();
     render(<HomePage />);
     expect(screen.queryByRole('button', { name: /^Health/ })).not.toBeInTheDocument();
-    fireEvent.click(chip('Tech'));
+    fireEvent.click(chip('Business'));
     expect(screen.getByText('DX')).toBeInTheDocument();
+  });
+
+  it('files Zone under Trust — the same category the Hub grid puts it in', async () => {
+    const HomePage = await getPage();
+    render(<HomePage />);
+    fireEvent.click(chip('Trust'));
+    expect(screen.getByText('Zone')).toBeInTheDocument();
   });
 
   it('All returns every app', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(chip('Finance'));
+    fireEvent.click(chip('Money'));
     fireEvent.click(chip('All'));
     expect(screen.getByText('Life')).toBeInTheDocument();
     expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);
@@ -322,9 +330,9 @@ describe('HomePage — group filter', () => {
   it('app count label follows the filter', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    const finance = GROUPS.find(g => g.key === 'finance')!;
-    fireEvent.click(chip('Finance'));
-    expect(screen.getByText(new RegExp(`${finance.count} Apps`))).toBeInTheDocument();
+    const money = GROUPS.find(g => g.key === 'money')!;
+    fireEvent.click(chip('Money'));
+    expect(screen.getByText(new RegExp(`${money.count} Apps`))).toBeInTheDocument();
   });
 });
 
@@ -420,7 +428,7 @@ describe('HomePage — search', () => {
   it('search combined with category filter', async () => {
     const HomePage = await getPage();
     render(<HomePage />);
-    fireEvent.click(chipIn('Platform'));
+    fireEvent.click(chipIn('Money'));
     const input = screen.getByLabelText('Search apps');
     fireEvent.change(input, { target: { value: 'Commerce' } });
     expect(screen.getAllByText('Commerce').length).toBeGreaterThan(0);

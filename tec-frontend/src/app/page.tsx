@@ -7,10 +7,11 @@ import LanguageSwitcher          from '@/components/LanguageSwitcher';
 import PiPaymentButton           from '@/components/payment/PiPaymentButton';
 import InstallPrompt             from '@/components/InstallPrompt';
 import { AppCard }               from '@/components/ecosystem/AppCard';
-import { APPS, GROUPS, GROUP_LABEL, type EcosystemApp } from '@/lib/apps';
+import { APPS, GROUPS, type EcosystemApp } from '@/lib/apps';
 import { getDomain, ALL_DOMAINS } from '@/domains/_registry';
 import { t as tr }               from '@/domains/_types';
-import type { DomainGroup, Locale } from '@/domains/_types';
+import type { Locale } from '@/domains/_types';
+import type { AppCategory } from '@/domains/_categories';
 import styles                    from './page.module.css';
 
 /**
@@ -28,12 +29,14 @@ export default function HomePage() {
 
   const { t, dir }                        = useTranslation();
   const locale: Locale                    = dir === 'rtl' ? 'ar' : 'en';
-  const [activeGroup, setActiveGroup]     = useState<DomainGroup | 'all'>('all');
+  const [activeGroup, setActiveGroup]     = useState<AppCategory | 'other' | 'all'>('all');
   const [searchQuery, setSearchQuery]     = useState('');
 
   const filteredApps = useMemo(() => {
     let result = APPS;
-    if (activeGroup !== 'all') result = result.filter(a => a.group === activeGroup);
+    if (activeGroup !== 'all') {
+      result = result.filter(a => (a.category ?? 'other') === activeGroup);
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       // Search BOTH languages regardless of UI locale — a visitor reading the
@@ -222,7 +225,7 @@ export default function HomePage() {
               onClick={() => setActiveGroup(g.key)}
               className={`${styles.filterBtn} ${activeGroup === g.key ? styles.filterBtnActive : ''}`}
             >
-              {tr(GROUP_LABEL[g.key], locale)} <span className={styles.filterCount}>{g.count}</span>
+              {tr(g.label, locale)} <span className={styles.filterCount}>{g.count}</span>
             </button>
           ))}
         </div>

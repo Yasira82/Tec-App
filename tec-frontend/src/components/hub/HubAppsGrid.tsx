@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useRouter }     from 'next/navigation';
 import { haptic }        from '@/lib/hub/utils';
 import { HubApp }        from '@/lib/hub/types';
+// The user-facing taxonomy is SHARED (see src/domains/_categories.ts). It used to
+// live here behind a comment saying not to use the registry's `group`; the landing
+// page then used `group` anyway and the two surfaces disagreed on 17 of 23 apps.
+import { CATEGORIES, CATEGORY_OF, accentOf, categoryMeta, UNCLASSIFIED_ACCENT,
+         type AppCategory } from '@/domains/_categories';
 
 interface Props {
   apps: HubApp[];
@@ -19,38 +24,6 @@ interface Props {
 const FAV_KEY    = 'tec_fav_apps';
 const RECENT_KEY = 'tec_recent_apps';
 const RECENT_MAX = 4;
-
-// User-facing app categories — grounded in the KB Economic OS Model (C-119) + the app
-// charters (C-105→C-131), NOT the registry's coarse `group` field (which mis-placed
-// e.g. Zone under "social" — it is the Verification Runtime, C-120). Each app once.
-const CATEGORY_OF: Record<string, string> = {
-  // Money & Commerce — trade, ownership, capital, protection
-  commerce: 'money', ecommerce: 'money', assets: 'money', fundx: 'money', insure: 'money',
-  // Business & Work — build, enterprise, opportunities, developers
-  nbf: 'work', titan: 'work', nx: 'work', epic: 'work', dx: 'work',
-  // Real World — property, institutional assets, discovery
-  estate: 'realworld', brookfield: 'realworld', explorer: 'realworld',
-  // Identity & Social — personal + relationships
-  life: 'social', connection: 'social',
-  // Reputation — evidence → recognition → premium
-  legend: 'reputation', elite: 'reputation', vip: 'reputation',
-  // Trust & Intelligence — verification, governance, data, coordination
-  zone: 'trust', system: 'trust', analytics: 'trust', alert: 'trust', nexus: 'trust',
-};
-// One harmonized accent per category (EVL palette, C-83) so each section reads as a
-// coherent colour family instead of 23 unrelated tile colours (rainbow clutter).
-const CATEGORY_ORDER: [string, string, string][] = [
-  ['money',      'Money & Commerce',      '#FBBF24'], // WEALTH gold
-  ['work',       'Business & Work',       '#3B82F6'], // GOVERNANCE blue
-  ['realworld',  'Real World',            '#22C55E'], // GROWTH green
-  ['social',     'Identity & Social',     '#8B5CF6'], // IDENTITY purple
-  ['reputation', 'Reputation',            '#EC4899'], // recognition pink
-  ['trust',      'Trust & Intelligence',  '#06B6D4'], // INTELLIGENCE cyan
-];
-const CATEGORY_ACCENT: Record<string, string> =
-  Object.fromEntries(CATEGORY_ORDER.map(([key, , accent]) => [key, accent]));
-const OTHER_ACCENT = '#94A3B8';
-const accentOf = (slug: string) => CATEGORY_ACCENT[CATEGORY_OF[slug]] ?? OTHER_ACCENT;
 
 // Convert a #RRGGBB hex + alpha → rgba() string (tiles use a category accent, not
 // the per-app accent, so the colour is derived here rather than via appAccentRgba).
@@ -125,8 +98,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
 
   // Category sections in a stable order (only categories that have apps). Any app not
   // in the map falls into a "More" bucket so nothing is ever dropped.
-  const grouped = CATEGORY_ORDER
-    .map(([key, label]) => ({ group: key, label, items: apps.filter((a) => CATEGORY_OF[a.slug] === key) }))
+  const grouped = CATEGORIES
+    .map(({ key, label }) => ({ group: key as string, label: label.en, items: apps.filter((a) => CATEGORY_OF[a.slug] === key) }))
     .filter((s) => s.items.length > 0);
   const others = apps.filter((a) => !CATEGORY_OF[a.slug]);
   if (others.length) grouped.push({ group: 'other', label: 'More', items: others });
@@ -243,7 +216,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
         <>
           {favApps.length    > 0 && <Section title="★ Favorites" items={favApps}    accent="#FBBF24" />}
           {recentApps.length > 0 && !editing && <Section title="Recent" items={recentApps} />}
-          {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} accent={hexRgba(CATEGORY_ACCENT[s.group] ?? OTHER_ACCENT, 0.75)} />)}
+          {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} accent={hexRgba(categoryMeta(s.group as AppCategory)?.accent ?? UNCLASSIFIED_ACCENT, 0.75)} />)}
         </>
       )}
     </div>

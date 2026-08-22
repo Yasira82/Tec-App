@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { usePiAuth }     from '@/lib-client/hooks/usePiAuth';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -53,7 +54,7 @@ export default function CheckoutPage() {
     setError('');
 
     // ✅ VM-NEW-002: cookie بدل localStorage
-    const token = getAccessToken();
+    const token = sessionToken();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'x-csrf-token': getCsrfToken(),

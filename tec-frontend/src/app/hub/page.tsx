@@ -25,6 +25,7 @@ import { useTranslation }  from '@/lib/i18n';
 import LanguageSwitcher   from '@/components/LanguageSwitcher';
 import { haptic }      from '@/lib/hub/utils';
 import '@/styles/tec-design-tokens.css';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 
 const getCsrfToken = (): string => {
@@ -127,7 +128,7 @@ function HubPageInner() {
           credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            Authorization:  `Bearer ${tecSession.token ?? getAccessToken()}`,
+            Authorization:  `Bearer ${tecSession.token ?? sessionToken()}`,
             'x-csrf-token': getCsrfToken(),
           },
           body: JSON.stringify({
@@ -200,7 +201,7 @@ function HubPageInner() {
   }, [isLoading, isAuthenticated, pendingPayment, router]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({
-    userId: user?.id, token: getAccessToken(),
+    userId: user?.id, token: sessionToken(),
     onWalletUpdate: () => setTimeout(refreshBalance, 500),
   });
 
@@ -255,7 +256,10 @@ function HubPageInner() {
   return (
     <div
       dir={dir}
-      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88 }}
+      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)',
+        // Room for the bottom nav AND the floating assistant above it: without this
+        // the last row of content was permanently covered, not just while scrolling.
+        paddingBottom: 168 }}
     >
       {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (
@@ -269,10 +273,15 @@ function HubPageInner() {
       <ToastContainer toasts={toasts} onDismiss={id => setToasts(p => p.filter(t => t.id !== id))} />
       <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
 
+      {/* The assistant button stays on the RIGHT in both languages — deliberately NOT
+          mirrored. Mirroring it for RTL is the textbook move and it was wrong here:
+          it jumped sides for existing users, and on the start side it lands on top of
+          the Platform Tools row. One fixed corner in both languages is the muscle
+          memory people already have. */}
       {!aiOpen && (
         <button className="tec-float tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label={t.hub.ai.open}
-          style={{ position: 'fixed', bottom: 100, insetInlineEnd: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
       )}
 
       <HubHeader

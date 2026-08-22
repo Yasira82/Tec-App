@@ -5,6 +5,7 @@ import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
 import { useTranslation, bcp47 }            from '@/lib/i18n';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 /* ─── Types ─────────────────────────────────────────────────── */
 interface Overview {
@@ -107,7 +108,7 @@ export default function HubAnalyticsPage() {
   const a     = t.hub.analytics;
 
   const load = useCallback(async () => {
-    const token   = getAccessToken();
+    const token   = sessionToken();
     const headers: Record<string, string> = token
       ? { Authorization: `Bearer ${token}` }
       : {};

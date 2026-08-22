@@ -3,10 +3,10 @@
 import { useTranslation, fill, bcp47, type Translations } from '@/lib/i18n';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
 import { createU2APayment }                 from '@/lib-client/pi/pi-payment';
 import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
+import { sessionToken }                     from '@/lib-client/pi/session-source';
 import {
   PLAN_META, PLAN_ORDER, FEATURE_ROWS, entitlementsFor, normalizePlan,
   type PlanId, type FeatureRow,
@@ -222,7 +222,7 @@ export default function HubSubscriptionPage() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
-    const token = getAccessToken();
+    const token = sessionToken();
     const auth  = token ? { Authorization: `Bearer ${token}` } : undefined;
     try {
       const [subRes, assetsRes] = await Promise.all([
@@ -265,7 +265,7 @@ export default function HubSubscriptionPage() {
 
       // 2) Activate the subscription, linked to the paid Pi payment.
       //    Cookie-auth only (tec_access_token is HttpOnly).
-      const token = getAccessToken();
+      const token = sessionToken();
       const res   = await fetch('/api/subscriptions?endpoint=subscribe', {
         method: 'POST', credentials: 'include',
         headers: {
@@ -285,7 +285,7 @@ export default function HubSubscriptionPage() {
 
   const handleCancel = async () => {
     if (!confirm(t.hub.subscription.cancelConfirm)) return;
-    const token = getAccessToken();
+    const token = sessionToken();
     setCancelling(true); setError(null); setSuccess(null);
     try {
       const res  = await fetch('/api/subscriptions?endpoint=cancel', {

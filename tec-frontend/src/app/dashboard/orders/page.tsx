@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useOrders, Order, OrderStatus } from '@/lib-client/hooks/useOrders';
 import styles from './orders.module.css';
+import { useTranslation, errorText } from '@/lib/i18n';
 
 // ─── Helpers ──────────────────────────────────────────────────
 function formatDate(iso: string) {
@@ -37,6 +38,7 @@ function StatusBadge({ status }: { status: OrderStatus }) {
 
 // ─── Page ──────────────────────────────────────────────────────
 export default function OrdersPage() {
+  const { t } = useTranslation();
   const {
     orders, isLoading, isRefreshing, error,
     page, totalPages, total,
@@ -59,7 +61,7 @@ export default function OrdersPage() {
       <div className={styles.container}>
         <div className={styles.errorState}>
           <span>⚠️</span>
-          <p>{error}</p>
+          <p>{errorText(t, error)}</p>
           <button className={styles.btn} onClick={refetch}>إعادة المحاولة</button>
         </div>
       </div>

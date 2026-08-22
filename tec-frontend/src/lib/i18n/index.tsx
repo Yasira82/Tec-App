@@ -71,6 +71,18 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
 export const bcp47 = (locale: Locale): string => (locale === 'ar' ? 'ar-EG' : 'en-US');
 
 /**
+ * Render an error a data hook produced.
+ *
+ * Hooks have no locale, so the session-expired case travels as the sentinel
+ * `NOT_AUTHENTICATED` rather than as English prose — it used to reach the screen
+ * as "Not authenticated" sitting in the middle of an Arabic page. Anything else
+ * is a message from the server and passes through untouched: inventing a
+ * translation for text we did not write would hide what actually failed.
+ */
+export const errorText = (t: Translations, err: string): string =>
+  err === 'NOT_AUTHENTICATED' ? t.common.notAuthenticated : err;
+
+/**
  * Fill `{name}` placeholders in a dictionary string.
  *
  * Counts and durations belong IN the sentence, not concatenated around it —

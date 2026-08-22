@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import { getAccessToken } from '@/lib-client/pi/pi-auth';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 interface Overview {
   totalEvents:   number;
@@ -56,7 +57,7 @@ export default function AnalyticsPage() {
 
   const fetchOverview = useCallback(async (silent = false) => {
     // ✅ VM-004: cookie بدل localStorage
-    const token = getAccessToken();
+    const token = sessionToken();
     if (silent) setIsRefreshing(true);
     else        setIsLoading(true);
     setError(null);

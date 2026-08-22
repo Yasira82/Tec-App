@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAccessToken }                   from '@/lib-client/pi/pi-auth';
 import { entitlementsFor, normalizePlan, type PlanId, type Entitlements } from '@/lib/subscription/entitlements';
+import { sessionToken } from '@/lib-client/pi/session-source';
 
 interface EntitlementsState {
   plan:         PlanId;
@@ -22,7 +23,7 @@ export function useEntitlements(): EntitlementsState {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const token = getAccessToken();
+    const token = sessionToken();
     const auth  = token ? { Authorization: `Bearer ${token}` } : undefined;
     try {
       const [subRes, assetsRes] = await Promise.all([

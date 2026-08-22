@@ -3,7 +3,8 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useWallet, TxType, TxStatus, Transaction } from '@/lib-client/hooks/useWallet';
 import { useWalletRealtime, WalletUpdatedEvent }     from '@/lib-client/hooks/useWalletRealtime';
-import { getAccessToken }                            from '@/lib-client/pi/pi-auth';
+import { sessionToken }                              from '@/lib-client/pi/session-source';
+import { useTranslation, errorText }                 from '@/lib/i18n';
 import { buildHeaders }                              from '@/lib/request-id';
 import styles from './wallet.module.css';
 
@@ -85,7 +86,7 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
     if (!validate(toInput)) return;
     setLoading(true); setError(null);
     try {
-      const token   = getAccessToken();
+      const token   = sessionToken();
       const trimmed = toInput.trim().replace('@', '');
       const isUUID  = UUID_REGEX.test(trimmed);
 
@@ -276,6 +277,7 @@ function ReceiveModal({ walletId, balance, onClose }: {
 
 // ─── Page ──────────────────────────────────────────────────────
 export default function WalletPage() {
+  const { t } = useTranslation();
   const {
     wallet, transactions, isLoading, isRefreshing, error,
     page, totalPages, filterType, filterStatus,
@@ -308,7 +310,9 @@ export default function WalletPage() {
   if (error) return (
     <div className={styles.container}>
       <div className={styles.errorState}>
-        <span>⚠️</span><p>{error}</p>
+        {/* The session-expired case arrives as a sentinel, not as prose — it is the
+            one message on this page a user MUST be able to read in their language. */}
+        <span>⚠️</span><p>{errorText(t, error)}</p>
         <button className={styles.actionBtn} onClick={refetch}>إعادة المحاولة</button>
       </div>
     </div>

@@ -1,6 +1,11 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { getAccessToken, getStoredUser } from '@/lib-client/pi/pi-auth';
+import { sessionToken, sessionUserId } from '@/lib-client/pi/session-source';
+import { bffFetch } from '@/lib-client/pi/bff-client';
+
+/** Sentinel, not prose: a hook has no locale. The page maps it to the reader's
+ *  language — this string used to reach the screen as English inside Arabic. */
+export const NOT_AUTHENTICATED = 'NOT_AUTHENTICATED';
 
 export type TxType   = 'send' | 'receive' | 'payment';
 export type TxStatus = 'completed' | 'pending' | 'failed';
@@ -96,16 +101,11 @@ export function useWallet(): UseWalletReturn {
 
   const abortRef = useRef<AbortController | null>(null);
 
-  const getToken  = (): string | null => getAccessToken();
-  const getUserId = (): string | null => {
-    const user = getStoredUser() as { id?: string; uid?: string } | null;
-    return user?.id ?? user?.uid ?? null;
-  };
 
   const fetchAll = useCallback(async (targetPage: number, silent = false) => {
-    const token  = getToken();
-    const userId = getUserId();
-    if (!token || !userId) { setIsLoading(false); setError('Not authenticated'); return; }
+    const token  = sessionToken();
+    const userId = sessionUserId();
+    if (!token || !userId) { setIsLoading(false); setError(NOT_AUTHENTICATED); return; }
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -117,11 +117,7 @@ export function useWallet(): UseWalletReturn {
 
     try {
       // ── Balance + walletId ──────────────────────────────
-      const balanceRes = await fetch('/api/bff/wallet/balance', {
-        credentials: 'include',
-        headers:     { Authorization: `Bearer ${token}` },
-        signal:      ctrl.signal,
-      });
+      const balanceRes = await bffFetch('/api/bff/wallet/balance', { signal: ctrl.signal });
 
       if (!balanceRes.ok) throw new Error(`Balance error: ${balanceRes.status}`);
 
@@ -149,7 +145,7 @@ export function useWallet(): UseWalletReturn {
             ...(filterStatus !== 'all' && { status: filterStatus }),
           });
 
-          const txRes = await fetch(`/api/bff/wallet/transactions?${params}`, {
+          const txRes = await bffFetch(`/api/bff/wallet/transactions?${params}`, {
             credentials: 'include',
             signal:      ctrl.signal,
           });
@@ -181,7 +177,7 @@ export function useWallet(): UseWalletReturn {
           ...(filterStatus !== 'all' && { status: filterStatus }),
         });
 
-        const txRes = await fetch(`/api/bff/payments/history?${params}`, {
+        const txRes = await bffFetch(`/api/bff/payments/history?${params}`, {
           credentials: 'include',
           signal:      ctrl.signal,
         });

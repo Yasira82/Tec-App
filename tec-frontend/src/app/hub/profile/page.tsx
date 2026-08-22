@@ -37,7 +37,7 @@ function InfoRow({ label, value, mono, copyable }: {
       </div>
       {copyable && (
         <button onClick={copy}
-          style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: copied ? 'rgba(34,197,94,0.1)' : 'var(--tec-surface-1)', border: `1px solid ${copied ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`, color: copied ? '#22C55E' : 'var(--tec-text-2)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: copied ? 'rgba(34,197,94,0.1)' : 'var(--tec-surface-1)', border: `1px solid ${copied ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`, color: copied ? 'var(--tec-green)' : 'var(--tec-text-2)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
           {copied ? '✓' : t.common.copy}
         </button>
       )}
@@ -66,7 +66,10 @@ export default function HubProfilePage() {
   const { kyc }    = useKyc();
   const kycStatus  = (kyc?.status ?? '').toUpperCase();
   const kycVerified = kycStatus === 'VERIFIED';
-  const kycAccent  = kycVerified ? '#22C55E' : kycStatus === 'REJECTED' ? '#ef4444' : '#f59e0b';
+  const kycAccent  = kycVerified ? 'var(--tec-green)' : kycStatus === 'REJECTED' ? 'var(--tec-red)' : 'var(--tec-gold-dark)';
+  // The translucent companion is spelled out rather than derived: a design token
+  // cannot carry an appended alpha (`var(--x)33` is not a colour).
+  const kycEdge    = kycVerified ? 'rgba(34,197,94,0.2)' : kycStatus === 'REJECTED' ? 'rgba(239,68,68,0.2)' : 'rgba(245,158,11,0.2)';
   const kycMessage = kycVerified
     ? (kyc?.level ? t.hub.profile.kycVerifiedLevel.replace('{n}', String(kyc.level)) : t.hub.profile.kycVerified)
     : kycStatus === 'REJECTED'  ? t.hub.profile.kycRejected
@@ -93,7 +96,7 @@ export default function HubProfilePage() {
         background: 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(251,191,36,0.02))',
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(251,191,36,0.25)' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(251,191,36,0.25)' }}>
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -104,7 +107,7 @@ export default function HubProfilePage() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: 'var(--tec-gold)', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
               {roleLabel}
             </span>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: 'var(--tec-purple)', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
               {planLabel}
             </span>
           </div>
@@ -131,7 +134,7 @@ export default function HubProfilePage() {
           </button>
         }
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: `1px solid ${kycAccent}33`, borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: `1px solid ${kycEdge}`, borderRadius: 'var(--radius-md)' }}>
           <span style={{ fontSize: 24 }}>🪪</span>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)', marginBottom: 2 }}>{t.hub.profile.kycTitle}</div>
@@ -159,12 +162,12 @@ export default function HubProfilePage() {
       {/* ── Connected Apps ───────────────────────────── */}
       <DashboardCard title={t.hub.profile.connectedApps}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800', flexShrink: 0 }}>T</div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800', flexShrink: 0 }}>T</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{t.hub.profile.tecPlatform}</div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.piNetwork}</div>
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 10px', borderRadius: 'var(--radius-full)', letterSpacing: 1 }}>{t.hub.profile.connected}</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--tec-green)', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 10px', borderRadius: 'var(--radius-full)', letterSpacing: 1 }}>{t.hub.profile.connected}</span>
         </div>
       </DashboardCard>
 
@@ -203,11 +206,11 @@ export default function HubProfilePage() {
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-4)', padding: 'var(--sp-4)', background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: 'var(--radius-md)', flexWrap: 'wrap' }}>
             <div>
-              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#ef4444', marginBottom: 2 }}>{t.hub.profile.deleteAccount}</div>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-red)', marginBottom: 2 }}>{t.hub.profile.deleteAccount}</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.deleteAccountSub}</div>
             </div>
             <button onClick={handleDelete}
-              style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+              style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
               {t.hub.profile.delete}
             </button>
           </div>

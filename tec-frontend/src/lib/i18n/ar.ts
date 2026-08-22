@@ -425,6 +425,13 @@ export const ar = {
       copyReply: 'نسخ الرد', copied: '✓ تم النسخ', copyShort: '⧉ نسخ',
       stopped: '… (تم الإيقاف)', stoppedEmpty: 'تم الإيقاف قبل أن يبدأ.',
       connectionError: 'خطأ في الاتصال — حاول مرة أخرى.',
+      pastConversations: '🗂 المحادثات السابقة',
+      tryAgain: '↻ حاول مرة أخرى',
+      noAnswer: 'مقدرتش أجاوب على ده — جرّب تعيد صياغة سؤالك.',
+      truncated: '… (الرد اتقطع عند حد الطول — اكتب «كمّل» لباقي الإجابة)',
+      dialog: 'مساعد TEC الذكي',
+      closeBackdrop: 'إغلاق المساعد',
+      suggestions: ['ايه هو TEC؟', 'اعرض رصيدي', 'أنهي تطبيق يناسبني؟'],
     },
   },
 };

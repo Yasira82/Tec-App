@@ -1,15 +1,14 @@
 /**
  * Comprehensive tests for hub and Pi-related components.
- * Targets: PaymentModal, AIDrawer, AmountSelector, PiIntegration,
+ * Targets: PaymentModal, AIDrawer, PiIntegration,
  *          PiPaymentButton, PiSdkLoader, PaymentDiagnostics, ToastProvider,
  *          BackendStatus, PiBrowserGuard, HubCarousel,
- *          HubPayActions, ErrorBoundary
+ *          ErrorBoundary
  */
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
 import { useRouter } from 'next/navigation';
-import { AmountSelector } from '@/app/hub/components/AmountSelector';
 import { AIDrawer } from '@/app/hub/components/AIDrawer';
 import { PaymentModal } from '@/app/hub/components/PaymentModal';
 import { ToastProvider, useToast } from '@/components/ToastProvider';
@@ -27,7 +26,6 @@ import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { usePiPayment } from '@/lib-client/hooks/usePiPayment';
 import { HubCarousel } from '@/components/hub/HubCarousel';
 import { haptic } from '@/lib/hub/utils';
-import { HubPayActions } from '@/components/hub/HubPayActions';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import {
   render,
@@ -236,89 +234,6 @@ beforeEach(() => {
 
 afterEach(() => {
   // no unstubAllGlobals needed since we use defineProperty
-});
-
-// ─────────────────────────────────────────────────────────────────────────────
-// AmountSelector
-// ─────────────────────────────────────────────────────────────────────────────
-describe('AmountSelector', () => {
-  it('renders preset buttons', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    expect(screen.getByText('1π')).toBeInTheDocument();
-    expect(screen.getByText('5π')).toBeInTheDocument();
-    expect(screen.getByText('10π')).toBeInTheDocument();
-    expect(screen.getByText('50π')).toBeInTheDocument();
-  });
-
-  it('calls onChange when preset clicked', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    fireEvent.click(screen.getByText('5π'));
-    expect(onChange).toHaveBeenCalledWith(5);
-  });
-
-  it('shows active state for current preset value', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={10} onChange={onChange} disabled={false} />);
-    // 10π button should be present and active
-    const btn = screen.getByText('10π');
-    expect(btn).toBeInTheDocument();
-  });
-
-  it('toggles custom input panel', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    const customBtn = screen.getByText('✏️');
-    fireEvent.click(customBtn);
-    expect(screen.getByPlaceholderText('Enter amount')).toBeInTheDocument();
-  });
-
-  it('calls onChange on custom amount input', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    fireEvent.click(screen.getByText('✏️'));
-    const input = screen.getByPlaceholderText('Enter amount');
-    fireEvent.change(input, { target: { value: '7.5' } });
-    expect(onChange).toHaveBeenCalledWith(7.5);
-  });
-
-  it('clears custom input when clear button clicked', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    fireEvent.click(screen.getByText('✏️'));
-    const input = screen.getByPlaceholderText('Enter amount');
-    fireEvent.change(input, { target: { value: '3' } });
-    const clearBtn = screen.getByText('✕');
-    fireEvent.click(clearBtn);
-    expect(onChange).toHaveBeenCalledWith(1);
-  });
-
-  it('does not call onChange for invalid custom input', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    fireEvent.click(screen.getByText('✏️'));
-    const input = screen.getByPlaceholderText('Enter amount');
-    fireEvent.change(input, { target: { value: 'abc' } });
-    // only the preset call from initial render, not from invalid input
-    expect(onChange).not.toHaveBeenCalled();
-  });
-
-  it('disables buttons when disabled=true', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={true} />);
-    const presetBtn = screen.getByText('1π');
-    expect(presetBtn).toBeDisabled();
-  });
-
-  it('toggles off custom panel when clicked again', () => {
-    const onChange = vi.fn();
-    render(<AmountSelector value={1} onChange={onChange} disabled={false} />);
-    const customBtn = screen.getByText('✏️');
-    fireEvent.click(customBtn); // open
-    fireEvent.click(customBtn); // close
-    expect(screen.queryByPlaceholderText('Enter amount')).not.toBeInTheDocument();
-  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1753,105 +1668,6 @@ describe('HubCarousel (src/components/hub)', () => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ─────────────────────────────────────────────────────────────────────────────
-// HubPayActions
-// ─────────────────────────────────────────────────────────────────────────────
-describe('HubPayActions', () => {
-  it('renders without crash', () => {
-    const { container } = render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={false}
-        onPay={vi.fn()}
-      />
-    );
-    expect(container).toBeTruthy();
-  });
-
-  it('shows Connecting... when piReady is false', () => {
-    render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={false}
-        onPay={vi.fn()}
-      />
-    );
-    expect(screen.getByText('Connecting…')).toBeInTheDocument();
-  });
-
-  it('shows Pay button when piReady is true', () => {
-    render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={true}
-        onPay={vi.fn()}
-      />
-    );
-    expect(screen.getByText('Pay')).toBeInTheDocument();
-  });
-
-  it('shows Receive button', () => {
-    render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={true}
-        onPay={vi.fn()}
-      />
-    );
-    expect(screen.getByText('Receive')).toBeInTheDocument();
-  });
-
-  it('calls onPay when Pay button clicked', () => {
-    const onPay = vi.fn();
-    render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={true}
-        onPay={onPay}
-      />
-    );
-    const payBtn = screen.getByRole('button', { name: /Pay 5 Pi/ });
-    fireEvent.click(payBtn);
-    expect(onPay).toHaveBeenCalled();
-  });
-
-  it('navigates to wallet on Receive click', () => {
-    const push = vi.fn();
-    vi.mocked(useRouter).mockReturnValue({ push } as any);
-
-    render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={true}
-        onPay={vi.fn()}
-      />
-    );
-
-    const receiveBtn = screen.getByRole('button', { name: /Receive Pi/ });
-    fireEvent.click(receiveBtn);
-    expect(push).toHaveBeenCalledWith('/dashboard/wallet');
-  });
-
-  it('Pay button disabled when piReady=false', () => {
-    render(
-      <HubPayActions
-        payAmount={5}
-        setPayAmount={vi.fn()}
-        piReady={false}
-        onPay={vi.fn()}
-      />
-    );
-    const payBtn = screen.getByRole('button', { name: /Pay 5 Pi/ });
-    expect(payBtn).toBeDisabled();
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ErrorBoundary

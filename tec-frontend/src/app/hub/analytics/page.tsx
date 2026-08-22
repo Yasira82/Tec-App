@@ -137,7 +137,7 @@ export default function HubAnalyticsPage() {
   useEffect(() => { load(); }, [load]);
 
   const successColor = (r: number | null) =>
-    r === null ? 'var(--tec-text-3)' : r >= 80 ? '#22C55E' : r >= 60 ? '#f0c040' : '#ef4444';
+    r === null ? 'var(--tec-text-3)' : r >= 80 ? 'var(--tec-green)' : r >= 60 ? '#f0c040' : 'var(--tec-red)';
 
   return (
     <HubSubShell title={a.title} subtitle={a.subtitle}>
@@ -161,7 +161,7 @@ export default function HubAnalyticsPage() {
       </div>
 
       {error && (
-        <div style={{ padding: 'var(--sp-5)', borderRadius: 'var(--radius-xl)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#ef4444', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)', textAlign: 'center' }}>
+        <div style={{ padding: 'var(--sp-5)', borderRadius: 'var(--radius-xl)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)', textAlign: 'center' }}>
           {a.loadFailed}
         </div>
       )}
@@ -169,15 +169,15 @@ export default function HubAnalyticsPage() {
       {/* ── 24h Payments ────────────────────────────────── */}
       <DashboardCard title={a.payments24h} glass>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--sp-3)', padding: 'var(--sp-5)' }}>
-          <StatTile label={a.completed} value={loading ? '…' : (metrics?.completed ?? '—')} accent="#22C55E" />
-          <StatTile label={a.failed}    value={loading ? '…' : (metrics?.failed ?? '—')}    accent="#ef4444" />
+          <StatTile label={a.completed} value={loading ? '…' : (metrics?.completed ?? '—')} accent="var(--tec-green)" />
+          <StatTile label={a.failed}    value={loading ? '…' : (metrics?.failed ?? '—')}    accent="var(--tec-red)" />
           <StatTile label={a.cancelled} value={loading ? '…' : (metrics?.cancelled ?? '—')} accent="#f0c040" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)', padding: '0 var(--sp-5) var(--sp-5)' }}>
           <StatTile
             label={a.volume}
             value={loading ? '…' : metrics ? `${metrics.volume.toFixed(4)} π` : '—'}
-            accent="#FBBF24"
+            accent="var(--tec-gold)"
           />
           <StatTile
             label={a.successRate}

@@ -26,7 +26,7 @@ function Tokens({ tokens }: { tokens: RichToken[] }) {
           // `break-all` only in prose, where a long URL must not overflow the bubble.
           // Inside a table cell `white-space: nowrap` wins and the link stays intact.
           <a key={j} href={tok.href} target="_blank" rel="noopener noreferrer"
-             style={{ color: '#FBBF24', textDecoration: 'underline', overflowWrap: 'anywhere' }}>
+             style={{ color: 'var(--tec-gold)', textDecoration: 'underline', overflowWrap: 'anywhere' }}>
             {tok.value}
           </a>
         )

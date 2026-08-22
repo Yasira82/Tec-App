@@ -1,37 +1,29 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { useRouter }                                 from 'next/navigation';
-import { usePiAuth }                                 from '@/lib-client/hooks/usePiAuth';
-import { usePiSdkReady }                             from '@/lib-client/hooks/usePiSdkReady';
-import { piSession }                                 from '@/lib-client/pi/pi-session';
-import { useRealtimeNotifications }                  from '@/lib-client/hooks/useRealtimeNotifications';
-import { getAccessToken, getStoredUser }             from '@/lib-client/pi/pi-auth';
-import { tecSession }                                from '@/lib-client/pi/tec-session';
-import { LIVE_DOMAINS }                              from '@/domains/_registry';
-import { t as tr, type Locale }                      from '@/domains/_types';
-import { ErrorBoundary }                             from '@/components/ErrorBoundary';
-import { ToastContainer, Toast }                     from './components/ToastContainer';
-import { AIDrawer }                                  from './components/AIDrawer';
-import { Icon }                                       from '@/components/ui/Icon';
-import { HubSkeleton }                               from './components/HubSkeleton';
-import { PaymentModal, ExternalPayment }             from './components/PaymentModal';
+import { useRouter }                        from 'next/navigation';
+import { usePiAuth }                        from '@/lib-client/hooks/usePiAuth';
+import { usePiSdkReady }                    from '@/lib-client/hooks/usePiSdkReady';
+import { useRealtimeNotifications }         from '@/lib-client/hooks/useRealtimeNotifications';
+import { useExternalPayment }               from '@/lib-client/hooks/useExternalPayment';
+import { LIVE_DOMAINS }                     from '@/domains/_registry';
+import { t as tr, type Locale }             from '@/domains/_types';
+import { ErrorBoundary }                    from '@/components/ErrorBoundary';
+import { ToastContainer, Toast }            from './components/ToastContainer';
+import { AIDrawer }                         from './components/AIDrawer';
+import { Icon }                             from '@/components/ui/Icon';
+import { HubSkeleton }                      from './components/HubSkeleton';
+import { PaymentModal }                     from './components/PaymentModal';
+import { PaymentPreparing }                 from './components/PaymentPreparing';
 import {
   HubHeader, HubWalletCard, HubCarousel,
-  HubAppsGrid, HubComingSoon,
+  HubAppsGrid, HubComingSoon, HubTools, HubBottomNav,
 } from '@/components/hub';
-import { useHubData }  from '@/hooks/useHubData';
-import { useTranslation }  from '@/lib/i18n';
-import LanguageSwitcher   from '@/components/LanguageSwitcher';
-import { haptic }      from '@/lib/hub/utils';
+import { useHubData }     from '@/hooks/useHubData';
+import { useTranslation } from '@/lib/i18n';
+import { haptic }         from '@/lib/hub/utils';
+import { sessionToken }   from '@/lib-client/pi/session-source';
 import '@/styles/tec-design-tokens.css';
-import { sessionToken } from '@/lib-client/pi/session-source';
-
-
-const getCsrfToken = (): string => {
-  if (typeof document === 'undefined') return '';
-  return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
-};
 
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
@@ -64,14 +56,12 @@ function HubPageInner() {
       };
     });
 
-  const { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
+  const { balance, balanceError, piPrice, notifCount, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
 
-  const [carouselIdx,     setCarouselIdx]     = useState(0);
-  const [aiOpen,          setAiOpen]          = useState(false);
-  const [toasts,          setToasts]          = useState<Toast[]>([]);
-  const [externalPayment, setExternalPayment] = useState<ExternalPayment | null>(null);
-  const [pendingPayment,  setPendingPayment]  = useState<Omit<ExternalPayment, 'internalId'> | null>(null);
+  const [carouselIdx, setCarouselIdx] = useState(0);
+  const [aiOpen,      setAiOpen]      = useState(false);
+  const [toasts,      setToasts]      = useState<Toast[]>([]);
 
   const showToast = useCallback((type: Toast['type'], message: string, txid?: string) => {
     const id = Math.random().toString(36).slice(2);
@@ -79,115 +69,31 @@ function HubPageInner() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000);
   }, []);
 
-  /* ── Step 1: قرا الـ URL params فوراً ── */
-  useEffect(() => {
-    const p = new URLSearchParams(window.location.search);
-    if (p.get('pay') === '1') {
-      const amount = parseFloat(p.get('amount') ?? '0');
-      if (amount > 0) {
-        setPendingPayment({
-          amount,
-          memo:      decodeURIComponent(p.get('memo')       ?? 'TEC Payment'),
-          productId: p.get('product_id') ?? '',
-          // Nexus workflow-run link (C-109 §5): carried through so the completed
-          // payment's metadata lets the Nexus consumer resume the run. Present only
-          // for a Nexus run payment; harmless otherwise.
-          nexusRunId:   p.get('nexus_run')  ?? '',
-          nexusStepIdx: p.get('nexus_step') ?? '',
-          // No return_url (template apps like Nexus/Zone don't send one) → come
-          // back to the Hub, NOT Commerce. The old Commerce-URL default dumped
-          // every template-app Mode-1 payment onto Commerce after "Close".
-          returnUrl: decodeURIComponent(p.get('return_url') ?? `${window.location.origin}/hub`),
-          source:    p.get('source')     ?? 'hub',
-        });
-        window.history.replaceState({}, '', '/hub');
-      }
-    }
-  }, []);
+  const onPaymentInitFailed = useCallback(
+    () => showToast('error', t.hub.payment.initFailed),
+    [showToast, t.hub.payment.initFailed],
+  );
 
-  /* ── Step 2: piReady + authReady → create record → show Modal ── */
-  useEffect(() => {
-    if (!(piReady && pendingPayment && !externalPayment)) return;
-    // C-123 §7: wait for auth resolution to settle. This (a) serializes the
-    // silent re-auth's Pi.authenticate against the PaymentModal's — Pi Browser
-    // breaks on concurrent authenticate calls — and (b) makes the in-memory
-    // session available in cookie-refusing contexts, where the old cookie-only
-    // read left this flow stuck on "Preparing payment…" forever.
-    if (isLoading) return;
-    let cancelled = false;
-
-    (async () => {
-      const storedUser = user ?? tecSession.user ?? getStoredUser();
-      const userId = (storedUser as { id?: string; piId?: string } | null)?.id
-                  ?? (storedUser as { id?: string; piId?: string } | null)?.piId;
-      if (!userId) return;
-
-      try {
-        const res = await fetch('/api/payment/create', {
-          method:      'POST',
-          credentials: 'include',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization:  `Bearer ${tecSession.token ?? sessionToken()}`,
-            'x-csrf-token': getCsrfToken(),
-          },
-          body: JSON.stringify({
-            // ✅ amount = number — يطابق tec-payment-service (DECIMAL/number) والتطبيقات الـ3.
-            // String() كان بيخلي الـ payment-service يرفض → internalId=null → modal flash.
-            amount:         pendingPayment.amount,
-            currency:       'PI',
-            payment_method: 'pi',
-            source:         'hub',
-            metadata: {
-              app_source: pendingPayment.source,
-              product_id: pendingPayment.productId,
-              // Nexus run link — only when this is a Nexus workflow-run payment. Lets the
-              // Nexus consumer resume the run once payment.completed fires (C-109 §5).
-              ...(pendingPayment.nexusRunId
-                ? { nexusRunId: pendingPayment.nexusRunId, nexusStepIdx: Number(pendingPayment.nexusStepIdx) }
-                : {}),
-            },
-          }),
-        });
-
-        const data       = await res.json().catch(() => ({}));
-        const internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? null;
-
-        if (cancelled) return;
-
-        if (!internalId) {
-          const ret = new URL(pendingPayment.returnUrl);
-          ret.searchParams.set('payment_status', 'error');
-          ret.searchParams.set('reason', 'create_failed');
-          window.location.href = ret.toString();
-          return;
-        }
-
-        setExternalPayment({ ...pendingPayment, internalId });
-        setPendingPayment(null);
-      } catch {
-        if (cancelled) return;
-        showToast('error', t.hub.payment.initFailed);
-        const ret = new URL(pendingPayment.returnUrl);
-        ret.searchParams.set('payment_status', 'error');
-        ret.searchParams.set('reason', 'create_failed');
-        window.location.href = ret.toString();
-      }
-    })();
-
-    return () => { cancelled = true; };
-  }, [piReady, pendingPayment, externalPayment, showToast, isLoading, user, t.hub.payment.initFailed]);
+  // Mode-1 handoff (`/hub?pay=1&…`): read the URL, create the record, open the modal.
+  const { pending: pendingPayment, external: externalPayment, clearExternal } =
+    useExternalPayment({ isLoading, piReady, user, onError: onPaymentInitFailed });
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
-  if (!externalPayment) return;
-  setExternalPayment(null);
-  const ret = new URL(externalPayment.returnUrl);
-  ret.searchParams.set('payment_status', 'success');
-  ret.searchParams.set('txid',           txid);
-  ret.searchParams.set('payment_id',     paymentId);
-  ret.searchParams.set('product_id',     externalPayment.productId);
-  window.location.href = ret.toString();
-}, [externalPayment]);
+    if (!externalPayment) return;
+    clearExternal();
+    const ret = new URL(externalPayment.returnUrl);
+    ret.searchParams.set('payment_status', 'success');
+    ret.searchParams.set('txid',           txid);
+    ret.searchParams.set('payment_id',     paymentId);
+    ret.searchParams.set('product_id',     externalPayment.productId);
+    window.location.href = ret.toString();
+  }, [externalPayment, clearExternal]);
+
+  const closePaymentModal = useCallback(() => {
+    if (!externalPayment) return;
+    clearExternal();
+    window.location.href = externalPayment.returnUrl;
+  }, [externalPayment, clearExternal]);
 
   useEffect(() => {
     if (!piPrice) return;
@@ -208,45 +114,15 @@ function HubPageInner() {
   /* ── Early returns ── */
   if (isLoading || (!isAuthenticated && !pendingPayment)) return <HubSkeleton />;
 
-  // ✅ لو في pending Commerce payment → اعرض loading بس (مش Hub كامل)
-  if (isAuthenticated && pendingPayment && !externalPayment) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#050816', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
-          <span style={{ fontSize: 13, color: '#4a4a5a' }}>{t.hub.payment.preparing}</span>
-        </div>
-      </div>
-    );
-  }
+  // A Mode-1 payment is still being prepared — show only the splash, not the whole
+  // Hub. Covers both the signed-in case and the one where SSO is still resolving;
+  // they rendered identical markup from two separate branches before.
+  if (pendingPayment && !externalPayment) return <PaymentPreparing />;
 
-  // ✅ مش authenticated بس في pending payment (SSO لسه شغال)
-  if (!isAuthenticated && pendingPayment) {
-    return (
-      <div style={{ minHeight: '100vh', background: '#050816', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
-        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-        <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
-          <span style={{ fontSize: 13, color: '#4a4a5a' }}>{t.hub.payment.preparing}</span>
-        </div>
-        {externalPayment && (
-          <PaymentModal
-            payment={externalPayment}
-            onClose={() => { setExternalPayment(null); window.location.href = externalPayment.returnUrl; }}
-            onSuccess={handlePaymentSuccess}
-          />
-        )}
-      </div>
-    );
-  }
-
-  const totalNotif   = wsUnread > 0 ? wsUnread : notifCount;
+  const totalNotif = wsUnread > 0 ? wsUnread : notifCount;
   // Marketing missions entry — the Pioneer Quest / Founding 100 (public route, same origin).
-  const goToPioneers  = () => { haptic('light'); router.push('/pioneers'); };
-  const goToReferral  = () => { haptic('light'); router.push('/hub/referral'); };
+  const goToPioneers = () => { haptic('light'); router.push('/pioneers'); };
+  const goToReferral = () => { haptic('light'); router.push('/hub/referral'); };
 
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? t.hub.greeting.morning
@@ -256,27 +132,16 @@ function HubPageInner() {
   return (
     <div
       dir={dir}
-      style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)',
-        // Clears the fixed bottom nav. Nothing else hovers over the content any more. */
+      style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: '#fff', fontFamily: 'var(--font-sans)',
+        // Clears the fixed bottom nav. Nothing else hovers over the content any more.
         paddingBottom: 88 }}
     >
-      {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (
-        <PaymentModal
-          payment={externalPayment}
-          onClose={() => { setExternalPayment(null); window.location.href = externalPayment.returnUrl; }}
-          onSuccess={handlePaymentSuccess}
-        />
+        <PaymentModal payment={externalPayment} onClose={closePaymentModal} onSuccess={handlePaymentSuccess} />
       )}
 
       <ToastContainer toasts={toasts} onDismiss={id => setToasts(p => p.filter(t => t.id !== id))} />
       <AIDrawer open={aiOpen} onClose={() => setAiOpen(false)} />
-
-      {/* The assistant button stays on the RIGHT in both languages — deliberately NOT
-          mirrored. Mirroring it for RTL is the textbook move and it was wrong here:
-          it jumped sides for existing users, and on the start side it lands on top of
-          the Platform Tools row. One fixed corner in both languages is the muscle
-          memory people already have. */}
 
       <HubHeader
         piUsername={user?.piUsername ?? ''}
@@ -284,6 +149,7 @@ function HubPageInner() {
         notifCount={totalNotif}
         onNotifClick={() => { haptic('light'); clearUnread(); setNotifCount(0); router.push('/hub/notifications'); }}
       />
+
       {/* Personalized greeting — time-of-day + Pi username */}
       {user?.piUsername && (
         <div style={{ padding: '16px 20px 0', animation: 'tec-fade-in 0.35s ease both' }}>
@@ -291,7 +157,7 @@ function HubPageInner() {
             {/* The comma lives in the dictionary — Arabic writes ، not ,. And the
                 handle is Latin inside an Arabic line, so it gets an explicit
                 direction: bidi otherwise decides where the "@" lands. */}
-            {greeting} <span dir="ltr" style={{ color: '#FBBF24' }}>@{user.piUsername}</span>
+            {greeting} <span dir="ltr" style={{ color: 'var(--tec-gold)' }}>@{user.piUsername}</span>
           </div>
           <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{t.hub.greeting.sub}</div>
         </div>
@@ -300,7 +166,7 @@ function HubPageInner() {
       <HubWalletCard balance={balance} piPrice={piPrice} balanceError={balanceError} onRetryBalance={refreshBalance} />
 
       {/* Carousel = the top spotlight: Founding-100 marketing missions + an app
-          announcement + the live Pi price. (Assets/Commerce/Analytics slides removed.) */}
+          announcement + the live Pi price. */}
       <HubCarousel
         carouselIdx={carouselIdx}
         setCarouselIdx={setCarouselIdx}
@@ -310,74 +176,26 @@ function HubPageInner() {
       />
 
       <HubAppsGrid apps={visibleLive} />
-
-      {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
-
-      {/* ── Platform Tools ──────────────────────────────── */}
-      <div style={{ margin: '0 16px 8px', display: 'flex', gap: 8 }}>
-        {[
-          { icon: 'chart'    as const, label: t.hub.tools.analytics, route: '/hub/analytics' },
-          { icon: 'shield'   as const, label: t.hub.tools.kyc,       route: '/hub/kyc' },
-          { icon: 'sparkles' as const, label: t.hub.tools.plan,      route: '/hub/subscription' },
-          { icon: 'plus'     as const, label: t.hub.tools.invite,    route: '/hub/referral' },
-        ].map(({ icon, label, route }) => (
-          <button
-            key={label}
-            onClick={() => { haptic('light'); router.push(route); }}
-            style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-              padding: '10px 0', borderRadius: 14,
-              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
-              color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', letterSpacing: 0.4,
-            }}
-          >
-            <Icon name={icon} size={15} color="rgba(255,255,255,0.55)" strokeWidth={1.9} />
-            {label}
-          </button>
-        ))}
-      </div>
-
+      <HubTools />
       <HubComingSoon />
 
-      {/* The assistant, back in its corner. Removing it was my misreading of
-          "the Hub's scroll button" — that was the painted scrollbar down the side
-          of the screen, not this. The only thing that stays fixed is the
-          `tec-float` bob: a control that never holds still is hard to ignore. */}
+      {/* The assistant, in its corner. It stays on the RIGHT in both languages —
+          deliberately NOT mirrored: on the start side it lands on top of the
+          Platform Tools row, and one fixed corner is the muscle memory people
+          already have. */}
       {!aiOpen && (
         <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label={t.hub.ai.open}
-          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', touchAction: 'pan-y', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', touchAction: 'pan-y', background: 'var(--tec-gold-grad)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          <Icon name="sparkles" size={24} color="var(--tec-bg)" strokeWidth={2.2} />
+        </button>
       )}
 
-      <nav aria-label={t.hub.nav.main} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150,
-        // The nav owns the bottom strip of the screen — which is exactly where a
-        // thumb swipes. Without this it eats every scroll that starts down here and
-        // the page simply does not move. `pan-y` hands vertical drags to the page
-        // and keeps taps for the buttons. */
-        touchAction: 'pan-y' }}>
-        {([
-          { icon: 'hub'      as const, label: t.hub.nav.hub,      active: true,  action: () => {} },
-          { icon: 'wallet'   as const, label: t.hub.nav.wallet,   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-          // Labeled entry to the Dashboard. It used to be reachable ONLY by tapping the
-          // header avatar, which reads as a name — not as a link to anything.
-          { icon: 'chart'    as const, label: t.hub.nav.dashboard, active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
-          { icon: 'shield'   as const, label: t.hub.nav.verify,   active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
-          { icon: 'sparkles' as const, label: t.hub.nav.plan,     active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
-          { icon: 'settings' as const, label: t.hub.nav.settings, active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
-        ]).map(item => (
-          <button key={item.label} className="tec-nav-btn" onClick={item.action} aria-label={item.label} aria-current={item.active ? 'page' : undefined}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
-            {item.active && <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'linear-gradient(90deg,#FBBF24,#F59E0B)', boxShadow: '0 0 8px rgba(251,191,36,0.6)' }} />}
-            <Icon name={item.icon} size={21} color={item.active ? '#FBBF24' : 'rgba(255,255,255,0.4)'} strokeWidth={item.active ? 2.2 : 1.9} />
-            <span style={{ fontSize: 9, letterSpacing: 0.8, textTransform: 'uppercase', fontWeight: item.active ? 700 : 400, color: item.active ? '#FBBF24' : 'rgba(255,255,255,0.28)' }}>{item.label}</span>
-          </button>
-        ))}
-      </nav>
+      <HubBottomNav />
     </div>
   );
 }
 
 export default function HubPage() {
   return <ErrorBoundary><HubPageInner /></ErrorBoundary>;
-      }
+}

@@ -1,4 +1,10 @@
 import './globals.css';
+// The token layer belongs at the root, not per-section. It was imported by
+// /hub and /dashboard only, so a SHARED component styled with `var(--tec-*)`
+// rendered correctly inside the Hub and colourless on /ai — the variable simply
+// did not exist on that page. The file is additive (custom properties, keyframes,
+// utility classes); defining it once removes that class of bug entirely.
+import '@/styles/tec-design-tokens.css';
 import Script from 'next/script';
 import localFont from 'next/font/local';
 import { ClientProviders } from '@/components/ClientProviders';

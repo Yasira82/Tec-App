@@ -68,7 +68,7 @@ function RenewalNotice({ endISO, daysRemaining, isExpired }: {
   const expired = isExpired === true || days === 0;
   const soon    = !expired && days !== null && days <= 7;
 
-  const tone = expired ? '#ef4444' : soon ? '#f59e0b' : 'var(--tec-text-3)';
+  const tone = expired ? 'var(--tec-red)' : soon ? 'var(--tec-gold-dark)' : 'var(--tec-text-3)';
   // Singular gets its own key rather than a `day${n===1?'':'s'}` splice — English
   // pluralization rules are not Arabic's, and the splice cannot express either.
   const line = expired
@@ -100,7 +100,7 @@ function EnforcedTag({ live }: { live: boolean }) {
     <span style={{
       fontSize: 8.5, fontWeight: 800, letterSpacing: 1, textTransform: 'uppercase',
       padding: '1px 6px', borderRadius: 999, whiteSpace: 'nowrap',
-      color:      live ? '#22C55E' : 'var(--tec-text-3)',
+      color:      live ? 'var(--tec-green)' : 'var(--tec-text-3)',
       background: live ? 'rgba(34,197,94,0.1)' : 'rgba(255,255,255,0.04)',
       border: `1px solid ${live ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`,
     }}>
@@ -114,7 +114,7 @@ function UsageBar({ used, limit }: { used: number; limit: number }) {
   const { t } = useTranslation();
   const pct     = Math.min(100, Math.round((used / limit) * 100));
   const nearCap = used >= limit;
-  const color   = nearCap ? '#ef4444' : used / limit >= 0.8 ? '#f59e0b' : '#22C55E';
+  const color   = nearCap ? 'var(--tec-red)' : used / limit >= 0.8 ? 'var(--tec-gold-dark)' : 'var(--tec-green)';
   return (
     <div style={{ marginTop: 'var(--sp-3)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 }}>
@@ -125,7 +125,7 @@ function UsageBar({ used, limit }: { used: number; limit: number }) {
         <div style={{ width: `${pct}%`, height: '100%', background: color, transition: 'width .3s ease' }} />
       </div>
       {nearCap && (
-        <div style={{ fontSize: 'var(--text-xs)', color: '#ef4444', marginTop: 6 }}>
+        <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-red)', marginTop: 6 }}>
           {t.hub.subscription.atLimit}
         </div>
       )}
@@ -329,12 +329,12 @@ export default function HubSubscriptionPage() {
       }
     >
       {error && (
-        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
+        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)' }}>
           ⚠️ {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#22C55E' }}>
+        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-green)' }}>
           ✓ {success}
         </div>
       )}
@@ -381,7 +381,7 @@ export default function HubSubscriptionPage() {
 
         {isActivePaid && (
           <button onClick={handleCancel} disabled={cancelling}
-            style={{ marginTop: 'var(--sp-4)', padding: '7px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer', opacity: cancelling ? 0.6 : 1 }}>
+            style={{ marginTop: 'var(--sp-4)', padding: '7px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--tec-red)', fontSize: 'var(--text-xs)', cursor: 'pointer', opacity: cancelling ? 0.6 : 1 }}>
             {cancelling ? t.hub.subscription.cancelling : t.hub.subscription.cancel}
           </button>
         )}

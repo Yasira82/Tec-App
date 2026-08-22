@@ -138,7 +138,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
               <span aria-hidden style={{
                 position: 'absolute', top: -6, insetInlineEnd: -6, width: 20, height: 20, borderRadius: 999,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1,
-                background: isFav ? '#FBBF24' : '#1b2233', color: isFav ? '#050816' : 'rgba(255,255,255,0.5)',
+                background: isFav ? 'var(--tec-gold)' : '#1b2233', color: isFav ? 'var(--tec-bg)' : 'rgba(255,255,255,0.5)',
                 border: '1px solid rgba(255,255,255,0.15)', fontWeight: 800,
               }}>{isFav ? '★' : '+'}</span>
             )}
@@ -166,7 +166,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
     <div style={{ padding: '24px 16px 0', animation: 'tec-fade-in 0.6s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span className="tec-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: '#22C55E', display: 'inline-block' }} />
+          <span className="tec-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
           <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.apps.title}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -177,9 +177,9 @@ export function HubAppsGrid({ apps, openTo }: Props) {
               padding: '3px 10px', borderRadius: 999,
               background: editing ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
               border: `1px solid ${editing ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.1)'}`,
-              color: editing ? '#FBBF24' : 'rgba(255,255,255,0.55)',
+              color: editing ? 'var(--tec-gold)' : 'rgba(255,255,255,0.55)',
             }}>{editing ? t.hub.apps.done : t.hub.apps.edit}</button>
-          <span style={{ fontSize: 10, color: '#22C55E', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1 }}>
+          <span style={{ fontSize: 10, color: 'var(--tec-green)', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1 }}>
             {apps.length} {t.hub.apps.live}
           </span>
         </div>
@@ -202,7 +202,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
           aria-label={t.hub.apps.search}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '11px 14px 11px 40px',
-            borderRadius: 14, background: '#111627', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 14, background: 'var(--tec-surface-2)', border: '1px solid rgba(255,255,255,0.08)',
             color: '#fff', fontSize: 13, outline: 'none',
           }}
         />
@@ -223,7 +223,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
             </div>;
       })() : (
         <>
-          {favApps.length    > 0 && <Section title={t.hub.apps.favorites} items={favApps}    accent="#FBBF24" />}
+          {favApps.length    > 0 && <Section title={t.hub.apps.favorites} items={favApps}    accent="var(--tec-gold)" />}
           {recentApps.length > 0 && !editing && <Section title={t.hub.apps.recent} items={recentApps} />}
           {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} accent={hexRgba(categoryMeta(s.group as AppCategory)?.accent ?? UNCLASSIFIED_ACCENT, 0.75)} />)}
         </>

@@ -73,7 +73,11 @@ vi.mock('@/lib/hub/utils', () => ({ haptic: vi.fn() }));
 // translation key now fails here instead of at runtime.
 
 // ── Stub hub sub-components so we don't need their deps ────────────
-vi.mock('@/components/hub', () => ({
+// Spread the real module and override only what this file stubs. A hand-listed
+// mock silently breaks the moment the barrel gains an export — which is exactly
+// how HubTools/HubBottomNav took this file down.
+vi.mock('@/components/hub', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/components/hub')>()),
   HubHeader:    ({ piUsername, notifCount, onNotifClick }: any) => (
     <div data-testid="hub-header">
       <span data-testid="hub-username">{piUsername}</span>
@@ -120,11 +124,6 @@ vi.mock('@/app/hub/components/HubSkeleton', () => ({
   HubSkeleton: () => <div data-testid="hub-skeleton">Loading...</div>,
 }));
 
-vi.mock('@/app/hub/components/PullIndicator', () => ({
-  PullIndicator: ({ progress, refreshing }: any) => (
-    <div data-testid="pull-indicator" data-progress={progress} data-refreshing={refreshing} />
-  ),
-}));
 
 vi.mock('@/app/hub/components/PaymentModal', () => ({
   PaymentModal: ({ payment, onClose, onSuccess }: any) => (

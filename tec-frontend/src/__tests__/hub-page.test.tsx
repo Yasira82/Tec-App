@@ -67,10 +67,6 @@ vi.mock('@/app/hub/components/HubSkeleton', () => ({
   HubSkeleton: () => null,
 }));
 
-vi.mock('@/app/hub/components/PullIndicator', () => ({
-  PullIndicator: () => null,
-}));
-
 vi.mock('@/app/hub/components/PaymentModal', () => ({
   PaymentModal:    () => null,
   ExternalPayment: {},

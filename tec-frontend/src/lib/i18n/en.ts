@@ -444,6 +444,15 @@ export const en = {
       copyReply: 'Copy reply', copied: '✓ Copied', copyShort: '⧉ Copy',
       stopped: '… (stopped)', stoppedEmpty: 'Stopped before it began.',
       connectionError: 'Connection error — please try again.',
+      // These four reached the screen in English on an Arabic page: the drawer
+      // rendered them as literals while every neighbouring string came from here.
+      pastConversations: '🗂 Past conversations',
+      tryAgain: '↻ Try again',
+      noAnswer: 'I couldn’t answer that — try rephrasing your question.',
+      truncated: '… (answer cut off at the length limit — ask “continue” for the rest)',
+      dialog: 'TEC AI assistant',
+      closeBackdrop: 'Close the assistant',
+      suggestions: ['What is TEC?', 'Show my balance', 'Which app fits me?'],
     },
   },
 };

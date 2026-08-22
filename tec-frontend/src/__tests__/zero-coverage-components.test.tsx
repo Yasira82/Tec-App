@@ -1,7 +1,7 @@
 /**
  * Tests for components/pages that had 0% coverage.
  * Covers: DashboardLayout, AuthBootstrapPage, Header, ClientProviders,
- *         QuickActions, AiWrapper, PayWrapper, HubLayout, PayLayout,
+ *         AiWrapper, PayWrapper, HubLayout, PayLayout,
  *         data/apps.ts, pi-test/page.tsx
  */
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -82,7 +82,6 @@ import DashboardLayout    from '@/app/dashboard/layout';
 import AuthBootstrapPage  from '@/app/auth/bootstrap/page';
 import Header             from '@/components/Header';
 import { ClientProviders }from '@/components/ClientProviders';
-import QuickActions       from '@/components/hub/QuickActions';
 import AiWrapper          from '@/app/ai/AiWrapper';
 import PayWrapper         from '@/app/pay/PayWrapper';
 import HubLayout          from '@/app/hub/layout';
@@ -163,19 +162,6 @@ describe('ClientProviders', () => {
       </ClientProviders>
     );
     expect(screen.getByTestId('child')).toBeInTheDocument();
-  });
-});
-
-// ═══════════════════════════════════════════════════════════════════════════
-// QuickActions
-// ═══════════════════════════════════════════════════════════════════════════
-
-describe('QuickActions', () => {
-  it('renders three action buttons', () => {
-    render(<QuickActions />);
-    expect(screen.getByText('Wallet')).toBeInTheDocument();
-    expect(screen.getByText('Orders')).toBeInTheDocument();
-    expect(screen.getByText('Profile')).toBeInTheDocument();
   });
 });
 

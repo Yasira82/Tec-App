@@ -163,7 +163,7 @@ function HubReferralInner() {
         <div style={{
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 'var(--radius-lg)', padding: 'var(--sp-4)',
-          color: '#ef4444', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)',
+          color: 'var(--tec-red)', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)',
         }}>⚠ {error}</div>
       )}
 
@@ -213,7 +213,7 @@ function HubReferralInner() {
           {/* ── Stats ── */}
           <div style={{ display: 'flex', gap: 12, marginTop: 'var(--sp-4)' }}>
             <StatTile label={r.pending}  value={data.stats.pending}  color="var(--tec-text-1)" />
-            <StatTile label={r.rewarded} value={data.stats.rewarded} color="#22C55E" />
+            <StatTile label={r.rewarded} value={data.stats.rewarded} color="var(--tec-green)" />
             <StatTile label={r.total}    value={data.stats.total}    color="var(--tec-gold)" />
           </div>
 
@@ -224,7 +224,7 @@ function HubReferralInner() {
                 <div style={{
                   background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)',
                   borderRadius: 'var(--radius-md)', padding: 'var(--sp-4)',
-                  color: '#22C55E', fontSize: 'var(--text-sm)',
+                  color: 'var(--tec-green)', fontSize: 'var(--text-sm)',
                 }}>{apply.msg}</div>
               ) : (
                 <>
@@ -251,7 +251,7 @@ function HubReferralInner() {
                     </button>
                   </div>
                   {apply.kind === 'error' && (
-                    <div style={{ marginTop: 10, color: '#ef4444', fontSize: 'var(--text-sm)' }}>
+                    <div style={{ marginTop: 10, color: 'var(--tec-red)', fontSize: 'var(--text-sm)' }}>
                       {apply.msg}
                     </div>
                   )}
@@ -299,14 +299,14 @@ function btn(active: boolean): React.CSSProperties {
     padding: '10px 16px', borderRadius: 'var(--radius-md)',
     background: active ? 'rgba(34,197,94,0.1)' : 'var(--tec-surface-1)',
     border: `1px solid ${active ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`,
-    color: active ? '#22C55E' : 'var(--tec-text-2)',
+    color: active ? 'var(--tec-green)' : 'var(--tec-text-2)',
     fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
   };
 }
 function btnGold(disabled = false): React.CSSProperties {
   return {
     padding: '10px 18px', borderRadius: 'var(--radius-md)',
-    background: disabled ? 'var(--tec-surface-1)' : 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+    background: disabled ? 'var(--tec-surface-1)' : 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
     border: 'none', color: disabled ? 'var(--tec-text-3)' : '#0a0800',
     fontSize: 'var(--text-sm)', fontWeight: 800,
     cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',

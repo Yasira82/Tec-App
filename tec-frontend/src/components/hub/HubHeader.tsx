@@ -38,13 +38,13 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
         <div style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-          background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: '#0a0800',
           boxShadow: '0 2px 12px rgba(251,191,36,0.3)',
         }}>T</div>
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: '#FBBF24', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
           <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: 2, lineHeight: 1.4 }}>{t.hub.header.ecosystem}</div>
         </div>
       </div>
@@ -67,12 +67,12 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', position: 'relative', flexShrink: 0,
           }}>
-          <Icon name="bell" size={18} color={notifCount > 0 ? '#FBBF24' : 'rgba(255,255,255,0.6)'} />
+          <Icon name="bell" size={18} color={notifCount > 0 ? 'var(--tec-gold)' : 'rgba(255,255,255,0.6)'} />
           {notifCount > 0 && (
             <span style={{
               position: 'absolute', top: -4, insetInlineEnd: -4,
               minWidth: 17, height: 17, borderRadius: 999,
-              background: '#ef4444', border: '2px solid #050816',
+              background: 'var(--tec-red)', border: '2px solid var(--tec-bg)',
               fontSize: 9, fontWeight: 800, color: '#fff',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0 3px',
@@ -96,13 +96,13 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
           <div style={{
             width: 26, height: 26, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+            background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 800, color: '#0a0800',
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span dir="ltr" style={{ fontSize: 12, color: '#FBBF24', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
+          <span dir="ltr" style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
           <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'rgba(251,191,36,0.6)', marginInlineStart: -2 }}>›</span>
         </button>
       </div>

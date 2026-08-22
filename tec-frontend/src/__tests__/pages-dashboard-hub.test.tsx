@@ -191,9 +191,6 @@ vi.mock('@/app/hub/components/AIDrawer', () => ({
 vi.mock('@/app/hub/components/HubSkeleton', () => ({
   HubSkeleton: () => <div data-testid="hub-skeleton">Loading...</div>,
 }));
-vi.mock('@/app/hub/components/PullIndicator', () => ({
-  PullIndicator: () => null,
-}));
 vi.mock('@/app/hub/components/PaymentModal', () => ({
   PaymentModal:    () => null,
   ExternalPayment: {},

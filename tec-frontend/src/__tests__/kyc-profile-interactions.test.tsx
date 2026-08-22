@@ -7,7 +7,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, act, fireEvent, waitFor, screen } from '@testing-library/react';
+import { render, act, fireEvent, waitFor, screen } from '@/test-utils/render-with-locale';
 
 const mockUsePiAuth   = vi.hoisted(() => vi.fn());
 const mockUseKyc      = vi.hoisted(() => vi.fn());

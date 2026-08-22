@@ -1,7 +1,8 @@
 'use client';
 
-import { ReactNode }  from 'react';
-import { useRouter }  from 'next/navigation';
+import { ReactNode }      from 'react';
+import { useRouter }      from 'next/navigation';
+import { useTranslation } from '@/lib/i18n';
 
 interface Props {
   title:     string;
@@ -33,10 +34,14 @@ function Skeleton() {
 
 export function HubSubShell({ title, subtitle, badge, actions, loading, children }: Props) {
   const router     = useRouter();
+  const { dir }    = useTranslation();
   const badgeStyle = badge ? BADGE_COLORS[badge.color ?? 'gold'] : null;
 
+  // Direction lives HERE, not on each page: every Hub sub-page renders through this
+  // shell, so one `dir` covers all of them and none can be forgotten. The back arrow
+  // points the way "back" actually is — in RTL that is to the right.
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)', paddingBottom: 32 }}>
+    <div dir={dir} style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)', paddingBottom: 32 }}>
 
       {/* ── Sticky header ──────────────────────── */}
       <header style={{
@@ -52,7 +57,7 @@ export function HubSubShell({ title, subtitle, badge, actions, loading, children
             borderRadius: 10, padding: '7px 12px', color: 'var(--tec-text-2)',
             fontSize: 14, cursor: 'pointer', flexShrink: 0,
           }}>
-          ←
+          {dir === 'rtl' ? '→' : '←'}
         </button>
         <div style={{ flex: 1 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

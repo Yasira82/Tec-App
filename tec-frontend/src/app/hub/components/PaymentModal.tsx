@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { piSession }        from '@/lib-client/pi/pi-session';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { PiRuntime }        from '@/lib-client/pi/PiRuntime';
+import { useTranslation, fill } from '@/lib/i18n';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -46,6 +47,8 @@ export function PaymentModal({
   onClose:   () => void;
   onSuccess: (txid: string, paymentId: string) => void;
 }) {
+  const { t } = useTranslation();
+  const p     = t.hub.payment;
   const [isReady, setIsReady] = useState(false);
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
   const [message, setMessage] = useState('');
@@ -103,10 +106,10 @@ await new Promise(r => setTimeout(r, 1000));
   }, []);
 
   const handlePay = useCallback(async () => {
-    if (!PiRuntime.isAvailable()) { setStatus('error'); setMessage('Open in Pi Browser'); return; }
+    if (!PiRuntime.isAvailable()) { setStatus('error'); setMessage(p.openInPiBrowser); return; }
 
     const locked = await piSession.acquirePaymentLock();
-    if (!locked) { setStatus('error'); setMessage('Payment already in progress'); return; }
+    if (!locked) { setStatus('error'); setMessage(p.alreadyInProgress); return; }
 
     if (hasStarted.current) { piSession.releasePaymentLock(); return; }
     hasStarted.current = true;
@@ -116,7 +119,7 @@ await new Promise(r => setTimeout(r, 1000));
       const ready = await piSession.ensurePaymentsReady();
       if (!ready) {
         setStatus('error');
-        setMessage('Pi SDK not ready. Please try again.');
+        setMessage(p.sdkNotReady);
         hasStarted.current = false;
         return;
       }
@@ -139,18 +142,18 @@ await new Promise(r => setTimeout(r, 1000));
         hasStarted.current = false;
       } else {
         setStatus('error');
-        setMessage(result.message ?? 'Payment failed');
+        setMessage(result.message ?? p.failed);
         hasStarted.current = false;
       }
     } catch (err) {
       haptic('heavy');
       setStatus('error');
-      setMessage(err instanceof Error ? err.message : 'Payment failed');
+      setMessage(err instanceof Error ? err.message : p.failed);
       hasStarted.current = false;
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [payment, onSuccess]);
+  }, [payment, onSuccess, p]);
 
   return (
     <div style={{
@@ -192,7 +195,7 @@ await new Promise(r => setTimeout(r, 1000));
                   border: '2px solid #FBBF2430', borderTop: '2px solid #FBBF24',
                   animation: 'spin 0.8s linear infinite',
                 }} />
-                <span style={{ fontSize: 11, color: '#4a4a5a' }}>Authenticating...</span>
+                <span style={{ fontSize: 11, color: '#4a4a5a' }}>{p.authenticating}</span>
               </div>
             )}
             <button
@@ -208,13 +211,13 @@ await new Promise(r => setTimeout(r, 1000));
                 boxShadow: isReady ? '0 8px 32px rgba(251,191,36,0.3)' : 'none',
               }}
             >
-              {isReady ? `Pay ${payment.amount}π` : 'Authenticating...'}
+              {isReady ? fill(p.pay, { amount: payment.amount }) : p.authenticating}
             </button>
             <button
               onClick={onClose}
               style={{ background: 'none', border: 'none', color: '#4a4a5a', fontSize: 12, cursor: 'pointer' }}
             >
-              Cancel
+              {p.cancel}
             </button>
           </div>
         )}
@@ -227,7 +230,7 @@ await new Promise(r => setTimeout(r, 1000));
               border: '3px solid #FBBF2430', borderTop: '3px solid #FBBF24',
               animation: 'spin 0.8s linear infinite',
             }} />
-            <div style={{ fontSize: 14, color: '#6b6b7a' }}>Processing payment...</div>
+            <div style={{ fontSize: 14, color: '#6b6b7a' }}>{p.processing}</div>
           </div>
         )}
 
@@ -235,8 +238,8 @@ await new Promise(r => setTimeout(r, 1000));
         {status === 'success' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>✅</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#7ee7c0' }}>Payment Successful!</div>
-            <div style={{ fontSize: 12, color: '#4a4a5a' }}>Redirecting back...</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#7ee7c0' }}>{p.successTitle}</div>
+            <div style={{ fontSize: 12, color: '#4a4a5a' }}>{p.redirecting}</div>
           </div>
         )}
 
@@ -244,7 +247,7 @@ await new Promise(r => setTimeout(r, 1000));
         {status === 'cancelled' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>⚠️</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>Cancelled</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>{p.cancelledTitle}</div>
             <button
               onClick={onClose}
               style={{
@@ -253,7 +256,7 @@ await new Promise(r => setTimeout(r, 1000));
                 color: '#fff', fontSize: 13, cursor: 'pointer',
               }}
             >
-              Go Back
+              {p.goBack}
             </button>
           </div>
         )}
@@ -262,7 +265,7 @@ await new Promise(r => setTimeout(r, 1000));
         {status === 'error' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>❌</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>Payment Failed</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>{p.failedTitle}</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {/* ✅ Try Again: reInit + delay قبل الـ retry */}
@@ -287,7 +290,7 @@ await new Promise(r => setTimeout(r, 1000));
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}
               >
-                Try Again
+                {p.tryAgain}
               </button>
               <button
                 onClick={onClose}
@@ -297,7 +300,7 @@ await new Promise(r => setTimeout(r, 1000));
                   color: '#fff', fontSize: 13, cursor: 'pointer',
                 }}
               >
-                Cancel
+                {p.cancel}
               </button>
             </div>
           </div>

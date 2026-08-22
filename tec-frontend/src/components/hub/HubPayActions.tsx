@@ -3,6 +3,7 @@
 import { useRouter }      from 'next/navigation';
 import { haptic }         from '@/lib/hub/utils';
 import { AmountSelector } from '@/app/hub/components/AmountSelector';
+import { useTranslation } from '@/lib/i18n';
 
 interface Props {
   payAmount:    number;
@@ -12,6 +13,7 @@ interface Props {
 }
 
 export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -31,14 +33,14 @@ export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props
             boxShadow: piReady ? '0 0 20px rgba(34,197,94,0.1)' : 'none',
           }}>
           {!piReady
-            ? <><div className="tec-spin" style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'rgba(255,255,255,0.3)' }} /><span>Connecting…</span></>
-            : <><span style={{ fontFamily: 'Georgia,serif', fontSize: 17 }}>π</span><span>Pay</span></>
+            ? <><div className="tec-spin" style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.1)', borderTopColor: 'rgba(255,255,255,0.3)' }} /><span>{t.hub.payment.connecting}</span></>
+            : <><span style={{ fontFamily: 'Georgia,serif', fontSize: 17 }}>π</span><span>{t.hub.payment.payShort}</span></>
           }
         </button>
 
         <button className="tec-btn"
           onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
-          aria-label="Receive Pi"
+          aria-label={t.hub.payment.receivePi}
           style={{
             flex: 1, padding: '15px 12px', borderRadius: 18,
             background: 'linear-gradient(135deg,#0a1628,#060f1e)',
@@ -48,7 +50,7 @@ export function HubPayActions({ payAmount, setPayAmount, piReady, onPay }: Props
             boxShadow: '0 0 20px rgba(59,130,246,0.08)',
           }}>
           <span style={{ fontFamily: 'Georgia,serif', fontSize: 17 }}>π</span>
-          <span>Receive</span>
+          <span>{t.hub.payment.receiveShort}</span>
         </button>
 
       </div>

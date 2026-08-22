@@ -10,7 +10,7 @@
 
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@/test-utils/render-with-locale';
 
 // ─── Hoisted refs ────────────────────────────────────────────────────────────
 const mockUsePiAuth        = vi.hoisted(() => vi.fn());
@@ -39,13 +39,11 @@ vi.mock('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => <img src={src} alt={alt} />,
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: vi.fn(() => ({
-    locale: 'en', dir: 'ltr',
-    t: { common: { loading: 'Loading...', login: 'Login', appName: 'TEC' }, dashboard: {}, apps: {} },
-  })),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// `@/lib/i18n` is NOT mocked. These files used to stub it with a hand-written `t`
+// object holding a handful of keys — so a component reading a key the real
+// dictionary does not have still passed. The suite renders through the REAL
+// LocaleProvider (see @/test-utils/render-with-locale); a missing or misspelled
+// translation key now fails here instead of at runtime.
 
 vi.mock('@/lib-client/hooks/usePiAuth', () => ({ usePiAuth: mockUsePiAuth }));
 vi.mock('@/lib-client/hooks/usePiSdkReady', () => ({ usePiSdkReady: mockUsePiSdkReady }));
@@ -184,7 +182,6 @@ vi.mock('@/styles/tec-design-tokens.css', () => ({}));
 
 // ─── Static imports ───────────────────────────────────────────────────────────
 import { piSession } from '@/lib-client/pi/pi-session';
-import { useTranslation } from '@/lib/i18n';
 import { useRouter } from 'next/navigation';
 import AiClient    from '@/app/ai/AiClient';
 import PayClient   from '@/app/pay/PayClient';
@@ -473,11 +470,9 @@ describe('AiClient — uncovered paths', () => {
   });
 
   it('renders Arabic UI when locale=ar', () => {
-    vi.mocked(useTranslation).mockReturnValue({
-      locale: 'ar', dir: 'rtl',
-      t: { common: {}, dashboard: {}, apps: {} },
-    });
-    render(<AiClient />);
+    // Locale now comes from the real provider, exactly as it does for a user who
+    // taps the switcher — not from a hand-stubbed hook return.
+    render(<AiClient />, { locale: 'ar' });
     expect(screen.getByText('نشط')).toBeInTheDocument();
   });
 });

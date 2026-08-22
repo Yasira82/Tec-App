@@ -5,7 +5,7 @@
  * drawer that buffered the ENTIRE answer and printed raw `**` passed them for months.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@/test-utils/render-with-locale';
 import { AIDrawer } from '@/app/hub/components/AIDrawer';
 
 const enc = new TextEncoder();

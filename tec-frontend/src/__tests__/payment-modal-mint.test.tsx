@@ -11,7 +11,7 @@
 
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import React from 'react';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, act } from '@/test-utils/render-with-locale';
 
 // ─── Hoisted mock refs ─────────────────────────────────────────────────────────
 const mockPiSessionEnsurePaymentsReady = vi.hoisted(() => vi.fn());

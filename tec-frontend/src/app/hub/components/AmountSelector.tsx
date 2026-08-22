@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useTranslation } from '@/lib/i18n';
 
 const PRESETS = [1, 5, 10, 50];
 
@@ -16,6 +17,7 @@ export function AmountSelector({ value, onChange, disabled }: {
   onChange: (v: number) => void;
   disabled: boolean;
 }) {
+  const { t } = useTranslation();
   const [showCustom, setShowCustom] = useState(false);
   const [customRaw,  setCustomRaw]  = useState('');
   const isPreset = PRESETS.includes(value) && !showCustom;
@@ -56,7 +58,7 @@ export function AmountSelector({ value, onChange, disabled }: {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#0B1020', border: '1px solid #FBBF2440', borderRadius: 14, padding: '12px 16px' }}>
           <span style={{ fontFamily: 'Georgia,serif', fontSize: 20, color: '#FBBF24' }}>π</span>
           <input type="number" min="0.01" step="0.01" value={customRaw} onChange={e => handleCustomChange(e.target.value)}
-            placeholder="Enter amount" autoFocus
+            placeholder={t.hub.payment.enterAmount} autoFocus
             style={{ flex: 1, background: 'none', border: 'none', outline: 'none', color: '#fff', fontSize: 18, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }} />
           {customRaw && (
             <button onClick={() => { setCustomRaw(''); onChange(1); }}

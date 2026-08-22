@@ -2,7 +2,7 @@
  * Smoke tests for error.tsx, not-found.tsx, and PaymentModal.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, act } from '@testing-library/react';
+import { render, act } from '@/test-utils/render-with-locale';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }),

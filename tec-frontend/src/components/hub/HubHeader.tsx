@@ -1,6 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/lib/i18n';
+import LanguageSwitcher  from '@/components/LanguageSwitcher';
 import { haptic }    from '@/lib/hub/utils';
 import { Icon }      from '@/components/ui/Icon';
 
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props) {
+  const { t } = useTranslation();
   const router = useRouter();
 
   return (
@@ -34,7 +37,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
         }}>T</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#FBBF24', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
-          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: 2, lineHeight: 1.4 }}>ECOSYSTEM</div>
+          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.28)', letterSpacing: 2, lineHeight: 1.4 }}>{t.hub.header.ecosystem}</div>
         </div>
       </div>
 
@@ -42,9 +45,11 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
         <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time}</span>
 
+        <LanguageSwitcher />
+
         {/* Notifications */}
         <button className="tec-btn" onClick={onNotifClick}
-          aria-label={`Notifications${notifCount > 0 ? ` — ${notifCount} unread` : ''}`}
+          aria-label={`${t.hub.header.notifications}${notifCount > 0 ? ` — ${notifCount}` : ''}`}
           style={{
             width: 36, height: 36, borderRadius: 10,
             background: notifCount > 0 ? 'rgba(251,191,36,0.1)' : 'rgba(255,255,255,0.06)',
@@ -55,7 +60,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           <Icon name="bell" size={18} color={notifCount > 0 ? '#FBBF24' : 'rgba(255,255,255,0.6)'} />
           {notifCount > 0 && (
             <span style={{
-              position: 'absolute', top: -4, right: -4,
+              position: 'absolute', top: -4, insetInlineEnd: -4,
               minWidth: 17, height: 17, borderRadius: 999,
               background: '#ef4444', border: '2px solid #050816',
               fontSize: 9, fontWeight: 800, color: '#fff',
@@ -70,8 +75,8 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
         {/* Avatar → Dashboard. The chevron is the affordance: without it this reads as
             a name label, so users never discovered it opens the Dashboard. */}
         <button className="tec-btn" onClick={() => { haptic('light'); router.push('/dashboard'); }}
-          aria-label="Open dashboard"
-          title="Open dashboard"
+          aria-label={t.hub.header.openDashboard}
+          title={t.hub.header.openDashboard}
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: 'rgba(251,191,36,0.08)',

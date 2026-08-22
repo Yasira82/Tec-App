@@ -8,6 +8,7 @@ export const en = {
     loading: 'Verifying...',
     comingSoon: 'Coming Soon',
     live: 'Live',
+    copy: 'Copy',
   },
   home: {
     description: 'A complete ecosystem of {count} apps built on Pi Network',
@@ -174,5 +175,255 @@ export const en = {
     contents: 'Contents',
     effectiveDate: 'Effective Date',
     version: 'Version',
+  },
+  /**
+   * The signed-in Hub. It sat entirely in English while the landing page carried a
+   * prominent العربية toggle — so choosing Arabic, signing in, and watching the
+   * whole interface flip back was the actual bug: the toggle made a promise the
+   * next screen broke, and the Hub had no switcher to explain it or undo it.
+   *
+   * App NAMES stay English on purpose (they come from the domain registry): the
+   * .pi domains and the Pi Portal listings are registered in English, and a
+   * product name that changes with the interface language is a product a user
+   * cannot search for.
+   */
+  hub: {
+    nav: {
+      main: 'Main navigation',
+      hub: 'Hub', wallet: 'Wallet', dashboard: 'Dashboard',
+      verify: 'Verify', plan: 'Plan', settings: 'Settings',
+    },
+    header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
+    greeting: {
+      morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening',
+      sub: 'Your Pi economy, all in one place.',
+    },
+    wallet: { loadFailed: "Couldn't load balance", retry: 'Retry', viewTransactions: 'View transactions' },
+    carousel: {
+      foundingTitle: 'Founding 100',
+      foundingSub: 'Start your Pioneer missions — earn the badge',
+      foundingCta: 'START',
+      inviteTitle: 'Invite & Earn',
+      inviteSub: 'Invite a friend — you both get a free PRO month',
+      inviteCta: 'INVITE',
+      piNetwork: 'Pi Network',
+    },
+    apps: {
+      title: 'Apps', edit: 'Edit', done: 'Done', live: 'LIVE',
+      search: 'Search apps', clearSearch: 'Clear search',
+      editHint: 'Tap an app to pin it to ★ Favorites.',
+      favorites: '★ Favorites', recent: 'Recent',
+      noMatch: 'No apps match “{q}”.',
+      results: '{n} results', resultOne: '1 result',
+    },
+    comingSoon: { title: 'Coming Soon', count: '{n} of {total}' },
+    tools: { analytics: 'Analytics', kyc: 'KYC', plan: 'Plan', invite: 'Invite' },
+    payment: {
+      preparing: 'Preparing payment...',
+      initFailed: 'Failed to initialize payment. Please try again.',
+      close: 'Close',
+      authenticating: 'Authenticating...',
+      pay: 'Pay {amount}π',
+      cancel: 'Cancel', goBack: 'Go Back', tryAgain: 'Try Again',
+      processing: 'Processing payment...',
+      successTitle: 'Payment Successful!', redirecting: 'Redirecting back...',
+      cancelledTitle: 'Cancelled',
+      failedTitle: 'Payment Failed', failed: 'Payment failed',
+      openInPiBrowser: 'Open in Pi Browser',
+      alreadyInProgress: 'Payment already in progress',
+      sdkNotReady: 'Pi SDK not ready. Please try again.',
+      payShort: 'Pay', receiveShort: 'Receive', connecting: 'Connecting…',
+      sendPi: 'Send Pi',
+      enterAmount: 'Enter amount', receivePi: 'Receive Pi',
+    },
+    subscription: {
+      title: 'Subscription', subtitle: 'Manage your TEC plan',
+      currentPlan: 'Current Plan', free: 'Free', perMonth: '/month',
+      assetsUsed: 'Assets used',
+      atLimit: "You've reached the Free limit — upgrade to Pro for unlimited assets.",
+      unlimited: '✓ Unlimited assets', created: '{n} created',
+      cancelling: 'Cancelling…', cancel: 'Cancel Subscription',
+      cancelConfirm: 'Cancel your subscription? You will move to the Free plan.',
+      cancelFailed: 'Failed to cancel',
+      cancelled: 'Subscription cancelled — you are on the Free plan.',
+      payCancelled: 'Payment cancelled — your plan was not changed.',
+      payIncomplete: 'Payment did not complete — your plan was not changed.',
+      payActivationFailed: 'Payment succeeded but activation failed — please contact support.',
+      plans: 'Plans', plansSub: 'Upgrade any time',
+      enforcedLive: 'Live', enforcedSoon: 'Soon',
+      current: 'CURRENT', popular: 'POPULAR',
+      yourPlan: '✓ Your current plan',
+      upgradeTo: 'Upgrade to {plan}', switchTo: 'Switch to {plan}',
+      processing: 'Processing…', paidNowOn: 'Payment complete — you’re now on {plan}.',
+      // Pi Pro is a ONE-TIME U2A payment — there is no auto-renewal, so the honest
+      // word is "Expires", never "Renews". Keep that distinction in any translation.
+      expiredOn: 'Expired on {date} — renew to restore Pro',
+      expiresInDays: 'Expires in {n} days · {date}',
+      expiresInDay: 'Expires in 1 day · {date}',
+      expiresOn: 'Expires {date}',
+      noAutoRenew:
+        'Pro is a one-time monthly payment (no auto-renewal) — re-subscribe below to keep ' +
+        'Pro features active.',
+      honesty:
+        'Live features are enforced today (the asset limit is active now). Soon features are ' +
+        'in active development — they’ll switch on for your plan automatically as they ship.',
+    },
+    /** Plan copy. The entitlement DATA (limits, flags, `enforced`) stays in
+     *  `@/lib/subscription/entitlements` — it is isomorphic and the BFF enforces
+     *  against it. Only the words a buyer reads live here. */
+    plans: {
+      FREE:       { name: 'Free',       tagline: 'Get started on TEC' },
+      PRO:        { name: 'Pro',        tagline: 'For active builders & merchants' },
+      ENTERPRISE: { name: 'Enterprise', tagline: 'For teams & white-label businesses' },
+    },
+    planFeatures: {
+      assets: 'Assets (Pi domains / NFTs)', support: 'Support',
+      analytics: 'Analytics dashboard', commerce: 'Commerce store',
+      apiAccess: 'API access', customDomain: 'Custom domain',
+      whiteLabel: 'White-label options',
+      unlimited: 'Unlimited', upTo: 'Up to {n}',
+      community: 'Community', priority: 'Priority', dedicated: 'Dedicated',
+    },
+    referral: {
+      title: 'Invite & Earn', subtitle: 'Invite friends — you both get a free {days}-day PRO month',
+      loading: 'Loading…', loadFailed: 'Failed to load',
+      howTitle: 'Give a free month, get a free month 🎁',
+      howBody:
+        'Share your link. When someone you invite takes their first subscription, you both get ' +
+        'a free {days}-day PRO month — added on top of any time you already have. The reward is ' +
+        'a subscription month, not Pi, and it only unlocks on a real subscription (so it stays fair).',
+      linkTitle: 'Your invite link', linkSub: 'Share it anywhere',
+      copyLink: 'Copy link', copied: 'Copied', copy: 'Copy', code: 'Code', share: 'Share',
+      shareText: 'Join me on TEC',
+      shareBody: 'Join TEC on Pi — we both get a free {days}-day PRO month.',
+      pending: 'Pending', rewarded: 'Rewarded', total: 'Total',
+      haveCode: 'Have an invite code?', haveCodeSub: 'Apply it before your first subscription',
+      enterCode: 'Enter code', apply: 'Apply', applying: 'Applying…',
+      applyFailed: 'Could not apply code',
+      applied:
+        'Invite locked in 🎉 — you and your inviter each get a free {days}-day PRO month ' +
+        'when you take your first subscription.',
+      signIn: 'Sign in to get your invite link.',
+    },
+    notifications: {
+      title: 'Notifications', allCaught: 'All caught up', empty: 'No notifications yet',
+      unread: 'Unread', earlier: 'Earlier', justNow: 'Just now',
+      unreadCount: '{n} unread', markAllRead: 'Mark all read', retry: 'Retry',
+      minsAgo: '{n}m ago', hrsAgo: '{n}h ago', daysAgo: '{n}d ago',
+    },
+    analytics: {
+      title: 'Analytics', subtitle: 'Platform performance overview',
+      refresh: 'Refresh',
+      loadFailed: 'Failed to load analytics. Check that the analytics service is running.',
+      payments24h: 'Payments — last 24h',
+      completed: 'Completed', failed: 'Failed', cancelled: 'Cancelled',
+      volume: 'Volume', successRate: 'Success Rate', na: 'N/A',
+      healthy: 'Healthy', degraded: 'Degraded',
+      totals: 'Platform Totals',
+      totalPayments: 'Total Payments', totalUsers: 'Total Users', totalEvents: 'Total Events',
+      recentEvents: 'Recent Events', live: 'live',
+      loading: 'Loading…', noEvents: 'No recent events',
+    },
+    profile: {
+      title: 'Profile', subtitle: 'Manage your account information',
+      accountInfo: 'Account Information', accountInfoSub: 'Pi Network identity',
+      piUsername: 'Pi Username', piUid: 'Pi UID', tecUserId: 'TEC User ID',
+      role: 'Role', plan: 'Plan', memberSince: 'Member Since', na: 'N/A',
+      verification: 'Verification', goToKyc: 'Go to KYC',
+      kycTitle: 'KYC Verification',
+      kycVerified: 'Verified', kycVerifiedLevel: 'Verified — Level {n}',
+      kycRejected: 'Rejected — please resubmit your documents',
+      kycPending: 'Under review — we’ll notify you when it’s done',
+      kycNotStarted: 'Not started — complete to unlock all features',
+      admin: 'Admin', adminKyc: 'KYC Review', adminKycSub: 'Approve or reject identity submissions',
+      connectedApps: 'Connected Apps', tecPlatform: 'TEC Platform', piNetwork: 'Pi Network', connected: 'CONNECTED',
+      quickActions: 'Quick Actions',
+      assets: 'Assets', assetsSub: 'View your assets',
+      wallet: 'Wallet', walletSub: 'Pi balance',
+      notifications: 'Notifications', notificationsSub: 'View notifications',
+      kyc: 'KYC', kycSub: 'Identity verification',
+      account: 'Account',
+      signOut: 'Sign Out', signOutSub: 'Log out of TEC',
+      deleteAccount: 'Delete Account', deleteAccountSub: 'Permanently delete your account and all data.',
+      delete: 'Delete',
+      deleteConfirm: 'Are you sure you want to delete your account? This action cannot be undone.',
+    },
+    kyc: {
+      title: 'Identity Verification', subtitle: 'KYC — Know Your Customer',
+      badge: { notStarted: 'Action Required', pending: 'Under Review', verified: 'Verified', rejected: 'Rejected' },
+      status: {
+        notStarted: 'Not Started',
+        notStartedDesc: 'Complete your identity verification to unlock all TEC features.',
+        pending: 'Under Review',
+        pendingDesc: 'Your documents are being reviewed. This usually takes 1–2 business days.',
+        verified: 'Verified',
+        verifiedDesc: 'Your identity has been successfully verified.',
+        rejected: 'Rejected',
+        rejectedDesc: 'Your verification was rejected. Please resubmit with correct documents.',
+      },
+      level: 'Level',
+      benefits: {
+        accessTitle: 'Unlock full access',  accessDesc: 'Higher limits and all TEC financial features.',
+        onceTitle: 'One-time process',      onceDesc: 'Verify once — it applies across the ecosystem.',
+        secureTitle: 'Bank-grade security', secureDesc: 'Your documents are encrypted and never shared.',
+      },
+      steps: { docs: 'Upload Documents', review: 'Review & Submit' },
+      upload: {
+        heading: 'Upload Your Documents',
+        help: 'Take a photo or choose a clear image of your ID. Make sure all corners are visible and the text is readable.',
+        frontLabel: 'ID / Passport — Front', frontTitle: 'Take a photo of your ID',
+        frontHint: 'Opens your camera · fit all corners in the frame',
+        backLabel: 'ID / Passport — Back (optional)', backTitle: 'Take a photo of the back',
+        backHint: 'Opens your camera · optional',
+        selfieLabel: 'Live Selfie (camera)', selfieTitle: 'Take a selfie',
+        selfieHint: 'Opens your front camera · look straight at it',
+        required: 'ID front and selfie are required',
+        encrypted: 'Encrypted end-to-end. Your documents are used only for verification.',
+        uploading: 'Uploading…', continue: 'Continue',
+      },
+      review: {
+        heading: 'Review & Submit',
+        idFront: 'ID Front', idBack: 'ID Back', selfie: 'Selfie',
+        uploaded: 'Uploaded', missing: 'Missing', optional: 'Optional',
+        confirm: 'By submitting, you confirm these documents are authentic and belong to you.',
+        back: 'Back', submitting: 'Submitting…', submit: 'Submit for Review',
+      },
+      pending: {
+        heading: 'Under Review',
+        body: "Your documents are being reviewed. You'll receive a notification once complete — usually within 1–2 business days.",
+        submitted: 'Documents submitted', inProgress: 'Manual review in progress', decision: 'Decision notification',
+      },
+      verified: {
+        heading: 'Identity Verified',
+        body: 'Your identity has been verified. You now have full access to all TEC features.',
+        verifiedOn: 'Verified',
+      },
+      rejected: {
+        heading: 'Verification Rejected', reason: 'Reason',
+        body: 'Please resubmit with clearer, valid documents.',
+        resetting: 'Resetting…', tryAgain: 'Try Again',
+      },
+    },
+    aiErrors: {
+      signIn: 'Please sign in to use the TEC Assistant.',
+      rateLimit: 'Too many messages — wait a minute and try again.',
+      notConfigured: 'The TEC Assistant is not switched on yet. Try later.',
+      busy: 'The assistant is busy right now — try again in a moment.',
+      unavailable: 'The assistant is temporarily unavailable — try again shortly.',
+      generic: 'Something went wrong — please try again.',
+    },
+    ai: {
+      open: 'Open AI assistant',
+      welcome: 'Welcome! I’m the TEC Assistant 🤖 I can help you:' + '\n' +
+        '- Explore all 24 apps in the ecosystem' + '\n' +
+        '- Answer your questions about Pi Network' + '\n' +
+        '- Point you to the right app for what you need' + '\n\n' +
+        'How can I help you today?',
+      placeholder: 'Ask TEC AI...', ask: 'Ask TEC AI',
+      newChat: 'New chat', menu: 'Menu', stop: 'Stop',
+      copyReply: 'Copy reply', copied: '✓ Copied', copyShort: '⧉ Copy',
+      stopped: '… (stopped)', stoppedEmpty: 'Stopped before it began.',
+      connectionError: 'Connection error — please try again.',
+    },
   },
 };

@@ -20,6 +20,8 @@ import {
   HubAppsGrid, HubComingSoon,
 } from '@/components/hub';
 import { useHubData }  from '@/hooks/useHubData';
+import { useTranslation }  from '@/lib/i18n';
+import LanguageSwitcher   from '@/components/LanguageSwitcher';
 import { haptic }      from '@/lib/hub/utils';
 import '@/styles/tec-design-tokens.css';
 
@@ -31,6 +33,7 @@ const getCsrfToken = (): string => {
 
 function HubPageInner() {
   const { user, isAuthenticated, isLoading } = usePiAuth();
+  const { t, dir } = useTranslation();
 
   // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup):
   // wake the gateway while auth resolves so wallet/apps data lands warm.
@@ -155,7 +158,7 @@ function HubPageInner() {
         setPendingPayment(null);
       } catch {
         if (cancelled) return;
-        showToast('error', 'Failed to initialize payment. Please try again.');
+        showToast('error', t.hub.payment.initFailed);
         const ret = new URL(pendingPayment.returnUrl);
         ret.searchParams.set('payment_status', 'error');
         ret.searchParams.set('reason', 'create_failed');
@@ -164,7 +167,7 @@ function HubPageInner() {
     })();
 
     return () => { cancelled = true; };
-  }, [piReady, pendingPayment, externalPayment, showToast, isLoading, user]);
+  }, [piReady, pendingPayment, externalPayment, showToast, isLoading, user, t.hub.payment.initFailed]);
 
   const handlePaymentSuccess = useCallback(async (txid: string, paymentId: string) => {
   if (!externalPayment) return;
@@ -204,7 +207,7 @@ function HubPageInner() {
         <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
-          <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
+          <span style={{ fontSize: 13, color: '#4a4a5a' }}>{t.hub.payment.preparing}</span>
         </div>
       </div>
     );
@@ -218,7 +221,7 @@ function HubPageInner() {
         <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800' }}>T</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: '#FBBF24', animation: 'spin 0.8s linear infinite' }} />
-          <span style={{ fontSize: 13, color: '#4a4a5a' }}>Preparing payment...</span>
+          <span style={{ fontSize: 13, color: '#4a4a5a' }}>{t.hub.payment.preparing}</span>
         </div>
         {externalPayment && (
           <PaymentModal
@@ -237,10 +240,13 @@ function HubPageInner() {
   const goToReferral  = () => { haptic('light'); router.push('/hub/referral'); };
 
   const hour     = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+  const greeting = hour < 12 ? t.hub.greeting.morning
+                 : hour < 18 ? t.hub.greeting.afternoon
+                 : t.hub.greeting.evening;
 
   return (
     <div
+      dir={dir}
       style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)', paddingBottom: 88 }}
     >
       {/* ✅ PaymentModal لما يكون externalPayment موجود */}
@@ -257,8 +263,8 @@ function HubPageInner() {
 
       {!aiOpen && (
         <button className="tec-float tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
-          aria-label="Open AI assistant"
-          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
+          aria-label={t.hub.ai.open}
+          style={{ position: 'fixed', bottom: 100, insetInlineEnd: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
       )}
 
       <HubHeader
@@ -273,7 +279,7 @@ function HubPageInner() {
           <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: -0.2 }}>
             {greeting}, <span style={{ color: '#FBBF24' }}>@{user.piUsername}</span>
           </div>
-          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>Your Pi economy, all in one place.</div>
+          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{t.hub.greeting.sub}</div>
         </div>
       )}
 
@@ -296,10 +302,10 @@ function HubPageInner() {
       {/* ── Platform Tools ──────────────────────────────── */}
       <div style={{ margin: '0 16px 8px', display: 'flex', gap: 8 }}>
         {[
-          { icon: '📊', label: 'Analytics', route: '/hub/analytics' },
-          { icon: '🪪', label: 'KYC',        route: '/hub/kyc' },
-          { icon: '⭐', label: 'Plan',        route: '/hub/subscription' },
-          { icon: '🎁', label: 'Invite',     route: '/hub/referral' },
+          { icon: 'chart'    as const, label: t.hub.tools.analytics, route: '/hub/analytics' },
+          { icon: 'shield'   as const, label: t.hub.tools.kyc,       route: '/hub/kyc' },
+          { icon: 'sparkles' as const, label: t.hub.tools.plan,      route: '/hub/subscription' },
+          { icon: 'plus'     as const, label: t.hub.tools.invite,    route: '/hub/referral' },
         ].map(({ icon, label, route }) => (
           <button
             key={label}
@@ -312,7 +318,7 @@ function HubPageInner() {
               cursor: 'pointer', letterSpacing: 0.4,
             }}
           >
-            <span style={{ fontSize: 16 }}>{icon}</span>
+            <Icon name={icon} size={15} color="rgba(255,255,255,0.55)" strokeWidth={1.9} />
             {label}
           </button>
         ))}
@@ -320,16 +326,16 @@ function HubPageInner() {
 
       <HubComingSoon />
 
-      <nav aria-label="Main navigation" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
+      <nav aria-label={t.hub.nav.main} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
         {([
-          { icon: 'hub'      as const, label: 'Hub',      active: true,  action: () => {} },
-          { icon: 'wallet'   as const, label: 'Wallet',   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
+          { icon: 'hub'      as const, label: t.hub.nav.hub,      active: true,  action: () => {} },
+          { icon: 'wallet'   as const, label: t.hub.nav.wallet,   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
           // Labeled entry to the Dashboard. It used to be reachable ONLY by tapping the
           // header avatar, which reads as a name — not as a link to anything.
-          { icon: 'chart'    as const, label: 'Dashboard', active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
-          { icon: 'shield'   as const, label: 'Verify',   active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
-          { icon: 'sparkles' as const, label: 'Plan',     active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
-          { icon: 'settings' as const, label: 'Settings', active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
+          { icon: 'chart'    as const, label: t.hub.nav.dashboard, active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
+          { icon: 'shield'   as const, label: t.hub.nav.verify,   active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
+          { icon: 'sparkles' as const, label: t.hub.nav.plan,     active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
+          { icon: 'settings' as const, label: t.hub.nav.settings, active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
         ]).map(item => (
           <button key={item.label} className="tec-nav-btn" onClick={item.action} aria-label={item.label} aria-current={item.active ? 'page' : undefined}
             style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>

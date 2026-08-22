@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from '@/lib/i18n';
+
 import { useRef }       from 'react';
 import { haptic }       from '@/lib/hub/utils';
 import { PiPrice }      from '@/lib/hub/types';
@@ -20,6 +22,7 @@ interface Props {
 const SLIDES = 3;
 
 export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers, goToReferral }: Props) {
+  const { t } = useTranslation();
   const touchStartX = useRef(0);
   const priceUp     = (piPrice?.change24h ?? 0) >= 0;
 
@@ -41,11 +44,11 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: '#FBBF24' }}>★</div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Founding 100</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Start your Pioneer missions — earn the badge</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{t.hub.carousel.foundingTitle}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{t.hub.carousel.foundingSub}</div>
                 </div>
               </div>
-              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#FBBF24', letterSpacing: 1.5 }}>START →</div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#FBBF24', letterSpacing: 1.5 }}>{t.hub.carousel.foundingCta} →</div>
             </button>
           </div>
 
@@ -56,11 +59,11 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#0d2417,#111627)', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>Invite &amp; Earn</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>Invite a friend — you both get a free PRO month</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{t.hub.carousel.inviteTitle}</div>
+                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{t.hub.carousel.inviteSub}</div>
                 </div>
               </div>
-              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#22C55E', letterSpacing: 1.5 }}>INVITE →</div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: '#22C55E', letterSpacing: 1.5 }}>{t.hub.carousel.inviteCta} →</div>
             </button>
           </div>
 
@@ -71,7 +74,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#111627)', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: '#FBBF24' }}>π</div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>Pi Network</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{t.hub.carousel.piNetwork}</div>
                     <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>PI/USDT · OKX</div>
                   </div>
                 </div>

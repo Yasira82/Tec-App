@@ -14,7 +14,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, act, fireEvent, waitFor } from '@testing-library/react';
+import { render, act, fireEvent, waitFor } from '@/test-utils/render-with-locale';
 
 // ──────────────────────────────────────────────────────────────────
 // Hoisted mock references
@@ -62,15 +62,10 @@ const mockCreateU2A = vi.hoisted(() => vi.fn(async () => ({
 })));
 vi.mock('@/lib-client/pi/pi-payment', () => ({ createU2APayment: mockCreateU2A }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: () => ({
-    t:           { common: { loading: 'Loading...' }, dashboard: { title: 'Dashboard' }, apps: {} },
-    locale:      'en',
-    setLanguage: vi.fn(),
-    dir:         'ltr',
-  }),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// `@/lib/i18n` is deliberately NOT mocked. It used to be, with a three-key
+// dictionary — so a page reading `t.hub.kyc.badge` crashed on `undefined`, and
+// before that any misspelled key silently passed. These tests render through the
+// REAL provider (`@/test-utils/render-with-locale`) and assert the real copy.
 
 vi.mock('@/lib/request-id', () => ({
   buildHeaders: vi.fn(() => ({ 'x-request-id': 'req-id' })),

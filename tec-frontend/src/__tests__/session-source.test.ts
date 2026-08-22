@@ -69,6 +69,24 @@ describe('sessionUserId', () => {
   it('returns null rather than guessing when nothing is available', () => {
     expect(sessionUserId()).toBeNull();
   });
+
+  it('sees a user resolved by the SERVER, with no readable token or cookie', () => {
+    // The path that was missing, and the one that broke the wallet page. Pi Browser
+    // can send the session cookie while hiding it from JavaScript: `document.cookie`
+    // is empty, no token is readable, and `/api/auth/me` still returns the user
+    // because the SERVER can read the request cookie. `usePiAuth` records it via
+    // `setUser`; without that, every screen asking "who is this?" saw nobody.
+    tecSession.setUser({ id: 'u-server' } as never);
+    expect(sessionUserId()).toBe('u-server');
+    expect(sessionToken()).toBeNull();   // genuinely no token — and that is fine
+  });
+
+  it('setUser does not invent or clobber a token', () => {
+    tecSession.set('real-token', { id: 'u-1' } as never);
+    tecSession.setUser({ id: 'u-2' } as never);
+    expect(sessionToken()).toBe('real-token');
+    expect(sessionUserId()).toBe('u-2');
+  });
 });
 
 describe('the hooks behind the Hub’s destinations', () => {
@@ -84,6 +102,14 @@ describe('the hooks behind the Hub’s destinations', () => {
     expect(src).not.toMatch(/\bgetAccessToken\b/);
     expect(src).not.toMatch(/\bgetStoredUser\b/);
     expect(src).toMatch(/from '@\/lib-client\/pi\/session-source'/);
+  });
+
+  it.each(HOOKS)('%s asks WHO is signed in, never whether a token is readable', (f) => {
+    const src = read(f);
+    // A readable token is a transport detail the browser may withhold. Gating a
+    // screen on it denies sessions that are entirely real.
+    expect(src).toMatch(/sessionUserId\(\)/);
+    expect(src).not.toMatch(/sessionToken\(\)/);
   });
 
   it.each(HOOKS)('%s fetches through bffFetch, so one expired session self-heals', (f) => {

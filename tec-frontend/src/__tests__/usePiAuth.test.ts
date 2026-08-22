@@ -3,6 +3,7 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { tecSession } from '@/lib-client/pi/tec-session';
 
 // ---- mock next/navigation ----
 vi.mock('next/navigation', () => ({
@@ -23,6 +24,10 @@ import * as piAuth    from '@/lib-client/pi/pi-auth';
 describe('usePiAuth', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The in-memory session is module state — a fresh page load starts empty, and
+    // so must each test. usePiAuth now records the server-resolved user there, so
+    // without this a user from one test short-circuits the next one's resolution.
+    tecSession.clear();
     // When the client can't read the cookie, usePiAuth asks the server
     // (GET /api/auth/me). Default it to "no session" for these tests.
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({

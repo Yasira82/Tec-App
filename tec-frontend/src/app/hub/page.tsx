@@ -67,22 +67,6 @@ function HubPageInner() {
   const { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
 
-  // The assistant button lives in the thumb-scroll zone, so while the page is
-  // actually moving it gets out of the way: faded and non-interactive, back a
-  // moment after the scroll stops. `setScrolling(true)` on an already-true state
-  // is a no-op in React, so a scroll burst costs two renders, not one per tick.
-  const [scrolling, setScrolling] = useState(false);
-  useEffect(() => {
-    let idle: ReturnType<typeof setTimeout>;
-    const onScroll = () => {
-      setScrolling(true);
-      clearTimeout(idle);
-      idle = setTimeout(() => setScrolling(false), 400);
-    };
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => { window.removeEventListener('scroll', onScroll); clearTimeout(idle); };
-  }, []);
-
   const [carouselIdx,     setCarouselIdx]     = useState(0);
   const [aiOpen,          setAiOpen]          = useState(false);
   const [toasts,          setToasts]          = useState<Toast[]>([]);
@@ -273,9 +257,8 @@ function HubPageInner() {
     <div
       dir={dir}
       style={{ minHeight: '100vh', background: '#050816', color: '#fff', fontFamily: 'var(--font-sans)',
-        // Room for the bottom nav AND the floating assistant above it: without this
-        // the last row of content was permanently covered, not just while scrolling.
-        paddingBottom: 168 }}
+        // Clears the fixed bottom nav. Nothing else hovers over the content any more. */
+        paddingBottom: 88 }}
     >
       {/* ✅ PaymentModal لما يكون externalPayment موجود */}
       {externalPayment && (
@@ -294,28 +277,6 @@ function HubPageInner() {
           it jumped sides for existing users, and on the start side it lands on top of
           the Platform Tools row. One fixed corner in both languages is the muscle
           memory people already have. */}
-      {/* `tec-float` is gone from here on purpose: it bobbed this button up and down
-          FOREVER. A 52px control that never stops moving, parked over the content
-          you are reading, is not liveliness — it is a distraction you cannot turn
-          off. It holds still now, and yields while you scroll. */}
-      {!aiOpen && (
-        <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
-          aria-label={t.hub.ai.open}
-          aria-hidden={scrolling}
-          tabIndex={scrolling ? -1 : 0}
-          style={{
-            position: 'fixed', bottom: 100, right: 16, zIndex: 200,
-            width: 52, height: 52, borderRadius: '50%',
-            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none',
-            boxShadow: '0 8px 24px rgba(251,191,36,0.4)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            // Out of the way — and out of the way of the TOUCH too, so a swipe that
-            // starts on it scrolls the page instead of doing nothing.
-            opacity: scrolling ? 0 : 1,
-            pointerEvents: scrolling ? 'none' : 'auto',
-            transition: 'opacity 0.2s ease',
-          }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
-      )}
 
       <HubHeader
         piUsername={user?.piUsername ?? ''}
@@ -352,19 +313,26 @@ function HubPageInner() {
 
       {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
 
-      {/* ── Platform Tools ──────────────────────────────── */}
-      <div style={{ margin: '0 16px 8px', display: 'flex', gap: 8 }}>
+      {/* ── Platform Tools ──────────────────────────────────
+          The assistant lives HERE now. It used to be a floating circle pinned over
+          the content in the corner where a thumb starts a scroll — so it covered
+          what you were reading and swallowed the swipe. A tool in the tools row
+          scrolls with the page and gets in nobody's way.
+          The row wraps: five items crushed onto one 390px line clip their labels. */}
+      <div style={{ margin: '0 16px 8px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
         {[
-          { icon: 'chart'    as const, label: t.hub.tools.analytics, route: '/hub/analytics' },
-          { icon: 'shield'   as const, label: t.hub.tools.kyc,       route: '/hub/kyc' },
-          { icon: 'sparkles' as const, label: t.hub.tools.plan,      route: '/hub/subscription' },
-          { icon: 'plus'     as const, label: t.hub.tools.invite,    route: '/hub/referral' },
-        ].map(({ icon, label, route }) => (
+          { icon: 'sparkles' as const, label: t.hub.ai.tool,         onTap: () => setAiOpen(true) },
+          { icon: 'chart'    as const, label: t.hub.tools.analytics, onTap: () => router.push('/hub/analytics') },
+          { icon: 'shield'   as const, label: t.hub.tools.kyc,       onTap: () => router.push('/hub/kyc') },
+          { icon: 'gem'      as const, label: t.hub.tools.plan,      onTap: () => router.push('/hub/subscription') },
+          { icon: 'plus'     as const, label: t.hub.tools.invite,    onTap: () => router.push('/hub/referral') },
+        ].map(({ icon, label, onTap }) => (
           <button
             key={label}
-            onClick={() => { haptic('light'); router.push(route); }}
+            onClick={() => { haptic('light'); onTap(); }}
             style={{
-              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              flex: '1 1 30%', minWidth: 96,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               padding: '10px 0', borderRadius: 14,
               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
               color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 600,

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { sessionToken, sessionUserId } from '@/lib-client/pi/session-source';
+import { sessionUserId } from '@/lib-client/pi/session-source';
 import { bffFetch } from '@/lib-client/pi/bff-client';
 
 /** Sentinel, not prose: a hook has no locale. The page maps it to the reader's
@@ -66,9 +66,14 @@ export function useOrders(): UseOrdersReturn {
 
 
   const fetchOrders = useCallback(async (targetPage: number, silent = false) => {
-    const token  = sessionToken();
+    // Gate on WHO, not on the token. A Pi Browser context can send the session
+    // cookie while hiding it from JavaScript: the client then holds no readable
+    // token and never will, yet every request it makes is authenticated — the
+    // cookie rides along and the BFF reads it. Demanding a token the browser
+    // refuses to show us denied real sessions. The server still enforces
+    // (`createHandler` requireAuth); this guard is only about what to render.
     const userId = sessionUserId();
-    if (!token || !userId) { setIsLoading(false); setError(NOT_AUTHENTICATED); return; }
+    if (!userId) { setIsLoading(false); setError(NOT_AUTHENTICATED); return; }
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -89,7 +94,6 @@ export function useOrders(): UseOrdersReturn {
       const res = await bffFetch(`/api/commerce/orders?${params}`, {
         credentials: 'include',
         headers: {
-          Authorization: `Bearer ${token}`,
           'x-user-id':   userId,
         },
         signal: ctrl.signal,

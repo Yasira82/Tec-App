@@ -56,6 +56,10 @@ export const usePiAuth = () => {
         const res  = await fetch('/api/auth/me', { credentials: 'include' });
         const data = res.ok ? await res.json() : null;
         const user = (data?.user ?? null) as TecUser | null;
+        // Share it. This hook is the only place that knows how to resolve an
+        // identity through all four paths; anything else that asks has to be able
+        // to get the same answer.
+        if (user) tecSession.setUser(user);
         if (user || cancelled || authSettledRef.current) { settle(user); return; }
 
         if (isPiBrowser()) {

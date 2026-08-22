@@ -432,6 +432,7 @@ export const en = {
     },
     ai: {
       open: 'Open AI assistant',
+      tool: 'Assistant',
       welcome: 'Welcome! I’m the TEC Assistant 🤖 I can help you:' + '\n' +
         '- Explore all 24 apps in the ecosystem' + '\n' +
         '- Answer your questions about Pi Network' + '\n' +

@@ -305,10 +305,13 @@ describe('HubPage — authenticated render', () => {
     expect(screen.getByTestId('hub-coming-soon')).toBeInTheDocument();
   });
 
-  it('renders AI floating button', async () => {
+  it('offers the assistant in the Platform Tools row, not as a floating button', async () => {
+    // The floating circle is gone: it sat in the thumb-scroll corner, over the
+    // content, bobbing forever. The assistant is a tool in the tools row now.
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    expect(screen.getByLabelText('Open AI assistant')).toBeInTheDocument();
+    expect(screen.getByText('Assistant')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Open AI assistant')).not.toBeInTheDocument();
   });
 
   it('renders bottom nav bar', async () => {
@@ -388,28 +391,21 @@ describe('HubPage — AI drawer', () => {
     expect(screen.queryByTestId('ai-drawer')).not.toBeInTheDocument();
   });
 
-  it('clicking AI float button opens drawer', async () => {
+  it('the Assistant tool opens the drawer', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Open AI assistant'));
+    fireEvent.click(screen.getByText('Assistant'));
     expect(screen.getByTestId('ai-drawer')).toBeInTheDocument();
   });
 
-  it('closing AI drawer hides it and shows float button again', async () => {
+  it('closing the drawer leaves the Assistant tool in place', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Open AI assistant'));
+    fireEvent.click(screen.getByText('Assistant'));
     expect(screen.getByTestId('ai-drawer')).toBeInTheDocument();
     fireEvent.click(screen.getByText('Close AI'));
     expect(screen.queryByTestId('ai-drawer')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Open AI assistant')).toBeInTheDocument();
-  });
-
-  it('AI float button hidden when drawer is open', async () => {
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Open AI assistant'));
-    expect(screen.queryByLabelText('Open AI assistant')).not.toBeInTheDocument();
+    expect(screen.getByText('Assistant')).toBeInTheDocument();
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { tecSession } from '@/lib-client/pi/tec-session';
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({
   getAccessToken: vi.fn(),
@@ -35,6 +36,11 @@ const mockUser = { id: 'u1', piId: 'pi1', piUsername: 'alice', role: 'user', sub
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // These hooks gate on IDENTITY, not on a readable token — a Pi Browser context
+  // can hide the cookie from JS while the session is live. Signing in for the
+  // test means putting a user in the session, which is what the app does.
+  tecSession.clear();
+  tecSession.set('tok', { id: 'u-1' } as never);
   mockGetAccessToken.mockReturnValue('tok');
   mockGetStoredUser.mockReturnValue(mockUser as any);
   global.fetch = vi.fn().mockResolvedValue({
@@ -43,20 +49,29 @@ beforeEach(() => {
   }) as any;
 });
 
-describe('useOrders — no auth', () => {
-  it('sets error when no access token', async () => {
+describe('useOrders — signed out', () => {
+  it('reports the auth failure when nobody is signed in', async () => {
+    // "Signed out" is the absence of an IDENTITY, not of a readable token: the
+    // browser can withhold the token from JS on a perfectly live session.
+    tecSession.clear();
     mockGetAccessToken.mockReturnValue(null);
+    mockGetStoredUser.mockReturnValue(null);
     const { result } = renderHook(() => useOrders());
     await act(async () => {});
     expect(result.current.error).toBeTruthy();
     expect(result.current.isLoading).toBe(false);
   });
 
-  it('sets error when no stored user', async () => {
+  it('still loads when the token is unreadable but the identity is known', async () => {
+    // The case the wallet page failed on: no cookie the client can see, no token
+    // in hand, and a session that is nonetheless entirely real.
+    tecSession.clear();
+    tecSession.setUser({ id: 'u-1' } as never);
+    mockGetAccessToken.mockReturnValue(null);
     mockGetStoredUser.mockReturnValue(null);
     const { result } = renderHook(() => useOrders());
     await act(async () => {});
-    expect(result.current.error).toBeTruthy();
+    expect(result.current.error).toBeNull();
   });
 });
 

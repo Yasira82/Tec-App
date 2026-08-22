@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
+import { tecSession } from '@/lib-client/pi/tec-session';
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({
   getAccessToken: vi.fn(),
@@ -28,6 +29,11 @@ const makeNotif = (id: string, read = false) => ({
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // These hooks gate on IDENTITY, not on a readable token — a Pi Browser context
+  // can hide the cookie from JS while the session is live. Signing in for the
+  // test means putting a user in the session, which is what the app does.
+  tecSession.clear();
+  tecSession.set('tok', { id: 'u-1' } as never);
   mockGetAccessToken.mockReturnValue('tok');
   global.fetch = vi.fn().mockResolvedValue({
     ok:   true,
@@ -38,8 +44,11 @@ beforeEach(() => {
   }) as any;
 });
 
-describe('useNotifications — no token', () => {
-  it('sets error when no access token', async () => {
+describe('useNotifications — signed out', () => {
+  it('reports the auth failure when nobody is signed in', async () => {
+    // "Signed out" is the absence of an IDENTITY, not of a readable token: the
+    // browser can withhold the token from JS on a perfectly live session.
+    tecSession.clear();
     mockGetAccessToken.mockReturnValue(null);
     const { result } = renderHook(() => useNotifications());
     await act(async () => {});

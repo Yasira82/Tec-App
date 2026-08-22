@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { sessionToken } from '@/lib-client/pi/session-source';
+import { sessionUserId } from '@/lib-client/pi/session-source';
 import { bffFetch } from '@/lib-client/pi/bff-client';
 
 /** Sentinel, not prose: a hook has no locale. The page maps it to the reader's
@@ -48,8 +48,8 @@ export function useNotifications(): UseNotificationsReturn {
 
   const fetchNotifications = useCallback(async (silent = false) => {
     // ✅ P1-1: cookie بدل localStorage
-    const token = sessionToken();
-    if (!token) { setIsLoading(false); setError(NOT_AUTHENTICATED); return; }
+    // See useWallet: the token can be invisible to JS while the session is live.
+    if (!sessionUserId()) { setIsLoading(false); setError(NOT_AUTHENTICATED); return; }
 
     abortRef.current?.abort();
     const ctrl = new AbortController();
@@ -83,8 +83,7 @@ export function useNotifications(): UseNotificationsReturn {
   const refetch = useCallback(() => fetchNotifications(true), [fetchNotifications]);
 
   const markAsRead = useCallback(async (id: string) => {
-    const token = sessionToken();
-    if (!token) return;
+    if (!sessionUserId()) return;
     // Optimistic update for a snappy UI…
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
     setUnreadCount(prev => Math.max(0, prev - 1));
@@ -102,8 +101,7 @@ export function useNotifications(): UseNotificationsReturn {
   }, [fetchNotifications]);
 
   const markAllAsRead = useCallback(async () => {
-    const token = sessionToken();
-    if (!token) return;
+    if (!sessionUserId()) return;
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
     setUnreadCount(0);
     try {

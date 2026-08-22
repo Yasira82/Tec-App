@@ -19,7 +19,10 @@ export type IconName =
   // the identical picture (Nexus/Explorer both 🧭, Zone/Insure both 🛡️).
   | 'trending' | 'briefcase' | 'landmark' | 'target' | 'rocket' | 'code'
   | 'home' | 'towers' | 'search' | 'sprout' | 'link'
-  | 'trophy' | 'award' | 'crown' | 'scale' | 'network';
+  | 'trophy' | 'award' | 'crown' | 'scale' | 'network'
+  // The assistant. `sparkles` used to stand in for it AND for Plan in the same
+  // bottom nav — one picture cannot mean two destinations.
+  | 'bot';
 
 /** Exported so `app-icons.test.ts` can hold the set to one 24x24 grid. */
 export const PATHS: Record<IconName, string> = {
@@ -69,6 +72,7 @@ export const PATHS: Record<IconName, string> = {
   award:     '<circle cx="12" cy="9" r="5.5"/><path d="M8.6 13.4 7.2 21.5 12 18.8l4.8 2.7-1.4-8.1"/>',
   crown:     '<path d="M3 17.5V8l4.6 3.6L12 4.5l4.4 7.1L21 8v9.5Z"/><path d="M3 20.5h18"/>',
   scale:     '<path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="m4 7-3 6a3 3 0 0 0 6 0Z"/><path d="m20 7 3 6a3 3 0 0 1-6 0Z"/>',
+  bot:       '<rect x="3.5" y="8" width="17" height="12.5" rx="3.5"/><path d="M12 4.2V8"/><circle cx="12" cy="3" r="1.2"/><path d="M1.5 13v3M22.5 13v3"/><path d="M9 12.8h.01M15 12.8h.01"/><path d="M9.5 16.8h5"/>',
   network:   '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M12 11.5 6.8 16.2M12 11.5l5.2 4.7"/>',
 };
 

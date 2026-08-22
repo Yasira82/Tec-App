@@ -45,7 +45,7 @@
 }
 .backLink:hover { opacity: 0.7; }
 .headerCenter { display: flex; align-items: center; gap: 12px; }
-.headerIcon { font-size: 24px; }
+.headerIcon { display: inline-flex; align-items: center; line-height: 1; }
 .headerTitle { font-size: 14px; font-weight: 500; color: #e8e0d0; letter-spacing: 0.05em; }
 .headerSub { font-size: 11px; color: rgba(216,208,192,0.35); letter-spacing: 0.04em; }
 .headerStatus { display: flex; align-items: center; gap: 6px; min-width: 60px; justify-content: flex-end; }
@@ -113,7 +113,7 @@
 .message { display: flex; align-items: flex-end; gap: 10px; }
 .messageUser { flex-direction: row-reverse; }
 .messageAvatar {
-  font-size: 20px; flex-shrink: 0;
+  flex-shrink: 0;
   width: 32px; height: 32px;
   display: flex; align-items: center; justify-content: center;
 }

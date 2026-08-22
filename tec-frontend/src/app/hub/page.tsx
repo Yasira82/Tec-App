@@ -185,7 +185,7 @@ function HubPageInner() {
         <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
           aria-label={t.hub.ai.open}
           style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', touchAction: 'pan-y', background: 'var(--tec-gold-grad)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Icon name="sparkles" size={24} color="var(--tec-bg)" strokeWidth={2.2} />
+          <Icon name="bot" size={25} color="var(--tec-bg)" strokeWidth={1.9} />
         </button>
       )}
 

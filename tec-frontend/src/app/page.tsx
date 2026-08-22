@@ -12,6 +12,8 @@ import { getDomain, ALL_DOMAINS } from '@/domains/_registry';
 import { t as tr }               from '@/domains/_types';
 import type { Locale } from '@/domains/_types';
 import type { AppCategory } from '@/domains/_categories';
+import { iconOf }            from '@/domains/_categories';
+import { Icon }              from '@/components/ui/Icon';
 import styles                    from './page.module.css';
 
 /**
@@ -85,7 +87,8 @@ export default function HomePage() {
           <a href="#ecosystem" className={styles.navLink}>{t.home.ecosystem}</a>
           <a href="#payment"   className={styles.navLink}>{t.common.login}</a>
           <Link href="/ai" className={styles.navAiLink}>
-            🤖 {dir === 'rtl' ? 'المساعد' : 'Assistant'}
+            <Icon name="bot" size={14} strokeWidth={1.9} />
+            {dir === 'rtl' ? 'المساعد' : 'Assistant'}
           </Link>
         </div>
         <div className={styles.navRight}>
@@ -165,7 +168,9 @@ export default function HomePage() {
           resolve yet, so the one call-to-action above the fold was a dead link. */}
       <section className={styles.featuredSection}>
         <div className={styles.featuredCard}>
-          <span className={styles.featuredEmoji}>{nexus?.emoji ?? '🧭'}</span>
+          <span className={styles.featuredEmoji}>
+            <Icon name={iconOf('nexus')} size={48} color="var(--tec-gold)" strokeWidth={1.6} />
+          </span>
           <h2 className={styles.featuredTitle}>TEC Nexus</h2>
           <p className={styles.featuredDesc}>
             {nexus ? tr(nexus.valueProp ?? nexus.description, locale) : t.apps.Nexus}
@@ -270,7 +275,9 @@ export default function HomePage() {
 
       {/* Floating AI Button */}
       <Link href="/ai" className={styles.floatingAi} aria-label="TEC Assistant">
-        <span className={styles.floatingAiIcon}>🤖</span>
+        <span className={styles.floatingAiIcon}>
+          <Icon name="bot" size={26} color="var(--tec-bg)" strokeWidth={1.9} />
+        </span>
         <span className={styles.floatingAiPulse} />
       </Link>
     </main>

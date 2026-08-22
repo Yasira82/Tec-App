@@ -358,7 +358,14 @@
 
 .featuredCard:hover { border-color: rgba(251,191,36,0.4); }
 
-.featuredEmoji { font-size: 48px; line-height: 1; }
+.featuredEmoji {
+  /* Holds an SVG glyph now, not a 48px emoji character — a font-size box does
+     not size an <svg>, so the box is declared here. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
 
 .featuredTitle {
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
@@ -783,6 +790,9 @@
 
 /* ── AI Navbar Link ───────────────────────────────────────────── */
 .navAiLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
   letter-spacing: 0.1em;
   color: #FBBF24;
@@ -823,7 +833,11 @@
 }
 
 .floatingAiIcon {
-  font-size: 24px;
+  /* Holds an SVG glyph now, not a character — a font-size box does not size an
+     <svg>, so the box is declared here. */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   line-height: 1;
 }
 
@@ -847,5 +861,5 @@
 @media (max-width: 768px) {
   .navAiLink { display: none; }
   .floatingAi { bottom: 20px; right: 20px; width: 48px; height: 48px; }
-  .floatingAiIcon { font-size: 20px; }
+  .floatingAiIcon svg { width: 22px; height: 22px; }
 }

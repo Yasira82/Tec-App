@@ -3,6 +3,8 @@
 import { useTranslation, fill } from '@/lib/i18n';
 import { ALL_DOMAINS, COMING_SOON } from '@/domains/_registry';
 import { t as tr, type Locale }      from '@/domains/_types';
+import { iconOf }                    from '@/domains/_categories';
+import { Icon }                      from '@/components/ui/Icon';
 
 // Emoji + colour are presentation; the WORD comes from the dictionary. This list
 // renders only when an app is not yet live — which is nobody today — so an English
@@ -50,7 +52,7 @@ export function HubComingSoon() {
                   padding: '12px 6px', background: 'rgba(255,255,255,0.02)',
                   borderRadius: 14, opacity: 0.5, border: '1px solid rgba(255,255,255,0.04)',
                 }}>
-                  <span style={{ fontSize: 20 }}>{app.emoji}</span>
+                  <Icon name={iconOf(app.slug)} size={20} color="rgba(255,255,255,0.45)" strokeWidth={1.8} />
                   <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{tr(app.name, locale)}</span>
                 </div>
               ))}

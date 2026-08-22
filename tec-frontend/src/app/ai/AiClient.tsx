@@ -17,6 +17,7 @@ import { t }                           from '@/domains/_types';
 import type { Locale }                 from '@/domains/_types';
 import Link                            from 'next/link';
 import styles                          from './ai.module.css';
+import { Icon } from '@/components/ui/Icon';
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -317,7 +318,7 @@ export default function AiClient() {
       <header className={styles.header}>
         <Link href="/hub" className={styles.backLink}>← Hub</Link>
         <div className={styles.headerCenter}>
-          <span className={styles.headerIcon}>🤖</span>
+          <span className={styles.headerIcon}><Icon name="bot" size={24} color="#FBBF24" strokeWidth={1.8} /></span>
           <div>
             <p className={styles.headerTitle}>TEC AI</p>
             <p className={styles.headerSub}>
@@ -399,7 +400,7 @@ export default function AiClient() {
                   className={`${styles.message} ${msg.role === 'user' ? styles.messageUser : styles.messageAssistant}`}
                 >
                   {msg.role === 'assistant' && (
-                    <span className={styles.messageAvatar}>🤖</span>
+                    <span className={styles.messageAvatar}><Icon name="bot" size={20} color="#FBBF24" strokeWidth={1.8} /></span>
                   )}
                   {/* dir="auto" — the page direction follows the UI LOCALE, but a reply
                       follows the QUESTION. An Arabic answer inside an English-locale page
@@ -438,7 +439,7 @@ export default function AiClient() {
               ))}
               {isLoading && (
                 <div className={`${styles.message} ${styles.messageAssistant}`}>
-                  <span className={styles.messageAvatar}>🤖</span>
+                  <span className={styles.messageAvatar}><Icon name="bot" size={20} color="#FBBF24" strokeWidth={1.8} /></span>
                   <div className={styles.messageBubble}>
                     <div className={styles.typing}><span /><span /><span /></div>
                   </div>

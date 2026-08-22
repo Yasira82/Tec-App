@@ -10,8 +10,9 @@ import { HubApp }        from '@/lib/hub/types';
 // The user-facing taxonomy is SHARED (see src/domains/_categories.ts). It used to
 // live here behind a comment saying not to use the registry's `group`; the landing
 // page then used `group` anyway and the two surfaces disagreed on 17 of 23 apps.
-import { CATEGORIES, CATEGORY_OF, accentOf, categoryMeta, UNCLASSIFIED_ACCENT,
+import { CATEGORIES, CATEGORY_OF, accentOf, categoryMeta, iconOf, UNCLASSIFIED_ACCENT,
          type AppCategory } from '@/domains/_categories';
+import { Icon } from '@/components/ui/Icon';
 
 interface Props {
   apps: HubApp[];
@@ -165,10 +166,10 @@ export function HubAppsGrid({ apps, openTo }: Props) {
             background: `linear-gradient(135deg, ${hexRgba(accent, 0.18)}, ${hexRgba(accent, 0.05)})`,
             border: `1px solid ${hexRgba(accent, 0.28)}`,
             boxShadow: `0 4px 14px ${hexRgba(accent, 0.10)}`,
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
             opacity: editing && !isFav ? 0.55 : 1,
           }}>
-            {app.emoji}
+            <Icon name={iconOf(app.slug)} size={26} color={accent} strokeWidth={1.8} />
             {/* Edit-mode pin badge — only rendered while editing */}
             {editing && (
               <span aria-hidden style={{

@@ -5,6 +5,7 @@ import { AIMenu }              from '@/components/ai/AIMenu';
 import { ChatTranscript }      from '@/components/ai/ChatTranscript';
 import { useAiChat }           from '@/lib-client/hooks/useAiChat';
 import { useTranslation }      from '@/lib/i18n';
+import { Icon }                from '@/components/ui/Icon';
 
 /** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
 const STORE_KEY = 'tec_ai_drawer';
@@ -76,7 +77,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--tec-gold-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>🤖</div>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--tec-gold-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="bot" size={18} color="var(--tec-bg)" strokeWidth={2} /></div>
             <div>
               <div dir="ltr" style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'start' }}>TEC AI</div>
               <div style={{ fontSize: 10, color: '#4a4a5a' }}>{t.hub.ai.poweredBy}</div>

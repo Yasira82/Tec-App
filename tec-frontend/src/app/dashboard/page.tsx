@@ -10,6 +10,8 @@ import { normalizePayment, formatTxDate, isKycVerified, type Payment } from '@/l
 import { DashboardShell, DashboardCard }               from '@/components/dashboard';
 import { HubAppsGrid }                                  from '@/components/hub';
 import { LIVE_DOMAINS, COMING_SOON }                   from '@/domains/_registry';
+import { iconOf, accentOf }                            from '@/domains/_categories';
+import { Icon }                                        from '@/components/ui/Icon';
 
 /** Fill a "{n}" placeholder in an i18n string (word order-safe for RTL). */
 const fmt = (s: string, n: number | string) => s.replace('{n}', String(n));
@@ -520,8 +522,8 @@ export default function DashboardPage() {
               {hubApps.slice(0, 8).map(app => (
                 <button key={app.slug} onClick={() => router.push('/hub')} className="tec-btn"
                   style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                  <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05))', border: '1px solid rgba(251,191,36,0.28)', boxShadow: '0 4px 14px rgba(251,191,36,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>
-                    {app.emoji}
+                  <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(251,191,36,0.18), rgba(251,191,36,0.05))', border: '1px solid rgba(251,191,36,0.28)', boxShadow: '0 4px 14px rgba(251,191,36,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={iconOf(app.slug)} size={26} color={accentOf(app.slug)} strokeWidth={1.8} />
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {app.name}
@@ -536,7 +538,7 @@ export default function DashboardPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
               {COMING_SOON.slice(0, 12).map(d => (
                 <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
-                  <span style={{ fontSize: 20 }}>{d.emoji}</span>
+                  <Icon name={iconOf(d.slug)} size={20} color="var(--tec-text-3)" strokeWidth={1.8} />
                   <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--tec-text-3)', textAlign: 'center' }}>{d.name.en}</span>
                 </div>
               ))}
@@ -559,7 +561,7 @@ export default function DashboardPage() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(80px,1fr))', gap: 'var(--sp-2)' }}>
                 {COMING_SOON.map(d => (
                   <div key={d.slug} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: 'var(--sp-3) var(--sp-2)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', opacity: 0.5 }}>
-                    <span style={{ fontSize: 20 }}>{d.emoji}</span>
+                    <Icon name={iconOf(d.slug)} size={20} color="var(--tec-text-3)" strokeWidth={1.8} />
                     <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--tec-text-3)', textAlign: 'center' }}>{d.name.en}</span>
                   </div>
                 ))}

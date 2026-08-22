@@ -49,6 +49,8 @@ export function HubSubShell({ title, subtitle, badge, actions, loading, children
         padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12,
         background: 'rgba(5,8,22,0.9)', backdropFilter: 'blur(20px)',
         borderBottom: '1px solid var(--tec-border)',
+        // Sticky chrome must not swallow a scroll that starts on it.
+        touchAction: 'pan-y',
       }}>
         <button
           onClick={() => router.push('/hub')}

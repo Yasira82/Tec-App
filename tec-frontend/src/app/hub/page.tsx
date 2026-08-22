@@ -313,26 +313,19 @@ function HubPageInner() {
 
       {/* ✅ HubPayActions محذوف — π Pay / π Receive كانوا for testing بس */}
 
-      {/* ── Platform Tools ──────────────────────────────────
-          The assistant lives HERE now. It used to be a floating circle pinned over
-          the content in the corner where a thumb starts a scroll — so it covered
-          what you were reading and swallowed the swipe. A tool in the tools row
-          scrolls with the page and gets in nobody's way.
-          The row wraps: five items crushed onto one 390px line clip their labels. */}
-      <div style={{ margin: '0 16px 8px', display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {/* ── Platform Tools ──────────────────────────────── */}
+      <div style={{ margin: '0 16px 8px', display: 'flex', gap: 8 }}>
         {[
-          { icon: 'sparkles' as const, label: t.hub.ai.tool,         onTap: () => setAiOpen(true) },
-          { icon: 'chart'    as const, label: t.hub.tools.analytics, onTap: () => router.push('/hub/analytics') },
-          { icon: 'shield'   as const, label: t.hub.tools.kyc,       onTap: () => router.push('/hub/kyc') },
-          { icon: 'gem'      as const, label: t.hub.tools.plan,      onTap: () => router.push('/hub/subscription') },
-          { icon: 'plus'     as const, label: t.hub.tools.invite,    onTap: () => router.push('/hub/referral') },
-        ].map(({ icon, label, onTap }) => (
+          { icon: 'chart'    as const, label: t.hub.tools.analytics, route: '/hub/analytics' },
+          { icon: 'shield'   as const, label: t.hub.tools.kyc,       route: '/hub/kyc' },
+          { icon: 'sparkles' as const, label: t.hub.tools.plan,      route: '/hub/subscription' },
+          { icon: 'plus'     as const, label: t.hub.tools.invite,    route: '/hub/referral' },
+        ].map(({ icon, label, route }) => (
           <button
             key={label}
-            onClick={() => { haptic('light'); onTap(); }}
+            onClick={() => { haptic('light'); router.push(route); }}
             style={{
-              flex: '1 1 30%', minWidth: 96,
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+              flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
               padding: '10px 0', borderRadius: 14,
               background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
               color: 'rgba(255,255,255,0.55)', fontSize: 12, fontWeight: 600,
@@ -347,7 +340,22 @@ function HubPageInner() {
 
       <HubComingSoon />
 
-      <nav aria-label={t.hub.nav.main} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150 }}>
+      {/* The assistant, back in its corner. Removing it was my misreading of
+          "the Hub's scroll button" — that was the painted scrollbar down the side
+          of the screen, not this. The only thing that stays fixed is the
+          `tec-float` bob: a control that never holds still is hard to ignore. */}
+      {!aiOpen && (
+        <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
+          aria-label={t.hub.ai.open}
+          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', touchAction: 'pan-y', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', boxShadow: '0 8px 24px rgba(251,191,36,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}><Icon name="sparkles" size={24} color="#050816" strokeWidth={2.2} /></button>
+      )}
+
+      <nav aria-label={t.hub.nav.main} style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: 'rgba(5,5,10,0.92)', backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)', borderTop: '1px solid rgba(255,255,255,0.06)', display: 'flex', padding: '10px 4px', paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150,
+        // The nav owns the bottom strip of the screen — which is exactly where a
+        // thumb swipes. Without this it eats every scroll that starts down here and
+        // the page simply does not move. `pan-y` hands vertical drags to the page
+        // and keeps taps for the buttons. */
+        touchAction: 'pan-y' }}>
         {([
           { icon: 'hub'      as const, label: t.hub.nav.hub,      active: true,  action: () => {} },
           { icon: 'wallet'   as const, label: t.hub.nav.wallet,   active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },

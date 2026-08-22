@@ -220,7 +220,7 @@ input[type=number] { -moz-appearance: textfield; }
   .tec-hide-narrow { display: none !important; }
 }
 
-/* A page must never scroll sideways. One over-wide row used to turn the whole
-   Hub into a horizontally scrollable surface, which on a phone reads as broken
-   rather than as "one element is too wide". */
-html, body { overflow-x: hidden; max-width: 100%; }
+/* `body { overflow-x: hidden }` already lives in globals.css. This used to repeat
+   it on `html` too — which makes the ROOT element a scroll container and takes the
+   page off the phone's native scrolling. The header clipping (below) is what
+   actually stops the sideways scroll; this rule was never the fix. */

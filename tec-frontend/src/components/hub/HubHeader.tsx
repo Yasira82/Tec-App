@@ -29,6 +29,10 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       // a horizontal scrollbar and slides the account chip past the screen edge.
       // Everything inside is allowed to shrink; nothing is allowed to escape.
       gap: 8, overflow: 'hidden',
+      // The header is sticky, so it sits over the content the whole way down.
+      // `pan-y` lets a drag that starts on it scroll the page instead of stopping
+      // dead on a button.
+      touchAction: 'pan-y',
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>

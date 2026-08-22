@@ -17,7 +17,7 @@ import { PaymentModal }                     from './components/PaymentModal';
 import { PaymentPreparing }                 from './components/PaymentPreparing';
 import {
   HubHeader, HubWalletCard, HubCarousel,
-  HubAppsGrid, HubComingSoon, HubTools, HubBottomNav,
+  HubAppsGrid, HubComingSoon, HubBottomNav,
 } from '@/components/hub';
 import { useHubData }     from '@/hooks/useHubData';
 import { useTranslation } from '@/lib/i18n';
@@ -176,12 +176,10 @@ function HubPageInner() {
       />
 
       <HubAppsGrid apps={visibleLive} />
-      <HubTools />
       <HubComingSoon />
 
       {/* The assistant, in its corner. It stays on the RIGHT in both languages —
-          deliberately NOT mirrored: on the start side it lands on top of the
-          Platform Tools row, and one fixed corner is the muscle memory people
+          deliberately NOT mirrored: one fixed corner is the muscle memory people
           already have. */}
       {!aiOpen && (
         <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}

@@ -1,11 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher  from '@/components/LanguageSwitcher';
 import ThemeToggle      from '@/components/ThemeToggle';
 import { haptic }    from '@/lib/hub/utils';
 import { Icon }      from '@/components/ui/Icon';
+import { TecMark }   from '@/components/ui/TecMark';
+import { HubAccountMenu } from '@/components/hub/HubAccountMenu';
 
 interface Props {
   piUsername:  string;
@@ -16,17 +18,19 @@ interface Props {
 
 export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const chipRef = useRef<HTMLButtonElement>(null);
 
   return (
-    <header className="tec-on-band" style={{
+    <header style={{
       padding: '14px 16px 16px', display: 'flex', alignItems: 'center',
       justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100,
-      // A band, not a continuation of the page — solid, with the bottom corners
-      // rounded off. See --tec-topbar: it is dark in both themes, so nothing
-      // painted on it has to flip.
-      background: 'var(--tec-topbar)',
-      borderRadius: '0 0 var(--tec-topbar-radius) var(--tec-topbar-radius)',
+      // NO band here. The band (--tec-topbar) marks a page you navigated INTO
+      // and can come back from; the Hub is the ground floor, so a band on it
+      // framed the home screen as if it were a sub-page. It stays on the inner
+      // pages — HubSubShell and the dashboard — where it means something.
+      // Opaque, because the header is sticky and content scrolls under it.
+      background: 'var(--tec-bg)',
       borderBottom: 'none',
       // A header that overflows does not just look wrong — it gives the whole page
       // a horizontal scrollbar and slides the account chip past the screen edge.
@@ -39,13 +43,9 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-          background: 'var(--tec-gold)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 13, color: 'var(--tec-on-gold)',
-          
-        }}>T</div>
+        {/* The brand monogram, replacing a gold tile with a bare "T" in it —
+            which was the first letter of the logo standing in for the logo. */}
+        <TecMark size={22} color="var(--tec-gold)" />
         {/* The wordmark could not shrink: a flex item defaults to min-width:auto, so
             "ECOSYSTEM" — wider than "TEC" at letter-spacing 2 — held the whole block
             at its natural width and pushed the row past the screen. The header's
@@ -82,7 +82,10 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             <span style={{
               position: 'absolute', top: -4, insetInlineEnd: -4,
               minWidth: 17, height: 17, borderRadius: 999,
-              background: 'var(--tec-red)', border: '2px solid var(--tec-topbar)',
+              // The ring punches the badge out of whatever it sits ON, so it
+              // has to track the header's background — it was still the band
+              // colour after the band was removed from this header.
+              background: 'var(--tec-red)', border: '2px solid var(--tec-bg)',
               fontSize: 9, fontWeight: 800, color: 'var(--tec-on-red)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0 3px',
@@ -92,17 +95,23 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           )}
         </button>
 
-        {/* Avatar → Dashboard. The chevron is the affordance: without it this reads as
-            a name label, so users never discovered it opens the Dashboard. */}
-        <button className="tec-btn" onClick={() => { haptic('light'); router.push('/dashboard'); }}
-          aria-label={t.hub.header.openDashboard}
-          title={t.hub.header.openDashboard}
+        {/* Avatar → the account menu (Profile · Dashboard).
+            No username text: at this width it truncated to "@y…", which is not
+            a name, not a label and not obviously a control — it read as a
+            hidden button. An avatar with a caret is unambiguously a menu, and
+            the full handle is the first thing the menu itself shows, so
+            nothing is lost by dropping it here. */}
+        <button ref={chipRef} className="tec-btn" onClick={() => { haptic('light'); setMenuOpen(o => !o); }}
+          aria-label={t.hub.account.title}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          title={t.hub.account.title}
           style={{
-            display: 'flex', alignItems: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', gap: 4,
             background: notifCount > 0 ? 'var(--tec-gold-dim)' : 'var(--tec-fill-soft)',
             border: `1px solid ${notifCount > 0 ? 'var(--tec-border-gold)' : 'var(--tec-border)'}`,
-            borderRadius: 12, padding: '5px 10px 5px 5px', cursor: 'pointer',
-            minWidth: 0, flexShrink: 1,
+            borderRadius: 12, padding: '5px 7px 5px 5px', cursor: 'pointer',
+            flexShrink: 0,
           }}>
           <div style={{
             width: 26, height: 26, borderRadius: '50%',
@@ -112,9 +121,13 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span dir="ltr" style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
-          <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'var(--tec-gold)', opacity: 0.6, marginInlineStart: -2 }}>›</span>
+          {/* Three lines, not a caret. A caret says "there is more text below
+              this"; three lines say "menu" in every app on the phone, and the
+              dashboard topbar already uses them for exactly this. */}
+          <Icon name="menu" size={15} color="var(--tec-gold)" strokeWidth={2.2} />
         </button>
+
+        <HubAccountMenu open={menuOpen} onClose={() => setMenuOpen(false)} username={piUsername} anchor={chipRef} />
       </div>
     </header>
   );

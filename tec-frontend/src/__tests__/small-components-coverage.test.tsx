@@ -155,10 +155,13 @@ describe('HubHeader', () => {
     onNotifClick: vi.fn(),
   };
 
-  it('renders username and time', () => {
-    const { container } = render(<HubHeader {...baseProps} />);
-    expect(container.textContent).toContain('@alice');
+  it('renders the time, and the handle only once the menu is open', () => {
+    const { container, getByLabelText } = render(<HubHeader {...baseProps} />);
     expect(container.textContent).toContain('12:00');
+    expect(container.textContent).not.toContain('@alice');
+
+    fireEvent.click(getByLabelText('Your account'));
+    expect(document.body.textContent).toContain('@alice');
   });
 
   it('shows no badge when notifCount is 0', () => {
@@ -185,9 +188,31 @@ describe('HubHeader', () => {
     expect(onNotifClick).toHaveBeenCalled();
   });
 
-  it('avatar button navigates to /dashboard', () => {
-    const { getByLabelText } = render(<HubHeader {...baseProps} />);
-    fireEvent.click(getByLabelText('Open dashboard'));
+  it('the avatar opens the account menu instead of jumping straight to one page', () => {
+    // It used to navigate to /dashboard on tap — one destination behind a
+    // control that looks like it should offer several, and no way to reach
+    // Profile from here at all once it left the bottom nav.
+    const { getByLabelText, getByRole, queryByRole } = render(<HubHeader {...baseProps} />);
+    const chip = getByLabelText('Your account');
+
+    expect(chip).toHaveAttribute('aria-expanded', 'false');
+    expect(queryByRole('menu')).toBeNull();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+
+    fireEvent.click(chip);
+    expect(chip).toHaveAttribute('aria-expanded', 'true');
+    expect(getByRole('menu')).toBeInTheDocument();
+  });
+
+  it('the account menu reaches BOTH destinations', () => {
+    const { getByLabelText, getByRole } = render(<HubHeader {...baseProps} />);
+    fireEvent.click(getByLabelText('Your account'));
+
+    fireEvent.click(getByRole('menuitem', { name: /Profile/ }));
+    expect(mockRouterPush).toHaveBeenCalledWith('/hub/profile');
+
+    fireEvent.click(getByLabelText('Your account'));
+    fireEvent.click(getByRole('menuitem', { name: /Dashboard/ }));
     expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
   });
 });

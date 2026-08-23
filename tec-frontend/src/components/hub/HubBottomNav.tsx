@@ -10,6 +10,13 @@ import { haptic }         from '@/lib/hub/utils';
  * at every scroll position, which is why it, not the Platform Tools row, owns
  * the recurring destinations (Verify, Plan).
  *
+ * FIVE slots, deliberately. It carried seven, and seven on a 360px phone is
+ * ~51px each with 8.5px labels — a row you read rather than glance at. Profile
+ * and Dashboard moved behind the header's account chip (HubAccountMenu): both
+ * are "about me" rather than somewhere you go repeatedly, and Dashboard was
+ * already reachable from that chip, so the tab was a second door to a room
+ * that already had one.
+ *
  * The assistant lives here too, as the raised centre item. It used to be a
  * floating gold disc pinned over the page at bottom-right — and the apps grid
  * underneath it is a dense four-column lattice of tap targets, so the disc sat
@@ -23,15 +30,14 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
   const { t }  = useTranslation();
 
   const items: { icon: IconName; label: string; aria?: string; active: boolean; raised?: boolean; action: () => void }[] = [
-    { icon: 'hub'             , label: t.hub.nav.hub,       active: true,  action: () => {} },
-    { icon: 'wallet'          , label: t.hub.nav.wallet,    active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
-    // Labeled entry to the Dashboard. It used to be reachable ONLY by tapping the
-    // header avatar, which reads as a name — not as a link to anything.
-    { icon: 'chart'           , label: t.hub.nav.dashboard, active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
-    { icon: 'spark'           , label: t.hub.nav.ai, aria: t.hub.ai.open, active: false, raised: true, action: () => { haptic('medium'); onOpenAi(); } },
-    { icon: 'shield'          , label: t.hub.nav.verify,    active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
-    { icon: 'tiers'           , label: t.hub.nav.plan,      active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
-    { icon: 'settings'        , label: t.hub.nav.settings,  active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
+    { icon: 'hub'    , label: t.hub.nav.hub,    active: true,  action: () => {} },
+    { icon: 'tiers'  , label: t.hub.nav.plan,   active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
+    { icon: 'spark'  , label: t.hub.nav.ai, aria: t.hub.ai.open, active: false, raised: true, action: () => { haptic('medium'); onOpenAi(); } },
+    { icon: 'shield' , label: t.hub.nav.verify, active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
+    // Wallet sits at the far end on purpose: it is the most-tapped destination
+    // here, and the outermost slot is the shortest reach for a thumb holding
+    // the phone — not the hardest, the way it is on a desktop toolbar.
+    { icon: 'wallet' , label: t.hub.nav.wallet, active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
   ];
 
   return (
@@ -66,10 +72,10 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
           ) : (
             <Icon name={item.icon} size={21} color={item.active ? 'var(--tec-gold)' : 'var(--tec-text-3)'} strokeWidth={item.active ? 2.2 : 1.9} />
           )}
-          {/* Seven slots on a 360px phone is ~51px each. At the old 9px/0.8 the
-              longest label ("DASHBOARD") measured wider than its slot and would
-              have wrapped or clipped. */}
-          <span style={{ fontSize: 8.5, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: item.active || item.raised ? 700 : 400, color: item.active || item.raised ? 'var(--tec-gold)' : 'var(--tec-text-3)' }}>
+          {/* Five slots on a 360px phone is ~72px each, so the label can go back
+              to a readable size. It was squeezed to 8.5px only because seven
+              tabs left ~51px and "DASHBOARD" would not fit. */}
+          <span style={{ fontSize: 10, letterSpacing: 0.4, textTransform: 'uppercase', fontWeight: item.active || item.raised ? 700 : 400, color: item.active || item.raised ? 'var(--tec-gold)' : 'var(--tec-text-3)' }}>
             {item.label}
           </span>
         </button>

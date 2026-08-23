@@ -60,8 +60,18 @@ describe('en ⟺ ar dictionary parity', () => {
   it('actually translates the copy — Arabic is not a copy of English', () => {
     // Brand names and symbols legitimately match (TEC, PRO, π, Pi). Prose must not:
     // an Arabic value identical to a long English sentence is an untranslated stub.
+    // Long values that are deliberately identical, each for a stated reason —
+    // length alone cannot tell these apart from a forgotten string.
+    const SAME_BY_DESIGN = new Set([
+      // The full brand name, written the same way in both languages.
+      'common.brand',
+      // Expands the three ENGLISH letters T, E, C. An Arabic expansion
+      // (ثقة · منظومة · تواصل) spells ث·م·ت — it would no longer be a legend
+      // for the wordmark it sits under.
+      'common.acronym',
+    ]);
     const untranslated = [...EN]
-      .filter(([k, v]) => v.length > 24 && AR.get(k) === v)
+      .filter(([k, v]) => v.length > 24 && AR.get(k) === v && !SAME_BY_DESIGN.has(k))
       .map(([k]) => k);
     expect(untranslated).toEqual([]);
   });

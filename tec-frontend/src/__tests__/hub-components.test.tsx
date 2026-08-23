@@ -25,8 +25,15 @@ import { haptic } from '@/lib/hub/utils';
 
 // ── HubHeader ─────────────────────────────────────────────
 describe('HubHeader', () => {
-  it('renders username and time', () => {
+  it('puts the initial on the chip and the handle in the menu', () => {
+    // The chip used to print "@alice" beside the avatar; on a 360px phone that
+    // truncated to "@y…", which is neither a name nor a label. The full handle
+    // now lives one tap away, at the top of the menu.
     render(<HubHeader piUsername="alice" time="12:34" notifCount={0} onNotifClick={vi.fn()} />);
+    expect(screen.queryByText('@alice')).toBeNull();
+    expect(screen.getByText('A')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('Your account'));
     expect(screen.getByText('@alice')).toBeInTheDocument();
   });
 
@@ -55,9 +62,31 @@ describe('HubWalletCard', () => {
     expect(screen.getByText('42.50')).toBeInTheDocument();
   });
 
-  it('shows pi price when provided', () => {
+  it('values the BALANCE, not the coin', () => {
+    // The card used to print Pi's own price ($1.23) and 24h change — true, but
+    // about the market rather than about the person reading it. 5π at $1.23 is
+    // $6.15; that is the number worth the space.
     render(<HubWalletCard balance="5.00" piPrice={{ price: 1.23, change24h: 0.5, high24h: 1.5, low24h: 1.0 }} />);
-    expect(screen.getByText(/1\.23/)).toBeInTheDocument();
+    expect(screen.getByText(/≈ \$6\.15/)).toBeInTheDocument();
+  });
+
+  it('computes the 24h move from the PREVIOUS value, not as a slice of today', () => {
+    // +25% means the holding was worth fiat/1.25 yesterday, so the gain is
+    // 10 − 8 = $2. Multiplying today's value by 25% gives $2.50 — a plausible
+    // number that is simply wrong, and wrong in the flattering direction.
+    render(<HubWalletCard balance="10.00" piPrice={{ price: 1, change24h: 25, high24h: 1, low24h: 1 }} />);
+    expect(screen.getByText(/\+\$2\.00/)).toBeInTheDocument();
+    expect(screen.queryByText(/2\.50/)).toBeNull();
+  });
+
+  it('says nothing rather than "$0.00" when the balance did not load', () => {
+    // An approximate value under a balance we could not read is a fabricated
+    // figure — the one thing this card must never print (C-135 §4).
+    render(<HubWalletCard balance="—" piPrice={{ price: 1.23, change24h: 0.5, high24h: 1.5, low24h: 1.0 }} />);
+    expect(screen.queryByText(/≈ \$/)).toBeNull();
+
+    render(<HubWalletCard balance="5.00" balanceError piPrice={{ price: 1.23, change24h: 0.5, high24h: 1.5, low24h: 1.0 }} />);
+    expect(screen.queryByText(/≈ \$/)).toBeNull();
   });
 
   it('handles null price gracefully', () => {

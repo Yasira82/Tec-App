@@ -1,7 +1,18 @@
 export const en = {
   common: {
     appName: 'TEC',
-    tagline: 'The Elite Consortium',
+    // The platform reads "TEC Ecosystem" everywhere else — the repos, the
+    // knowledge base, the topbar. This page was the last place still saying
+    // "The Elite Consortium", which also collided with Elite, a real app in
+    // the fleet, and described the platform as a consortium of independent
+    // members rather than one platform with 24 apps.
+    tagline: 'Ecosystem',
+    // The full name, for a copyright line — "© 2026 Ecosystem" is not a name.
+    brand:   'TEC Ecosystem',
+    // The acronym legend. Deliberately NOT translated: it expands three
+    // ENGLISH letters, and an Arabic expansion (ثقة · منظومة · تواصل) spells
+    // ث·م·ت, not T·E·C, so the mapping it exists to show would be lost.
+    acronym: 'Trust · Ecosystem · Connect',
     piEcosystem: 'Pi Network Ecosystem',
     login: 'Sign in with Pi',
     logout: 'Logout',
@@ -163,13 +174,13 @@ export const en = {
   legal: {
     privacy: {
       title: 'Privacy Policy',
-      subtitle: 'The Elite Consortium',
+      subtitle: 'TEC Ecosystem',
       badge: 'Legal Document',
       intro: 'This policy governs how TEC collects, uses, and protects your personal data across all 24 sovereign applications in the TEC ecosystem.',
     },
     terms: {
       title: 'Terms of Service',
-      subtitle: 'The Elite Consortium',
+      subtitle: 'TEC Ecosystem',
       badge: 'Legal Document',
       intro: 'Please read these Terms carefully before using any TEC application. By using our services, you agree to be bound by these Terms.',
     },
@@ -192,8 +203,20 @@ export const en = {
   hub: {
     nav: {
       main: 'Main navigation',
-      hub: 'Hub', wallet: 'Wallet', dashboard: 'Dashboard',
-      verify: 'Verify', ai: 'AI', plan: 'Plan', settings: 'Settings',
+      // "Home", not "Hub": the Hub IS the product, so labelling one tab with
+      // the product's name says nothing about where the tab goes. The Arabic
+      // side has read الرئيسية (home) all along.
+      hub: 'Home', wallet: 'Wallet', dashboard: 'Dashboard',
+      verify: 'Verify', ai: 'AI', plan: 'Plan',
+    },
+    // Profile and Dashboard moved out of the bottom nav and behind the header
+    // chip — see HubAccountMenu.
+    account: {
+      title:        'Your account',
+      profile:      'Profile',
+      profileSub:   'Account & identity',
+      dashboard:    'Dashboard',
+      dashboardSub: 'Balance & activity',
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {
@@ -209,6 +232,10 @@ export const en = {
       notPiWallet: 'Not your Pi Network wallet · not withdrawable to Pi Network.',
       send: 'Send', receive: 'Receive', history: 'History',
       internalOnly: 'Send / Receive move π between TEC accounts only.',
+      // The 24h line. Labelled as a MARKET move, not as profit: it is what the
+      // holding's fiat value did as Pi's price moved, and the user did not
+      // trade to earn or lose it.
+      market24h: '24h market',
     },
     carousel: {
       foundingTitle: 'Founding 100',

@@ -1,6 +1,7 @@
 'use client';
 
-import Link from 'next/link';
+import Link       from 'next/link';
+import { TecMark } from '@/components/ui/TecMark';
 
 interface Props {
   mobileOpen: boolean;
@@ -22,12 +23,9 @@ export function MobileTopbar({ mobileOpen, onToggle }: Props) {
         borderRadius: '0 0 var(--tec-topbar-radius) var(--tec-topbar-radius)',
       }}>
       <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
-        <div style={{
-          width: 28, height: 28, borderRadius: 8,
-          background: 'var(--tec-gold)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 11, color: 'var(--tec-on-gold)',
-        }}>T</div>
+        {/* Same monogram as the Hub header — the two topbars are the same
+            object on two screens and must not carry different marks. */}
+        <TecMark size={19} color="var(--tec-gold)" />
         <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5 }}>TEC</span>
       </Link>
 

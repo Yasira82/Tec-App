@@ -1,7 +1,10 @@
 export const ar = {
   common: {
     appName: 'TEC',
-    tagline: 'تحالف النخبة',
+    tagline: 'المنظومة',
+    brand:   'TEC Ecosystem',
+    // Left in English on purpose — see the note in en.ts.
+    acronym: 'Trust · Ecosystem · Connect',
     piEcosystem: 'منظومة Pi Network',
     login: 'تسجيل الدخول بـ Pi',
     logout: 'خروج',
@@ -163,13 +166,13 @@ export const ar = {
   legal: {
     privacy: {
       title: 'سياسة الخصوصية',
-      subtitle: 'تحالف النخبة',
+      subtitle: 'TEC Ecosystem',
       badge: 'وثيقة قانونية',
       intro: 'تحكم هذه السياسة كيفية جمع TEC لبياناتك الشخصية واستخدامها وحمايتها عبر جميع التطبيقات الـ 24 في منظومة TEC.',
     },
     terms: {
       title: 'شروط الخدمة',
-      subtitle: 'تحالف النخبة',
+      subtitle: 'TEC Ecosystem',
       badge: 'وثيقة قانونية',
       intro: 'يرجى قراءة هذه الشروط بعناية قبل استخدام أي تطبيق TEC. باستخدام خدماتنا، فإنك توافق على الالتزام بهذه الشروط.',
     },
@@ -182,7 +185,14 @@ export const ar = {
     nav: {
       main: 'التنقل الرئيسي',
       hub: 'الرئيسية', wallet: 'المحفظة', dashboard: 'لوحة التحكم',
-      verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك', settings: 'الإعدادات',
+      verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك',
+    },
+    account: {
+      title:        'حسابك',
+      profile:      'الملف الشخصي',
+      profileSub:   'الحساب والهوية',
+      dashboard:    'لوحة التحكم',
+      dashboardSub: 'الرصيد والنشاط',
     },
     header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
     greeting: {
@@ -195,6 +205,7 @@ export const ar = {
       notPiWallet: 'هذه ليست محفظة Pi Network الخاصة بك · ولا يمكن سحبها إلى Pi Network.',
       send: 'إرسال', receive: 'استقبال', history: 'السجل',
       internalOnly: 'الإرسال والاستقبال ينقلان π بين حسابات TEC فقط.',
+      market24h: 'حركة ٢٤ ساعة',
     },
     carousel: {
       foundingTitle: 'المئة المؤسِّسة',

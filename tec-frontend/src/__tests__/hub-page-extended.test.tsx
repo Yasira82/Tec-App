@@ -319,16 +319,21 @@ describe('HubPage — authenticated render', () => {
   it('renders all 5 bottom nav items', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    const nav = ['Hub', 'Wallet', 'Verify', 'Plan', 'Settings'];
+    const nav = ['Home', 'Wallet', 'Verify', 'Plan'];
     for (const label of nav) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
+    // Five slots including the raised assistant. Profile and Dashboard moved
+    // behind the header chip — the row carried seven, which left ~51px a slot
+    // on a 360px phone and forced 8.5px labels.
+    expect(screen.queryByLabelText('Profile')).toBeNull();
+    expect(screen.queryByLabelText('Dashboard')).toBeNull();
   });
 
   it('Hub nav item has aria-current=page', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    expect(screen.getByLabelText('Hub')).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByLabelText('Home')).toHaveAttribute('aria-current', 'page');
   });
 
   it('other nav items do NOT have aria-current', async () => {
@@ -353,13 +358,6 @@ describe('HubPage — bottom navigation', () => {
     await act(async () => { render(<HubPage />); });
     fireEvent.click(screen.getByLabelText('Wallet'));
     expect(mockPush).toHaveBeenCalledWith('/dashboard/wallet');
-  });
-
-  it('Settings nav click calls router.push(/hub/profile)', async () => {
-    const HubPage = await getPage();
-    await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByLabelText('Settings'));
-    expect(mockPush).toHaveBeenCalledWith('/hub/profile');
   });
 
   it('Verify nav click calls router.push(/hub/kyc)', async () => {

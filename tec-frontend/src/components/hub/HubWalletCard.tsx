@@ -20,6 +20,18 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
 
+  // Fiat value of THIS balance, and what the last 24h of Pi's price did to it.
+  // Null unless both halves are real: no price, no unloaded/failed balance, no
+  // line — an "≈ $0.00" under a balance we could not read is a worse answer
+  // than saying nothing.
+  const piAmount = balanceError || balance === '—' ? NaN : parseFloat(balance);
+  const fiat  = piPrice && Number.isFinite(piAmount) ? piAmount * piPrice.price : null;
+  // change24h is the percentage the price moved, so the value 24h ago was
+  // fiat / (1 + pct/100); the delta is the difference, not fiat × pct.
+  const delta = fiat !== null && piPrice
+    ? fiat - fiat / (1 + piPrice.change24h / 100)
+    : null;
+
   // Primary wallet actions — surfaced on the home like every major fintech app.
   // They do NOT reimplement payment logic; each opens the REAL Send/Receive/history
   // flow on the wallet page (payment-service owns the transaction — P2/ADR-004).
@@ -56,15 +68,15 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
         onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
         style={{
           width: '100%', background: 'none', border: 'none',
-          padding: '22px 22px 20px', cursor: 'pointer', textAlign: 'start',
+          padding: '15px 16px 14px', cursor: 'pointer', textAlign: 'start',
           display: 'block',
         }}>
         <div>
-          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
+          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', letterSpacing: 2.4, textTransform: 'uppercase', marginBottom: 5, fontWeight: 600 }}>
             {t.hub.wallet.internalBalance}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, marginBottom: 6 }}>
             {balanceError ? (
               // Honest failure state (C-135 §4) — never show a fabricated 0 balance.
               // A role=button span (not a real <button>) because the whole card is
@@ -95,41 +107,51 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 <CountUp
                   value={parseFloat(balance) || 0}
                   decimals={2}
-                  style={{ fontSize: 42, fontWeight: 900, color: 'var(--tec-gold)', letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
+                  style={{ fontSize: 30, fontWeight: 900, color: 'var(--tec-gold)', letterSpacing: -1.2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
                 />
-                <span style={{ fontSize: 22, color: 'rgba(var(--tec-gold-rgb),0.6)', fontWeight: 300 }}>π</span>
+                <span style={{ fontSize: 17, color: 'rgba(var(--tec-gold-rgb),0.6)', fontWeight: 300 }}>π</span>
               </>
             )}
           </div>
+
+          {/* What the balance is WORTH, and what it did — the two lines every
+              exchange puts under the number.
+
+              The chip here used to show Pi's own price and 24h change: true, but
+              about the market rather than about this user, so it answered a
+              question nobody standing on their own balance was asking. Both
+              figures below are that same market data applied to THIS holding,
+              so they are derived, not invented.
+
+              It is labelled "24h market", never "profit": the user did not trade
+              to earn or lose it, and calling a price move P&L on a page that
+              also says the π cannot be withdrawn would be two mixed messages. */}
+          {fiat !== null && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+              <span style={{ fontSize: 13, color: 'var(--tec-text-2)', fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>
+                ≈ ${fiat.toFixed(2)}
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 11, fontWeight: 700, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)', fontVariantNumeric: 'tabular-nums' }}>
+                <Icon name={priceUp ? 'caretUp' : 'caretDown'} size={11}
+                      color={priceUp ? 'var(--tec-green)' : 'var(--tec-red)'} strokeWidth={2.6} />
+                {priceUp ? '+' : '−'}${Math.abs(delta!).toFixed(2)}
+                <span style={{ opacity: 0.85 }}>({Math.abs(piPrice!.change24h).toFixed(2)}%)</span>
+              </span>
+              <span style={{ fontSize: 10, color: 'var(--tec-text-3)' }}>{t.hub.wallet.market24h}</span>
+            </div>
+          )}
 
           {/* Disclosure — this is an internal TEC ledger balance, NOT the user's real
               Pi Network wallet. No A2U/withdrawal path exists (payment-service is the
               only Pi custodian — C-47 Invariant #8). Stating it plainly avoids any
               impression that this π can be moved to a Pi Network wallet. */}
-          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', lineHeight: 1.4, marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', lineHeight: 1.4, marginBottom: 8 }}>
             {t.hub.wallet.notPiWallet}
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
-              <span style={{ fontSize: 11, color: 'var(--tec-text-2)' }}>{t.hub.wallet.viewTransactions} →</span>
-            </div>
-            {piPrice && (
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                background: priceUp ? 'rgba(34,197,94,0.12)' : 'rgba(239,68,68,0.12)',
-                border: `1px solid ${priceUp ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
-                borderRadius: 999, padding: '3px 10px',
-              }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)', fontWeight: 700 }}>
-                  <Icon name={priceUp ? 'caretUp' : 'caretDown'} size={11}
-                        color={priceUp ? 'var(--tec-green)' : 'var(--tec-red)'} strokeWidth={2.6} />
-                  {Math.abs(piPrice.change24h).toFixed(2)}%
-                </span>
-                <span style={{ fontSize: 10, color: 'var(--tec-text-2)' }}>${piPrice.price.toFixed(4)}</span>
-              </div>
-            )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
+            <span style={{ fontSize: 11, color: 'var(--tec-text-2)' }}>{t.hub.wallet.viewTransactions} →</span>
           </div>
         </div>
       </button>

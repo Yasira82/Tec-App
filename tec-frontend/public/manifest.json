@@ -1,16 +1,46 @@
 {
-  "name": "TEC — The Elite Consortium",
+  "name": "TEC Ecosystem",
   "short_name": "TEC",
   "description": "Web3 Super Platform on Pi Network — 24 Apps, One Identity, One Wallet",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#020205",
-  "theme_color": "#d4af37",
+  "background_color": "#101014",
+  "theme_color": "#FBB44A",
   "orientation": "portrait-primary",
   "scope": "/",
   "lang": "en",
   "categories": ["finance", "utilities", "productivity"],
   "icons": [
+    {
+      "src": "/brand/tec-icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/tec-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/tec-icon-1024.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/brand/tec-icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/brand/tec-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
     {
       "src": "/favicon.ico",
       "sizes": "any",
@@ -20,7 +50,7 @@
   ],
   "shortcuts": [
     {
-      "name": "Hub",
+      "name": "Home",
       "url": "/hub",
       "description": "TEC Super App Hub"
     },

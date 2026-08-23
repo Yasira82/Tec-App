@@ -210,6 +210,19 @@
   letter-spacing: -0.02em;
 }
 
+/* The acronym legend. Small, wide-tracked and quiet: it is a footnote to the
+   wordmark above it, not a second headline competing with it. */
+.heroAcronym {
+  /* Sits with the wordmark above it, not with the sentence below — without the
+     bottom gap the three words read as the first line of the description. */
+  margin: 12px 0 26px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(var(--tec-gold-rgb), 0.55);
+}
+
 .heroSub {
   font-size: clamp(14px, 2vw, 17px);
   color: rgba(232,224,208,0.45);

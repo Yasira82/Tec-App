@@ -10,6 +10,7 @@ export const ar = {
     live: 'نشط',
     copy: 'نسخ',
     notAuthenticated: 'انتهت الجلسة — سجّل الدخول مرة أخرى',
+    theme: { label: 'المظهر', system: 'تلقائي', light: 'فاتح', dark: 'داكن' },
   },
   home: {
     description: 'منظومة متكاملة من {count} تطبيق مبنية على Pi Network',

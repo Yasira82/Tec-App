@@ -10,8 +10,7 @@ import { HubApp }        from '@/lib/hub/types';
 // The user-facing taxonomy is SHARED (see src/domains/_categories.ts). It used to
 // live here behind a comment saying not to use the registry's `group`; the landing
 // page then used `group` anyway and the two surfaces disagreed on 17 of 23 apps.
-import { CATEGORIES, CATEGORY_OF, accentOf, categoryMeta, iconOf, UNCLASSIFIED_ACCENT,
-         type AppCategory } from '@/domains/_categories';
+import { CATEGORIES, CATEGORY_OF, iconOf } from '@/domains/_categories';
 import { Icon } from '@/components/ui/Icon';
 
 interface Props {
@@ -28,13 +27,6 @@ interface Props {
 const FAV_KEY    = 'tec_fav_apps';
 const RECENT_KEY = 'tec_recent_apps';
 const RECENT_MAX = 4;
-
-// Convert a #RRGGBB hex + alpha → rgba() string (tiles use a category accent, not
-// the per-app accent, so the colour is derived here rather than via appAccentRgba).
-function hexRgba(hex: string, a: number): string {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
-}
 
 /**
  * The launcher is on FIXED rails: four columns, every section, always.
@@ -129,9 +121,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   // Compact icon tile (WeChat/iOS-style launcher) — dense so all apps fit in a few
   // rows. Tap opens (or toggles the pin while in Edit mode). The pin control only
   // appears in Edit mode, so the default grid stays clean (no star on every tile).
-  const AppCard = ({ app }: { app: HubApp }) => {
-    const isFav  = favs.includes(app.slug);
-    const accent = accentOf(app.slug);
+  const AppCard = ({ app, featured = false }: { app: HubApp; featured?: boolean }) => {
+    const isFav = favs.includes(app.slug);
     return (
       <div style={{ position: 'relative' }}>
         <button className="tec-btn"
@@ -142,26 +133,31 @@ export function HubAppsGrid({ apps, openTo }: Props) {
           }}>
           <div style={{
             position: 'relative',
-            width: 54, height: 54, borderRadius: 17,
-            background: `linear-gradient(135deg, ${hexRgba(accent, 0.18)}, ${hexRgba(accent, 0.05)})`,
-            border: `1px solid ${hexRgba(accent, 0.28)}`,
-            boxShadow: `0 4px 14px ${hexRgba(accent, 0.10)}`,
+            width: 54, height: 54, borderRadius: 16,
+            // Neutral. The tile used to be tinted with the category accent and lit
+            // by a coloured glow — six saturated hues on one screen, each repeated
+            // across four or five tiles. Colour that appears everywhere stops being
+            // information. The group CARD does the grouping now; a featured app is
+            // the only tile that gets the accent, and it stands out because of it.
+            background: featured ? 'var(--tec-accent-tile)' : 'var(--tec-surface-2)',
+            border: featured ? '1px solid var(--tec-border-gold)' : '1px solid transparent',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             opacity: editing && !isFav ? 0.55 : 1,
           }}>
-            <Icon name={iconOf(app.slug)} size={26} color={accent} strokeWidth={1.8} />
+            <Icon name={iconOf(app.slug)} size={26}
+              color={featured ? 'var(--tec-gold)' : 'var(--tec-icon)'} strokeWidth={1.8} />
             {/* Edit-mode pin badge — only rendered while editing */}
             {editing && (
               <span aria-hidden style={{
                 position: 'absolute', top: -6, insetInlineEnd: -6, width: 20, height: 20, borderRadius: 999,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1,
-                background: isFav ? 'var(--tec-gold)' : '#1b2233', color: isFav ? 'var(--tec-bg)' : 'rgba(255,255,255,0.5)',
-                border: '1px solid rgba(255,255,255,0.15)', fontWeight: 800,
+                background: isFav ? 'var(--tec-gold)' : 'var(--tec-surface-3)', color: isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)',
+                border: '1px solid var(--tec-border)', fontWeight: 800,
               }}>{isFav ? '★' : '+'}</span>
             )}
           </div>
           <span style={{
-            fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center',
+            fontSize: 11, fontWeight: 600, color: 'var(--tec-text-1)', textAlign: 'center',
             lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           }}>{app.name}</span>
@@ -170,11 +166,29 @@ export function HubAppsGrid({ apps, openTo }: Props) {
     );
   };
 
-  const Section = ({ title, items, accent }: { title: string; items: HubApp[]; accent?: string }) => (
-    <div style={{ marginTop: 16 }}>
-      <div style={{ fontSize: 10, fontWeight: 700, color: accent ?? 'rgba(255,255,255,0.4)', letterSpacing: 1.6, textTransform: 'uppercase', marginBottom: 4 }}>{title}</div>
+  /**
+   * A section is a CARD, not a coloured heading.
+   *
+   * Grouping used to be carried by the accent — every tile in a section tinted
+   * the same hue. A boundary does that job without spending a colour, and it
+   * frees the accent for the one row that is actually promoted.
+   */
+  const Section = ({ title, items, featured = false }: {
+    title: string; items: HubApp[]; featured?: boolean;
+  }) => (
+    <div style={{
+      marginTop: 12,
+      background: featured ? 'transparent' : 'var(--tec-surface-1)',
+      border: featured ? 'none' : '1px solid var(--tec-border)',
+      borderRadius: 20,
+      padding: featured ? '4px 4px 0' : '14px 8px 4px',
+    }}>
+      <div style={{
+        fontSize: featured ? 13 : 15, fontWeight: featured ? 600 : 800,
+        color: 'var(--tec-text-1)', margin: '0 8px 10px',
+      }}>{title}</div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID_COLUMNS},1fr)`, gap: 4 }}>
-        {items.map((app) => <AppCard key={app.slug} app={app} />)}
+        {items.map((app) => <AppCard key={app.slug} app={app} featured={featured} />)}
       </div>
     </div>
   );
@@ -184,7 +198,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <span className="tec-pulse" style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
-          <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.7)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.apps.title}</span>
+          <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-2)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.apps.title}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <button onClick={() => { haptic('light'); setEditing((e) => !e); }}
@@ -192,9 +206,9 @@ export function HubAppsGrid({ apps, openTo }: Props) {
             style={{
               fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
               padding: '3px 10px', borderRadius: 999,
-              background: editing ? 'rgba(251,191,36,0.14)' : 'rgba(255,255,255,0.05)',
-              border: `1px solid ${editing ? 'rgba(251,191,36,0.35)' : 'rgba(255,255,255,0.1)'}`,
-              color: editing ? 'var(--tec-gold)' : 'rgba(255,255,255,0.55)',
+              background: editing ? 'var(--tec-gold-dim)' : 'var(--tec-fill-soft)',
+              border: `1px solid ${editing ? 'var(--tec-border-gold)' : 'var(--tec-border)'}`,
+              color: editing ? 'var(--tec-gold)' : 'var(--tec-text-2)',
             }}>{editing ? t.hub.apps.done : t.hub.apps.edit}</button>
           <span style={{ fontSize: 10, color: 'var(--tec-green)', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1 }}>
             {apps.length} {t.hub.apps.live}
@@ -211,7 +225,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 4 }}>
-        <span style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'rgba(255,255,255,0.35)' }}>🔍</span>
+        <span style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--tec-text-3)' }}>🔍</span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -219,13 +233,13 @@ export function HubAppsGrid({ apps, openTo }: Props) {
           aria-label={t.hub.apps.search}
           style={{
             width: '100%', boxSizing: 'border-box', padding: '11px 14px 11px 40px',
-            borderRadius: 14, background: 'var(--tec-surface-2)', border: '1px solid rgba(255,255,255,0.08)',
-            color: '#fff', fontSize: 13, outline: 'none',
+            borderRadius: 14, background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)',
+            color: 'var(--tec-text-1)', fontSize: 13, outline: 'none',
           }}
         />
         {query && (
           <button onClick={() => setQuery('')} aria-label={t.hub.apps.clearSearch}
-            style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'rgba(255,255,255,0.08)', color: 'rgba(255,255,255,0.6)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+            style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'var(--tec-fill-soft)', color: 'var(--tec-text-2)', cursor: 'pointer', fontSize: 12 }}>✕</button>
         )}
       </div>
 
@@ -235,14 +249,14 @@ export function HubAppsGrid({ apps, openTo }: Props) {
           ? <Section
               title={results.length === 1 ? t.hub.apps.resultOne : t.hub.apps.results.replace('{n}', String(results.length))}
               items={results} />
-          : <div style={{ padding: '28px 0', textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>
+          : <div style={{ padding: '28px 0', textAlign: 'center', color: 'var(--tec-text-3)', fontSize: 13 }}>
               {t.hub.apps.noMatch.replace('{q}', query)}
             </div>;
       })() : (
         <>
-          {favApps.length    > 0 && <Section title={t.hub.apps.favorites} items={favApps}    accent="var(--tec-gold)" />}
+          {favApps.length    > 0 && <Section title={t.hub.apps.favorites} items={favApps} featured />}
           {recentApps.length > 0 && !editing && <Section title={t.hub.apps.recent} items={recentApps} />}
-          {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} accent={hexRgba(categoryMeta(s.group as AppCategory)?.accent ?? UNCLASSIFIED_ACCENT, 0.75)} />)}
+          {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} />)}
         </>
       )}
     </div>

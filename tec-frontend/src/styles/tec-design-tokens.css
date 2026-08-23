@@ -1,30 +1,51 @@
 /* ═══════════════════════════════════════════════════════
-   TEC Design Tokens v2.0 — EVL (C-83)
+   TEC Design Tokens v3.0 — neutral surfaces, two themes
    Foundation layer — all apps inherit from here
+
+   v3.0 changes what colour is FOR. v2 tinted every launcher tile with its
+   category accent: six saturated hues on screen at once, each repeated across
+   four or five tiles, plus a coloured glow on every one. Colour that appears
+   everywhere stops being information and becomes texture — and on a navy-black
+   ground with neon accents the whole product read as a game, not as money.
+
+   The rules now:
+     · SURFACES ARE NEUTRAL. Grouping is done by the group CARD, not by tint —
+       a boundary says "these belong together" without spending a colour.
+     · COLOUR IS RARE. The accent marks what is genuinely promoted (a featured
+       row, a live state, a warning). If everything is gold, nothing is.
+     · NO GLOW. Coloured box-shadow was most of the "gaming" feel.
+     · TWO THEMES, both real. The palette below is defined in pairs; v2 had a
+       light block that nothing could reach because the components hardcoded
+       dark values. Every surface here is a token, so both themes actually work.
 ═══════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Colors ─────────────────────────────────────────── */
-  --tec-bg:          #050816;
-  --tec-surface-1:   #0B1020;
-  --tec-surface-2:   #111627;
-  --tec-surface-3:   #1a2236;
-  --tec-border:      rgba(255,255,255,0.06);
-  --tec-border-gold: rgba(251,191,36,0.2);
+  /* ── Neutral surface ladder (dark, default) ─────────── */
+  /* Near-neutral, very slightly cool — NOT navy. #050816 was a blue-black that
+     pushed every neutral above it toward "sci-fi". */
+  --tec-bg:          #101014;
+  --tec-surface-1:   #17171d;   /* group card */
+  --tec-surface-2:   #1f1f27;   /* tile inside a card */
+  --tec-surface-3:   #2a2a34;   /* raised / pressed */
+  --tec-border:      rgba(255,255,255,0.07);
+  --tec-border-gold: rgba(251,191,36,0.28);
 
+  /* ── Brand accent — used SPARINGLY ──────────────────── */
   --tec-gold:        #FBBF24;
-  /* The second stop of every gold gradient in the product. It was written as a raw
-     #F59E0B in a dozen components, so the brand accent had two homes and only one
-     of them was a token. */
   --tec-gold-dark:   #F59E0B;
   --tec-gold-dim:    rgba(251,191,36,0.15);
   --tec-gold-glow:   rgba(251,191,36,0.08);
-  /* The accent gradient itself — declared once so a brand change is one edit. */
   --tec-gold-grad:   linear-gradient(135deg, #FBBF24, #F59E0B);
-  /* Ink that sits ON the gold gradient (near-black, warm) — a light-on-gold
-     button label fails contrast, so the pairing is fixed here rather than guessed. */
+  /* Ink that sits ON the gold gradient — a light-on-gold label fails contrast,
+     so the pairing is fixed here rather than guessed per component. */
   --tec-on-gold:     #0a0800;
+  /* Ink on a filled status dot. Fixed in both themes on purpose: the dot is a
+     solid red object, so its label does not follow the page. */
+  --tec-on-red:      #ffffff;
+  /* The tint behind a FEATURED tile. The only coloured tile in the launcher. */
+  --tec-accent-tile: rgba(251,191,36,0.13);
 
+  /* ── Status — meaning, never decoration ─────────────── */
   --tec-green:       #22C55E;
   --tec-green-dim:   rgba(34,197,94,0.12);
   --tec-blue:        #3b82f6;
@@ -32,9 +53,37 @@
   --tec-red:         #ef4444;
   --tec-purple:      #8b5cf6;
 
+  /* ── Ink ────────────────────────────────────────────── */
   --tec-text-1:      rgba(255,255,255,0.92);
-  --tec-text-2:      rgba(255,255,255,0.55);
-  --tec-text-3:      rgba(255,255,255,0.28);
+  --tec-text-2:      rgba(255,255,255,0.62);
+  --tec-text-3:      rgba(255,255,255,0.38);
+  /* Faintest readable ink — section eyebrows, disabled/"coming soon" labels. */
+  --tec-text-4:      rgba(255,255,255,0.25);
+  /* Icon stroke inside a neutral tile — reads at 26px without shouting. */
+  --tec-icon:        rgba(255,255,255,0.80);
+
+  /* ── Foreground washes ──────────────────────────────── */
+  /* Every `rgba(255,255,255,0.05)` chip in the app was invisible the moment the
+     page turned light. These are the same idea expressed as a token, so the wash
+     flips with the theme instead of staying white on white. */
+  --tec-fill-soft:   rgba(255,255,255,0.05);
+  --tec-fill-softer: rgba(255,255,255,0.02);
+
+  /* ── Hero card ──────────────────────────────────────── */
+  /* The balance card stays a dark object in BOTH themes — it is a card in the
+     physical sense, the way a bank app keeps the card art dark on a white page.
+     Because it never turns light, the ink on it is allowed to be fixed white.
+     v3.0 also drops its tri-colour purple→navy→green gradient: three hues in one
+     component was the single biggest source of the "game, not money" read. */
+  --tec-hero:        #16161d;
+  --tec-hero-ink-1:  rgba(255,255,255,0.92);
+  --tec-hero-ink-2:  rgba(255,255,255,0.55);
+  --tec-hero-ink-3:  rgba(255,255,255,0.38);
+
+  /* ── Sub-page header band ───────────────────────────── */
+  /* Inner pages open with a branded band, so you can feel you went somewhere.
+     A wash, not a slab: it fades into the page rather than cutting it. */
+  --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.14), rgba(251,191,36,0));
 
   /* ── Spacing (4px base) ─────────────────────────────── */
   --sp-1:  4px;
@@ -90,27 +139,89 @@
   --z-toast:   400;
 }
 
-/* ── Theme: dark (default) ───────────────────────────── */
-[data-theme='dark'],
-:root {
-  --tec-bg:        #050816;
-  --tec-surface-1: #0B1020;
-  --tec-surface-2: #111627;
-  --tec-text-1:    rgba(255,255,255,0.92);
-  --tec-text-2:    rgba(255,255,255,0.55);
-  --tec-text-3:    rgba(255,255,255,0.28);
+/* ── Theme: dark (default) ─────────────────────────── */
+/* The ladder above IS the dark theme; this block exists so an explicit
+   data-theme="dark" wins over a system preference. */
+[data-theme='dark'] {
+  --tec-bg:          #101014;
+  --tec-surface-1:   #17171d;
+  --tec-surface-2:   #1f1f27;
+  --tec-surface-3:   #2a2a34;
+  --tec-border:      rgba(255,255,255,0.07);
+  --tec-text-1:      rgba(255,255,255,0.92);
+  --tec-text-2:      rgba(255,255,255,0.62);
+  --tec-text-3:      rgba(255,255,255,0.38);
+  --tec-text-4:      rgba(255,255,255,0.25);
+  --tec-icon:        rgba(255,255,255,0.80);
+  --tec-fill-soft:   rgba(255,255,255,0.05);
+  --tec-fill-softer: rgba(255,255,255,0.02);
+  --tec-accent-tile: rgba(251,191,36,0.13);
+  --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.14), rgba(251,191,36,0));
 }
 
-/* ── Theme: light (ready for future) ────────────────── */
+/* ── Theme: light ──────────────────────────────────── */
+/* Warm off-white, not paper white — it sits better under the gold accent and
+   is easier on the eye in a browser that is often used one-handed at night.
+   Gold has to DARKEN in light mode: #FBBF24 on white is roughly 1.7:1 and
+   unreadable as text, so the ink-bearing accent is a deeper amber while the
+   fill keeps the brand hue. */
 [data-theme='light'] {
-  --tec-bg:        #f8f8fc;
-  --tec-surface-1: #ffffff;
-  --tec-surface-2: #f2f2f8;
-  --tec-surface-3: #e8e8f0;
-  --tec-border:    rgba(0,0,0,0.08);
-  --tec-text-1:    rgba(0,0,0,0.92);
-  --tec-text-2:    rgba(0,0,0,0.55);
-  --tec-text-3:    rgba(0,0,0,0.28);
+  --tec-bg:          #f4f3f1;
+  --tec-surface-1:   #ffffff;
+  --tec-surface-2:   #f1efec;
+  --tec-surface-3:   #e7e4df;
+  --tec-border:      rgba(0,0,0,0.09);
+  --tec-border-gold: rgba(180,120,0,0.35);
+  --tec-gold:        #9a6f00;
+  --tec-gold-dark:   #7d5a00;
+  --tec-gold-dim:    rgba(154,111,0,0.14);
+  --tec-gold-glow:   rgba(154,111,0,0.07);
+  --tec-gold-grad:   linear-gradient(135deg, #FBBF24, #F59E0B);
+  --tec-on-gold:     #241a00;
+  --tec-accent-tile: rgba(251,191,36,0.20);
+  --tec-green:       #15803d;
+  --tec-blue:        #1d4ed8;
+  --tec-red:         #b91c1c;
+  --tec-purple:      #6d28d9;
+  --tec-text-1:      rgba(0,0,0,0.90);
+  --tec-text-2:      rgba(0,0,0,0.62);
+  --tec-text-3:      rgba(0,0,0,0.42);
+  --tec-text-4:      rgba(0,0,0,0.30);
+  --tec-icon:        rgba(0,0,0,0.68);
+  --tec-fill-soft:   rgba(0,0,0,0.05);
+  --tec-fill-softer: rgba(0,0,0,0.025);
+  --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.26), rgba(251,191,36,0));
+}
+
+/* Follow the phone when the reader has expressed no preference of their own.
+   Scoped to :root:not([data-theme]) so an explicit choice always wins. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    --tec-bg:          #f4f3f1;
+    --tec-surface-1:   #ffffff;
+    --tec-surface-2:   #f1efec;
+    --tec-surface-3:   #e7e4df;
+    --tec-border:      rgba(0,0,0,0.09);
+    --tec-border-gold: rgba(180,120,0,0.35);
+    --tec-gold:        #9a6f00;
+    --tec-gold-dark:   #7d5a00;
+    --tec-gold-dim:    rgba(154,111,0,0.14);
+    --tec-gold-glow:   rgba(154,111,0,0.07);
+    --tec-on-gold:     #241a00;
+    --tec-accent-tile: rgba(251,191,36,0.20);
+    --tec-green:       #15803d;
+    --tec-blue:        #1d4ed8;
+    --tec-red:         #b91c1c;
+    --tec-purple:      #6d28d9;
+    --tec-text-1:      rgba(0,0,0,0.90);
+    --tec-text-2:      rgba(0,0,0,0.62);
+    --tec-text-3:      rgba(0,0,0,0.42);
+    --tec-text-4:      rgba(0,0,0,0.30);
+    --tec-icon:        rgba(0,0,0,0.68);
+    --tec-fill-soft:   rgba(0,0,0,0.05);
+    --tec-fill-softer: rgba(0,0,0,0.025);
+    --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.26), rgba(251,191,36,0));
+  }
 }
 
 /* ── Global resets ───────────────────────────────────── */

@@ -132,7 +132,7 @@ function HubPageInner() {
   return (
     <div
       dir={dir}
-      style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: '#fff', fontFamily: 'var(--font-sans)',
+      style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)',
         // Clears the fixed bottom nav. Nothing else hovers over the content any more.
         paddingBottom: 88 }}
     >
@@ -153,13 +153,13 @@ function HubPageInner() {
       {/* Personalized greeting — time-of-day + Pi username */}
       {user?.piUsername && (
         <div style={{ padding: '16px 20px 0', animation: 'tec-fade-in 0.35s ease both' }}>
-          <div style={{ fontSize: 20, fontWeight: 800, color: '#fff', letterSpacing: -0.2 }}>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--tec-text-1)', letterSpacing: -0.2 }}>
             {/* The comma lives in the dictionary — Arabic writes ، not ,. And the
                 handle is Latin inside an Arabic line, so it gets an explicit
                 direction: bidi otherwise decides where the "@" lands. */}
             {greeting} <span dir="ltr" style={{ color: 'var(--tec-gold)' }}>@{user.piUsername}</span>
           </div>
-          <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.45)', marginTop: 3 }}>{t.hub.greeting.sub}</div>
+          <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', marginTop: 3 }}>{t.hub.greeting.sub}</div>
         </div>
       )}
 

@@ -72,31 +72,31 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
         style={{ position: 'fixed', top: '5vh', bottom: 0, left: 0, right: 0, zIndex: 301, background: 'var(--tec-surface-1)', borderTop: '1px solid var(--tec-border-gold)', borderRadius: '24px 24px 0 0', padding: '0 0 24px', display: 'flex', flexDirection: 'column' }}>
 
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
-          <div style={{ width: 40, height: 4, borderRadius: 2, background: '#ffffff20' }} />
+          <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--tec-border)' }} />
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--tec-gold-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="bot" size={18} color="var(--tec-bg)" strokeWidth={2} /></div>
             <div>
-              <div dir="ltr" style={{ fontSize: 14, fontWeight: 700, color: '#fff', textAlign: 'start' }}>TEC AI</div>
+              <div dir="ltr" style={{ fontSize: 14, fontWeight: 700, color: 'var(--tec-text-1)', textAlign: 'start' }}>TEC AI</div>
               <div style={{ fontSize: 10, color: '#4a4a5a' }}>{t.hub.ai.poweredBy}</div>
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             <button onClick={() => setMenuOpen(v => !v)} aria-label={t.hub.ai.menu} title={t.hub.ai.menu}
               aria-expanded={menuOpen}
-              style={{ background: 'none', border: '1px solid #ffffff12', borderRadius: 10, color: menuOpen ? 'var(--tec-gold)' : '#7a7a8a', cursor: 'pointer', fontSize: 14, padding: '5px 10px', fontFamily: 'inherit' }}>
+              style={{ background: 'none', border: '1px solid var(--tec-border)', borderRadius: 10, color: menuOpen ? 'var(--tec-gold)' : 'var(--tec-text-2)', cursor: 'pointer', fontSize: 14, padding: '5px 10px', fontFamily: 'inherit' }}>
               ☰
             </button>
             {messages.length > 0 && (
               <button onClick={() => { newChat(); setMenuOpen(false); }} aria-label={t.hub.ai.newChat} title={t.hub.ai.newChat}
-                style={{ background: 'none', border: '1px solid #ffffff12', borderRadius: 10, color: '#7a7a8a', cursor: 'pointer', fontSize: 11, padding: '5px 10px', fontFamily: 'inherit' }}>
+                style={{ background: 'none', border: '1px solid var(--tec-border)', borderRadius: 10, color: 'var(--tec-text-2)', cursor: 'pointer', fontSize: 11, padding: '5px 10px', fontFamily: 'inherit' }}>
                 {t.hub.ai.newChat}
               </button>
             )}
             <button onClick={onClose} aria-label={t.hub.ai.close}
-              style={{ background: 'none', border: 'none', color: '#4a4a5a', cursor: 'pointer', fontSize: 20 }}>✕</button>
+              style={{ background: 'none', border: 'none', color: 'var(--tec-text-3)', cursor: 'pointer', fontSize: 20 }}>✕</button>
           </div>
         </div>
 
@@ -139,14 +139,14 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             // dir="auto" — the field had NO direction, so mixing Arabic with a Latin word
             // ("ايه dx") rendered the two runs in the wrong order as the user typed.
             dir="auto"
-            style={{ flex: 1, background: 'var(--tec-surface-1)', border: '1px solid #ffffff10', borderRadius: 14, padding: '12px 16px', color: '#fff', fontSize: 13, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto' }} />
+            style={{ flex: 1, background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 14, padding: '12px 16px', color: 'var(--tec-text-1)', fontSize: 13, outline: 'none', resize: 'none', fontFamily: 'inherit', lineHeight: 1.5, maxHeight: 120, overflowY: 'auto' }} />
           {loading ? (
             // Stop is only reachable WHILE streaming, and keeps whatever already arrived.
             <button onClick={stop} aria-label={t.hub.ai.stop}
-              style={{ width: 44, height: 44, borderRadius: 14, background: '#ffffff10', border: '1px solid #ffffff18', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: '#fff' }}>◼</button>
+              style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--tec-text-1)' }}>◼</button>
           ) : (
             <button onClick={() => submit()} disabled={!input.trim()} aria-label={t.hub.ai.send}
-              style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'var(--tec-gold-grad)' : '#ffffff08', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
+              style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'var(--tec-gold-grad)' : 'var(--tec-fill-soft)', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
           )}
         </div>
       </div>

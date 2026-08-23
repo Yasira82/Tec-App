@@ -53,8 +53,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#1a1208,var(--tec-surface-2))', border: '1px solid rgba(251,191,36,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'var(--tec-gold)' }}>★</div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{t.hub.carousel.foundingTitle}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{t.hub.carousel.foundingSub}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 3 }}>{t.hub.carousel.foundingTitle}</div>
+                  <div style={{ fontSize: 11, color: 'var(--tec-text-3)', lineHeight: 1.4 }}>{t.hub.carousel.foundingSub}</div>
                 </div>
               </div>
               <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5 }}>{t.hub.carousel.foundingCta} →</div>
@@ -68,8 +68,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
                 <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'linear-gradient(135deg,#0d2417,var(--tec-surface-2))', border: '1px solid rgba(34,197,94,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#fff', marginBottom: 3 }}>{t.hub.carousel.inviteTitle}</div>
-                  <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', lineHeight: 1.4 }}>{t.hub.carousel.inviteSub}</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 3 }}>{t.hub.carousel.inviteTitle}</div>
+                  <div style={{ fontSize: 11, color: 'var(--tec-text-3)', lineHeight: 1.4 }}>{t.hub.carousel.inviteSub}</div>
                 </div>
               </div>
               <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-green)', letterSpacing: 1.5 }}>{t.hub.carousel.inviteCta} →</div>
@@ -83,8 +83,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                   <div style={{ width: 48, height: 48, borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,var(--tec-surface-2))', border: '1px solid rgba(251,191,36,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'var(--tec-gold)' }}>π</div>
                   <div>
-                    <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{t.hub.carousel.piNetwork}</div>
-                    <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>PI/USDT · OKX</div>
+                    <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--tec-text-1)' }}>{t.hub.carousel.piNetwork}</div>
+                    <div style={{ fontSize: 11, color: 'var(--tec-text-3)' }}>PI/USDT · OKX</div>
                   </div>
                 </div>
                 {piPrice
@@ -101,8 +101,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
                       { label: '24H HIGH', value: `$${piPrice.high24h.toFixed(4)}`, color: 'var(--tec-green)' },
                       { label: '24H LOW',  value: `$${piPrice.low24h.toFixed(4)}`,  color: 'var(--tec-red)' },
                     ].map(s => (
-                      <div key={s.label} style={{ padding: '10px 12px', background: 'rgba(255,255,255,0.03)', borderRadius: 12 }}>
-                        <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', letterSpacing: 1.5, marginBottom: 4 }}>{s.label}</div>
+                      <div key={s.label} style={{ padding: '10px 12px', background: 'var(--tec-fill-softer)', borderRadius: 12 }}>
+                        <div style={{ fontSize: 9, color: 'var(--tec-text-4)', letterSpacing: 1.5, marginBottom: 4 }}>{s.label}</div>
                         <div style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{s.value}</div>
                       </div>
                     ))}
@@ -124,7 +124,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             aria-label={`Slide ${i + 1}`}
             style={{
               width: carouselIdx === i ? 20 : 6, height: 6, borderRadius: 3,
-              background: carouselIdx === i ? 'var(--tec-gold)' : 'rgba(255,255,255,0.15)',
+              background: carouselIdx === i ? 'var(--tec-gold)' : 'var(--tec-border)',
               border: 'none', cursor: 'pointer',
               transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', padding: 0,
             }} />

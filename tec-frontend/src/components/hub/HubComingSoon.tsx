@@ -33,8 +33,8 @@ export function HubComingSoon() {
   return (
     <div style={{ padding: '24px 16px 0', animation: 'tec-fade-in 0.65s ease both' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.25)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.comingSoon.title}</span>
-        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)', letterSpacing: 1 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-4)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.comingSoon.title}</span>
+        <span style={{ fontSize: 10, color: 'var(--tec-text-4)', letterSpacing: 1 }}>
           {fill(t.hub.comingSoon.count, { n: COMING_SOON.length, total: ALL_DOMAINS.length })}
         </span>
       </div>
@@ -49,11 +49,11 @@ export function HubComingSoon() {
               {apps.map(app => (
                 <div key={app.slug} style={{
                   display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
-                  padding: '12px 6px', background: 'rgba(255,255,255,0.02)',
-                  borderRadius: 14, opacity: 0.5, border: '1px solid rgba(255,255,255,0.04)',
+                  padding: '12px 6px', background: 'var(--tec-fill-softer)',
+                  borderRadius: 14, opacity: 0.5, border: '1px solid var(--tec-border)',
                 }}>
-                  <Icon name={iconOf(app.slug)} size={20} color="rgba(255,255,255,0.45)" strokeWidth={1.8} />
-                  <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textAlign: 'center' }}>{tr(app.name, locale)}</span>
+                  <Icon name={iconOf(app.slug)} size={20} color="var(--tec-text-2)" strokeWidth={1.8} />
+                  <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--tec-text-3)', textAlign: 'center' }}>{tr(app.name, locale)}</span>
                 </div>
               ))}
             </div>

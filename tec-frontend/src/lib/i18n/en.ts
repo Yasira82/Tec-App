@@ -10,6 +10,7 @@ export const en = {
     live: 'Live',
     copy: 'Copy',
     notAuthenticated: 'Session expired — sign in again',
+    theme: { label: 'Theme', system: 'System', light: 'Light', dark: 'Dark' },
   },
   home: {
     description: 'A complete ecosystem of {count} apps built on Pi Network',

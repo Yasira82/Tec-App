@@ -41,29 +41,39 @@ export function HubSubShell({ title, subtitle, badge, actions, loading, children
   // shell, so one `dir` covers all of them and none can be forgotten. The back arrow
   // points the way "back" actually is — in RTL that is to the right.
   return (
-    <div dir={dir} style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)', paddingBottom: 32 }}>
+    <div dir={dir} style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)', paddingBottom: 32, position: 'relative' }}>
+
+      {/* Branded band behind the header. Inner pages used to open on exactly the
+          same flat ground as the Hub, so tapping through felt like nothing had
+          happened. A wash of the brand colour at the top says "you went
+          somewhere" — and it fades out rather than ending in a hard edge, so it
+          reads as light on the page instead of a second bar. */}
+      <div aria-hidden style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 180,
+        background: 'var(--tec-band)', pointerEvents: 'none',
+      }} />
 
       {/* ── Sticky header ──────────────────────── */}
       <header style={{
         position: 'sticky', top: 0, zIndex: 100,
         padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12,
-        background: 'rgba(5,8,22,0.9)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--tec-border)',
+        background: 'transparent', backdropFilter: 'blur(20px)',
+        borderBottom: 'none',
         // Sticky chrome must not swallow a scroll that starts on it.
         touchAction: 'pan-y',
       }}>
         <button
           onClick={() => router.push('/hub')}
           style={{
-            background: 'rgba(255,255,255,0.06)', border: '1px solid var(--tec-border)',
+            background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)',
             borderRadius: 10, padding: '7px 12px', color: 'var(--tec-text-2)',
             fontSize: 14, cursor: 'pointer', flexShrink: 0,
           }}>
           {dir === 'rtl' ? '→' : '←'}
         </button>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, position: 'relative' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--tec-text-1)' }}>{title}</span>
+            <span style={{ fontSize: 18, fontWeight: 800, color: 'var(--tec-text-1)' }}>{title}</span>
             {badge && badgeStyle && (
               <span style={{
                 fontSize: 10, fontWeight: 700, letterSpacing: 1,

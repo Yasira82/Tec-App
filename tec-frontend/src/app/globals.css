@@ -24,19 +24,22 @@
  * of the screen — it appeared exactly when the viewport and the body box disagreed, which
  * is why it came and went.
  *
- * `color-scheme: dark` additionally tells the browser to paint ITS OWN surfaces dark —
- * scrollbars, the overscroll glow, form controls — instead of assuming a light page.
+ * The ground is now the TOKEN, not a fixed `--black`. It was hardcoded, so the
+ * light theme resolved every variable correctly and then painted them onto a
+ * near-black page — the one surface the theme could not reach. `color-scheme`
+ * is set from the boot script (see src/lib-client/theme.ts) for the same
+ * reason: hardcoding `dark` here made the browser paint its OWN surfaces —
+ * scrollbars, overscroll glow, form controls — dark on a light page.
  */
 html {
   font-size: 16px;
   scroll-behavior: smooth;
-  background: var(--black);
-  color-scheme: dark;
+  background: var(--tec-bg);
 }
 
 body {
-  background: var(--black);
-  color: var(--white);
+  background: var(--tec-bg);
+  color: var(--tec-text-1);
   font-family: var(--font-dm-sans), 'DM Sans', sans-serif;
   font-weight: 300;
   /* dvh follows the VISIBLE viewport as the mobile URL bar shows and hides; the vh line

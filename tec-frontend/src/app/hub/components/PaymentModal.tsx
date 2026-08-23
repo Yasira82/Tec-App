@@ -172,7 +172,7 @@ await new Promise(r => setTimeout(r, 1000));
           width: 64, height: 64, borderRadius: 20,
           background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: '#0a0800',
+          fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: 'var(--tec-on-gold)',
         }}>T</div>
 
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
@@ -205,7 +205,7 @@ await new Promise(r => setTimeout(r, 1000));
                 padding: '18px 48px', borderRadius: 20,
                 background: isReady ? 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))' : '#333',
                 border: 'none',
-                color: isReady ? '#0a0800' : '#666',
+                color: isReady ? 'var(--tec-on-gold)' : 'var(--tec-text-3)',
                 fontSize: 18, fontWeight: 900,
                 cursor: isReady ? 'pointer' : 'not-allowed',
                 boxShadow: isReady ? '0 8px 32px rgba(251,191,36,0.3)' : 'none',
@@ -252,8 +252,8 @@ await new Promise(r => setTimeout(r, 1000));
               onClick={onClose}
               style={{
                 marginTop: 8, padding: '12px 24px', borderRadius: 14,
-                background: '#ffffff10', border: '1px solid #ffffff20',
-                color: '#fff', fontSize: 13, cursor: 'pointer',
+                background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+                color: 'var(--tec-text-1)', fontSize: 13, cursor: 'pointer',
               }}
             >
               {p.goBack}
@@ -286,7 +286,7 @@ await new Promise(r => setTimeout(r, 1000));
                 style={{
                   padding: '12px 24px', borderRadius: 14,
                   background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
-                  border: 'none', color: '#0a0800',
+                  border: 'none', color: 'var(--tec-on-gold)',
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}
               >
@@ -296,8 +296,8 @@ await new Promise(r => setTimeout(r, 1000));
                 onClick={onClose}
                 style={{
                   padding: '12px 24px', borderRadius: 14,
-                  background: '#ffffff10', border: '1px solid #ffffff20',
-                  color: '#fff', fontSize: 13, cursor: 'pointer',
+                  background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+                  color: 'var(--tec-text-1)', fontSize: 13, cursor: 'pointer',
                 }}
               >
                 {p.cancel}

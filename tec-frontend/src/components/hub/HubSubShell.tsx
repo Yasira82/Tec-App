@@ -43,30 +43,25 @@ export function HubSubShell({ title, subtitle, badge, actions, loading, children
   return (
     <div dir={dir} style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)', paddingBottom: 32, position: 'relative' }}>
 
-      {/* Branded band behind the header. Inner pages used to open on exactly the
-          same flat ground as the Hub, so tapping through felt like nothing had
-          happened. A wash of the brand colour at the top says "you went
-          somewhere" — and it fades out rather than ending in a hard edge, so it
-          reads as light on the page instead of a second bar. */}
-      <div aria-hidden style={{
-        position: 'absolute', top: 0, left: 0, right: 0, height: 180,
-        background: 'var(--tec-band)', pointerEvents: 'none',
-      }} />
-
-      {/* ── Sticky header ──────────────────────── */}
-      <header style={{
+      {/* ── The band ───────────────────────────
+          Inner pages used to open on exactly the same flat ground as the Hub,
+          so tapping through felt like nothing had happened. This was a gold
+          WASH that faded into the page; it is now a solid band with rounded
+          bottom corners — the same shape the Hub and the dashboard use, so
+          every screen in the app is framed the same way. */}
+      <header className="tec-on-band" style={{
         position: 'sticky', top: 0, zIndex: 100,
-        padding: '12px 20px', display: 'flex', alignItems: 'center', gap: 12,
-        background: 'transparent', backdropFilter: 'blur(20px)',
-        borderBottom: 'none',
+        padding: '12px 20px 16px', display: 'flex', alignItems: 'center', gap: 12,
+        background: 'var(--tec-topbar)',
+        borderRadius: '0 0 var(--tec-topbar-radius) var(--tec-topbar-radius)',
         // Sticky chrome must not swallow a scroll that starts on it.
         touchAction: 'pan-y',
       }}>
         <button
           onClick={() => router.push('/hub')}
           style={{
-            background: 'var(--tec-surface-2)', border: '1px solid var(--tec-border)',
-            borderRadius: 10, padding: '7px 12px', color: 'var(--tec-text-2)',
+            background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+            borderRadius: 10, padding: '7px 12px', color: 'var(--tec-text-1)',
             fontSize: 14, cursor: 'pointer', flexShrink: 0,
           }}>
           {dir === 'rtl' ? '→' : '←'}
@@ -86,7 +81,7 @@ export function HubSubShell({ title, subtitle, badge, actions, loading, children
             )}
           </div>
           {subtitle && (
-            <div style={{ fontSize: 11, color: 'var(--tec-text-3)', marginTop: 2 }}>{subtitle}</div>
+            <div style={{ fontSize: 11, color: 'var(--tec-text-2)', marginTop: 2 }}>{subtitle}</div>
           )}
         </div>
         {actions && (

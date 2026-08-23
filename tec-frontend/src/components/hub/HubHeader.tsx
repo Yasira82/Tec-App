@@ -19,13 +19,15 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
   const router = useRouter();
 
   return (
-    <header style={{
-      padding: '14px 16px', display: 'flex', alignItems: 'center',
+    <header className="tec-on-band" style={{
+      padding: '14px 16px 16px', display: 'flex', alignItems: 'center',
       justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100,
-      background: 'var(--tec-bg)',
-      backdropFilter: 'blur(24px) saturate(1.8)',
-      WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
-      borderBottom: '1px solid var(--tec-border)',
+      // A band, not a continuation of the page — solid, with the bottom corners
+      // rounded off. See --tec-topbar: it is dark in both themes, so nothing
+      // painted on it has to flip.
+      background: 'var(--tec-topbar)',
+      borderRadius: '0 0 var(--tec-topbar-radius) var(--tec-topbar-radius)',
+      borderBottom: 'none',
       // A header that overflows does not just look wrong — it gives the whole page
       // a horizontal scrollbar and slides the account chip past the screen edge.
       // Everything inside is allowed to shrink; nothing is allowed to escape.
@@ -70,7 +72,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           aria-label={`${t.hub.header.notifications}${notifCount > 0 ? ` — ${notifCount}` : ''}`}
           style={{
             width: 36, height: 36, borderRadius: 10,
-            background: notifCount > 0 ? 'var(--tec-gold-dim)' : 'var(--tec-surface-2)',
+            background: notifCount > 0 ? 'var(--tec-gold-dim)' : 'var(--tec-fill-soft)',
             border: `1px solid ${notifCount > 0 ? 'var(--tec-border-gold)' : 'var(--tec-border)'}`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', position: 'relative', flexShrink: 0,
@@ -80,7 +82,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             <span style={{
               position: 'absolute', top: -4, insetInlineEnd: -4,
               minWidth: 17, height: 17, borderRadius: 999,
-              background: 'var(--tec-red)', border: '2px solid var(--tec-bg)',
+              background: 'var(--tec-red)', border: '2px solid var(--tec-topbar)',
               fontSize: 9, fontWeight: 800, color: 'var(--tec-on-red)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0 3px',
@@ -97,8 +99,8 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           title={t.hub.header.openDashboard}
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
-            background: 'var(--tec-gold-glow)',
-            border: '1px solid var(--tec-border-gold)',
+            background: notifCount > 0 ? 'var(--tec-gold-dim)' : 'var(--tec-fill-soft)',
+            border: `1px solid ${notifCount > 0 ? 'var(--tec-border-gold)' : 'var(--tec-border)'}`,
             borderRadius: 12, padding: '5px 10px 5px 5px', cursor: 'pointer',
             minWidth: 0, flexShrink: 1,
           }}>

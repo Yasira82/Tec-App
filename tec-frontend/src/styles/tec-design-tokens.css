@@ -69,16 +69,6 @@
   --tec-fill-soft:   rgba(255,255,255,0.05);
   --tec-fill-softer: rgba(255,255,255,0.02);
 
-  /* ── Hero card ──────────────────────────────────────── */
-  /* The balance card stays a dark object in BOTH themes — it is a card in the
-     physical sense, the way a bank app keeps the card art dark on a white page.
-     Because it never turns light, the ink on it is allowed to be fixed white.
-     v3.0 also drops its tri-colour purple→navy→green gradient: three hues in one
-     component was the single biggest source of the "game, not money" read. */
-  --tec-hero:        #16161d;
-  --tec-hero-ink-1:  rgba(255,255,255,0.92);
-  --tec-hero-ink-2:  rgba(255,255,255,0.55);
-  --tec-hero-ink-3:  rgba(255,255,255,0.38);
 
   /* ── Sub-page header band ───────────────────────────── */
   /* Inner pages open with a branded band, so you can feel you went somewhere.

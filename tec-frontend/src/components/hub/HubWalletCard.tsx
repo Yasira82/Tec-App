@@ -36,14 +36,14 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
         onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
         style={{
           width: '100%', borderRadius: 24, overflow: 'hidden',
-          // Deliberately dark in BOTH themes — see --tec-hero. It used to be a
-          // purple→navy→green gradient with a cyan glow behind it: three hues in
-          // one component, on the single element the user looks at first.
-          background: 'var(--tec-hero)',
+          // The same card as every other card on the page. It has been three
+          // things now: a purple→navy→green gradient, then a fixed dark slab
+          // that stayed dark in light mode. Both made the first element the eye
+          // lands on the one element that did not follow the system.
+          background: 'var(--tec-surface-1)',
           border: '1px solid var(--tec-border)',
           padding: '24px', cursor: 'pointer', textAlign: 'start',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
-          position: 'relative',
+                    position: 'relative',
         }}>
         {/* One warm wash, in the brand colour only — enough to keep the card from
             reading as flat grey, not enough to become decoration. */}
@@ -53,7 +53,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
         }} />
 
         <div style={{ position: 'relative' }}>
-          <div style={{ fontSize: 10, color: 'var(--tec-hero-ink-3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
+          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
             {t.hub.wallet.internalBalance}
           </div>
 
@@ -77,7 +77,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                   borderRadius: 12, padding: '9px 14px',
                 }}
               >
-                <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
+                <span style={{ fontSize: 15, color: 'var(--tec-red)', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--tec-gold)', fontWeight: 700 }}>
                   <Icon name="refresh" size={13} color="var(--tec-gold)" strokeWidth={2.2} />{t.hub.wallet.retry}</span>
               </span>
@@ -99,14 +99,14 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
               Pi Network wallet. No A2U/withdrawal path exists (payment-service is the
               only Pi custodian — C-47 Invariant #8). Stating it plainly avoids any
               impression that this π can be moved to a Pi Network wallet. */}
-          <div style={{ fontSize: 10, color: 'var(--tec-hero-ink-3)', lineHeight: 1.4, marginBottom: 14 }}>
+          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', lineHeight: 1.4, marginBottom: 14 }}>
             {t.hub.wallet.notPiWallet}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <span className="tec-pulse" style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--tec-green)', display: 'inline-block' }} />
-              <span style={{ fontSize: 11, color: 'var(--tec-hero-ink-2)' }}>{t.hub.wallet.viewTransactions} →</span>
+              <span style={{ fontSize: 11, color: 'var(--tec-text-2)' }}>{t.hub.wallet.viewTransactions} →</span>
             </div>
             {piPrice && (
               <div style={{
@@ -120,7 +120,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                         color={priceUp ? 'var(--tec-green)' : 'var(--tec-red)'} strokeWidth={2.6} />
                   {Math.abs(piPrice.change24h).toFixed(2)}%
                 </span>
-                <span style={{ fontSize: 10, color: 'var(--tec-hero-ink-2)' }}>${piPrice.price.toFixed(4)}</span>
+                <span style={{ fontSize: 10, color: 'var(--tec-text-2)' }}>${piPrice.price.toFixed(4)}</span>
               </div>
             )}
           </div>

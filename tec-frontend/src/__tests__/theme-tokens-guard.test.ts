@@ -24,6 +24,7 @@ const THEMED = [
   'src/components/hub/HubHeader.tsx',
   'src/components/hub/HubBottomNav.tsx',
   'src/components/hub/HubSubShell.tsx',
+  'src/components/hub/HubWalletCard.tsx',
   'src/app/hub/components/HubSkeleton.tsx',
   'src/app/hub/components/AIDrawer.tsx',
   'src/components/LanguageSwitcher.module.css',
@@ -48,24 +49,32 @@ describe('Hub surfaces are theme-driven', () => {
   });
 });
 
-describe('the deliberate exceptions are declared, not accidental', () => {
-  it('the balance card is dark in both themes and says why', () => {
-    const css = read('src/styles/tec-design-tokens.css');
-    expect(css).toContain('--tec-hero:');
-    expect(css).toContain('--tec-hero-ink-1:');
-    // The reason has to live next to the token, or the next reader "fixes" it.
-    expect(css).toMatch(/dark object in BOTH themes/i);
-
+describe('the balance card is a card like any other', () => {
+  it('is painted from the shared surface, not a private one', () => {
     const card = read('src/components/hub/HubWalletCard.tsx');
-    expect(card).toContain('var(--tec-hero)');
-    // Ink inside the card uses the hero scale, never the page scale.
-    expect(card).not.toMatch(HARDCODED_WHITE);
-  });
-
-  it('drops the tri-colour gradient that made the card read as a game', () => {
-    const card = read('src/components/hub/HubWalletCard.tsx');
+    expect(card).toContain("background: 'var(--tec-surface-1)'");
+    // It has been three things: a purple->navy->green gradient, then a fixed
+    // dark slab (--tec-hero) that stayed dark on a light page. Both made the
+    // first element the eye lands on the one that ignored the system.
     expect(card).not.toContain('#0a1628');
     expect(card).not.toContain('rgba(6,182,212');
+    expect(card).not.toContain('--tec-hero');
+  });
+
+  it('leaves no orphan hero token behind in the palette', () => {
+    // A token with no user is a thing the next reader has to rule out.
+    expect(read('src/styles/tec-design-tokens.css')).not.toContain('--tec-hero');
+  });
+});
+
+describe('every group in the launcher is the same card', () => {
+  it('Favourites is not exempt from the box', () => {
+    // It rendered transparent and borderless while every other group was a
+    // bounded card, so it read as a stray tile left on the background. What
+    // makes it featured is the tile treatment inside it.
+    const grid = read('src/components/hub/HubAppsGrid.tsx');
+    expect(grid).not.toMatch(/featured \? 'transparent'/);
+    expect(grid).not.toMatch(/featured \? 'none'/);
   });
 });
 

@@ -121,7 +121,10 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <Icon name={menuOpen ? 'caretUp' : 'caretDown'} size={14} color="var(--tec-gold)" strokeWidth={2.4} />
+          {/* Three lines, not a caret. A caret says "there is more text below
+              this"; three lines say "menu" in every app on the phone, and the
+              dashboard topbar already uses them for exactly this. */}
+          <Icon name="menu" size={15} color="var(--tec-gold)" strokeWidth={2.2} />
         </button>
 
         <HubAccountMenu open={menuOpen} onClose={() => setMenuOpen(false)} username={piUsername} anchor={chipRef} />

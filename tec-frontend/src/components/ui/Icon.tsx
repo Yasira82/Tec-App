@@ -31,7 +31,7 @@ export type IconName =
   // A text arrow is drawn by the platform font, so it changed weight and
   // baseline from phone to phone next to icons we draw ourselves.
   | 'arrowUp' | 'arrowDown' | 'swap' | 'star' | 'gift' | 'idCard'
-  | 'refresh' | 'caretUp' | 'caretDown' | 'lock' | 'coins' | 'user';
+  | 'refresh' | 'caretUp' | 'caretDown' | 'lock' | 'coins' | 'user' | 'menu';
 
 /** Exported so `app-icons.test.ts` can hold the set to one 24x24 grid. */
 export const PATHS: Record<IconName, string> = {
@@ -63,6 +63,7 @@ export const PATHS: Record<IconName, string> = {
   star:        '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
   gift:        '<rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M3 13h18"/><path d="M12 9v12"/><path d="M12 9C10.5 5.5 9 4 7.5 4a2.5 2.5 0 0 0 0 5"/><path d="M12 9c1.5-3.5 3-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
   idCard:      '<rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.2 16c.5-1.5 1.8-2.3 3.3-2.3s2.8.8 3.3 2.3"/><path d="M15 10h4"/><path d="M15 14h3"/>',
+  menu:        '<path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h16"/>',
   user:        '<circle cx="12" cy="8" r="3.75"/><path d="M4.5 20c0-3.9 3.4-6.25 7.5-6.25s7.5 2.35 7.5 6.25"/>',
   refresh:     '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>',
   caretUp:     '<path d="m6 15 6-6 6 6"/>',

@@ -140,7 +140,7 @@ export default function PrivacyPage() {
           <span className={styles.metaDot}>·</span>
           <Link href="/" className={styles.footerLink}>{t.legal.backHome}</Link>
         </div>
-        <p className={styles.footerText}>© 2026 {t.common.tagline} · Built on Pi Network</p>
+        <p className={styles.footerText}>© 2026 {t.common.brand} · Built on Pi Network</p>
       </footer>
     </main>
   );

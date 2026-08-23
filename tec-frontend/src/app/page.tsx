@@ -106,6 +106,9 @@ export default function HomePage() {
           <span className={styles.heroTitleMain}>{t.common.appName}</span>
           <span className={styles.heroTitleAccent}>{t.common.tagline}</span>
         </h1>
+        {/* The letters, spelled out. `dir="ltr"` because it reads left to
+            right even on the Arabic page — it is expanding T, E, C. */}
+        <p className={styles.heroAcronym} dir="ltr">{t.common.acronym}</p>
         <p className={styles.heroSub}>
           {withCount(t.home.description)}
           <br />
@@ -265,7 +268,7 @@ export default function HomePage() {
           <span className={styles.navLogoText}>EC</span>
         </div>
         <p className={styles.footerText}>
-          © 2026 {t.common.tagline} · Built on Pi Network
+          © 2026 {t.common.brand} · Built on Pi Network
         </p>
         <div className={styles.footerLinks}>
           <a href="/privacy" className={styles.footerLink}>Privacy</a>

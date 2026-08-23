@@ -1,7 +1,18 @@
 export const en = {
   common: {
     appName: 'TEC',
-    tagline: 'The Elite Consortium',
+    // The platform reads "TEC Ecosystem" everywhere else — the repos, the
+    // knowledge base, the topbar. This page was the last place still saying
+    // "The Elite Consortium", which also collided with Elite, a real app in
+    // the fleet, and described the platform as a consortium of independent
+    // members rather than one platform with 24 apps.
+    tagline: 'Ecosystem',
+    // The full name, for a copyright line — "© 2026 Ecosystem" is not a name.
+    brand:   'TEC Ecosystem',
+    // The acronym legend. Deliberately NOT translated: it expands three
+    // ENGLISH letters, and an Arabic expansion (ثقة · منظومة · تواصل) spells
+    // ث·م·ت, not T·E·C, so the mapping it exists to show would be lost.
+    acronym: 'Trust · Ecosystem · Connect',
     piEcosystem: 'Pi Network Ecosystem',
     login: 'Sign in with Pi',
     logout: 'Logout',

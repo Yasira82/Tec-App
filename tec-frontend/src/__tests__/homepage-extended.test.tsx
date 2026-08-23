@@ -48,7 +48,9 @@ const makeMockT = () => ({
     common: {
       piEcosystem: 'Pi Ecosystem',
       appName:     'TEC App',
-      tagline:     'The Elite Consortium',
+      tagline:     'Ecosystem',
+      brand:       'TEC Ecosystem',
+      acronym:     'Trust · Ecosystem · Connect',
       loading:     'Loading...',
       login:       'Login',
     },

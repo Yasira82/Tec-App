@@ -1,7 +1,10 @@
 export const ar = {
   common: {
     appName: 'TEC',
-    tagline: 'تحالف النخبة',
+    tagline: 'المنظومة',
+    brand:   'TEC Ecosystem',
+    // Left in English on purpose — see the note in en.ts.
+    acronym: 'Trust · Ecosystem · Connect',
     piEcosystem: 'منظومة Pi Network',
     login: 'تسجيل الدخول بـ Pi',
     logout: 'خروج',

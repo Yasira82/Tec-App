@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { bffFetch }                         from '@/lib-client/pi/bff-client';
-import { PiPrice }                          from '@/lib/hub/types';
+import { PiPrice, asPiPrice }                from '@/lib/hub/types';
 
 interface HubData {
   balance:           string;
@@ -53,7 +53,10 @@ export function useHubData(userId?: string): HubData {
     try {
       const res = await fetch('/api/market/pi-price', { cache: 'no-store' });
       const d   = await res.json();
-      if (!d.error) setPiPrice(d);
+      // asPiPrice, not `if (!d.error)`: a 200 with a changed upstream shape
+      // carries no error key and used to be stored as-is — see its comment.
+      const p   = asPiPrice(d);
+      if (p) setPiPrice(p);
     } catch {}
   }, []);
 

@@ -1,12 +1,13 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRef, useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher  from '@/components/LanguageSwitcher';
 import ThemeToggle      from '@/components/ThemeToggle';
 import { haptic }    from '@/lib/hub/utils';
 import { Icon }      from '@/components/ui/Icon';
 import { TecMark }   from '@/components/ui/TecMark';
+import { HubAccountMenu } from '@/components/hub/HubAccountMenu';
 
 interface Props {
   piUsername:  string;
@@ -17,7 +18,8 @@ interface Props {
 
 export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props) {
   const { t } = useTranslation();
-  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const chipRef = useRef<HTMLButtonElement>(null);
 
   return (
     <header style={{
@@ -90,11 +92,14 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           )}
         </button>
 
-        {/* Avatar → Dashboard. The chevron is the affordance: without it this reads as
-            a name label, so users never discovered it opens the Dashboard. */}
-        <button className="tec-btn" onClick={() => { haptic('light'); router.push('/dashboard'); }}
-          aria-label={t.hub.header.openDashboard}
-          title={t.hub.header.openDashboard}
+        {/* Avatar → the account menu (Profile · Dashboard). The caret is the
+            affordance: without it this reads as a name label, and users never
+            discovered it was a control at all. */}
+        <button ref={chipRef} className="tec-btn" onClick={() => { haptic('light'); setMenuOpen(o => !o); }}
+          aria-label={t.hub.account.title}
+          aria-haspopup="menu"
+          aria-expanded={menuOpen}
+          title={t.hub.account.title}
           style={{
             display: 'flex', alignItems: 'center', gap: 8,
             background: notifCount > 0 ? 'var(--tec-gold-dim)' : 'var(--tec-fill-soft)',
@@ -111,8 +116,10 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             {piUsername[0]?.toUpperCase()}
           </div>
           <span dir="ltr" style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
-          <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'var(--tec-gold)', opacity: 0.6, marginInlineStart: -2 }}>›</span>
+          <Icon name={menuOpen ? 'caretUp' : 'caretDown'} size={13} color="var(--tec-gold)" strokeWidth={2.4} />
         </button>
+
+        <HubAccountMenu open={menuOpen} onClose={() => setMenuOpen(false)} username={piUsername} anchor={chipRef} />
       </div>
     </header>
   );

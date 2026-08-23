@@ -207,7 +207,16 @@ export const en = {
       // the product's name says nothing about where the tab goes. The Arabic
       // side has read الرئيسية (home) all along.
       hub: 'Home', wallet: 'Wallet', dashboard: 'Dashboard',
-      verify: 'Verify', ai: 'AI', plan: 'Plan', profile: 'Profile',
+      verify: 'Verify', ai: 'AI', plan: 'Plan',
+    },
+    // Profile and Dashboard moved out of the bottom nav and behind the header
+    // chip — see HubAccountMenu.
+    account: {
+      title:        'Your account',
+      profile:      'Profile',
+      profileSub:   'Account & identity',
+      dashboard:    'Dashboard',
+      dashboardSub: 'Balance & activity',
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {
@@ -223,6 +232,10 @@ export const en = {
       notPiWallet: 'Not your Pi Network wallet · not withdrawable to Pi Network.',
       send: 'Send', receive: 'Receive', history: 'History',
       internalOnly: 'Send / Receive move π between TEC accounts only.',
+      // The 24h line. Labelled as a MARKET move, not as profit: it is what the
+      // holding's fiat value did as Pi's price moved, and the user did not
+      // trade to earn or lose it.
+      market24h: '24h market',
     },
     carousel: {
       foundingTitle: 'Founding 100',

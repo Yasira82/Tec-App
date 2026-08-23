@@ -185,7 +185,14 @@ export const ar = {
     nav: {
       main: 'التنقل الرئيسي',
       hub: 'الرئيسية', wallet: 'المحفظة', dashboard: 'لوحة التحكم',
-      verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك', profile: 'الملف الشخصي',
+      verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك',
+    },
+    account: {
+      title:        'حسابك',
+      profile:      'الملف الشخصي',
+      profileSub:   'الحساب والهوية',
+      dashboard:    'لوحة التحكم',
+      dashboardSub: 'الرصيد والنشاط',
     },
     header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
     greeting: {
@@ -198,6 +205,7 @@ export const ar = {
       notPiWallet: 'هذه ليست محفظة Pi Network الخاصة بك · ولا يمكن سحبها إلى Pi Network.',
       send: 'إرسال', receive: 'استقبال', history: 'السجل',
       internalOnly: 'الإرسال والاستقبال ينقلان π بين حسابات TEC فقط.',
+      market24h: 'حركة ٢٤ ساعة',
     },
     carousel: {
       foundingTitle: 'المئة المؤسِّسة',

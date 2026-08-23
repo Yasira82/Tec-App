@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
 import { PiPrice }   from '@/lib/hub/types';
 import { CountUp }   from '@/components/ui/CountUp';
+import { Icon }      from '@/components/ui/Icon';
 
 interface Props {
   balance:         string;
@@ -24,9 +25,9 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
   // flow on the wallet page (payment-service owns the transaction — P2/ADR-004).
   const go = (path: string) => { haptic('light'); router.push(path); };
   const ACTIONS = [
-    { key: 'send',    label: t.hub.wallet.send,    icon: '↑', path: '/dashboard/wallet?action=send' },
-    { key: 'receive', label: t.hub.wallet.receive, icon: '↓', path: '/dashboard/wallet?action=receive' },
-    { key: 'history', label: t.hub.wallet.history, icon: '⇄', path: '/dashboard/wallet' },
+    { key: 'send',    label: t.hub.wallet.send,    icon: 'arrowUp'   as const, path: '/dashboard/wallet?action=send' },
+    { key: 'receive', label: t.hub.wallet.receive, icon: 'arrowDown' as const, path: '/dashboard/wallet?action=receive' },
+    { key: 'history', label: t.hub.wallet.history, icon: 'swap'      as const, path: '/dashboard/wallet' },
   ];
 
   return (
@@ -77,7 +78,8 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 }}
               >
                 <span style={{ fontSize: 15, color: '#f87171', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
-                <span style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 700 }}>↻ {t.hub.wallet.retry}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--tec-gold)', fontWeight: 700 }}>
+                  <Icon name="refresh" size={13} color="var(--tec-gold)" strokeWidth={2.2} />{t.hub.wallet.retry}</span>
               </span>
             ) : balance === '—' ? (
               <div className="tec-skeleton" style={{ width: 120, height: 44 }} />
@@ -113,8 +115,10 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 border: `1px solid ${priceUp ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`,
                 borderRadius: 999, padding: '3px 10px',
               }}>
-                <span style={{ fontSize: 10, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)', fontWeight: 700 }}>
-                  {priceUp ? '▲' : '▼'} {Math.abs(piPrice.change24h).toFixed(2)}%
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: 10, color: priceUp ? 'var(--tec-green)' : 'var(--tec-red)', fontWeight: 700 }}>
+                  <Icon name={priceUp ? 'caretUp' : 'caretDown'} size={11}
+                        color={priceUp ? 'var(--tec-green)' : 'var(--tec-red)'} strokeWidth={2.6} />
+                  {Math.abs(piPrice.change24h).toFixed(2)}%
                 </span>
                 <span style={{ fontSize: 10, color: 'var(--tec-hero-ink-2)' }}>${piPrice.price.toFixed(4)}</span>
               </div>
@@ -132,7 +136,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
               padding: '11px 0', borderRadius: 16, cursor: 'pointer',
               background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)',
             }}>
-            <span style={{ fontSize: 17, fontWeight: 900, color: 'var(--tec-gold)', lineHeight: 1 }}>{a.icon}</span>
+            <Icon name={a.icon} size={17} color="var(--tec-gold)" strokeWidth={2.2} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-1)', letterSpacing: 0.3 }}>{a.label}</span>
           </button>
         ))}

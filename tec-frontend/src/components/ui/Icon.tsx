@@ -25,7 +25,13 @@ export type IconName =
   | 'tiers'
   // The assistant, everywhere it appears. A robot face reads as a toy at 25px
   // on a gold disc; the twin spark is the mark people already read as "AI".
-  | 'spark';
+  | 'spark'
+  // ── Chrome glyphs ───────────────────────────────────────────────────
+  // The last text characters and emoji in the Hub: ↑ ↓ ⇄ ★ 🎁 🪪 ↻ ▲ ▼.
+  // A text arrow is drawn by the platform font, so it changed weight and
+  // baseline from phone to phone next to icons we draw ourselves.
+  | 'arrowUp' | 'arrowDown' | 'swap' | 'star' | 'gift' | 'idCard'
+  | 'refresh' | 'caretUp' | 'caretDown' | 'lock' | 'coins';
 
 /** Exported so `app-icons.test.ts` can hold the set to one 24x24 grid. */
 export const PATHS: Record<IconName, string> = {
@@ -51,6 +57,17 @@ export const PATHS: Record<IconName, string> = {
   info:        '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   upload:      '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>',
   alert:       '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  arrowUp:     '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+  arrowDown:   '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  swap:        '<path d="M4 8h13"/><path d="m14 5 3 3-3 3"/><path d="M20 16H7"/><path d="m10 19-3-3 3-3"/>',
+  star:        '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  gift:        '<rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M3 13h18"/><path d="M12 9v12"/><path d="M12 9C10.5 5.5 9 4 7.5 4a2.5 2.5 0 0 0 0 5"/><path d="M12 9c1.5-3.5 3-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  idCard:      '<rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.2 16c.5-1.5 1.8-2.3 3.3-2.3s2.8.8 3.3 2.3"/><path d="M15 10h4"/><path d="M15 14h3"/>',
+  refresh:     '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>',
+  caretUp:     '<path d="m6 15 6-6 6 6"/>',
+  caretDown:   '<path d="m6 9 6 6 6-6"/>',
+  lock:        '<rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+  coins:       '<ellipse cx="12" cy="6.5" rx="7.5" ry="3"/><path d="M4.5 6.5v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/><path d="M4.5 11.5v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/>',
   camera:      '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/>',
 
   // ── App glyphs ───────────────────────────────────────────────────────

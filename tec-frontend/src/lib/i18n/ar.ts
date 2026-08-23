@@ -182,7 +182,7 @@ export const ar = {
     nav: {
       main: 'التنقل الرئيسي',
       hub: 'الرئيسية', wallet: 'المحفظة', dashboard: 'لوحة التحكم',
-      verify: 'التوثيق', plan: 'الاشتراك', settings: 'الإعدادات',
+      verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك', settings: 'الإعدادات',
     },
     header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
     greeting: {

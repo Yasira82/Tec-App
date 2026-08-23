@@ -193,7 +193,7 @@ export const en = {
     nav: {
       main: 'Main navigation',
       hub: 'Hub', wallet: 'Wallet', dashboard: 'Dashboard',
-      verify: 'Verify', plan: 'Plan', settings: 'Settings',
+      verify: 'Verify', ai: 'AI', plan: 'Plan', settings: 'Settings',
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {

@@ -1,5 +1,5 @@
 /**
- * The assistant button stays, and it holds still.
+ * The assistant button stays, it holds still, and it stands on nothing.
  *
  * It carried `tec-float` — `animation: … infinite` — so a 52px circle bobbed up
  * and down forever in the corner of every Hub screen. That is what "the button
@@ -7,6 +7,13 @@
  *
  * (I removed the button itself for one release, reading "the Hub's scroll button"
  * as this. It was the painted scrollbar down the side of the screen. Restored.)
+ *
+ * It has since moved OUT of the page and into the bottom nav as the raised
+ * centre item. As a floating disc it sat permanently on top of one tile of the
+ * four-column launcher — a control blocking a control. These assertions now
+ * pin the two things that matter: it is reachable by its accessible name, and
+ * it opens the drawer. Where it is drawn is free to change again; that it is
+ * present and does its job is not.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, fireEvent } from '@testing-library/react';
@@ -38,7 +45,11 @@ vi.mock('@/hooks/useHubData', () => ({
     time: '12:00', setNotifCount: vi.fn(), refresh: vi.fn(), refreshBalance: vi.fn(),
   }),
 }));
-vi.mock('@/app/hub/components/AIDrawer',   () => ({ AIDrawer: () => null }));
+// Stands in for the real drawer, but honours `open` — otherwise "the button
+// opens the drawer" has nothing observable to assert against.
+vi.mock('@/app/hub/components/AIDrawer',   () => ({
+  AIDrawer: ({ open }: { open: boolean }) => (open ? <div>drawer-open</div> : null),
+}));
 vi.mock('@/app/hub/components/PaymentModal', () => ({ PaymentModal: () => null, ExternalPayment: {} }));
 
 beforeEach(() => {
@@ -69,7 +80,17 @@ describe('the Hub assistant button', () => {
 
   it('opens the drawer', async () => {
     await renderHub();
+    expect(screen.queryByText('drawer-open')).toBeNull();
     await act(async () => { fireEvent.click(screen.getByLabelText(en.hub.ai.open)); });
-    expect(screen.queryByLabelText(en.hub.ai.open)).toBeNull();
+    expect(screen.getByText('drawer-open')).toBeTruthy();
+  });
+
+  it('does not overlay the launcher — nothing on the page is position:fixed over it', async () => {
+    await renderHub();
+    // The nav is fixed by design and sits BELOW the content; a floating action
+    // button pinned into the middle of the scroll area is what we removed.
+    const floating = [...document.querySelectorAll<HTMLElement>('[style*="position: fixed"]')]
+      .filter(el => el.tagName === 'BUTTON');
+    expect(floating).toHaveLength(0);
   });
 });

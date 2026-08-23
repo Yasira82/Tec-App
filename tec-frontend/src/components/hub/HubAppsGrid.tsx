@@ -135,7 +135,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1,
                 background: isFav ? 'var(--tec-gold)' : 'var(--tec-surface-3)', color: isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)',
                 border: '1px solid var(--tec-border)', fontWeight: 800,
-              }}>{isFav ? '★' : '+'}</span>
+              }}><Icon name={isFav ? 'star' : 'plus'} size={11}
+                  color={isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)'} strokeWidth={2.4} /></span>
             )}
           </div>
           <span style={{
@@ -207,7 +208,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 4 }}>
-        <span style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--tec-text-3)' }}>🔍</span>
+        <span style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', display: 'inline-flex' }}><Icon name="search" size={14} color="var(--tec-text-3)" strokeWidth={2} /></span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -221,7 +222,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
         />
         {query && (
           <button onClick={() => setQuery('')} aria-label={t.hub.apps.clearSearch}
-            style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'var(--tec-fill-soft)', color: 'var(--tec-text-2)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+            style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'var(--tec-fill-soft)', color: 'var(--tec-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="x" size={13} color="var(--tec-text-2)" strokeWidth={2} /></button>
         )}
       </div>
 

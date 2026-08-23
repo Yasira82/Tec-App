@@ -11,7 +11,6 @@ import { t as tr, type Locale }             from '@/domains/_types';
 import { ErrorBoundary }                    from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }            from './components/ToastContainer';
 import { AIDrawer }                         from './components/AIDrawer';
-import { Icon }                             from '@/components/ui/Icon';
 import { HubSkeleton }                      from './components/HubSkeleton';
 import { PaymentModal }                     from './components/PaymentModal';
 import { PaymentPreparing }                 from './components/PaymentPreparing';
@@ -178,18 +177,8 @@ function HubPageInner() {
       <HubAppsGrid apps={visibleLive} />
       <HubComingSoon />
 
-      {/* The assistant, in its corner. It stays on the RIGHT in both languages —
-          deliberately NOT mirrored: one fixed corner is the muscle memory people
-          already have. */}
-      {!aiOpen && (
-        <button className="tec-btn" onClick={() => { haptic('medium'); setAiOpen(true); }}
-          aria-label={t.hub.ai.open}
-          style={{ position: 'fixed', bottom: 100, right: 16, zIndex: 200, width: 52, height: 52, borderRadius: '50%', touchAction: 'pan-y', background: 'var(--tec-gold-grad)', border: 'none', boxShadow: '0 8px 24px rgba(248,184,32,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-          <Icon name="spark" size={25} color="var(--tec-bg)" strokeWidth={1.9} />
-        </button>
-      )}
 
-      <HubBottomNav />
+      <HubBottomNav onOpenAi={() => setAiOpen(true)} />
     </div>
   );
 }

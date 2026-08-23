@@ -6,6 +6,7 @@ import { useRef }       from 'react';
 import { haptic }       from '@/lib/hub/utils';
 import { PiPrice }      from '@/lib/hub/types';
 import { CountUp }      from '@/components/ui/CountUp';
+import { Icon }         from '@/components/ui/Icon';
 
 // Hub top spotlight. Marketing-first: slide 1 = the Founding-100 "missions" entry,
 // slide 2 = Invite & Earn (referral), slide 3 = the live Pi price. The old
@@ -51,7 +52,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             <button className="tec-btn" onClick={goToPioneers}
               style={{ width: '100%', borderRadius: 20, background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'var(--tec-surface-2)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'var(--tec-gold)' }}>★</div>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'var(--tec-surface-2)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="star" size={22} color="var(--tec-gold)" strokeWidth={1.8} /></div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 3 }}>{t.hub.carousel.foundingTitle}</div>
                   <div style={{ fontSize: 11, color: 'var(--tec-text-3)', lineHeight: 1.4 }}>{t.hub.carousel.foundingSub}</div>
@@ -66,7 +67,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
             <button className="tec-btn" onClick={goToReferral}
               style={{ width: '100%', borderRadius: 20, background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
-                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'var(--tec-surface-2)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>🎁</div>
+                <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'var(--tec-surface-2)', border: '1px solid transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="gift" size={22} color="var(--tec-green)" strokeWidth={1.8} /></div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 3 }}>{t.hub.carousel.inviteTitle}</div>
                   <div style={{ fontSize: 11, color: 'var(--tec-text-3)', lineHeight: 1.4 }}>{t.hub.carousel.inviteSub}</div>

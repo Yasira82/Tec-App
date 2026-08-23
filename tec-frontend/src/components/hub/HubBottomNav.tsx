@@ -21,7 +21,7 @@ export function HubBottomNav() {
     // header avatar, which reads as a name — not as a link to anything.
     { icon: 'chart'    as const, label: t.hub.nav.dashboard, active: false, action: () => { haptic('light'); router.push('/dashboard'); } },
     { icon: 'shield'   as const, label: t.hub.nav.verify,    active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
-    { icon: 'sparkles' as const, label: t.hub.nav.plan,      active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
+    { icon: 'tiers'    as const, label: t.hub.nav.plan,      active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
     { icon: 'settings' as const, label: t.hub.nav.settings,  active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
   ];
 

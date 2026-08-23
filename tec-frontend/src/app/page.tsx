@@ -87,7 +87,7 @@ export default function HomePage() {
           <a href="#ecosystem" className={styles.navLink}>{t.home.ecosystem}</a>
           <a href="#payment"   className={styles.navLink}>{t.common.login}</a>
           <Link href="/ai" className={styles.navAiLink}>
-            <Icon name="bot" size={14} strokeWidth={1.9} />
+            <Icon name="spark" size={14} strokeWidth={1.9} />
             {dir === 'rtl' ? 'المساعد' : 'Assistant'}
           </Link>
         </div>
@@ -276,7 +276,7 @@ export default function HomePage() {
       {/* Floating AI Button */}
       <Link href="/ai" className={styles.floatingAi} aria-label="TEC Assistant">
         <span className={styles.floatingAiIcon}>
-          <Icon name="bot" size={26} color="var(--tec-bg)" strokeWidth={1.9} />
+          <Icon name="spark" size={26} color="var(--tec-bg)" strokeWidth={1.9} />
         </span>
         <span className={styles.floatingAiPulse} />
       </Link>

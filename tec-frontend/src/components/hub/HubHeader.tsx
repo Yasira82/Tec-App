@@ -20,7 +20,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
 
   return (
     <header style={{
-      padding: '14px 20px', display: 'flex', alignItems: 'center',
+      padding: '14px 16px', display: 'flex', alignItems: 'center',
       justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100,
       background: 'var(--tec-bg)',
       backdropFilter: 'blur(24px) saturate(1.8)',
@@ -36,7 +36,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       touchAction: 'pan-y',
     }}>
       {/* Logo */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         <div style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,
           background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
@@ -50,14 +50,14 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             `overflow: hidden` then cut it, and because the right-hand group paints
             later, the tail slid UNDER the language chip. Allowed to shrink, it
             truncates cleanly instead. */}
-        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+        <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
-          <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 2, lineHeight: 1.4, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.hub.header.ecosystem}</div>
+          <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1.2, lineHeight: 1.4, whiteSpace: 'nowrap' }}>{t.hub.header.ecosystem}</div>
         </div>
       </div>
 
       {/* Right */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flexShrink: 1 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexShrink: 1 }}>
         {/* The phone already shows the time in its status bar. Here it is the first
             thing to drop when the row runs out of room. */}
         <span className="tec-hide-narrow" style={{ fontSize: 11, color: 'var(--tec-text-3)', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap', flexShrink: 0 }}>{time}</span>

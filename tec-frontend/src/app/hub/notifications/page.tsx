@@ -24,7 +24,7 @@ function formatDate(iso: string, t: Translations, locale: 'en' | 'ar') {
 
 const TYPE_CONFIG: Record<NotifType, { icon: IconName; color: string; bg: string }> = {
   PAYMENT:  { icon: 'wallet', color: 'var(--tec-blue)', bg: 'rgba(59,130,246,0.1)'  },
-  WALLET:   { icon: 'coins', color: 'var(--tec-gold)', bg: 'rgba(248,184,32,0.1)'  },
+  WALLET:   { icon: 'coins', color: 'var(--tec-gold)', bg: 'rgba(var(--tec-gold-rgb),0.1)'  },
   KYC:      { icon: 'idCard', color: 'var(--tec-purple)', bg: 'rgba(139,92,246,0.1)'  },
   SECURITY: { icon: 'lock', color: 'var(--tec-red)', bg: 'rgba(239,68,68,0.1)'   },
   SYSTEM:   { icon: 'settings', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
@@ -40,7 +40,7 @@ function NotifCard({ notif, onRead }: { notif: Notification; onRead: (id: string
         display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)',
         padding: 'var(--sp-4) var(--sp-5)',
         borderBottom: '1px solid var(--tec-border)',
-        background: notif.read ? 'transparent' : 'rgba(248,184,32,0.03)',
+        background: notif.read ? 'transparent' : 'rgba(var(--tec-gold-rgb),0.03)',
         cursor: notif.read ? 'default' : 'pointer',
         transition: 'background 0.15s ease',
       }}>

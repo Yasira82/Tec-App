@@ -106,7 +106,7 @@ export function ChatTranscript({
             <div dir="auto" style={{
               maxWidth: '85%', padding: '10px 14px',
               borderRadius: m.role === 'user' ? '18px 18px 4px 18px' : '18px 18px 18px 4px',
-              background: m.role === 'user' ? 'var(--tec-gold-grad)' : '#0d0d1a',
+              background: m.role === 'user' ? 'var(--tec-gold)' : '#0d0d1a',
               border: m.role === 'ai' ? '1px solid #ffffff08' : 'none',
               fontSize: 13, color: m.role === 'user' ? 'var(--tec-on-gold)' : '#fff', lineHeight: 1.6,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',

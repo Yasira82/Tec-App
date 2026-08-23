@@ -76,7 +76,14 @@ describe('what the visitor is told is true today', () => {
 // the Hub grid documents as wrong — so the guard was locking in the drift.
 describe('chip presentation', () => {
   it('every app carries a colour a chip can key off', () => {
-    for (const app of APPS) expect(app.accent).toMatch(/^#[0-9A-Fa-f]{6}$/);
+    // A literal hex OR a token reference. The WEALTH accent is var(--tec-gold)
+    // so it follows the theme like everything else; the consumer feeds it to
+    // `--cat-color` and CSS `color-mix`, neither of which cares which it is.
+    // (This used to demand a hex, which would have quietly required the money
+    // category to freeze on one theme's amber.)
+    for (const app of APPS) {
+      expect(app.accent, app.slug).toMatch(/^(#[0-9A-Fa-f]{6}|var\(--[a-z0-9-]+\))$/);
+    }
   });
 
   it('chip counts add up to the full list', () => {

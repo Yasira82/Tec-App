@@ -11,7 +11,7 @@ import { LIVE_DOMAINS } from '@/domains/_registry';
 
 const C = {
   bg: '#050816', surface: '#0B1020', surface2: '#111627',
-  gold: '#F8B820', text: '#E5E7EB', subtext: '#94A3B8', green: '#22C55E', purple: '#8B5CF6',
+  gold: 'var(--tec-gold)', text: '#E5E7EB', subtext: '#94A3B8', green: '#22C55E', purple: '#8B5CF6',
 };
 
 type QA = { q: string; a: string };
@@ -119,7 +119,7 @@ export default function FaqClient() {
           href="/pioneers"
           style={{
             display: 'block', textAlign: 'center', marginTop: 26, padding: '14px 20px',
-            background: `linear-gradient(135deg, ${C.gold}, #D88810)`, color: '#1a1205',
+            background: `linear-gradient(135deg, ${C.gold}, var(--tec-gold-dark))`, color: '#1a1205',
             borderRadius: 12, fontWeight: 900, fontSize: 15, textDecoration: 'none',
           }}
         >

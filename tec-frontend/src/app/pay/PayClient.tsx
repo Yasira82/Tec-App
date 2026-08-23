@@ -267,7 +267,7 @@ const styles: Record<string, React.CSSProperties> = {
   card: {
     width: '100%', maxWidth: 400,
     background: '#0B1020', borderRadius: 28,
-    border: '1px solid #F8B82020', padding: '32px 24px',
+    border: '1px solid var(--tec-gold)20', padding: '32px 24px',
     display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20,
   },
   assetBox: {
@@ -283,7 +283,7 @@ const styles: Record<string, React.CSSProperties> = {
     textTransform: 'uppercase', marginBottom: 8,
   },
   price: {
-    color: '#F8B820', display: 'flex',
+    color: 'var(--tec-gold)', display: 'flex',
     alignItems: 'baseline', justifyContent: 'center', gap: 4,
   },
   warning: {
@@ -293,7 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btn: {
     width: '100%', padding: '16px',
-    background: 'linear-gradient(135deg,#F8B820,#D88810)',
+    background: 'var(--tec-gold)',
     border: 'none', borderRadius: 16,
     color: '#0a0800', fontSize: 16, fontWeight: 800, cursor: 'pointer',
   },
@@ -312,8 +312,8 @@ const styles: Record<string, React.CSSProperties> = {
   sub:        { fontSize: 13, color: '#4a4a5a' },
   spinner: {
     width: 48, height: 48, borderRadius: '50%',
-    border: '3px solid #F8B82030',
-    borderTop: '3px solid #F8B820',
+    border: '3px solid var(--tec-gold)30',
+    borderTop: '3px solid var(--tec-gold)',
     animation: 'spin 0.8s linear infinite',
   },
 };

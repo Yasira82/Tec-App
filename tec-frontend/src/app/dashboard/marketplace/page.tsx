@@ -85,7 +85,7 @@ export default function MarketplacePage() {
   if (isLoading) {
     return (
       <div style={s({ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' })}>
-        <div style={s({ width: 36, height: 36, border: '2px solid #F8B82030', borderTop: '2px solid #F8B820', borderRadius: '50%', animation: 'spin 0.8s linear infinite' })} />
+        <div style={s({ width: 36, height: 36, border: '2px solid var(--tec-gold)30', borderTop: '2px solid var(--tec-gold)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' })} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -101,7 +101,7 @@ export default function MarketplacePage() {
           <p style={s({ fontSize: 13, color: '#6b6b7a', marginTop: 4 })}>{total} assets for sale</p>
         </div>
         <button onClick={() => fetchListings(true)} disabled={isRefreshing}
-          style={s({ background: '#F8B82015', border: '1px solid #F8B82030', borderRadius: 10, padding: '8px 14px', color: '#F8B820', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}>
+          style={s({ background: 'var(--tec-gold)15', border: '1px solid var(--tec-gold)30', borderRadius: 10, padding: '8px 14px', color: 'var(--tec-gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}>
           {isRefreshing ? '⟳ ...' : '⟳ Refresh'}
         </button>
       </div>
@@ -120,7 +120,7 @@ export default function MarketplacePage() {
 
       {/* Sell CTA */}
       <button onClick={() => router.push('/dashboard/assets')}
-        style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#0B1020)', border: '1px solid #F8B82030', color: '#F8B820', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
+        style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#0B1020)', border: '1px solid var(--tec-gold)30', color: 'var(--tec-gold)', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
         <span>💎</span>
         <span>List Your Asset for Sale</span>
         <span>→</span>
@@ -145,9 +145,9 @@ export default function MarketplacePage() {
 
             return (
               <div key={listing.id}
-                style={s({ background: '#0B1020', border: '1px solid #F8B82020', borderRadius: 18, padding: '16px 20px' })}>
+                style={s({ background: '#0B1020', border: '1px solid var(--tec-gold)20', borderRadius: 18, padding: '16px 20px' })}>
                 <div style={s({ display: 'flex', alignItems: 'center', gap: 14 })}>
-                  <div style={s({ width: 48, height: 48, borderRadius: 14, background: '#F8B82010', border: '1px solid #F8B82020', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 })}>
+                  <div style={s({ width: 48, height: 48, borderRadius: 14, background: 'var(--tec-gold)10', border: '1px solid var(--tec-gold)20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48 })}>
                     {emoji}
                   </div>
                   <div style={s({ flex: 1, minWidth: 0 })}>
@@ -164,7 +164,7 @@ export default function MarketplacePage() {
                     )}
                   </div>
                   <div style={s({ textAlign: 'right', minWidth: 80 })}>
-                    <div style={s({ fontSize: 20, fontWeight: 900, color: '#F8B820' })}>{listing.price}</div>
+                    <div style={s({ fontSize: 20, fontWeight: 900, color: 'var(--tec-gold)' })}>{listing.price}</div>
                     <div style={s({ fontSize: 10, color: '#4a4a5a' })}>π</div>
                   </div>
                 </div>
@@ -207,7 +207,7 @@ export default function MarketplacePage() {
                 )}
 
                 {isOwn && (
-                  <div style={s({ marginTop: 12, padding: '8px 14px', borderRadius: 10, background: '#F8B82010', border: '1px solid #F8B82020', fontSize: 11, color: '#F8B820', textAlign: 'center' })}>
+                  <div style={s({ marginTop: 12, padding: '8px 14px', borderRadius: 10, background: 'var(--tec-gold)10', border: '1px solid var(--tec-gold)20', fontSize: 11, color: 'var(--tec-gold)', textAlign: 'center' })}>
                     Your listing
                   </div>
                 )}

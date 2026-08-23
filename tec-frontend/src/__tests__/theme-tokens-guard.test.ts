@@ -89,7 +89,7 @@ describe('every theme-flipping token exists in both palettes', () => {
     '--tec-text-1', '--tec-text-2', '--tec-text-3', '--tec-text-4',
     '--tec-icon', '--tec-fill-soft', '--tec-fill-softer',
     '--tec-bg', '--tec-surface-1', '--tec-surface-2', '--tec-surface-3',
-    '--tec-border', '--tec-gold', '--tec-band',
+    '--tec-border', '--tec-gold', '--tec-gold-rgb', '--tec-band',
   ])('%s is redefined for light', (token) => {
     // A token defined only on :root silently keeps its dark value on a light
     // page — the exact failure this whole guard exists for.

@@ -39,7 +39,7 @@ const overlayStyle: React.CSSProperties = {
   zIndex: 1000, padding: '20px',
 };
 const modalStyle: React.CSSProperties = {
-  background: '#0a0a0f', border: '1px solid #F8B82030',
+  background: '#0a0a0f', border: '1px solid var(--tec-gold)30',
   borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 420,
 };
 const labelStyle: React.CSSProperties = {
@@ -51,7 +51,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14, outline: 'none', boxSizing: 'border-box',
 };
 const btnPrimary: React.CSSProperties = {
-  padding: '10px 20px', background: 'linear-gradient(135deg,#F8B820,#D88810)',
+  padding: '10px 20px', background: 'var(--tec-gold)',
   border: 'none', borderRadius: 10, color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer',
 };
 const btnOutline: React.CSSProperties = {
@@ -140,9 +140,9 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
   };
 
   const tabBtn = (active: boolean): React.CSSProperties => ({
-    flex: 1, padding: '10px', background: active ? '#F8B82015' : 'none',
-    border: 'none', borderBottom: active ? '2px solid #F8B820' : '2px solid transparent',
-    color: active ? '#F8B820' : '#6b6b7a', fontSize: 13,
+    flex: 1, padding: '10px', background: active ? 'var(--tec-gold)15' : 'none',
+    border: 'none', borderBottom: active ? '2px solid var(--tec-gold)' : '2px solid transparent',
+    color: active ? 'var(--tec-gold)' : '#6b6b7a', fontSize: 13,
     fontWeight: active ? 700 : 400, cursor: 'pointer',
   });
 
@@ -264,9 +264,9 @@ function ReceiveModal({ walletId, balance, onClose }: {
           </button>
         </div>
 
-        <div style={{ padding: '12px 16px', background: '#0B1020', border: '1px solid #F8B82020', borderRadius: 10 }}>
+        <div style={{ padding: '12px 16px', background: '#0B1020', border: '1px solid var(--tec-gold)20', borderRadius: 10 }}>
           <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 4 }}>Current Balance</div>
-          <div style={{ fontSize: 24, fontWeight: 800, color: '#F8B820' }}>{balance.toFixed(2)} π</div>
+          <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--tec-gold)' }}>{balance.toFixed(2)} π</div>
         </div>
 
         <button style={{ ...btnOutline, width: '100%', marginTop: 16 }} onClick={onClose}>Close</button>

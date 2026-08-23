@@ -70,7 +70,7 @@ export default function HubProfilePage() {
   const kycAccent  = kycVerified ? 'var(--tec-green)' : kycStatus === 'REJECTED' ? 'var(--tec-red)' : 'var(--tec-gold-dark)';
   // The translucent companion is spelled out rather than derived: a design token
   // cannot carry an appended alpha (`var(--x)33` is not a colour).
-  const kycEdge    = kycVerified ? 'rgba(34,197,94,0.2)' : kycStatus === 'REJECTED' ? 'rgba(239,68,68,0.2)' : 'rgba(216,136,16,0.2)';
+  const kycEdge    = kycVerified ? 'rgba(34,197,94,0.2)' : kycStatus === 'REJECTED' ? 'rgba(239,68,68,0.2)' : 'rgba(var(--tec-gold-rgb),0.2)';
   const kycMessage = kycVerified
     ? (kyc?.level ? t.hub.profile.kycVerifiedLevel.replace('{n}', String(kyc.level)) : t.hub.profile.kycVerified)
     : kycStatus === 'REJECTED'  ? t.hub.profile.kycRejected
@@ -94,10 +94,10 @@ export default function HubProfilePage() {
       <div className="tec-fade-in" style={{
         display: 'flex', alignItems: 'center', gap: 'var(--sp-5)',
         padding: 'var(--sp-6)', marginBottom: 'var(--sp-5)',
-        background: 'linear-gradient(135deg,rgba(248,184,32,0.06),rgba(248,184,32,0.02))',
+        background: 'linear-gradient(135deg,rgba(var(--tec-gold-rgb),0.06),rgba(var(--tec-gold-rgb),0.02))',
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(248,184,32,0.25)' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(var(--tec-gold-rgb),0.25)' }}>
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -149,7 +149,7 @@ export default function HubProfilePage() {
       {user?.role === 'admin' && (
         <DashboardCard title={t.hub.profile.admin}>
           <button onClick={() => router.push('/hub/admin/kyc')}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(248,184,32,0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(var(--tec-gold-rgb),0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
             <span style={{ fontSize: 22 }}>🛡️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{t.hub.profile.adminKyc}</div>
@@ -163,7 +163,7 @@ export default function HubProfilePage() {
       {/* ── Connected Apps ───────────────────────────── */}
       <DashboardCard title={t.hub.profile.connectedApps}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800', flexShrink: 0 }}>T</div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800', flexShrink: 0 }}>T</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>{t.hub.profile.tecPlatform}</div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.piNetwork}</div>

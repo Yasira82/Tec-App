@@ -14,12 +14,12 @@ import { Icon }                      from '@/components/ui/Icon';
 // to be a solid hex with `60` appended at the call site — a trick that stops
 // working the moment the value becomes a design token (`var(--x)60` is not a colour).
 const GROUPS = [
-  { group: 'finance',      emoji: '💰', label: 'rgba(248,184,32,0.38)' },
+  { group: 'finance',      emoji: '💰', label: 'rgba(var(--tec-gold-rgb),0.38)' },
   { group: 'commerce',     emoji: '🛒', label: 'rgba(126,184,247,0.38)' },
   { group: 'real_world',   emoji: '🏙️', label: 'rgba(34,197,94,0.38)'  },
   { group: 'social',       emoji: '🌍', label: 'rgba(139,92,246,0.38)' },
-  { group: 'tech',         emoji: '⚡', label: 'rgba(216,136,16,0.38)' },
-  { group: 'monetization', emoji: '🏆', label: 'rgba(248,184,32,0.38)' },
+  { group: 'tech',         emoji: '⚡', label: 'rgba(var(--tec-gold-rgb),0.38)' },
+  { group: 'monetization', emoji: '🏆', label: 'rgba(var(--tec-gold-rgb),0.38)' },
 ] as const;
 
 export function HubComingSoon() {

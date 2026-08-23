@@ -53,12 +53,12 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
           aria-label={item.aria ?? item.label} aria-current={item.active ? 'page' : undefined}
           style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5, background: 'none', border: 'none', cursor: 'pointer', padding: '4px 0', position: 'relative' }}>
           {item.active && (
-            <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'var(--tec-gold-grad)', }} />
+            <span style={{ position: 'absolute', top: -1, left: '50%', transform: 'translateX(-50%)', width: 24, height: 3, borderRadius: 999, background: 'var(--tec-gold)', }} />
           )}
           {item.raised ? (
             <span style={{
               width: 34, height: 34, borderRadius: 12, marginTop: -9, marginBottom: -1,
-              background: 'var(--tec-gold-grad)',
+              background: 'var(--tec-gold)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}>
               <Icon name={item.icon} size={20} color="var(--tec-on-gold)" strokeWidth={2} />

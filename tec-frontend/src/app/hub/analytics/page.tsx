@@ -137,7 +137,7 @@ export default function HubAnalyticsPage() {
   useEffect(() => { load(); }, [load]);
 
   const successColor = (r: number | null) =>
-    r === null ? 'var(--tec-text-3)' : r >= 80 ? 'var(--tec-green)' : r >= 60 ? '#f0c040' : 'var(--tec-red)';
+    r === null ? 'var(--tec-text-3)' : r >= 80 ? 'var(--tec-green)' : r >= 60 ? 'var(--tec-gold)' : 'var(--tec-red)';
 
   return (
     <HubSubShell title={a.title} subtitle={a.subtitle}>
@@ -171,7 +171,7 @@ export default function HubAnalyticsPage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 'var(--sp-3)', padding: 'var(--sp-5)' }}>
           <StatTile label={a.completed} value={loading ? '…' : (metrics?.completed ?? '—')} accent="var(--tec-green)" />
           <StatTile label={a.failed}    value={loading ? '…' : (metrics?.failed ?? '—')}    accent="var(--tec-red)" />
-          <StatTile label={a.cancelled} value={loading ? '…' : (metrics?.cancelled ?? '—')} accent="#f0c040" />
+          <StatTile label={a.cancelled} value={loading ? '…' : (metrics?.cancelled ?? '—')} accent="var(--tec-gold)" />
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--sp-3)', padding: '0 var(--sp-5) var(--sp-5)' }}>
           <StatTile

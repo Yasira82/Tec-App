@@ -164,13 +164,13 @@ await new Promise(r => setTimeout(r, 1000));
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{
         width: '100%', maxWidth: 360, borderRadius: 28,
-        background: 'var(--tec-surface-1)', border: '1px solid #F8B82030',
+        background: 'var(--tec-surface-1)', border: '1px solid var(--tec-gold)30',
         padding: 32, textAlign: 'center',
         boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 20,
-          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+          background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: 'var(--tec-on-gold)',
         }}>T</div>
@@ -192,7 +192,7 @@ await new Promise(r => setTimeout(r, 1000));
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
                 <div style={{
                   width: 16, height: 16, borderRadius: '50%',
-                  border: '2px solid #F8B82030', borderTop: '2px solid var(--tec-gold)',
+                  border: '2px solid var(--tec-gold)30', borderTop: '2px solid var(--tec-gold)',
                   animation: 'spin 0.8s linear infinite',
                 }} />
                 <span style={{ fontSize: 11, color: '#4a4a5a' }}>{p.authenticating}</span>
@@ -203,12 +203,12 @@ await new Promise(r => setTimeout(r, 1000));
               disabled={!isReady}
               style={{
                 padding: '18px 48px', borderRadius: 20,
-                background: isReady ? 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))' : '#333',
+                background: isReady ? 'var(--tec-gold)' : '#333',
                 border: 'none',
                 color: isReady ? 'var(--tec-on-gold)' : 'var(--tec-text-3)',
                 fontSize: 18, fontWeight: 900,
                 cursor: isReady ? 'pointer' : 'not-allowed',
-                boxShadow: isReady ? '0 8px 32px rgba(248,184,32,0.3)' : 'none',
+                boxShadow: isReady ? '0 8px 32px rgba(var(--tec-gold-rgb),0.3)' : 'none',
               }}
             >
               {isReady ? fill(p.pay, { amount: payment.amount }) : p.authenticating}
@@ -227,7 +227,7 @@ await new Promise(r => setTimeout(r, 1000));
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
             <div style={{
               width: 40, height: 40, borderRadius: '50%',
-              border: '3px solid #F8B82030', borderTop: '3px solid var(--tec-gold)',
+              border: '3px solid var(--tec-gold)30', borderTop: '3px solid var(--tec-gold)',
               animation: 'spin 0.8s linear infinite',
             }} />
             <div style={{ fontSize: 14, color: '#6b6b7a' }}>{p.processing}</div>
@@ -247,7 +247,7 @@ await new Promise(r => setTimeout(r, 1000));
         {status === 'cancelled' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>⚠️</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>{p.cancelledTitle}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--tec-gold)' }}>{p.cancelledTitle}</div>
             <button
               onClick={onClose}
               style={{
@@ -285,7 +285,7 @@ await new Promise(r => setTimeout(r, 1000));
                 }}
                 style={{
                   padding: '12px 24px', borderRadius: 14,
-                  background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+                  background: 'var(--tec-gold)',
                   border: 'none', color: 'var(--tec-on-gold)',
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}

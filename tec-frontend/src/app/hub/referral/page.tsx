@@ -148,7 +148,7 @@ function HubReferralInner() {
       {/* ── How it works ─────────────────────────────── */}
       <div className="tec-fade-in" style={{
         padding: 'var(--sp-5) var(--sp-6)', marginBottom: 'var(--sp-5)',
-        background: 'linear-gradient(135deg,rgba(248,184,32,0.06),rgba(248,184,32,0.02))',
+        background: 'linear-gradient(135deg,rgba(var(--tec-gold-rgb),0.06),rgba(var(--tec-gold-rgb),0.02))',
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 6 }}>
@@ -306,7 +306,7 @@ function btn(active: boolean): React.CSSProperties {
 function btnGold(disabled = false): React.CSSProperties {
   return {
     padding: '10px 18px', borderRadius: 'var(--radius-md)',
-    background: disabled ? 'var(--tec-surface-1)' : 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+    background: disabled ? 'var(--tec-surface-1)' : 'var(--tec-gold)',
     border: 'none', color: disabled ? 'var(--tec-text-3)' : '#0a0800',
     fontSize: 'var(--text-sm)', fontWeight: 800,
     cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',

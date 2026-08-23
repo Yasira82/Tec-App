@@ -24,7 +24,10 @@ interface Props {
   openTo?: string;
 }
 
-const FAV_KEY = 'tec_fav_apps';
+const FAV_KEY      = 'tec_fav_apps';
+/** Which groups the reader has collapsed. Absent = open, so a NEW group ships
+ *  visible rather than hidden behind a preference set before it existed. */
+const COLLAPSED_KEY = 'tec_collapsed_groups';
 
 /**
  * The launcher is on FIXED rails: four columns, every section, always.
@@ -57,8 +60,21 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   const [query,   setQuery]   = useState('');
   const [favs,    setFavs]    = useState<string[]>([]);
   const [editing, setEditing] = useState(false); // Edit mode → pin/unpin surface
+  const [collapsed, setCollapsed] = useState<string[]>([]);
 
-  useEffect(() => { setFavs(readList(FAV_KEY)); }, []);
+  useEffect(() => {
+    setFavs(readList(FAV_KEY));
+    setCollapsed(readList(COLLAPSED_KEY));
+  }, []);
+
+  const toggleGroup = useCallback((group: string) => {
+    haptic('light');
+    setCollapsed((prev) => {
+      const next = prev.includes(group) ? prev.filter((g) => g !== group) : [...prev, group];
+      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
 
   const bySlug = useMemo(() => new Map(apps.map((a) => [a.slug, a])), [apps]);
 
@@ -156,29 +172,81 @@ export function HubAppsGrid({ apps, openTo }: Props) {
    * the same hue. A boundary does that job without spending a colour, and it
    * frees the accent for the one row that is actually promoted.
    */
-  const Section = ({ title, items, featured = false }: {
-    title: string; items: HubApp[]; featured?: boolean;
-  }) => (
-    // Every group is the same card, Favourites included. Favourites used to be
-    // transparent and borderless, so on a page where each group is a bounded
-    // card it read as a stray tile someone had left on the background. What
-    // makes it featured is the tile treatment inside, not the absence of a box.
-    <div style={{
-      marginTop: 12,
-      background: 'var(--tec-surface-1)',
-      border: '1px solid var(--tec-border)',
-      borderRadius: 20,
-      padding: '14px 8px 4px',
-    }}>
+  /**
+   * A section is a CARD, not a coloured heading — and it opens and closes.
+   *
+   * Grouping used to be carried by the accent: every tile in a section tinted
+   * the same hue. A boundary does that job without spending a colour, and it
+   * frees the accent for the one row that is actually promoted.
+   *
+   * Seven groups and 23 apps made the page roughly four screens tall, so the
+   * last group was only ever reached by scrolling past everything. Collapsed,
+   * a group is one row that still says how many apps are inside — you can see
+   * the whole ecosystem at once and open the part you came for.
+   */
+  const Section = ({ title, items, featured = false, group }: {
+    title: string; items: HubApp[]; featured?: boolean; group?: string;
+  }) => {
+    // No group id (search results, Favourites) → always open, never collapsible.
+    const canCollapse = !!group && !searching;
+    const isOpen      = !canCollapse || !collapsed.includes(group!);
+    const headingId   = group ? `tec-group-${group}` : undefined;
+
+    const heading = (
+      <>
+        <span>{title}</span>
+        {canCollapse && (
+          <span style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 12, fontWeight: 600, color: 'var(--tec-text-3)' }}>
+            {/* The count is the reason a closed group is still useful: you can
+                read the shape of the ecosystem without opening anything. */}
+            {items.length}
+            <Icon name={isOpen ? 'caretUp' : 'caretDown'} size={15} color="var(--tec-text-3)" strokeWidth={2.2} />
+          </span>
+        )}
+      </>
+    );
+
+    const headingStyle: React.CSSProperties = {
+      fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)',
+      margin: isOpen ? '0 8px 10px' : '0 8px 2px',
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+    };
+
+    return (
       <div style={{
-        fontSize: 15, fontWeight: 800,
-        color: 'var(--tec-text-1)', margin: '0 8px 10px',
-      }}>{title}</div>
-      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID_COLUMNS},1fr)`, gap: 4 }}>
-        {items.map((app) => <AppCard key={app.slug} app={app} featured={featured} />)}
+        marginTop: 12,
+        background: 'var(--tec-surface-1)',
+        border: '1px solid var(--tec-border)',
+        borderRadius: 20,
+        // A closed card is a row, not a card with an empty bottom.
+        padding: isOpen ? '14px 8px 4px' : '13px 8px 11px',
+      }}>
+        {canCollapse ? (
+          <button
+            type="button"
+            onClick={() => toggleGroup(group!)}
+            aria-expanded={isOpen}
+            aria-controls={headingId}
+            style={{
+              ...headingStyle,
+              width: '100%', background: 'none', border: 'none',
+              padding: 0, cursor: 'pointer', font: 'inherit', textAlign: 'start',
+              fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)',
+            }}>
+            {heading}
+          </button>
+        ) : (
+          <div style={headingStyle}>{heading}</div>
+        )}
+
+        {isOpen && (
+          <div id={headingId} style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID_COLUMNS},1fr)`, gap: 4 }}>
+            {items.map((app) => <AppCard key={app.slug} app={app} featured={featured} />)}
+          </div>
+        )}
       </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div style={{ padding: '24px 16px 0', animation: 'tec-fade-in 0.6s ease both' }}>
@@ -205,7 +273,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
 
       {/* Edit-mode hint */}
       {editing && (
-        <div style={{ fontSize: 11, color: 'rgba(248,184,32,0.7)', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'rgba(var(--tec-gold-rgb),0.7)', marginBottom: 8 }}>
           {t.hub.apps.editHint}
         </div>
       )}
@@ -243,7 +311,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
       })() : (
         <>
           {favApps.length > 0 && <Section title={t.hub.apps.favorites} items={favApps} featured />}
-          {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} />)}
+          {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} group={s.group} />)}
         </>
       )}
     </div>

@@ -22,10 +22,10 @@ import { AppCard }         from '@/components/ecosystem/AppCard';
 import type { Locale }     from '@/domains/_types';
 import styles              from '../page.module.css';
 
-const GOLD = '#F8B820';
+const GOLD = 'var(--tec-gold)';
 const BG   = '#050816';
 const CARD = '#0B1020';
-const LINE = 'rgba(248,184,32,0.14)';
+const LINE = 'rgba(var(--tec-gold-rgb),0.14)';
 const MUTE = 'rgba(232,224,208,0.45)';
 
 export default function DemoPage() {
@@ -65,7 +65,7 @@ export default function DemoPage() {
           fontSize: 9, letterSpacing: '0.14em', fontWeight: 700, color: GOLD,
           border: `1px solid ${LINE}`, borderRadius: 6, padding: '3px 7px' }}>{d.sampleTag}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'linear-gradient(135deg,#f5d060,#a08020)',
+          <div style={{ width: 56, height: 56, borderRadius: 14, background: 'var(--tec-gold)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 26 }}>👑</div>
           <div>
             <div style={{ fontSize: 18, fontWeight: 700 }}>{d.identityName}</div>
@@ -111,7 +111,7 @@ export default function DemoPage() {
 
       {/* CTA */}
       <Link href="/#payment" style={{ display: 'block', textAlign: 'center', marginTop: 22,
-        background: 'linear-gradient(135deg,#f5d060 0%,#F8B820 45%,#a08020 100%)', color: '#050816',
+        background: 'var(--tec-gold)', color: '#050816',
         fontWeight: 700, fontSize: 15, padding: '16px', borderRadius: 14, textDecoration: 'none' }}>
         {d.signIn}
       </Link>

@@ -77,7 +77,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--tec-gold-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="spark" size={18} color="var(--tec-bg)" strokeWidth={2} /></div>
+            <div style={{ width: 32, height: 32, borderRadius: 10, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><Icon name="spark" size={18} color="var(--tec-bg)" strokeWidth={2} /></div>
             <div>
               <div dir="ltr" style={{ fontSize: 14, fontWeight: 700, color: 'var(--tec-text-1)', textAlign: 'start' }}>TEC AI</div>
               <div style={{ fontSize: 10, color: '#4a4a5a' }}>{t.hub.ai.poweredBy}</div>
@@ -146,7 +146,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
               style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--tec-text-1)' }}>◼</button>
           ) : (
             <button onClick={() => submit()} disabled={!input.trim()} aria-label={t.hub.ai.send}
-              style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'var(--tec-gold-grad)' : 'var(--tec-fill-soft)', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
+              style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'var(--tec-gold)' : 'var(--tec-fill-soft)', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
           )}
         </div>
       </div>

@@ -39,7 +39,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
         <div style={{
           width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+          background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: 'var(--tec-on-gold)',
           
@@ -104,7 +104,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
           <div style={{
             width: 26, height: 26, borderRadius: '50%',
-            background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+            background: 'var(--tec-gold)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 11, fontWeight: 800, color: 'var(--tec-on-gold)',
           }}>

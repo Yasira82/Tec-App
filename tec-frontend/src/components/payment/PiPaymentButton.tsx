@@ -106,7 +106,7 @@ if (result?.success) {
           background:    'transparent',
           border:        'none',
           letterSpacing: '0.25em',
-          color:         sdkReady ? '#F8B820' : '#4a4a5a',
+          color:         sdkReady ? 'var(--tec-gold)' : '#4a4a5a',
           fontSize:      '11px',
           fontWeight:    400,
           cursor:        loading ? 'not-allowed' : 'pointer',

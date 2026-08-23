@@ -93,7 +93,7 @@ function ReviewCard({ kyc, onDone }: { kyc: PendingKyc; onDone: (userId: string)
             Submitted {kyc.submitted_at ? new Date(kyc.submitted_at).toLocaleString() : '—'} · current {kyc.level}
           </div>
         </div>
-        <span style={{ fontSize: 10, color: 'var(--tec-gold-dark)', background: 'rgba(216,136,16,0.1)', border: '1px solid rgba(216,136,16,0.3)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1, textTransform: 'uppercase' }}>Pending</span>
+        <span style={{ fontSize: 10, color: 'var(--tec-gold-dark)', background: 'rgba(var(--tec-gold-rgb),0.1)', border: '1px solid rgba(var(--tec-gold-rgb),0.3)', padding: '3px 10px', borderRadius: 999, letterSpacing: 1, textTransform: 'uppercase' }}>Pending</span>
       </div>
 
       <div style={{ display: 'flex', gap: 'var(--sp-3)', marginBottom: 'var(--sp-4)' }}>

@@ -4,7 +4,7 @@
   justify-content: space-between;
   padding: 16px 20px;
   background: #0B1020;
-  border-bottom: 1px solid #F8B82020;
+  border-bottom: 1px solid var(--tec-gold)20;
   position: sticky;
   top: 0;
   z-index: 100;
@@ -19,7 +19,7 @@
 .logo {
   font-size: 22px;
   font-weight: 800;
-  color: #F8B820;
+  color: var(--tec-gold);
   letter-spacing: 2px;
 }
 
@@ -52,7 +52,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F8B820, #D88810);
+  background: var(--tec-gold);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -63,6 +63,6 @@
 
 .username {
   font-size: 13px;
-  color: #F8B820;
+  color: var(--tec-gold);
   font-weight: 600;
 }

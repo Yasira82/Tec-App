@@ -85,8 +85,8 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                 }}
               >
                 <span style={{ fontSize: 15, color: 'var(--tec-red)', fontWeight: 700 }}>{t.hub.wallet.loadFailed}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--tec-gold-ink)', fontWeight: 700 }}>
-                  <Icon name="refresh" size={13} color="var(--tec-gold-ink)" strokeWidth={2.2} />{t.hub.wallet.retry}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--tec-gold)', fontWeight: 700 }}>
+                  <Icon name="refresh" size={13} color="var(--tec-gold)" strokeWidth={2.2} />{t.hub.wallet.retry}</span>
               </span>
             ) : balance === '—' ? (
               <div className="tec-skeleton" style={{ width: 120, height: 44 }} />

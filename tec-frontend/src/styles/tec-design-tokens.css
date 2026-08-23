@@ -53,11 +53,6 @@
   /* Ink on a filled status dot. Fixed in both themes on purpose: the dot is a
      solid red object, so its label does not follow the page. */
   --tec-on-red:      #ffffff;
-  /* Gold used as SMALL COPY on the page ground. The brand tone is a mark
-     colour: #FEA500 on white measures 1.98:1, which is right for a logo or a
-     42px figure and unreadable for a 9px label. The split is by ROLE, not by
-     theme — in dark the two are the same value. */
-  --tec-gold-ink:    #FBB44A;
   /* The tint behind a FEATURED tile. The only coloured tile in the launcher. */
   --tec-accent-tile: rgba(251,180,74,0.13);
 
@@ -180,7 +175,6 @@
   --tec-border-gold: rgba(224,136,0,0.42);
   --tec-gold:        #FEA500;
   --tec-gold-rgb:    254, 165, 0;
-  --tec-gold-ink:    #A86300;
   --tec-gold-dark:   #E08800;
   --tec-gold-dim:    rgba(254,165,0,0.20);
   --tec-gold-glow:   rgba(254,165,0,0.10);
@@ -214,7 +208,6 @@
     --tec-border-gold: rgba(224,136,0,0.42);
     --tec-gold:        #FEA500;
     --tec-gold-rgb:    254, 165, 0;
-    --tec-gold-ink:    #A86300;
     --tec-gold-dark:   #E08800;
     --tec-gold-light:  #FFC04D;
     --tec-gold-grad:   linear-gradient(135deg, #FEA500, #E08800);

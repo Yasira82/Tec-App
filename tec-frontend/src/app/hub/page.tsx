@@ -156,7 +156,7 @@ function HubPageInner() {
             {/* The comma lives in the dictionary — Arabic writes ، not ,. And the
                 handle is Latin inside an Arabic line, so it gets an explicit
                 direction: bidi otherwise decides where the "@" lands. */}
-            {greeting} <span dir="ltr" style={{ color: 'var(--tec-gold-ink)' }}>@{user.piUsername}</span>
+            {greeting} <span dir="ltr" style={{ color: 'var(--tec-gold)' }}>@{user.piUsername}</span>
           </div>
           <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', marginTop: 3 }}>{t.hub.greeting.sub}</div>
         </div>

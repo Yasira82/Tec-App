@@ -69,7 +69,7 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
           {/* Seven slots on a 360px phone is ~51px each. At the old 9px/0.8 the
               longest label ("DASHBOARD") measured wider than its slot and would
               have wrapped or clipped. */}
-          <span style={{ fontSize: 8.5, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: item.active || item.raised ? 700 : 400, color: item.active || item.raised ? 'var(--tec-gold-ink)' : 'var(--tec-text-3)' }}>
+          <span style={{ fontSize: 8.5, letterSpacing: 0.3, textTransform: 'uppercase', fontWeight: item.active || item.raised ? 700 : 400, color: item.active || item.raised ? 'var(--tec-gold)' : 'var(--tec-text-3)' }}>
             {item.label}
           </span>
         </button>

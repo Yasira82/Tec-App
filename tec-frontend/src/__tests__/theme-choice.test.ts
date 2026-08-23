@@ -171,13 +171,14 @@ describe('the token layer backs both themes', () => {
     expect(light).toMatch(/--tec-gold-rgb:\s*254,\s*165,\s*0/);
   });
 
-  it('gives SMALL gold copy a readable amber in light mode only', () => {
-    // The light brand tone on white measures 1.98:1 — right for a logo or a
-    // 42px figure, unreadable for a 9px label. The split is by ROLE, not theme.
-    const dark  = css.slice(css.indexOf(':root {'), css.indexOf("[data-theme='dark']"));
-    const light = css.slice(css.indexOf("[data-theme='light']"), css.indexOf('@media (prefers-color-scheme: light)'));
-    expect(dark).toMatch(/--tec-gold-ink:\s*#FBB44A/i);
-    expect(light).toMatch(/--tec-gold-ink:\s*#A86300/i);
+  it('uses ONE gold per theme — no second, darker value for small copy', () => {
+    // There was a --tec-gold-ink: the brand tone in dark, a deeper #A86300 in
+    // light, so 9px labels would clear WCAG on white. It shipped, and on the
+    // real page the effect was two golds six pixels apart — a bright avatar
+    // beside brown text in the same chip. Brand consistency won that call.
+    // The tradeoff is stated, not hidden: the light tone measures 1.98:1 on
+    // white, so gold is never the ONLY way anything here is labelled.
+    expect(css).not.toContain('--tec-gold-ink');
   });
 
   it('leaves no hardcoded brand hex outside the token layer', () => {

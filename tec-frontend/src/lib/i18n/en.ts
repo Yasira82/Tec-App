@@ -193,7 +193,7 @@ export const en = {
     nav: {
       main: 'Main navigation',
       hub: 'Hub', wallet: 'Wallet', dashboard: 'Dashboard',
-      verify: 'Verify', plan: 'Plan', settings: 'Settings',
+      verify: 'Verify', ai: 'AI', plan: 'Plan', settings: 'Settings',
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {
@@ -224,7 +224,7 @@ export const en = {
       title: 'Apps', edit: 'Edit', done: 'Done', live: 'LIVE',
       search: 'Search apps', clearSearch: 'Clear search',
       editHint: 'Tap an app to pin it to ★ Favorites.',
-      favorites: '★ Favorites', recent: 'Recent',
+      favorites: '★ Favorites',
       noMatch: 'No apps match “{q}”.',
       results: '{n} results', resultOne: '1 result',
     },

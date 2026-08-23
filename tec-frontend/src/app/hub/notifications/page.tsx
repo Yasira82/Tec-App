@@ -4,6 +4,7 @@ import { useNotifications, Notification, NotifType } from '@/lib-client/hooks/us
 import { useTranslation, fill, bcp47, errorText, type Translations } from '@/lib/i18n';
 import { HubSubShell }                               from '@/components/hub';
 import { DashboardCard }                             from '@/components/dashboard';
+import { Icon, type IconName }                       from '@/components/ui/Icon';
 
 /** Relative time, in the reader's language. Beyond a week it falls back to a real
  *  date — formatted by the locale, so Arabic gets Arabic month names rather than
@@ -21,12 +22,12 @@ function formatDate(iso: string, t: Translations, locale: 'en' | 'ar') {
   return new Date(iso).toLocaleDateString(bcp47(locale), { month: 'short', day: 'numeric' });
 }
 
-const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }> = {
-  PAYMENT:  { icon: '💳', color: 'var(--tec-blue)', bg: 'rgba(59,130,246,0.1)'  },
-  WALLET:   { icon: '💰', color: 'var(--tec-gold)', bg: 'rgba(251,191,36,0.1)'  },
-  KYC:      { icon: '🪪', color: 'var(--tec-purple)', bg: 'rgba(139,92,246,0.1)'  },
-  SECURITY: { icon: '🔒', color: 'var(--tec-red)', bg: 'rgba(239,68,68,0.1)'   },
-  SYSTEM:   { icon: '⚙️', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+const TYPE_CONFIG: Record<NotifType, { icon: IconName; color: string; bg: string }> = {
+  PAYMENT:  { icon: 'wallet', color: 'var(--tec-blue)', bg: 'rgba(59,130,246,0.1)'  },
+  WALLET:   { icon: 'coins', color: 'var(--tec-gold)', bg: 'rgba(248,184,32,0.1)'  },
+  KYC:      { icon: 'idCard', color: 'var(--tec-purple)', bg: 'rgba(139,92,246,0.1)'  },
+  SECURITY: { icon: 'lock', color: 'var(--tec-red)', bg: 'rgba(239,68,68,0.1)'   },
+  SYSTEM:   { icon: 'settings', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
 };
 
 function NotifCard({ notif, onRead }: { notif: Notification; onRead: (id: string) => void }) {
@@ -39,12 +40,12 @@ function NotifCard({ notif, onRead }: { notif: Notification; onRead: (id: string
         display: 'flex', alignItems: 'flex-start', gap: 'var(--sp-3)',
         padding: 'var(--sp-4) var(--sp-5)',
         borderBottom: '1px solid var(--tec-border)',
-        background: notif.read ? 'transparent' : 'rgba(251,191,36,0.03)',
+        background: notif.read ? 'transparent' : 'rgba(248,184,32,0.03)',
         cursor: notif.read ? 'default' : 'pointer',
         transition: 'background 0.15s ease',
       }}>
       <div style={{ width: 38, height: 38, borderRadius: 10, flexShrink: 0, background: cfg.bg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>
-        {cfg.icon}
+        <Icon name={cfg.icon} size={18} color={cfg.color} strokeWidth={1.8} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>

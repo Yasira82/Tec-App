@@ -14,7 +14,7 @@ interface Props {
 }
 
 const BADGE_COLORS = {
-  gold:  { bg: 'rgba(251,191,36,0.1)',  border: 'rgba(251,191,36,0.25)',  color: 'var(--tec-gold)' },
+  gold:  { bg: 'rgba(248,184,32,0.1)',  border: 'rgba(248,184,32,0.25)',  color: 'var(--tec-gold)' },
   green: { bg: 'rgba(34,197,94,0.1)',  border: 'rgba(34,197,94,0.25)',  color: 'var(--tec-green)' },
   red:   { bg: 'rgba(239,68,68,0.1)',   border: 'rgba(239,68,68,0.25)',   color: 'var(--tec-red)' },
   blue:  { bg: 'rgba(59,130,246,0.1)',  border: 'rgba(59,130,246,0.25)',  color: 'var(--tec-blue)' },

@@ -33,7 +33,7 @@ const PLAN_CONFIG: Record<string, {
   color: string; bg: string; border: string; icon: string; popular?: boolean;
 }> = {
   FREE:       { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)', icon: '◯' },
-  PRO:        { color: '#FBBF24', bg: 'rgba(251,191,36,0.08)',  border: 'rgba(251,191,36,0.25)',  icon: '◈', popular: true },
+  PRO:        { color: '#F8B820', bg: 'rgba(248,184,32,0.08)',  border: 'rgba(248,184,32,0.25)',  icon: '◈', popular: true },
   ENTERPRISE: { color: '#7eb8f7', bg: 'rgba(126,184,247,0.08)', border: 'rgba(126,184,247,0.25)', icon: '◉' },
 };
 

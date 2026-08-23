@@ -1030,7 +1030,11 @@ describe('PiBrowserGuard', () => {
     );
     const link = screen.getByText('Open App →');
     expect(link).toBeInTheDocument();
-    expect(link.closest('a')).toHaveAttribute('href', 'pi://tec-app.vercel.app');
+    // The deep link points at the Hub's real domain. It used to say
+    // `pi://tec-app.vercel.app` — the preview host, not the app people run —
+    // so the one button on a "you are in the wrong browser" banner opened the
+    // wrong thing.
+    expect(link.closest('a')).toHaveAttribute('href', 'pi://hub.tecosystem.app');
   });
 });
 

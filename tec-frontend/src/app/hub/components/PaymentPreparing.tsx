@@ -16,7 +16,7 @@ export function PaymentPreparing() {
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       <div style={{ width: 64, height: 64, borderRadius: 20, background: 'var(--tec-gold-grad)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: 'var(--tec-on-gold)' }}>T</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(251,191,36,0.2)', borderTopColor: 'var(--tec-gold)', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 20, height: 20, borderRadius: '50%', border: '2px solid rgba(248,184,32,0.2)', borderTopColor: 'var(--tec-gold)', animation: 'spin 0.8s linear infinite' }} />
         <span style={{ fontSize: 13, color: 'var(--tec-text-2)' }}>{t.hub.payment.preparing}</span>
       </div>
     </div>

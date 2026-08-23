@@ -182,7 +182,7 @@ export const ar = {
     nav: {
       main: 'التنقل الرئيسي',
       hub: 'الرئيسية', wallet: 'المحفظة', dashboard: 'لوحة التحكم',
-      verify: 'التوثيق', plan: 'الاشتراك', settings: 'الإعدادات',
+      verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك', settings: 'الإعدادات',
     },
     header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
     greeting: {
@@ -210,7 +210,7 @@ export const ar = {
       title: 'التطبيقات', edit: 'تعديل', done: 'تم', live: 'نشط',
       search: 'ابحث عن تطبيق', clearSearch: 'مسح البحث',
       editHint: 'اضغط على تطبيق لتثبيته في ★ المفضلة.',
-      favorites: '★ المفضلة', recent: 'آخر استخدام',
+      favorites: '★ المفضلة',
       noMatch: 'لا يوجد تطبيق يطابق «{q}».',
       results: '{n} نتيجة', resultOne: 'نتيجة واحدة',
     },

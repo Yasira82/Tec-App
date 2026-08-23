@@ -20,7 +20,7 @@ interface DailyMetric {
 
 const s = (style: React.CSSProperties) => style;
 
-function StatCard({ icon, label, value, color = '#FBBF24' }: {
+function StatCard({ icon, label, value, color = '#F8B820' }: {
   icon: string; label: string; value: string | number; color?: string;
 }) {
   return (
@@ -82,7 +82,7 @@ export default function AnalyticsPage() {
   if (isLoading) {
     return (
       <div style={s({ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' })}>
-        <div style={s({ width: 36, height: 36, border: '2px solid #FBBF2430', borderTop: '2px solid #FBBF24', borderRadius: '50%', animation: 'spin 0.8s linear infinite' })} />
+        <div style={s({ width: 36, height: 36, border: '2px solid #F8B82030', borderTop: '2px solid #F8B820', borderRadius: '50%', animation: 'spin 0.8s linear infinite' })} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -106,7 +106,7 @@ export default function AnalyticsPage() {
         <button
           onClick={() => fetchOverview(true)}
           disabled={isRefreshing}
-          style={s({ background: '#FBBF2415', border: '1px solid #FBBF2430', borderRadius: 10, padding: '8px 14px', color: '#FBBF24', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}
+          style={s({ background: '#F8B82015', border: '1px solid #F8B82030', borderRadius: 10, padding: '8px 14px', color: '#F8B820', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}
         >
           {isRefreshing ? '⟳ ...' : '⟳ Refresh'}
         </button>
@@ -123,7 +123,7 @@ export default function AnalyticsPage() {
       <div style={s({ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 })}>
         <StatCard icon="💳" label="TOTAL PAYMENTS"   value={overview?.totalPayments ?? 0} color="#7ee7c0" />
         <StatCard icon="👥" label="TOTAL USERS"      value={overview?.totalUsers    ?? 0} color="#7eb8f7" />
-        <StatCard icon="📊" label="TOTAL EVENTS"     value={overview?.totalEvents   ?? 0} color="#FBBF24" />
+        <StatCard icon="📊" label="TOTAL EVENTS"     value={overview?.totalEvents   ?? 0} color="#F8B820" />
         <StatCard icon="💰" label="TOTAL VOLUME (π)" value={totalVol.toFixed(2)}          color="#e67e22" />
       </div>
 
@@ -139,7 +139,7 @@ export default function AnalyticsPage() {
                 {new Date(m.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </div>
               <MetricBar label="Payments"  value={m.total_payments} max={maxPay}   color="#7ee7c0" />
-              <MetricBar label="Volume π"  value={m.total_volume}   max={maxVol}   color="#FBBF24" />
+              <MetricBar label="Volume π"  value={m.total_volume}   max={maxVol}   color="#F8B820" />
               <MetricBar label="New Users" value={m.new_users}      max={maxUsers} color="#7eb8f7" />
             </div>
           ))}

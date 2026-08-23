@@ -20,9 +20,18 @@ export type IconName =
   | 'trending' | 'briefcase' | 'landmark' | 'target' | 'rocket' | 'code'
   | 'home' | 'towers' | 'search' | 'sprout' | 'link'
   | 'trophy' | 'award' | 'crown' | 'scale' | 'network' | 'sun' | 'moon'
-  // The assistant. `sparkles` used to stand in for it AND for Plan in the same
-  // bottom nav — one picture cannot mean two destinations.
-  | 'bot';
+  // Subscription tiers. Plan borrowed `sparkles`, which now belongs to the
+  // assistant — one picture cannot mean two destinations in one bottom nav.
+  | 'tiers'
+  // The assistant, everywhere it appears. A robot face reads as a toy at 25px
+  // on a gold disc; the twin spark is the mark people already read as "AI".
+  | 'spark'
+  // ── Chrome glyphs ───────────────────────────────────────────────────
+  // The last text characters and emoji in the Hub: ↑ ↓ ⇄ ★ 🎁 🪪 ↻ ▲ ▼.
+  // A text arrow is drawn by the platform font, so it changed weight and
+  // baseline from phone to phone next to icons we draw ourselves.
+  | 'arrowUp' | 'arrowDown' | 'swap' | 'star' | 'gift' | 'idCard'
+  | 'refresh' | 'caretUp' | 'caretDown' | 'lock' | 'coins';
 
 /** Exported so `app-icons.test.ts` can hold the set to one 24x24 grid. */
 export const PATHS: Record<IconName, string> = {
@@ -32,6 +41,8 @@ export const PATHS: Record<IconName, string> = {
   cart:     '<circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/>',
   settings: '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z"/><circle cx="12" cy="12" r="3"/>',
   bell:     '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+  spark:    '<path d="M12 2.5c0 5 1.7 6.7 6.7 6.7-5 0-6.7 1.7-6.7 6.7 0-5-1.7-6.7-6.7-6.7 5 0 6.7-1.7 6.7-6.7z"/><path d="M18.6 15.2c0 2.2.8 3 3 3-2.2 0-3 .8-3 3 0-2.2-.8-3-3-3 2.2 0 3-.8 3-3z"/>',
+  tiers:    '<path d="M12 3 3 7.5 12 12l9-4.5z"/><path d="m3 12 9 4.5 9-4.5"/><path d="m3 16.5 9 4.5 9-4.5"/>',
   sparkles: '<path d="m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z"/>',
   store:    '<path d="m2 7 1.5-3.5A1 1 0 0 1 4.4 3h15.2a1 1 0 0 1 .9.5L22 7"/><path d="M4 7v13a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V7"/><path d="M2 7h20a0 0 0 0 1 0 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0 3 3 0 0 1-6 0Z"/>',
   receipt:  '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M8 7h8"/><path d="M8 11h8"/><path d="M8 15h5"/>',
@@ -46,6 +57,17 @@ export const PATHS: Record<IconName, string> = {
   info:        '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   upload:      '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/>',
   alert:       '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z"/><path d="M12 9v4"/><path d="M12 17h.01"/>',
+  arrowUp:     '<path d="M12 19V5"/><path d="m5 12 7-7 7 7"/>',
+  arrowDown:   '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>',
+  swap:        '<path d="M4 8h13"/><path d="m14 5 3 3-3 3"/><path d="M20 16H7"/><path d="m10 19-3-3 3-3"/>',
+  star:        '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/>',
+  gift:        '<rect x="3" y="9" width="18" height="12" rx="1.5"/><path d="M3 13h18"/><path d="M12 9v12"/><path d="M12 9C10.5 5.5 9 4 7.5 4a2.5 2.5 0 0 0 0 5"/><path d="M12 9c1.5-3.5 3-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  idCard:      '<rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.2 16c.5-1.5 1.8-2.3 3.3-2.3s2.8.8 3.3 2.3"/><path d="M15 10h4"/><path d="M15 14h3"/>',
+  refresh:     '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 4v5h-5"/>',
+  caretUp:     '<path d="m6 15 6-6 6 6"/>',
+  caretDown:   '<path d="m6 9 6 6 6-6"/>',
+  lock:        '<rect x="4" y="10.5" width="16" height="10.5" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/>',
+  coins:       '<ellipse cx="12" cy="6.5" rx="7.5" ry="3"/><path d="M4.5 6.5v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/><path d="M4.5 11.5v5c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-5"/>',
   camera:      '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3Z"/><circle cx="12" cy="13" r="3"/>',
 
   // ── App glyphs ───────────────────────────────────────────────────────
@@ -74,7 +96,6 @@ export const PATHS: Record<IconName, string> = {
   scale:     '<path d="M12 3v18"/><path d="M7 21h10"/><path d="M4 7h16"/><path d="m4 7-3 6a3 3 0 0 0 6 0Z"/><path d="m20 7 3 6a3 3 0 0 1-6 0Z"/>',
   sun:       '<circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.4M12 19.6V22M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2 12h2.4M19.6 12H22M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7"/>',
   moon:      '<path d="M20.5 14.3A8.6 8.6 0 0 1 9.7 3.5a8.6 8.6 0 1 0 10.8 10.8Z"/>',
-  bot:       '<rect x="3.5" y="8" width="17" height="12.5" rx="3.5"/><path d="M12 4.2V8"/><circle cx="12" cy="3" r="1.2"/><path d="M1.5 13v3M22.5 13v3"/><path d="M9 12.8h.01M15 12.8h.01"/><path d="M9.5 16.8h5"/>',
   network:   '<circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="18" r="2.5"/><circle cx="19" cy="18" r="2.5"/><path d="M12 7.5v4M12 11.5 6.8 16.2M12 11.5l5.2 4.7"/>',
 };
 

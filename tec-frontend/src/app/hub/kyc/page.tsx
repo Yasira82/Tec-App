@@ -20,7 +20,7 @@ const statusConfig = (t: Translations): Record<KycStatus, {
   },
   PENDING: {
     icon: 'clock', label: t.hub.kyc.status.pending, desc: t.hub.kyc.status.pendingDesc,
-    bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: 'var(--tec-gold-dark)',
+    bg: 'rgba(216,136,16,0.08)', border: 'rgba(216,136,16,0.25)', color: 'var(--tec-gold-dark)',
   },
   VERIFIED: {
     icon: 'shieldCheck', label: t.hub.kyc.status.verified, desc: t.hub.kyc.status.verifiedDesc,
@@ -258,7 +258,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 8,
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
-            background: 'rgba(251,191,36,0.05)', border: '1px solid var(--tec-border-gold)',
+            background: 'rgba(248,184,32,0.05)', border: '1px solid var(--tec-border-gold)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
           }}>
             <span style={{ flexShrink: 0, marginTop: 2 }}><Icon name="info" size={16} color="var(--tec-gold)" /></span>
@@ -307,7 +307,7 @@ function PendingState() {
   return (
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
-        <StateBadge icon="clock" color="var(--tec-gold-dark)" ring="rgba(245,158,11,0.1)" edge="rgba(245,158,11,0.2)" />
+        <StateBadge icon="clock" color="var(--tec-gold-dark)" ring="rgba(216,136,16,0.1)" edge="rgba(216,136,16,0.2)" />
         <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-3)' }}>
           {t.hub.kyc.pending.heading}
         </div>

@@ -121,14 +121,14 @@ export default function CheckoutPage() {
           <div style={s({ fontSize: 64, marginBottom: 16 })}>✅</div>
           <h2 style={s({ fontSize: 24, fontWeight: 800, color: '#7ee7c0', marginBottom: 8 })}>Order Confirmed!</h2>
           <p style={s({ color: '#6b6b7a', fontSize: 14, marginBottom: 8 })}>
-            Order ID: <span style={s({ color: '#FBBF24', fontFamily: 'monospace' })}>{orderId.slice(0, 8).toUpperCase()}</span>
+            Order ID: <span style={s({ color: '#F8B820', fontFamily: 'monospace' })}>{orderId.slice(0, 8).toUpperCase()}</span>
           </p>
           <p style={s({ color: '#4a4a5a', fontSize: 13, marginBottom: 24 })}>
             Total paid: {total.toFixed(2)} {currency === 'PI' ? 'π' : currency}
           </p>
           <button
             onClick={() => router.push('/dashboard/orders')}
-            style={s({ padding: '12px 32px', background: '#FBBF2415', border: '1px solid #FBBF2440', borderRadius: 14, color: '#FBBF24', fontWeight: 700, fontSize: 14, cursor: 'pointer' })}
+            style={s({ padding: '12px 32px', background: '#F8B82015', border: '1px solid #F8B82040', borderRadius: 14, color: '#F8B820', fontWeight: 700, fontSize: 14, cursor: 'pointer' })}
           >
             View Orders →
           </button>
@@ -157,15 +157,15 @@ export default function CheckoutPage() {
                   <div style={s({ fontSize: 14, fontWeight: 600, color: '#fff' })}>{item.title}</div>
                   <div style={s({ fontSize: 12, color: '#6b6b7a' })}>Qty: {item.quantity}</div>
                 </div>
-                <div style={s({ fontSize: 14, fontWeight: 700, color: '#FBBF24' })}>
+                <div style={s({ fontSize: 14, fontWeight: 700, color: '#F8B820' })}>
                   {(item.price * item.quantity).toFixed(2)} {item.currency === 'PI' ? 'π' : item.currency}
                 </div>
               </div>
             ))
           )}
-          <div style={s({ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #FBBF2420' })}>
+          <div style={s({ display: 'flex', justifyContent: 'space-between', marginTop: 16, paddingTop: 16, borderTop: '1px solid #F8B82020' })}>
             <span style={s({ fontWeight: 700, color: '#fff' })}>Total</span>
-            <span style={s({ fontSize: 18, fontWeight: 900, color: '#FBBF24' })}>
+            <span style={s({ fontSize: 18, fontWeight: 900, color: '#F8B820' })}>
               {total.toFixed(2)} {currency === 'PI' ? 'π' : currency}
             </span>
           </div>

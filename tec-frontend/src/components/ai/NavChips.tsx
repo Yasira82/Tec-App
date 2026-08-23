@@ -19,7 +19,7 @@ import type { Locale }      from '@/domains/_types';
 const defaultStyle: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6,
   padding: '6px 12px', borderRadius: 999,
-  border: '1px solid #FBBF2440', background: '#FBBF2412',
+  border: '1px solid #F8B82040', background: '#F8B82012',
   color: 'var(--tec-gold)', fontSize: 12, fontWeight: 600,
   textDecoration: 'none', whiteSpace: 'nowrap',
 };

@@ -24,18 +24,18 @@
   /* Near-neutral, very slightly cool — NOT navy. #050816 was a blue-black that
      pushed every neutral above it toward "sci-fi". */
   --tec-bg:          #101014;
-  --tec-surface-1:   #17171d;   /* group card */
-  --tec-surface-2:   #1f1f27;   /* tile inside a card */
-  --tec-surface-3:   #2a2a34;   /* raised / pressed */
+  --tec-surface-1:   #21212a;   /* group card */
+  --tec-surface-2:   #2c2c37;   /* tile inside a card */
+  --tec-surface-3:   #383844;   /* raised / pressed */
   --tec-border:      rgba(255,255,255,0.07);
-  --tec-border-gold: rgba(251,191,36,0.28);
+  --tec-border-gold: rgba(248,184,32,0.28);
 
   /* ── Brand accent — used SPARINGLY ──────────────────── */
-  --tec-gold:        #FBBF24;
-  --tec-gold-dark:   #F59E0B;
-  --tec-gold-dim:    rgba(251,191,36,0.15);
-  --tec-gold-glow:   rgba(251,191,36,0.08);
-  --tec-gold-grad:   linear-gradient(135deg, #FBBF24, #F59E0B);
+  --tec-gold:        #F8B820;
+  --tec-gold-dark:   #D88810;
+  --tec-gold-dim:    rgba(248,184,32,0.15);
+  --tec-gold-glow:   rgba(248,184,32,0.08);
+  --tec-gold-grad:   linear-gradient(135deg, #F8B820, #D88810);
   /* Ink that sits ON the gold gradient — a light-on-gold label fails contrast,
      so the pairing is fixed here rather than guessed per component. */
   --tec-on-gold:     #0a0800;
@@ -43,7 +43,7 @@
      solid red object, so its label does not follow the page. */
   --tec-on-red:      #ffffff;
   /* The tint behind a FEATURED tile. The only coloured tile in the launcher. */
-  --tec-accent-tile: rgba(251,191,36,0.13);
+  --tec-accent-tile: rgba(248,184,32,0.13);
 
   /* ── Status — meaning, never decoration ─────────────── */
   --tec-green:       #22C55E;
@@ -83,7 +83,7 @@
   /* ── Sub-page header band ───────────────────────────── */
   /* Inner pages open with a branded band, so you can feel you went somewhere.
      A wash, not a slab: it fades into the page rather than cutting it. */
-  --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.14), rgba(251,191,36,0));
+  --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.14), rgba(248,184,32,0));
 
   /* ── Spacing (4px base) ─────────────────────────────── */
   --sp-1:  4px;
@@ -120,7 +120,7 @@
   --shadow-sm:   0 1px 3px rgba(0,0,0,0.4);
   --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
   --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
-  --shadow-gold: 0 0 40px rgba(251,191,36,0.12);
+  --shadow-gold: 0 0 40px rgba(248,184,32,0.12);
 
   /* ── Transitions ─────────────────────────────────────── */
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
@@ -144,9 +144,9 @@
    data-theme="dark" wins over a system preference. */
 [data-theme='dark'] {
   --tec-bg:          #101014;
-  --tec-surface-1:   #17171d;
-  --tec-surface-2:   #1f1f27;
-  --tec-surface-3:   #2a2a34;
+  --tec-surface-1:   #21212a;
+  --tec-surface-2:   #2c2c37;
+  --tec-surface-3:   #383844;
   --tec-border:      rgba(255,255,255,0.07);
   --tec-text-1:      rgba(255,255,255,0.92);
   --tec-text-2:      rgba(255,255,255,0.62);
@@ -155,14 +155,14 @@
   --tec-icon:        rgba(255,255,255,0.80);
   --tec-fill-soft:   rgba(255,255,255,0.05);
   --tec-fill-softer: rgba(255,255,255,0.02);
-  --tec-accent-tile: rgba(251,191,36,0.13);
-  --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.14), rgba(251,191,36,0));
+  --tec-accent-tile: rgba(248,184,32,0.13);
+  --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.14), rgba(248,184,32,0));
 }
 
 /* ── Theme: light ──────────────────────────────────── */
 /* Warm off-white, not paper white — it sits better under the gold accent and
    is easier on the eye in a browser that is often used one-handed at night.
-   Gold has to DARKEN in light mode: #FBBF24 on white is roughly 1.7:1 and
+   Gold has to DARKEN in light mode: #F8B820 on white is roughly 1.8:1 and
    unreadable as text, so the ink-bearing accent is a deeper amber while the
    fill keeps the brand hue. */
 [data-theme='light'] {
@@ -171,14 +171,14 @@
   --tec-surface-2:   #f1efec;
   --tec-surface-3:   #e7e4df;
   --tec-border:      rgba(0,0,0,0.09);
-  --tec-border-gold: rgba(180,120,0,0.35);
-  --tec-gold:        #9a6f00;
-  --tec-gold-dark:   #7d5a00;
-  --tec-gold-dim:    rgba(154,111,0,0.14);
-  --tec-gold-glow:   rgba(154,111,0,0.07);
-  --tec-gold-grad:   linear-gradient(135deg, #FBBF24, #F59E0B);
+  --tec-border-gold: rgba(168,112,0,0.35);
+  --tec-gold:        #8f5f00;
+  --tec-gold-dark:   #6f4a00;
+  --tec-gold-dim:    rgba(143,95,0,0.14);
+  --tec-gold-glow:   rgba(143,95,0,0.07);
+  --tec-gold-grad:   linear-gradient(135deg, #F8B820, #D88810);
   --tec-on-gold:     #241a00;
-  --tec-accent-tile: rgba(251,191,36,0.20);
+  --tec-accent-tile: rgba(248,184,32,0.20);
   --tec-green:       #15803d;
   --tec-blue:        #1d4ed8;
   --tec-red:         #b91c1c;
@@ -190,7 +190,7 @@
   --tec-icon:        rgba(0,0,0,0.68);
   --tec-fill-soft:   rgba(0,0,0,0.05);
   --tec-fill-softer: rgba(0,0,0,0.025);
-  --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.26), rgba(251,191,36,0));
+  --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.26), rgba(248,184,32,0));
 }
 
 /* Follow the phone when the reader has expressed no preference of their own.
@@ -202,13 +202,13 @@
     --tec-surface-2:   #f1efec;
     --tec-surface-3:   #e7e4df;
     --tec-border:      rgba(0,0,0,0.09);
-    --tec-border-gold: rgba(180,120,0,0.35);
-    --tec-gold:        #9a6f00;
-    --tec-gold-dark:   #7d5a00;
-    --tec-gold-dim:    rgba(154,111,0,0.14);
-    --tec-gold-glow:   rgba(154,111,0,0.07);
+    --tec-border-gold: rgba(168,112,0,0.35);
+    --tec-gold:        #8f5f00;
+    --tec-gold-dark:   #6f4a00;
+    --tec-gold-dim:    rgba(143,95,0,0.14);
+    --tec-gold-glow:   rgba(143,95,0,0.07);
     --tec-on-gold:     #241a00;
-    --tec-accent-tile: rgba(251,191,36,0.20);
+    --tec-accent-tile: rgba(248,184,32,0.20);
     --tec-green:       #15803d;
     --tec-blue:        #1d4ed8;
     --tec-red:         #b91c1c;
@@ -220,7 +220,7 @@
     --tec-icon:        rgba(0,0,0,0.68);
     --tec-fill-soft:   rgba(0,0,0,0.05);
     --tec-fill-softer: rgba(0,0,0,0.025);
-    --tec-band:        linear-gradient(180deg, rgba(251,191,36,0.26), rgba(251,191,36,0));
+    --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.26), rgba(248,184,32,0));
   }
 }
 

@@ -24,9 +24,7 @@ interface Props {
   openTo?: string;
 }
 
-const FAV_KEY    = 'tec_fav_apps';
-const RECENT_KEY = 'tec_recent_apps';
-const RECENT_MAX = 4;
+const FAV_KEY = 'tec_fav_apps';
 
 /**
  * The launcher is on FIXED rails: four columns, every section, always.
@@ -58,29 +56,21 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   const router = useRouter();
   const [query,   setQuery]   = useState('');
   const [favs,    setFavs]    = useState<string[]>([]);
-  const [recents, setRecents] = useState<string[]>([]);
   const [editing, setEditing] = useState(false); // Edit mode → pin/unpin surface
 
-  useEffect(() => { setFavs(readList(FAV_KEY)); setRecents(readList(RECENT_KEY)); }, []);
+  useEffect(() => { setFavs(readList(FAV_KEY)); }, []);
 
   const bySlug = useMemo(() => new Map(apps.map((a) => [a.slug, a])), [apps]);
 
   const openApp = useCallback((app: HubApp) => {
     haptic('light');
     // Single-launch-authority: on surfaces that pass `openTo` (e.g. the Dashboard),
-    // a tap goes to the Hub to launch — never opens the app directly (P1/P2). No
-    // recents tracking here: the launch (and its recents) happens on the Hub.
+    // a tap goes to the Hub to launch — never opens the app directly (P1/P2).
     if (openTo) {
       if (openTo.startsWith('/api/') || openTo.startsWith('http')) window.location.href = openTo;
       else router.push(openTo);
       return;
     }
-    // Track recents (most-recent first, unique, capped).
-    setRecents((prev) => {
-      const next = [app.slug, ...prev.filter((s) => s !== app.slug)].slice(0, RECENT_MAX);
-      try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
     if (app.href.startsWith('/api/') || app.href.startsWith('http')) window.location.href = app.href;
     else router.push(app.href);
   }, [router, openTo]);
@@ -100,15 +90,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   const searching = q.length > 0;
   const matches = (a: HubApp) => a.name.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q);
 
-  const favApps    = favs.map((s) => bySlug.get(s)).filter((a): a is HubApp => !!a);
-  // Recent excludes favourites AND anything shown in a category section would still
-  // dup — but Recent stays a single capped row (max 4) so the small overlap reads as
-  // "jump back in", not clutter. Favourites are always removed to avoid a hard dup.
-  const recentApps = recents
-    .map((s) => bySlug.get(s))
-    .filter((a): a is HubApp => !!a)
-    .filter((a) => !favs.includes(a.slug))
-    .slice(0, RECENT_MAX);
+  const favApps = favs.map((s) => bySlug.get(s)).filter((a): a is HubApp => !!a);
 
   // Category sections in a stable order (only categories that have apps). Any app not
   // in the map falls into a "More" bucket so nothing is ever dropped.
@@ -153,7 +135,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
                 display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1,
                 background: isFav ? 'var(--tec-gold)' : 'var(--tec-surface-3)', color: isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)',
                 border: '1px solid var(--tec-border)', fontWeight: 800,
-              }}>{isFav ? '★' : '+'}</span>
+              }}><Icon name={isFav ? 'star' : 'plus'} size={11}
+                  color={isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)'} strokeWidth={2.4} /></span>
             )}
           </div>
           <span style={{
@@ -218,14 +201,14 @@ export function HubAppsGrid({ apps, openTo }: Props) {
 
       {/* Edit-mode hint */}
       {editing && (
-        <div style={{ fontSize: 11, color: 'rgba(251,191,36,0.7)', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'rgba(248,184,32,0.7)', marginBottom: 8 }}>
           {t.hub.apps.editHint}
         </div>
       )}
 
       {/* Search */}
       <div style={{ position: 'relative', marginBottom: 4 }}>
-        <span style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', fontSize: 14, color: 'var(--tec-text-3)' }}>🔍</span>
+        <span style={{ position: 'absolute', insetInlineStart: 14, top: '50%', transform: 'translateY(-50%)', display: 'inline-flex' }}><Icon name="search" size={14} color="var(--tec-text-3)" strokeWidth={2} /></span>
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -239,7 +222,8 @@ export function HubAppsGrid({ apps, openTo }: Props) {
         />
         {query && (
           <button onClick={() => setQuery('')} aria-label={t.hub.apps.clearSearch}
-            style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'var(--tec-fill-soft)', color: 'var(--tec-text-2)', cursor: 'pointer', fontSize: 12 }}>✕</button>
+            style={{ position: 'absolute', insetInlineEnd: 10, top: '50%', transform: 'translateY(-50%)', width: 22, height: 22, borderRadius: 999, border: 'none', background: 'var(--tec-fill-soft)', color: 'var(--tec-text-2)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="x" size={13} color="var(--tec-text-2)" strokeWidth={2} /></button>
         )}
       </div>
 
@@ -254,8 +238,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
             </div>;
       })() : (
         <>
-          {favApps.length    > 0 && <Section title={t.hub.apps.favorites} items={favApps} featured />}
-          {recentApps.length > 0 && !editing && <Section title={t.hub.apps.recent} items={recentApps} />}
+          {favApps.length > 0 && <Section title={t.hub.apps.favorites} items={favApps} featured />}
           {grouped.map((s) => <Section key={s.group} title={s.label} items={s.items} />)}
         </>
       )}

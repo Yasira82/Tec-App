@@ -206,7 +206,7 @@ export const en = {
       // "Home", not "Hub": the Hub IS the product, so labelling one tab with
       // the product's name says nothing about where the tab goes. The Arabic
       // side has read الرئيسية (home) all along.
-      hub: 'Home', wallet: 'Wallet', dashboard: 'Dashboard',
+      hub: 'Home', wallet: 'Wallet',
       verify: 'Verify', ai: 'AI', plan: 'Plan',
     },
     // Profile and Dashboard moved out of the bottom nav and behind the header
@@ -218,7 +218,7 @@ export const en = {
       dashboard:    'Dashboard',
       dashboardSub: 'Balance & activity',
     },
-    header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
+    header: { ecosystem: 'ECOSYSTEM', notifications: 'Notifications' },
     greeting: {
       morning: 'Good morning,', afternoon: 'Good afternoon,', evening: 'Good evening,',
       sub: 'Your Pi economy, all in one place.',

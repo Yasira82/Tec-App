@@ -184,7 +184,7 @@ export const ar = {
   hub: {
     nav: {
       main: 'التنقل الرئيسي',
-      hub: 'الرئيسية', wallet: 'المحفظة', dashboard: 'لوحة التحكم',
+      hub: 'الرئيسية', wallet: 'المحفظة',
       verify: 'التوثيق', ai: 'المساعد', plan: 'الاشتراك',
     },
     account: {
@@ -194,7 +194,7 @@ export const ar = {
       dashboard:    'لوحة التحكم',
       dashboardSub: 'الرصيد والنشاط',
     },
-    header: { ecosystem: 'المنظومة', openDashboard: 'فتح لوحة التحكم', notifications: 'الإشعارات' },
+    header: { ecosystem: 'المنظومة', notifications: 'الإشعارات' },
     greeting: {
       morning: 'صباح الخير،', afternoon: 'مساء الخير،', evening: 'مساء الخير،',
       sub: 'اقتصادك على Pi، كله في مكان واحد.',

@@ -446,3 +446,53 @@
   30%  { color: var(--success); transform: scale(1.04); }
   100% { color: var(--gold); transform: scale(1); }
 }
+
+/* ── Narrow screens ──────────────────────────────────────────────────────
+   This stylesheet had no media query at all, and the transaction table is a
+   five-column grid whose fixed tracks total 460px before padding. On a 390px
+   phone — the primary target — that overflowed its container, and because
+   `.transactionsTable` is `overflow: hidden` the last two columns were simply
+   cut off rather than reachable: the TX Hash column did not exist on mobile.
+
+   Made to scroll sideways it would at least be reachable, but a five-column
+   table you drag along is not a mobile answer. Each row restacks instead —
+   the cells are already separate elements, so it only takes new grid areas.
+   The header row goes away with the columns it labelled; the remaining cells
+   read in their natural order (what it was, how much, then the details). */
+@media (max-width: 640px) {
+  .sectionHeader {
+    /* Title plus two selects cannot share one line here — without wrapping,
+       the second select slid past the screen edge. */
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .filters { flex: 1 1 100%; gap: 8px; }
+  /* `min-width: 0` alone is not enough: a <select> also carries the intrinsic
+     width of its longest option plus the native arrow, so the 16px side
+     padding was the last 9px that pushed the pair past the card. */
+  .filterSelect { flex: 1 1 0; min-width: 0; padding: 8px 10px; font-size: 13px; }
+
+  .tableHeader { display: none; }
+
+  .tableRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "type   amount"
+      "status date"
+      "hash   hash";
+    gap: 6px 12px;
+    padding: 14px 16px;
+  }
+  .txType   { grid-area: type; min-width: 0; }
+  .txAmount { grid-area: amount; text-align: end; }
+  .txStatus { grid-area: status; }
+  .txDate   { grid-area: date; text-align: end; font-size: 12px; }
+  .txHash   { grid-area: hash; font-size: 12px; }
+
+  /* A long label must ellipsize rather than widen the row past the screen. */
+  .txLabel  { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .pagination { gap: 8px; }
+  .paginationInfo { font-size: 12px; text-align: center; }
+}

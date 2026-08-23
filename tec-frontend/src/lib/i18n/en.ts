@@ -224,7 +224,7 @@ export const en = {
       title: 'Apps', edit: 'Edit', done: 'Done', live: 'LIVE',
       search: 'Search apps', clearSearch: 'Clear search',
       editHint: 'Tap an app to pin it to ★ Favorites.',
-      favorites: '★ Favorites', recent: 'Recent',
+      favorites: '★ Favorites',
       noMatch: 'No apps match “{q}”.',
       results: '{n} results', resultOne: '1 result',
     },

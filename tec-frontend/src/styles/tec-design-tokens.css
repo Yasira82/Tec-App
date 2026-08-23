@@ -24,9 +24,9 @@
   /* Near-neutral, very slightly cool — NOT navy. #050816 was a blue-black that
      pushed every neutral above it toward "sci-fi". */
   --tec-bg:          #101014;
-  --tec-surface-1:   #17171d;   /* group card */
-  --tec-surface-2:   #1f1f27;   /* tile inside a card */
-  --tec-surface-3:   #2a2a34;   /* raised / pressed */
+  --tec-surface-1:   #21212a;   /* group card */
+  --tec-surface-2:   #2c2c37;   /* tile inside a card */
+  --tec-surface-3:   #383844;   /* raised / pressed */
   --tec-border:      rgba(255,255,255,0.07);
   --tec-border-gold: rgba(251,191,36,0.28);
 
@@ -144,9 +144,9 @@
    data-theme="dark" wins over a system preference. */
 [data-theme='dark'] {
   --tec-bg:          #101014;
-  --tec-surface-1:   #17171d;
-  --tec-surface-2:   #1f1f27;
-  --tec-surface-3:   #2a2a34;
+  --tec-surface-1:   #21212a;
+  --tec-surface-2:   #2c2c37;
+  --tec-surface-3:   #383844;
   --tec-border:      rgba(255,255,255,0.07);
   --tec-text-1:      rgba(255,255,255,0.92);
   --tec-text-2:      rgba(255,255,255,0.62);

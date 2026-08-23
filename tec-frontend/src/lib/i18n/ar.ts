@@ -210,7 +210,7 @@ export const ar = {
       title: 'التطبيقات', edit: 'تعديل', done: 'تم', live: 'نشط',
       search: 'ابحث عن تطبيق', clearSearch: 'مسح البحث',
       editHint: 'اضغط على تطبيق لتثبيته في ★ المفضلة.',
-      favorites: '★ المفضلة', recent: 'آخر استخدام',
+      favorites: '★ المفضلة',
       noMatch: 'لا يوجد تطبيق يطابق «{q}».',
       results: '{n} نتيجة', resultOne: 'نتيجة واحدة',
     },

@@ -48,7 +48,7 @@ export function AppCard({
 
       <div className={styles.appCardTop}>
         <span className={styles.appIconTile} aria-hidden>
-          <Icon name={iconOf(app.slug)} size={28} color="var(--cat-color, #FBBF24)" strokeWidth={1.8} />
+          <Icon name={iconOf(app.slug)} size={28} color="var(--cat-color, #F8B820)" strokeWidth={1.8} />
         </span>
         {app.live && (
           <span className={styles.appLive}>

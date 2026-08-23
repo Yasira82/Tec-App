@@ -48,7 +48,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
             reading as flat grey, not enough to become decoration. */}
         <div style={{
           position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 85% 65% at 15% 30%, rgba(251,191,36,0.08) 0%, transparent 65%)',
+          background: 'radial-gradient(ellipse 85% 65% at 15% 30%, rgba(248,184,32,0.08) 0%, transparent 65%)',
         }} />
 
         <div style={{ position: 'relative' }}>
@@ -88,7 +88,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                   decimals={2}
                   style={{ fontSize: 42, fontWeight: 900, color: 'var(--tec-gold)', letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
                 />
-                <span style={{ fontSize: 22, color: 'rgba(251,191,36,0.6)', fontWeight: 300 }}>π</span>
+                <span style={{ fontSize: 22, color: 'rgba(248,184,32,0.6)', fontWeight: 300 }}>π</span>
               </>
             )}
           </div>

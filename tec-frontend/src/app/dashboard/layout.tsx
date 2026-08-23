@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }}>
         <div className="tec-spin" style={{
           width: 28, height: 28, borderRadius: '50%',
-          border: '3px solid rgba(251,191,36,0.15)',
+          border: '3px solid rgba(248,184,32,0.15)',
           borderTopColor: 'var(--tec-gold)',
         }} />
       </div>

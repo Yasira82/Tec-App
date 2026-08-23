@@ -151,8 +151,8 @@ describe('the token layer backs both themes', () => {
     expect(css).toMatch(/@media \(prefers-color-scheme: light\)[\s\S]*:root:not\(\[data-theme\]\)/);
   });
 
-  it('darkens gold for light mode — #FBBF24 on white is unreadable', () => {
+  it('darkens gold for light mode — the brand amber on white is unreadable', () => {
     const light = css.slice(css.indexOf("[data-theme='light']"));
-    expect(light).toMatch(/--tec-gold:\s*#9a6f00/);
+    expect(light).toMatch(/--tec-gold:\s*#8f5f00/);
   });
 });

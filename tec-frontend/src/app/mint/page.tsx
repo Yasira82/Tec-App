@@ -20,7 +20,7 @@ const Spinner = () => (
   <div style={{ minHeight: '100vh', background: '#050816',
     display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
     <div style={{ width: 48, height: 48, borderRadius: '50%',
-      border: '3px solid #ffffff10', borderTopColor: '#FBBF24',
+      border: '3px solid #ffffff10', borderTopColor: '#F8B820',
       animation: 'spin 0.8s linear infinite' }} />
     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
   </div>
@@ -45,7 +45,7 @@ function MintPageInner() {
                   : tier === 'Ultra Rare' ? '#b39ddb'
                   : tier === 'Rare'       ? '#7eb8f7'
                   : tier === 'Uncommon'   ? '#7ee7c0'
-                  : '#FBBF24';
+                  : '#F8B820';
 
   useEffect(() => {
     const onReady = () => setSdkReady(true);

@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<Props, State> {
             </div>
             <button
               onClick={() => { this.setState({ hasError: false, error: undefined }); window.location.reload(); }}
-              style={{ padding: '12px 24px', background: 'linear-gradient(135deg,#FBBF24,#F59E0B)', border: 'none', borderRadius: 12, color: '#0a0800', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+              style={{ padding: '12px 24px', background: 'linear-gradient(135deg,#F8B820,#D88810)', border: 'none', borderRadius: 12, color: '#0a0800', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
               Try Again
             </button>
           </div>

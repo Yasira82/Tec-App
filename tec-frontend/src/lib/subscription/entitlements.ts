@@ -60,7 +60,7 @@ export interface PlanMeta {
 
 export const PLAN_META: Record<PlanId, PlanMeta> = {
   FREE:       { id: 'FREE',       name: 'Free',       price: 0,  tagline: 'Get started on TEC',                 color: '#6b7280', icon: '◯' },
-  PRO:        { id: 'PRO',        name: 'Pro',        price: 10, tagline: 'For active builders & merchants',    color: '#FBBF24', icon: '◈' },
+  PRO:        { id: 'PRO',        name: 'Pro',        price: 10, tagline: 'For active builders & merchants',    color: '#F8B820', icon: '◈' },
   ENTERPRISE: { id: 'ENTERPRISE', name: 'Enterprise', price: 50, tagline: 'For teams & white-label businesses', color: '#7eb8f7', icon: '◉' },
 };
 

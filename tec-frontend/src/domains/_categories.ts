@@ -88,7 +88,7 @@ export interface CategoryMeta {
 
 /** Display order. Money first: it is why most people arrive. */
 export const CATEGORIES: CategoryMeta[] = [
-  { key: 'money',      label: { en: 'Money & Commerce',     ar: 'المال والتجارة'   }, accent: '#FBBF24' },
+  { key: 'money',      label: { en: 'Money & Commerce',     ar: 'المال والتجارة'   }, accent: '#F8B820' },
   { key: 'work',       label: { en: 'Business & Work',      ar: 'الأعمال والعمل'   }, accent: '#3B82F6' },
   { key: 'realworld',  label: { en: 'Real World',           ar: 'العالم الواقعي'   }, accent: '#22C55E' },
   { key: 'social',     label: { en: 'Identity & Social',    ar: 'الهوية والتواصل'  }, accent: '#8B5CF6' },

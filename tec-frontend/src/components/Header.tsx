@@ -26,10 +26,10 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 32, height: 32, borderRadius: 10,
-          background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+          background: 'linear-gradient(135deg,#F8B820,#D88810)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: '#0a0800',
-          boxShadow: '0 2px 10px rgba(251,191,36,0.25)',
+          boxShadow: '0 2px 10px rgba(248,184,32,0.25)',
         }}>T</div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>
@@ -53,7 +53,7 @@ export default function Header() {
             }}>
               <div style={{
                 width: 22, height: 22, borderRadius: '50%',
-                background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                background: 'linear-gradient(135deg,#F8B820,#D88810)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 800, color: '#0a0800',
               }}>

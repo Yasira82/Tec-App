@@ -148,7 +148,7 @@ function HubReferralInner() {
       {/* ── How it works ─────────────────────────────── */}
       <div className="tec-fade-in" style={{
         padding: 'var(--sp-5) var(--sp-6)', marginBottom: 'var(--sp-5)',
-        background: 'linear-gradient(135deg,rgba(251,191,36,0.06),rgba(251,191,36,0.02))',
+        background: 'linear-gradient(135deg,rgba(248,184,32,0.06),rgba(248,184,32,0.02))',
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
         <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 6 }}>

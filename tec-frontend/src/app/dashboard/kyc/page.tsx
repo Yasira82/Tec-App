@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<KycStatus, {
   PENDING: {
     icon: '⏳', label: 'Under Review',
     desc: 'Your documents are being reviewed. This usually takes 1–2 business days.',
-    bg: 'rgba(245,158,11,0.08)', border: 'rgba(245,158,11,0.25)', color: '#f59e0b',
+    bg: 'rgba(216,136,16,0.08)', border: 'rgba(216,136,16,0.25)', color: '#d88810',
   },
   VERIFIED: {
     icon: '✅', label: 'Verified',
@@ -171,7 +171,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={handleUpload} disabled={uploading || !idFrontUrl || !selfieUrl}
               style={{
                 padding: '12px 28px', borderRadius: 'var(--radius-md)',
-                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,#F8B820,#D88810)',
                 border: 'none', color: '#0a0800', fontWeight: 700, fontSize: 'var(--text-sm)',
                 cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
                 opacity: uploading ? 0.6 : 1,
@@ -209,7 +209,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
 
           <div style={{
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
-            background: 'rgba(251,191,36,0.05)', border: '1px solid var(--tec-border-gold)',
+            background: 'rgba(248,184,32,0.05)', border: '1px solid var(--tec-border-gold)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
           }}>
             ℹ️ By submitting, you confirm these documents are authentic and belong to you.
@@ -223,7 +223,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={onSubmit} disabled={isSubmitting}
               style={{
                 padding: '11px 28px', borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+                background: 'linear-gradient(135deg,#F8B820,#D88810)',
                 border: 'none', color: '#0a0800', fontWeight: 700,
                 fontSize: 'var(--text-sm)', cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
@@ -251,7 +251,7 @@ function PendingState() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240, margin: 'var(--sp-6) auto 0' }}>
           {['Documents submitted', 'Manual review in progress', 'Decision notification'].map((s, i) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#22C55E' : i === 1 ? '#f59e0b' : 'var(--tec-text-3)' }}>
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#22C55E' : i === 1 ? '#d88810' : 'var(--tec-text-3)' }}>
               <span>{i === 0 ? '✓' : i === 1 ? '◉' : '○'}</span>
               <span>{s}</span>
             </div>
@@ -317,7 +317,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
         <button onClick={onReset} disabled={isSubmitting}
           style={{
             padding: '12px 32px', borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg,#FBBF24,#F59E0B)',
+            background: 'linear-gradient(135deg,#F8B820,#D88810)',
             border: 'none', color: '#0a0800', fontWeight: 700,
             fontSize: 'var(--text-sm)', cursor: 'pointer',
             opacity: isSubmitting ? 0.6 : 1,

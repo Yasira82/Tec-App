@@ -21,7 +21,7 @@ import { getSource } from '@/lib-client/campaign';
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
   bg: '#050816', surface: '#0B1020', surface2: '#111627',
-  gold: '#FBBF24', goldDark: '#F59E0B',
+  gold: '#F8B820', goldDark: '#D88810',
   text: '#E5E7EB', subtext: '#94A3B8', green: '#22C55E', purple: '#8B5CF6',
 };
 

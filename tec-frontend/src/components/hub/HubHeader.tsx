@@ -51,7 +51,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             later, the tail slid UNDER the language chip. Allowed to shrink, it
             truncates cleanly instead. */}
         <div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
+          <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-gold-ink)', letterSpacing: 1.5, lineHeight: 1 }}>TEC</div>
           <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 1.2, lineHeight: 1.4, whiteSpace: 'nowrap' }}>{t.hub.header.ecosystem}</div>
         </div>
       </div>
@@ -75,7 +75,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             cursor: 'pointer', position: 'relative', flexShrink: 0,
           }}>
-          <Icon name="bell" size={18} color={notifCount > 0 ? 'var(--tec-gold)' : 'var(--tec-text-2)'} />
+          <Icon name="bell" size={18} color={notifCount > 0 ? 'var(--tec-gold-ink)' : 'var(--tec-text-2)'} />
           {notifCount > 0 && (
             <span style={{
               position: 'absolute', top: -4, insetInlineEnd: -4,
@@ -110,8 +110,8 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span dir="ltr" style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
-          <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'var(--tec-gold)', opacity: 0.6, marginInlineStart: -2 }}>›</span>
+          <span dir="ltr" style={{ fontSize: 12, color: 'var(--tec-gold-ink)', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
+          <span aria-hidden style={{ fontSize: 13, lineHeight: 1, color: 'var(--tec-gold-ink)', opacity: 0.6, marginInlineStart: -2 }}>›</span>
         </button>
       </div>
     </header>

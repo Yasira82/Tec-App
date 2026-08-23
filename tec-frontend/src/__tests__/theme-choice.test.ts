@@ -151,8 +151,21 @@ describe('the token layer backs both themes', () => {
     expect(css).toMatch(/@media \(prefers-color-scheme: light\)[\s\S]*:root:not\(\[data-theme\]\)/);
   });
 
-  it('darkens gold for light mode — the brand amber on white is unreadable', () => {
+  it('keeps the BRAND gold identical in both themes', () => {
+    // It is the Pi mark's colour. It does not become a different colour just
+    // because the page turned white — Pi itself paints the mark and its
+    // headline in this exact amber on a near-white splash.
     const light = css.slice(css.indexOf("[data-theme='light']"));
-    expect(light).toMatch(/--tec-gold:\s*#8f5f00/);
+    expect(light).toMatch(/--tec-gold:\s*#F8B820/i);
+  });
+
+  it('gives SMALL gold copy a readable amber in light mode only', () => {
+    // #F8B820 on white measures 1.77:1. That is fine for a logo and a 42px
+    // figure and unreadable for a 9px label, so the split is by role, not by
+    // theme: --tec-gold stays the brand tone, --tec-gold-ink carries text.
+    const dark  = css.slice(css.indexOf(':root {'), css.indexOf("[data-theme='dark']"));
+    const light = css.slice(css.indexOf("[data-theme='light']"), css.indexOf('@media (prefers-color-scheme: light)'));
+    expect(dark).toMatch(/--tec-gold-ink:\s*#F8B820/i);
+    expect(light).toMatch(/--tec-gold-ink:\s*#8f5f00/i);
   });
 });

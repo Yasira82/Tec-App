@@ -39,6 +39,14 @@
   /* Ink that sits ON the gold gradient — a light-on-gold label fails contrast,
      so the pairing is fixed here rather than guessed per component. */
   --tec-on-gold:     #0a0800;
+  /* Gold used as SMALL TEXT on the page ground.
+     The brand amber is #F8B820 in both themes — it is the Pi mark's colour and
+     it should not change just because the page turned white. On white it
+     measures 1.77:1, which is fine for the things Pi itself paints in it (a
+     logo, a 42px figure) and unreadable for a 9px label. So the brand tone
+     stays the brand tone, and only small copy borrows a deeper amber in light
+     mode. In dark mode the two are the same value. */
+  --tec-gold-ink:    #F8B820;
   /* Ink on a filled status dot. Fixed in both themes on purpose: the dot is a
      solid red object, so its label does not follow the page. */
   --tec-on-red:      #ffffff;
@@ -161,13 +169,14 @@
   --tec-surface-2:   #f1efec;
   --tec-surface-3:   #e7e4df;
   --tec-border:      rgba(0,0,0,0.09);
-  --tec-border-gold: rgba(168,112,0,0.35);
-  --tec-gold:        #8f5f00;
-  --tec-gold-dark:   #6f4a00;
-  --tec-gold-dim:    rgba(143,95,0,0.14);
-  --tec-gold-glow:   rgba(143,95,0,0.07);
+  --tec-border-gold: rgba(216,136,16,0.45);
+  --tec-gold:        #F8B820;
+  --tec-gold-ink:    #8f5f00;
+  --tec-gold-dark:   #D88810;
+  --tec-gold-dim:    rgba(248,184,32,0.22);
+  --tec-gold-glow:   rgba(248,184,32,0.12);
   --tec-gold-grad:   linear-gradient(135deg, #F8B820, #D88810);
-  --tec-on-gold:     #241a00;
+  --tec-on-gold:     #0a0800;
   --tec-accent-tile: rgba(248,184,32,0.20);
   --tec-green:       #15803d;
   --tec-blue:        #1d4ed8;
@@ -192,12 +201,13 @@
     --tec-surface-2:   #f1efec;
     --tec-surface-3:   #e7e4df;
     --tec-border:      rgba(0,0,0,0.09);
-    --tec-border-gold: rgba(168,112,0,0.35);
-    --tec-gold:        #8f5f00;
-    --tec-gold-dark:   #6f4a00;
-    --tec-gold-dim:    rgba(143,95,0,0.14);
-    --tec-gold-glow:   rgba(143,95,0,0.07);
-    --tec-on-gold:     #241a00;
+    --tec-border-gold: rgba(216,136,16,0.45);
+    --tec-gold:        #F8B820;
+    --tec-gold-ink:    #8f5f00;
+    --tec-gold-dark:   #D88810;
+    --tec-gold-dim:    rgba(248,184,32,0.22);
+    --tec-gold-glow:   rgba(248,184,32,0.12);
+    --tec-on-gold:     #0a0800;
     --tec-accent-tile: rgba(248,184,32,0.20);
     --tec-green:       #15803d;
     --tec-blue:        #1d4ed8;

@@ -58,7 +58,7 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
                   <div style={{ fontSize: 11, color: 'var(--tec-text-3)', lineHeight: 1.4 }}>{t.hub.carousel.foundingSub}</div>
                 </div>
               </div>
-              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5 }}>{t.hub.carousel.foundingCta} →</div>
+              <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-gold-ink)', letterSpacing: 1.5 }}>{t.hub.carousel.foundingCta} →</div>
             </button>
           </div>
 

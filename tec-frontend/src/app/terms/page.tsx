@@ -5,7 +5,7 @@ import { useTranslation } from '@/lib/i18n';
 import styles from '../privacy/legal.module.css';
 
 const SECTIONS_EN = [
-  { id: 'acceptance', title: '1. Acceptance of Terms', content: `By accessing or using any application within The Elite Consortium ("TEC") ecosystem, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.\n\nIf you do not agree to these Terms, you must immediately cease all use of TEC services.` },
+  { id: 'acceptance', title: '1. Acceptance of Terms', content: `By accessing or using any application within TEC Ecosystem ("TEC") ecosystem, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.\n\nIf you do not agree to these Terms, you must immediately cease all use of TEC services.` },
   { id: 'description', title: '2. Description of Services', content: 'TEC provides a suite of 24 sovereign digital applications built on the Pi Network blockchain.', items: [
     'Pi Network payment processing and TEC token conversion (1 Pi = 0.1 TEC)',
     'Digital asset management and portfolio tracking',
@@ -31,11 +31,11 @@ const SECTIONS_EN = [
     'Circumvent any security or access control measures',
   ]},
   { id: 'disclaimer', title: '6. Disclaimer & Limitation of Liability', content: `TEC services are provided "as is" without warranties. We do not guarantee uninterrupted or error-free service. To the maximum extent permitted by law, TEC shall not be liable for any indirect, incidental, or consequential damages.` },
-  { id: 'contact', title: '7. Contact', content: 'For questions regarding these Terms:', contact: { email: 'legal@tec.pi', entity: 'The Elite Consortium', response: 'We aim to respond within 5 business days.' } },
+  { id: 'contact', title: '7. Contact', content: 'For questions regarding these Terms:', contact: { email: 'legal@tec.pi', entity: 'TEC Ecosystem', response: 'We aim to respond within 5 business days.' } },
 ];
 
 const SECTIONS_AR = [
-  { id: 'acceptance', title: '1. قبول الشروط', content: `بالوصول إلى أي تطبيق ضمن منظومة تحالف النخبة ("TEC") أو استخدامه، فإنك تقر بأنك قرأت هذه الشروط وفهمتها وتوافق على الالتزام بها.\n\nإذا كنت لا توافق على هذه الشروط، يجب عليك التوقف فوراً عن استخدام خدمات TEC.` },
+  { id: 'acceptance', title: '1. قبول الشروط', content: `بالوصول إلى أي تطبيق ضمن منظومة TEC Ecosystem ("TEC") أو استخدامه، فإنك تقر بأنك قرأت هذه الشروط وفهمتها وتوافق على الالتزام بها.\n\nإذا كنت لا توافق على هذه الشروط، يجب عليك التوقف فوراً عن استخدام خدمات TEC.` },
   { id: 'description', title: '2. وصف الخدمات', content: 'يوفر TEC مجموعة من 24 تطبيقاً رقمياً مستقلاً مبنياً على بلوكتشين Pi Network.', items: [
     'معالجة مدفوعات Pi Network وتحويل رموز TEC (1 Pi = 0.1 TEC)',
     'إدارة الأصول الرقمية وتتبع المحفظة',
@@ -61,7 +61,7 @@ const SECTIONS_AR = [
     'التحايل على أي تدابير أمنية أو ضوابط الوصول',
   ]},
   { id: 'disclaimer', title: '6. إخلاء المسؤولية وتحديد المسؤولية', content: `تُقدَّم خدمات TEC "كما هي" دون ضمانات. لا نضمن خدمة متواصلة أو خالية من الأخطاء. إلى أقصى حد يسمح به القانون، لن يكون TEC مسؤولاً عن أي أضرار غير مباشرة أو عرضية أو تبعية.` },
-  { id: 'contact', title: '7. التواصل', content: 'للاستفسار عن هذه الشروط:', contact: { email: 'legal@tec.pi', entity: 'تحالف النخبة', response: 'نهدف للرد خلال 5 أيام عمل.' } },
+  { id: 'contact', title: '7. التواصل', content: 'للاستفسار عن هذه الشروط:', contact: { email: 'legal@tec.pi', entity: 'TEC Ecosystem', response: 'نهدف للرد خلال 5 أيام عمل.' } },
 ];
 
 export default function TermsPage() {

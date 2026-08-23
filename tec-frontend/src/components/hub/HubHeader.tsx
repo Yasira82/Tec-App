@@ -6,6 +6,7 @@ import LanguageSwitcher  from '@/components/LanguageSwitcher';
 import ThemeToggle      from '@/components/ThemeToggle';
 import { haptic }    from '@/lib/hub/utils';
 import { Icon }      from '@/components/ui/Icon';
+import { TecMark }   from '@/components/ui/TecMark';
 
 interface Props {
   piUsername:  string;
@@ -39,13 +40,9 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
     }}>
       {/* Logo */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
-        <div style={{
-          width: 34, height: 34, borderRadius: 10, flexShrink: 0,
-          background: 'var(--tec-gold)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 13, color: 'var(--tec-on-gold)',
-          
-        }}>T</div>
+        {/* The brand monogram, replacing a gold tile with a bare "T" in it —
+            which was the first letter of the logo standing in for the logo. */}
+        <TecMark size={22} color="var(--tec-gold)" />
         {/* The wordmark could not shrink: a flex item defaults to min-width:auto, so
             "ECOSYSTEM" — wider than "TEC" at letter-spacing 2 — held the whole block
             at its natural width and pushed the row past the screen. The header's

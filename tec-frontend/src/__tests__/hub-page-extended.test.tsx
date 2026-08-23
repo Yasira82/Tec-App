@@ -319,7 +319,7 @@ describe('HubPage — authenticated render', () => {
   it('renders all 5 bottom nav items', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    const nav = ['Hub', 'Wallet', 'Verify', 'Plan', 'Settings'];
+    const nav = ['Home', 'Wallet', 'Verify', 'Plan', 'Settings'];
     for (const label of nav) {
       expect(screen.getByLabelText(label)).toBeInTheDocument();
     }
@@ -328,7 +328,7 @@ describe('HubPage — authenticated render', () => {
   it('Hub nav item has aria-current=page', async () => {
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    expect(screen.getByLabelText('Hub')).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByLabelText('Home')).toHaveAttribute('aria-current', 'page');
   });
 
   it('other nav items do NOT have aria-current', async () => {

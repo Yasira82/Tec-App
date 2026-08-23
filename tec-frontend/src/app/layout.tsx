@@ -58,14 +58,14 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default:  'TEC — The Elite Consortium',
+    default:  'TEC Ecosystem',
     template: '%s | TEC',
   },
   description: 'A complete ecosystem of 24 sovereign apps built on Pi Network. One identity. One wallet. One world.',
-  keywords:    ['TEC', 'The Elite Consortium', 'Pi Network', 'Pi', 'crypto', 'blockchain', 'ecosystem', '24 apps'],
-  authors:     [{ name: 'The Elite Consortium', url: APP_URL }],
-  creator:     'The Elite Consortium',
-  publisher:   'The Elite Consortium',
+  keywords:    ['TEC', 'TEC Ecosystem', 'Pi Network', 'Pi', 'crypto', 'blockchain', 'ecosystem', '24 apps'],
+  authors:     [{ name: 'TEC Ecosystem', url: APP_URL }],
+  creator:     'TEC Ecosystem',
+  publisher:   'TEC Ecosystem',
   metadataBase: new URL(APP_URL),
   manifest:    '/manifest.json',
 
@@ -78,21 +78,21 @@ export const metadata: Metadata = {
   openGraph: {
     type:        'website',
     url:         APP_URL,
-    siteName:    'TEC — The Elite Consortium',
-    title:       'TEC — The Elite Consortium',
+    siteName:    'TEC Ecosystem',
+    title:       'TEC Ecosystem',
     description: 'A complete ecosystem of 24 sovereign apps built on Pi Network. One identity. One wallet. One world.',
     images: [{
       url:    '/og-image.png',
       width:  1200,
       height: 630,
-      alt:    'TEC — The Elite Consortium',
+      alt:    'TEC Ecosystem',
     }],
     locale: 'en_US',
   },
 
   twitter: {
     card:        'summary_large_image',
-    title:       'TEC — The Elite Consortium',
+    title:       'TEC Ecosystem',
     description: 'A complete ecosystem of 24 sovereign apps built on Pi Network.',
     images:      ['/og-image.png'],
   },

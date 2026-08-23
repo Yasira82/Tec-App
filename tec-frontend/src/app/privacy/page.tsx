@@ -5,7 +5,7 @@ import { useTranslation } from '@/lib/i18n';
 import styles from './legal.module.css';
 
 const SECTIONS_EN = [
-  { id: 'overview', title: '1. Overview', content: `The Elite Consortium ("TEC", "we", "our", or "us") operates a suite of 24 sovereign applications built on the Pi Network blockchain. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use any TEC application.\n\nBy accessing or using any TEC application, you agree to the terms of this Privacy Policy.` },
+  { id: 'overview', title: '1. Overview', content: `TEC Ecosystem ("TEC", "we", "our", or "us") operates a suite of 24 sovereign applications built on the Pi Network blockchain. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use any TEC application.\n\nBy accessing or using any TEC application, you agree to the terms of this Privacy Policy.` },
   { id: 'information-collected', title: '2. Information We Collect', subsections: [
     { subtitle: '2.1 Pi Network Identity Data', text: `When you authenticate via Pi Network, we receive your Pi Network User ID (UID), Pi username, and access tokens. We do not receive or store your Pi Network password or private keys.` },
     { subtitle: '2.2 Transaction Data', text: `We record payment records including transaction identifiers, amounts, timestamps, payment status, and blockchain transaction IDs (txid).` },
@@ -26,11 +26,11 @@ const SECTIONS_EN = [
     'Erasure: Request deletion of your personal data',
     'Portability: Request transfer of your data',
   ], footer: 'To exercise any of these rights, contact us at privacy@tec.pi.' },
-  { id: 'contact', title: '7. Contact', content: 'For privacy-related inquiries:', contact: { email: 'privacy@tec.pi', entity: 'The Elite Consortium', response: 'We aim to respond within 5 business days.' } },
+  { id: 'contact', title: '7. Contact', content: 'For privacy-related inquiries:', contact: { email: 'privacy@tec.pi', entity: 'TEC Ecosystem', response: 'We aim to respond within 5 business days.' } },
 ];
 
 const SECTIONS_AR = [
-  { id: 'overview', title: '1. نظرة عامة', content: `يشغّل تحالف النخبة ("TEC") مجموعة من 24 تطبيقاً مبنياً على بلوكتشين Pi Network. توضح سياسة الخصوصية هذه كيفية جمع معلوماتك واستخدامها والكشف عنها وحمايتها.\n\nباستخدام أي تطبيق TEC، فإنك توافق على شروط سياسة الخصوصية هذه.` },
+  { id: 'overview', title: '1. نظرة عامة', content: `يشغّل TEC Ecosystem ("TEC") مجموعة من 24 تطبيقاً مبنياً على بلوكتشين Pi Network. توضح سياسة الخصوصية هذه كيفية جمع معلوماتك واستخدامها والكشف عنها وحمايتها.\n\nباستخدام أي تطبيق TEC، فإنك توافق على شروط سياسة الخصوصية هذه.` },
   { id: 'information-collected', title: '2. المعلومات التي نجمعها', subsections: [
     { subtitle: '2.1 بيانات هوية Pi Network', text: `عند المصادقة عبر Pi Network، نتلقى معرف المستخدم (UID) واسم المستخدم ورموز الوصول. لا نتلقى أو نخزن كلمة مرور Pi Network أو المفاتيح الخاصة.` },
     { subtitle: '2.2 بيانات المعاملات', text: `نسجل سجلات الدفع بما في ذلك معرفات المعاملات والمبالغ والطوابع الزمنية وحالة الدفع ومعرفات معاملات البلوكتشين.` },
@@ -51,7 +51,7 @@ const SECTIONS_AR = [
     'الحذف: طلب حذف بياناتك الشخصية',
     'قابلية النقل: طلب نقل بياناتك',
   ], footer: 'لممارسة أي من هذه الحقوق، تواصل معنا على privacy@tec.pi.' },
-  { id: 'contact', title: '7. التواصل', content: 'للاستفسارات المتعلقة بالخصوصية:', contact: { email: 'privacy@tec.pi', entity: 'تحالف النخبة', response: 'نهدف للرد خلال 5 أيام عمل.' } },
+  { id: 'contact', title: '7. التواصل', content: 'للاستفسارات المتعلقة بالخصوصية:', contact: { email: 'privacy@tec.pi', entity: 'TEC Ecosystem', response: 'نهدف للرد خلال 5 أيام عمل.' } },
 ];
 
 export default function PrivacyPage() {

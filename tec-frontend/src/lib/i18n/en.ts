@@ -174,13 +174,13 @@ export const en = {
   legal: {
     privacy: {
       title: 'Privacy Policy',
-      subtitle: 'The Elite Consortium',
+      subtitle: 'TEC Ecosystem',
       badge: 'Legal Document',
       intro: 'This policy governs how TEC collects, uses, and protects your personal data across all 24 sovereign applications in the TEC ecosystem.',
     },
     terms: {
       title: 'Terms of Service',
-      subtitle: 'The Elite Consortium',
+      subtitle: 'TEC Ecosystem',
       badge: 'Legal Document',
       intro: 'Please read these Terms carefully before using any TEC application. By using our services, you agree to be bound by these Terms.',
     },
@@ -203,7 +203,10 @@ export const en = {
   hub: {
     nav: {
       main: 'Main navigation',
-      hub: 'Hub', wallet: 'Wallet', dashboard: 'Dashboard',
+      // "Home", not "Hub": the Hub IS the product, so labelling one tab with
+      // the product's name says nothing about where the tab goes. The Arabic
+      // side has read الرئيسية (home) all along.
+      hub: 'Home', wallet: 'Wallet', dashboard: 'Dashboard',
       verify: 'Verify', ai: 'AI', plan: 'Plan', settings: 'Settings',
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },

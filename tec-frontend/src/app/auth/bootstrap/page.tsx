@@ -48,15 +48,15 @@ export default function AuthBootstrapPage() {
     }}>
       <div style={{
         width: 56, height: 56, borderRadius: 16,
-        background: 'linear-gradient(135deg,#F8B820,#D88810)',
+        background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 24, fontWeight: 900, color: '#0a0800',
       }}>T</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
         <div style={{
           width: 20, height: 20, borderRadius: '50%',
-          border: '2px solid rgba(248,184,32,0.2)',
-          borderTopColor: '#F8B820',
+          border: '2px solid rgba(var(--tec-gold-rgb),0.2)',
+          borderTopColor: 'var(--tec-gold)',
           animation: 'spin 0.8s linear infinite',
         }} />
         <span style={{ fontSize: 13, color: '#4a4a5a' }}>

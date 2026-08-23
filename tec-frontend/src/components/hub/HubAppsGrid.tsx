@@ -205,7 +205,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
 
       {/* Edit-mode hint */}
       {editing && (
-        <div style={{ fontSize: 11, color: 'rgba(248,184,32,0.7)', marginBottom: 8 }}>
+        <div style={{ fontSize: 11, color: 'rgba(var(--tec-gold-rgb),0.7)', marginBottom: 8 }}>
           {t.hub.apps.editHint}
         </div>
       )}

@@ -3,7 +3,7 @@
 // premium + on-brand without needing 24 custom icons.
 
 const EVL = {
-  gold:   '#F8B820',   // WEALTH
+  gold:   'var(--tec-gold)',   // WEALTH
   green:  '#22C55E',   // GROWTH
   cyan:   '#06B6D4',   // INTELLIGENCE
   purple: '#8B5CF6',   // IDENTITY

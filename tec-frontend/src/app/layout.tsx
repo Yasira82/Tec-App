@@ -47,7 +47,13 @@ export const viewport: Viewport = {
   maximumScale:     1,
   userScalable:     false,
   viewportFit:      'cover',
-  themeColor:       '#F8B820',
+  // A meta tag cannot read a CSS variable, so the two brand ambers are named
+  // here directly and selected by the same media query the token layer uses.
+  // One flat value would paint the browser chrome in the other theme's gold.
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)',  color: '#FBB44A' },
+    { media: '(prefers-color-scheme: light)', color: '#FEA500' },
+  ],
 };
 
 export const metadata: Metadata = {

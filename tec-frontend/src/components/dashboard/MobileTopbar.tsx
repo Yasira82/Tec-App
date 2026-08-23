@@ -24,7 +24,7 @@ export function MobileTopbar({ mobileOpen, onToggle }: Props) {
       <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         <div style={{
           width: 28, height: 28, borderRadius: 8,
-          background: 'linear-gradient(135deg,#F8B820,#D88810)',
+          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 11, color: '#0a0800',
         }}>T</div>
@@ -39,8 +39,8 @@ export function MobileTopbar({ mobileOpen, onToggle }: Props) {
         aria-controls="tec-sidebar"
         style={{
           width: 36, height: 36, borderRadius: 10,
-          background: mobileOpen ? 'rgba(248,184,32,0.1)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${mobileOpen ? 'rgba(248,184,32,0.25)' : 'rgba(255,255,255,0.08)'}`,
+          background: mobileOpen ? 'rgba(var(--tec-gold-rgb),0.1)' : 'rgba(255,255,255,0.06)',
+          border: `1px solid ${mobileOpen ? 'rgba(var(--tec-gold-rgb),0.25)' : 'rgba(255,255,255,0.08)'}`,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 4, cursor: 'pointer', padding: 0,
         }}>

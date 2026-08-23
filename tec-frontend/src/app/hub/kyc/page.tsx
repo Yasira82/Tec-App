@@ -258,7 +258,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
           <div style={{
             display: 'flex', alignItems: 'flex-start', gap: 8,
             padding: 'var(--sp-4)', marginBottom: 'var(--sp-5)',
-            background: 'rgba(248,184,32,0.05)', border: '1px solid var(--tec-border-gold)',
+            background: 'rgba(var(--tec-gold-rgb),0.05)', border: '1px solid var(--tec-border-gold)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.6,
           }}>
             <span style={{ flexShrink: 0, marginTop: 2 }}><Icon name="info" size={16} color="var(--tec-gold)" /></span>

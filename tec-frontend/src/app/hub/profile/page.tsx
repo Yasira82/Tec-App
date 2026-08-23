@@ -94,10 +94,10 @@ export default function HubProfilePage() {
       <div className="tec-fade-in" style={{
         display: 'flex', alignItems: 'center', gap: 'var(--sp-5)',
         padding: 'var(--sp-6)', marginBottom: 'var(--sp-5)',
-        background: 'linear-gradient(135deg,rgba(248,184,32,0.06),rgba(248,184,32,0.02))',
+        background: 'linear-gradient(135deg,rgba(var(--tec-gold-rgb),0.06),rgba(var(--tec-gold-rgb),0.02))',
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(248,184,32,0.25)' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(var(--tec-gold-rgb),0.25)' }}>
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -149,7 +149,7 @@ export default function HubProfilePage() {
       {user?.role === 'admin' && (
         <DashboardCard title={t.hub.profile.admin}>
           <button onClick={() => router.push('/hub/admin/kyc')}
-            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(248,184,32,0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(var(--tec-gold-rgb),0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
             <span style={{ fontSize: 22 }}>🛡️</span>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{t.hub.profile.adminKyc}</div>

@@ -162,7 +162,7 @@ export default function ObservabilityPage() {
           disabled={refreshing}
           style={{
             background: 'transparent',
-            border: '1px solid rgba(248,184,32,0.25)',
+            border: '1px solid rgba(var(--tec-gold-rgb),0.25)',
             borderRadius: 'var(--radius-md)',
             color: refreshing ? 'var(--tec-text-3)' : 'var(--tec-gold)',
             padding: '7px 14px', fontSize: 'var(--text-sm)',
@@ -194,7 +194,7 @@ export default function ObservabilityPage() {
             <StatCard label="Total Tx"  value={metrics.total}                   color="var(--tec-text-1)" sub="last 24h" />
             <StatCard label="Completed" value={metrics.completed}               color="#22C55E"           sub="successful" />
             <StatCard label="Failed"    value={metrics.failed}                  color="#ef4444"           sub="errored" />
-            <StatCard label="Volume"    value={`${metrics.volume.toFixed(2)}π`} color="#F8B820"           sub="completed value" />
+            <StatCard label="Volume"    value={`${metrics.volume.toFixed(2)}π`} color="var(--tec-gold)"           sub="completed value" />
           </div>
 
           {/* ── Success Rate ── */}
@@ -235,7 +235,7 @@ export default function ObservabilityPage() {
           <div style={{ marginTop: 'var(--sp-4)' }}>
             <DashboardCard title="Breakdown" subtitle="transaction status distribution">
               <BarRow label="Completed" value={metrics.completed} total={metrics.total} color="#22C55E" />
-              <BarRow label="Cancelled" value={metrics.cancelled} total={metrics.total} color="#d88810" />
+              <BarRow label="Cancelled" value={metrics.cancelled} total={metrics.total} color="var(--tec-gold-dark)" />
               <BarRow label="Failed"    value={metrics.failed}    total={metrics.total} color="#ef4444" />
               <BarRow label="Pending"   value={metrics.pending}   total={metrics.total} color="#6366f1" />
             </DashboardCard>

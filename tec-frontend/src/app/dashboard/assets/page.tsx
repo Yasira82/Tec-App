@@ -57,7 +57,7 @@ function AssetThumb({ asset }: { asset: Asset }) {
   const emoji = CATEGORY_EMOJI[(asset.category ?? '').toUpperCase()] ?? '📦';
 
   return (
-    <div style={{ width: 48, height: 48, borderRadius: 14, background: '#F8B82010', border: '1px solid #F8B82020', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48, overflow: 'hidden' }}>
+    <div style={{ width: 48, height: 48, borderRadius: 14, background: 'var(--tec-gold)10', border: '1px solid var(--tec-gold)20', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, minWidth: 48, overflow: 'hidden' }}>
       {src && !failed ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={assetName(asset)} width={48} height={48} loading="lazy"
@@ -121,7 +121,7 @@ export default function AssetsPage() {
   if (isLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '60vh' }}>
-        <div style={{ width: 36, height: 36, border: '2px solid #F8B82030', borderTop: '2px solid #F8B820', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+        <div style={{ width: 36, height: 36, border: '2px solid var(--tec-gold)30', borderTop: '2px solid var(--tec-gold)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     );
@@ -139,7 +139,7 @@ export default function AssetsPage() {
         <button
           onClick={() => fetchAssets(true)}
           disabled={isRefreshing}
-          style={{ background: '#F8B82015', border: '1px solid #F8B82030', borderRadius: 10, padding: '8px 14px', color: '#F8B820', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
+          style={{ background: 'var(--tec-gold)15', border: '1px solid var(--tec-gold)30', borderRadius: 10, padding: '8px 14px', color: 'var(--tec-gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}
         >
           {isRefreshing ? '⟳ ...' : '⟳ Refresh'}
         </button>
@@ -153,7 +153,7 @@ export default function AssetsPage() {
           {categoryCounts.map(([cat, count]) => (
             <div key={cat} style={{ padding: '12px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
               <div style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_EMOJI[cat] ?? '📦'}</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#F8B820' }}>{count}</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--tec-gold)' }}>{count}</div>
               <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 0.5 }}>
                 {cat.replace(/_/g, ' ')}
               </div>
@@ -186,7 +186,7 @@ export default function AssetsPage() {
           </div>
           {assets.map(asset => (
             <div key={asset.id}
-              style={{ padding: '16px 20px', background: '#0B1020', border: '1px solid #F8B82020', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
+              style={{ padding: '16px 20px', background: '#0B1020', border: '1px solid var(--tec-gold)20', borderRadius: 18, display: 'flex', alignItems: 'center', gap: 16 }}>
               <AssetThumb asset={asset} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 {/* Wrap to a second line instead of clipping: every NFT in a series

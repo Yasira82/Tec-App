@@ -31,7 +31,7 @@
   height: 70vw;
   max-width: 800px;
   max-height: 800px;
-  background: radial-gradient(circle, rgba(248,184,32,0.06) 0%, transparent 65%);
+  background: radial-gradient(circle, rgba(var(--tec-gold-rgb),0.06) 0%, transparent 65%);
   border-radius: 50%;
 }
 
@@ -56,7 +56,7 @@
   height: 40vw;
   max-width: 500px;
   max-height: 500px;
-  background: radial-gradient(circle, rgba(248,184,32,0.03) 0%, transparent 70%);
+  background: radial-gradient(circle, rgba(var(--tec-gold-rgb),0.03) 0%, transparent 70%);
   border-radius: 50%;
 }
 
@@ -64,8 +64,8 @@
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(rgba(248,184,32,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(248,184,32,0.04) 1px, transparent 1px);
+    linear-gradient(rgba(var(--tec-gold-rgb),0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(var(--tec-gold-rgb),0.04) 1px, transparent 1px);
   background-size: 80px 80px;
   mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 40%, transparent 100%);
 }
@@ -92,7 +92,7 @@
   height: 64px;
   background: rgba(8, 8, 16, 0.8);
   backdrop-filter: blur(20px) saturate(180%);
-  border-bottom: 1px solid rgba(248,184,32,0.08);
+  border-bottom: 1px solid rgba(var(--tec-gold-rgb),0.08);
 }
 
 .navLogo {
@@ -105,7 +105,7 @@
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: 28px;
   font-weight: 600;
-  color: #F8B820;
+  color: var(--tec-gold);
   line-height: 1;
 }
 
@@ -131,7 +131,7 @@
   transition: color 0.2s;
 }
 
-.navLink:hover { color: #F8B820; }
+.navLink:hover { color: var(--tec-gold); }
 
 .navRight {
   display: flex;
@@ -157,13 +157,13 @@
   align-items: center;
   gap: 8px;
   padding: 6px 18px;
-  border: 1px solid rgba(248,184,32,0.2);
-  background: rgba(248,184,32,0.04);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.2);
+  background: rgba(var(--tec-gold-rgb),0.04);
   border-radius: 100px;
   font-size: 11px;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: rgba(248,184,32,0.7);
+  color: rgba(var(--tec-gold-rgb),0.7);
   margin-bottom: 48px;
   animation: fadeDown 0.8s ease both;
 }
@@ -171,9 +171,9 @@
 .heroBadgeDot {
   width: 5px;
   height: 5px;
-  background: #F8B820;
+  background: var(--tec-gold);
   border-radius: 50%;
-  box-shadow: 0 0 8px #F8B820;
+  box-shadow: 0 0 8px var(--tec-gold);
   animation: pulse 2.5s infinite;
 }
 
@@ -203,7 +203,7 @@
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: clamp(72px, 12vw, 120px);
   font-weight: 600;
-  background: linear-gradient(135deg, #f5d060 0%, #F8B820 40%, #a08020 100%);
+  background: linear-gradient(135deg, #f5d060 0%, var(--tec-gold) 40%, #a08020 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -224,10 +224,10 @@
   display: flex;
   align-items: center;
   animation: fadeUp 0.9s ease 0.3s both;
-  border: 1px solid rgba(248,184,32,0.1);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.1);
   border-radius: 16px;
   overflow: hidden;
-  background: rgba(248,184,32,0.02);
+  background: rgba(var(--tec-gold-rgb),0.02);
 }
 
 .heroStat {
@@ -241,14 +241,14 @@
 .heroStatDivider {
   width: 1px;
   height: 40px;
-  background: rgba(248,184,32,0.12);
+  background: rgba(var(--tec-gold-rgb),0.12);
 }
 
 .heroStatNum {
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: 40px;
   font-weight: 600;
-  color: #F8B820;
+  color: var(--tec-gold);
   line-height: 1;
 }
 
@@ -290,17 +290,17 @@
   gap: 6px;
   margin-top: 20px;
   padding: 11px 22px;
-  border: 1px solid rgba(248,184,32,0.35);
-  background: rgba(248,184,32,0.06);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.35);
+  background: rgba(var(--tec-gold-rgb),0.06);
   border-radius: 100px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #F8B820;
+  color: var(--tec-gold);
   text-decoration: none;
   transition: background 0.2s ease, transform 0.2s ease;
   animation: fadeUp 0.9s ease 0.55s both;
 }
-.guestLink:hover { background: rgba(248,184,32,0.12); transform: translateY(-1px); }
+.guestLink:hover { background: rgba(var(--tec-gold-rgb),0.12); transform: translateY(-1px); }
 
 /* ── Payment Section ──────────────────────────────────────────── */
 .paymentSection {
@@ -312,9 +312,9 @@
 }
 
 .paymentCard {
-  border: 1px solid rgba(248,184,32,0.12);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.12);
   border-radius: 24px;
-  background: linear-gradient(rgba(248,184,32,0.05), rgba(248,184,32,0.02));
+  background: linear-gradient(rgba(var(--tec-gold-rgb),0.05), rgba(var(--tec-gold-rgb),0.02));
 }
 
 .paymentCardInner {
@@ -330,7 +330,7 @@
   font-size: 10px;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: rgba(248,184,32,0.4);
+  color: rgba(var(--tec-gold-rgb),0.4);
   text-align: center;
 }
 
@@ -344,9 +344,9 @@
 }
 
 .featuredCard {
-  border: 1px solid rgba(248,184,32,0.2);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.2);
   border-radius: 24px;
-  background: linear-gradient(135deg, rgba(248,184,32,0.06) 0%, rgba(248,184,32,0.02) 100%);
+  background: linear-gradient(135deg, rgba(var(--tec-gold-rgb),0.06) 0%, rgba(var(--tec-gold-rgb),0.02) 100%);
   padding: 40px;
   text-align: center;
   display: flex;
@@ -356,7 +356,7 @@
   transition: border-color 0.3s;
 }
 
-.featuredCard:hover { border-color: rgba(248,184,32,0.4); }
+.featuredCard:hover { border-color: rgba(var(--tec-gold-rgb),0.4); }
 
 .featuredEmoji {
   /* Holds an SVG glyph now, not a 48px emoji character — a font-size box does
@@ -371,7 +371,7 @@
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: 36px;
   font-weight: 500;
-  background: linear-gradient(135deg, #f5d060, #F8B820);
+  background: linear-gradient(135deg, #f5d060, var(--tec-gold));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -387,10 +387,10 @@
 .featuredBtn {
   margin-top: 8px;
   padding: 12px 28px;
-  border: 1px solid rgba(248,184,32,0.3);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.3);
   border-radius: 100px;
-  background: rgba(248,184,32,0.08);
-  color: #F8B820;
+  background: rgba(var(--tec-gold-rgb),0.08);
+  color: var(--tec-gold);
   font-size: 13px;
   letter-spacing: 0.1em;
   cursor: pointer;
@@ -399,8 +399,8 @@
 }
 
 .featuredBtn:hover {
-  background: rgba(248,184,32,0.15);
-  border-color: rgba(248,184,32,0.5);
+  background: rgba(var(--tec-gold-rgb),0.15);
+  border-color: rgba(var(--tec-gold-rgb),0.5);
   transform: translateY(-2px);
 }
 
@@ -422,7 +422,7 @@
   font-size: 10px;
   letter-spacing: 0.25em;
   text-transform: uppercase;
-  color: rgba(248,184,32,0.5);
+  color: rgba(var(--tec-gold-rgb),0.5);
   margin-bottom: 16px;
 }
 
@@ -436,7 +436,7 @@
 }
 
 .goldText {
-  background: linear-gradient(135deg, #f5d060 0%, #F8B820 50%, #a08020 100%);
+  background: linear-gradient(135deg, #f5d060 0%, var(--tec-gold) 50%, #a08020 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -473,7 +473,7 @@
   width: 100%;
   padding: 12px 44px;
   background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(248,184,32,0.12);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.12);
   border-radius: 100px;
   color: #e8e0d0;
   font-size: 13px;
@@ -486,7 +486,7 @@
 .searchInput::placeholder { color: rgba(216,208,192,0.25); }
 
 .searchInput:focus {
-  border-color: rgba(248,184,32,0.3);
+  border-color: rgba(var(--tec-gold-rgb),0.3);
   background: rgba(255,255,255,0.05);
 }
 
@@ -528,14 +528,14 @@
 }
 
 .filterBtn:hover {
-  border-color: rgba(248,184,32,0.3);
-  color: rgba(248,184,32,0.7);
+  border-color: rgba(var(--tec-gold-rgb),0.3);
+  color: rgba(var(--tec-gold-rgb),0.7);
 }
 
 .filterBtnActive {
-  border-color: rgba(248,184,32,0.5);
-  background: rgba(248,184,32,0.08);
-  color: #F8B820;
+  border-color: rgba(var(--tec-gold-rgb),0.5);
+  background: rgba(var(--tec-gold-rgb),0.08);
+  color: var(--tec-gold);
 }
 
 /* The count answers "is this filter worth tapping?" before the tap. */
@@ -570,7 +570,7 @@
 }
 
 .appCard:hover {
-  border-color: var(--cat-color, #F8B820);
+  border-color: var(--cat-color, var(--tec-gold));
   transform: translateY(-4px);
   box-shadow: 0 12px 40px rgba(0,0,0,0.4);
   background: rgba(255,255,255,0.04);
@@ -580,7 +580,7 @@
   position: absolute;
   inset: 0;
   border-radius: 16px;
-  background: radial-gradient(circle at 50% 0%, var(--cat-color, #F8B820), transparent 70%);
+  background: radial-gradient(circle at 50% 0%, var(--cat-color, var(--tec-gold)), transparent 70%);
   opacity: 0;
   transition: opacity 0.3s;
   pointer-events: none;
@@ -608,8 +608,8 @@
   justify-content: center;
   line-height: 1;
   border-radius: 15px;
-  background: color-mix(in srgb, var(--cat-color, #F8B820) 12%, transparent);
-  border: 1px solid color-mix(in srgb, var(--cat-color, #F8B820) 24%, transparent);
+  background: color-mix(in srgb, var(--cat-color, var(--tec-gold)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-color, var(--tec-gold)) 24%, transparent);
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .appCard:hover .appIconTile { transform: scale(1.06); }
@@ -639,7 +639,7 @@
   font-size: 9px;
   letter-spacing: 0.15em;
   text-transform: uppercase;
-  color: var(--cat-color, #F8B820);
+  color: var(--cat-color, var(--tec-gold));
   opacity: 0.75;
 }
 
@@ -669,18 +669,18 @@
 
 .appDomain {
   font-size: 10px;
-  color: rgba(248,184,32,0.4);
+  color: rgba(var(--tec-gold-rgb),0.4);
   letter-spacing: 0.05em;
 }
 
 .appArrow {
   font-size: 14px;
-  color: rgba(248,184,32,0.3);
+  color: rgba(var(--tec-gold-rgb),0.3);
   transition: all 0.2s;
 }
 
 .appCard:hover .appArrow {
-  color: #F8B820;
+  color: var(--tec-gold);
   transform: translateX(4px);
 }
 
@@ -708,10 +708,10 @@
 .noResultsBtn {
   margin-top: 4px;
   padding: 8px 20px;
-  border: 1px solid rgba(248,184,32,0.2);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.2);
   border-radius: 100px;
   background: transparent;
-  color: rgba(248,184,32,0.5);
+  color: rgba(var(--tec-gold-rgb),0.5);
   font-size: 12px;
   cursor: pointer;
   transition: all 0.2s;
@@ -720,8 +720,8 @@
 }
 
 .noResultsBtn:hover {
-  border-color: rgba(248,184,32,0.4);
-  color: #F8B820;
+  border-color: rgba(var(--tec-gold-rgb),0.4);
+  color: var(--tec-gold);
 }
 
 /* ── Footer ───────────────────────────────────────────────────── */
@@ -730,7 +730,7 @@
   z-index: 1;
   width: 100%;
   padding: 32px 40px;
-  border-top: 1px solid rgba(248,184,32,0.06);
+  border-top: 1px solid rgba(var(--tec-gold-rgb),0.06);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -756,7 +756,7 @@
   transition: color 0.2s;
 }
 
-.footerLink:hover { color: rgba(248,184,32,0.6); }
+.footerLink:hover { color: rgba(var(--tec-gold-rgb),0.6); }
 
 /* ── Animations ───────────────────────────────────────────────── */
 @keyframes fadeUp {
@@ -795,18 +795,18 @@
   gap: 6px;
   font-size: 12px;
   letter-spacing: 0.1em;
-  color: #F8B820;
+  color: var(--tec-gold);
   text-decoration: none;
   padding: 6px 14px;
-  border: 1px solid rgba(248,184,32,0.25);
+  border: 1px solid rgba(var(--tec-gold-rgb),0.25);
   border-radius: 100px;
-  background: rgba(248,184,32,0.06);
+  background: rgba(var(--tec-gold-rgb),0.06);
   transition: all 0.2s;
 }
 
 .navAiLink:hover {
-  background: rgba(248,184,32,0.12);
-  border-color: rgba(248,184,32,0.4);
+  background: rgba(var(--tec-gold-rgb),0.12);
+  border-color: rgba(var(--tec-gold-rgb),0.4);
 }
 
 /* ── Floating AI Button ───────────────────────────────────────── */
@@ -818,18 +818,18 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #F8B820, #a08020);
+  background: linear-gradient(135deg, var(--tec-gold), #a08020);
   display: flex;
   align-items: center;
   justify-content: center;
   text-decoration: none;
-  box-shadow: 0 4px 20px rgba(248,184,32,0.3);
+  box-shadow: 0 4px 20px rgba(var(--tec-gold-rgb),0.3);
   transition: all 0.2s;
 }
 
 .floatingAi:hover {
   transform: translateY(-3px) scale(1.05);
-  box-shadow: 0 8px 28px rgba(248,184,32,0.45);
+  box-shadow: 0 8px 28px rgba(var(--tec-gold-rgb),0.45);
 }
 
 .floatingAiIcon {
@@ -845,7 +845,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 2px solid rgba(248,184,32,0.4);
+  border: 2px solid rgba(var(--tec-gold-rgb),0.4);
   /* Three pulses, then still. The job of this ring is to be NOTICED on arrival,
      and it has done that by the third one. Running forever is the same defect the
      Hub's assistant button had: motion in the corner of the screen that the reader

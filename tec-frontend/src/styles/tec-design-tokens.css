@@ -28,30 +28,38 @@
   --tec-surface-2:   #2c2c37;   /* tile inside a card */
   --tec-surface-3:   #383844;   /* raised / pressed */
   --tec-border:      rgba(255,255,255,0.07);
-  --tec-border-gold: rgba(248,184,32,0.28);
+  --tec-border-gold: rgba(251,180,74,0.28);
 
   /* ── Brand accent — used SPARINGLY ──────────────────── */
-  --tec-gold:        #F8B820;
-  --tec-gold-dark:   #D88810;
-  --tec-gold-dim:    rgba(248,184,32,0.15);
-  --tec-gold-glow:   rgba(248,184,32,0.08);
-  --tec-gold-grad:   linear-gradient(135deg, #F8B820, #D88810);
+  /* Two ambers, both Pi's own. Sampled from the Pi app itself rather than
+     guessed: the splash mark measures #FBB44A over 318k pixels, and the
+     "Welcome to Pi" headline measures #FEA500. The lighter one carries a dark
+     page; the deeper one holds its own on white. Which is which is a theme
+     decision, so it lives here and nowhere else.
+
+     --tec-gold-rgb exists because ~200 places in the app needed the brand hue
+     at some alpha. One token per alpha is absurd; one token for the CHANNELS
+     lets every `rgba(var(--tec-gold-rgb), .06)` follow the theme. */
+  --tec-gold:        #FBB44A;
+  --tec-gold-rgb:    251, 180, 74;
+  --tec-gold-dark:   #E8962A;
+  --tec-gold-light:  #FDCF7A;
+  --tec-gold-dim:    rgba(251,180,74,0.15);
+  --tec-gold-glow:   rgba(251,180,74,0.08);
+  --tec-gold-grad:   linear-gradient(135deg, #FBB44A, #E8962A);
   /* Ink that sits ON the gold gradient — a light-on-gold label fails contrast,
      so the pairing is fixed here rather than guessed per component. */
   --tec-on-gold:     #0a0800;
-  /* Gold used as SMALL TEXT on the page ground.
-     The brand amber is #F8B820 in both themes — it is the Pi mark's colour and
-     it should not change just because the page turned white. On white it
-     measures 1.77:1, which is fine for the things Pi itself paints in it (a
-     logo, a 42px figure) and unreadable for a 9px label. So the brand tone
-     stays the brand tone, and only small copy borrows a deeper amber in light
-     mode. In dark mode the two are the same value. */
-  --tec-gold-ink:    #F8B820;
   /* Ink on a filled status dot. Fixed in both themes on purpose: the dot is a
      solid red object, so its label does not follow the page. */
   --tec-on-red:      #ffffff;
+  /* Gold used as SMALL COPY on the page ground. The brand tone is a mark
+     colour: #FEA500 on white measures 1.98:1, which is right for a logo or a
+     42px figure and unreadable for a 9px label. The split is by ROLE, not by
+     theme — in dark the two are the same value. */
+  --tec-gold-ink:    #FBB44A;
   /* The tint behind a FEATURED tile. The only coloured tile in the launcher. */
-  --tec-accent-tile: rgba(248,184,32,0.13);
+  --tec-accent-tile: rgba(251,180,74,0.13);
 
   /* ── Status — meaning, never decoration ─────────────── */
   --tec-green:       #22C55E;
@@ -81,7 +89,7 @@
   /* ── Sub-page header band ───────────────────────────── */
   /* Inner pages open with a branded band, so you can feel you went somewhere.
      A wash, not a slab: it fades into the page rather than cutting it. */
-  --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.14), rgba(248,184,32,0));
+  --tec-band:        linear-gradient(180deg, rgba(var(--tec-gold-rgb),0.14), rgba(var(--tec-gold-rgb),0));
 
   /* ── Spacing (4px base) ─────────────────────────────── */
   --sp-1:  4px;
@@ -118,7 +126,7 @@
   --shadow-sm:   0 1px 3px rgba(0,0,0,0.4);
   --shadow-md:   0 4px 16px rgba(0,0,0,0.5);
   --shadow-lg:   0 8px 32px rgba(0,0,0,0.6);
-  --shadow-gold: 0 0 40px rgba(248,184,32,0.12);
+  --shadow-gold: 0 0 40px rgba(var(--tec-gold-rgb),0.12);
 
   /* ── Transitions ─────────────────────────────────────── */
   --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
@@ -154,7 +162,7 @@
   --tec-fill-soft:   rgba(255,255,255,0.05);
   --tec-fill-softer: rgba(255,255,255,0.02);
   --tec-accent-tile: rgba(248,184,32,0.13);
-  --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.14), rgba(248,184,32,0));
+  --tec-band:        linear-gradient(180deg, rgba(var(--tec-gold-rgb),0.14), rgba(var(--tec-gold-rgb),0));
 }
 
 /* ── Theme: light ──────────────────────────────────── */
@@ -169,15 +177,17 @@
   --tec-surface-2:   #f1efec;
   --tec-surface-3:   #e7e4df;
   --tec-border:      rgba(0,0,0,0.09);
-  --tec-border-gold: rgba(216,136,16,0.45);
-  --tec-gold:        #F8B820;
-  --tec-gold-ink:    #8f5f00;
-  --tec-gold-dark:   #D88810;
-  --tec-gold-dim:    rgba(248,184,32,0.22);
-  --tec-gold-glow:   rgba(248,184,32,0.12);
-  --tec-gold-grad:   linear-gradient(135deg, #F8B820, #D88810);
+  --tec-border-gold: rgba(224,136,0,0.42);
+  --tec-gold:        #FEA500;
+  --tec-gold-rgb:    254, 165, 0;
+  --tec-gold-ink:    #A86300;
+  --tec-gold-dark:   #E08800;
+  --tec-gold-dim:    rgba(254,165,0,0.20);
+  --tec-gold-glow:   rgba(254,165,0,0.10);
+  --tec-gold-light:  #FFC04D;
+  --tec-gold-grad:   linear-gradient(135deg, #FEA500, #E08800);
   --tec-on-gold:     #0a0800;
-  --tec-accent-tile: rgba(248,184,32,0.20);
+  --tec-accent-tile: rgba(254,165,0,0.18);
   --tec-green:       #15803d;
   --tec-blue:        #1d4ed8;
   --tec-red:         #b91c1c;
@@ -189,7 +199,7 @@
   --tec-icon:        rgba(0,0,0,0.68);
   --tec-fill-soft:   rgba(0,0,0,0.05);
   --tec-fill-softer: rgba(0,0,0,0.025);
-  --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.26), rgba(248,184,32,0));
+  --tec-band:        linear-gradient(180deg, rgba(var(--tec-gold-rgb),0.22), rgba(var(--tec-gold-rgb),0));
 }
 
 /* Follow the phone when the reader has expressed no preference of their own.
@@ -201,14 +211,17 @@
     --tec-surface-2:   #f1efec;
     --tec-surface-3:   #e7e4df;
     --tec-border:      rgba(0,0,0,0.09);
-    --tec-border-gold: rgba(216,136,16,0.45);
-    --tec-gold:        #F8B820;
-    --tec-gold-ink:    #8f5f00;
-    --tec-gold-dark:   #D88810;
-    --tec-gold-dim:    rgba(248,184,32,0.22);
-    --tec-gold-glow:   rgba(248,184,32,0.12);
+    --tec-border-gold: rgba(224,136,0,0.42);
+    --tec-gold:        #FEA500;
+    --tec-gold-rgb:    254, 165, 0;
+    --tec-gold-ink:    #A86300;
+    --tec-gold-dark:   #E08800;
+    --tec-gold-light:  #FFC04D;
+    --tec-gold-grad:   linear-gradient(135deg, #FEA500, #E08800);
+    --tec-gold-dim:    rgba(254,165,0,0.20);
+    --tec-gold-glow:   rgba(254,165,0,0.10);
     --tec-on-gold:     #0a0800;
-    --tec-accent-tile: rgba(248,184,32,0.20);
+    --tec-accent-tile: rgba(254,165,0,0.18);
     --tec-green:       #15803d;
     --tec-blue:        #1d4ed8;
     --tec-red:         #b91c1c;
@@ -220,7 +233,7 @@
     --tec-icon:        rgba(0,0,0,0.68);
     --tec-fill-soft:   rgba(0,0,0,0.05);
     --tec-fill-softer: rgba(0,0,0,0.025);
-    --tec-band:        linear-gradient(180deg, rgba(248,184,32,0.26), rgba(248,184,32,0));
+    --tec-band:        linear-gradient(180deg, rgba(var(--tec-gold-rgb),0.22), rgba(var(--tec-gold-rgb),0));
   }
 }
 

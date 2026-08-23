@@ -284,7 +284,7 @@ export function CameraCapture({
                 </button>
                 {/* Native camera via the SAME input — a real label, opens even in strict browsers. */}
                 <label htmlFor={inputId}
-                  style={{ padding: '11px 20px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,var(--tec-gold),#D88810)', border: 'none', color: '#1a1200', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
+                  style={{ padding: '11px 20px', borderRadius: 'var(--radius-md)', background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', border: 'none', color: '#1a1200', fontWeight: 700, fontSize: 'var(--text-sm)', cursor: 'pointer' }}>
                   Use phone camera
                 </label>
               </div>

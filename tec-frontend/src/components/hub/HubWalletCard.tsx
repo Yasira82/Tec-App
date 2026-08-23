@@ -97,7 +97,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
                   decimals={2}
                   style={{ fontSize: 42, fontWeight: 900, color: 'var(--tec-gold)', letterSpacing: -2, lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}
                 />
-                <span style={{ fontSize: 22, color: 'rgba(248,184,32,0.6)', fontWeight: 300 }}>π</span>
+                <span style={{ fontSize: 22, color: 'rgba(var(--tec-gold-rgb),0.6)', fontWeight: 300 }}>π</span>
               </>
             )}
           </div>

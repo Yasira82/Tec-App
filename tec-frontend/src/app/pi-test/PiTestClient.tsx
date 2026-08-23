@@ -242,7 +242,7 @@ export function PiTestClient() {
       minHeight: '100vh', background: '#050816', color: '#fff',
       fontFamily: 'monospace', padding: 24, maxWidth: 800, margin: '0 auto',
     }}>
-      <h2 style={{ color: '#F8B820', marginBottom: 4 }}>🧪 TEC Pi Integration Test</h2>
+      <h2 style={{ color: 'var(--tec-gold)', marginBottom: 4 }}>🧪 TEC Pi Integration Test</h2>
       <p style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 24 }}>Developer diagnostics — not visible in production</p>
 
       {/* Status row */}

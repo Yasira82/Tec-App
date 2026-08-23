@@ -16,7 +16,7 @@
 .title {
   margin: 0;
   font-size: 16px;
-  color: #F8B820;
+  color: var(--tec-gold);
   font-weight: 600;
 }
 
@@ -51,7 +51,7 @@
 }
 
 .statusValue.pending {
-  color: #f8b820;
+  color: var(--tec-gold);
 }
 
 .statusValue.info {
@@ -72,7 +72,7 @@
 .eventsTitle {
   margin: 0 0 12px 0;
   font-size: 14px;
-  color: #F8B820;
+  color: var(--tec-gold);
   font-weight: 600;
 }
 

@@ -9,7 +9,7 @@
  * (or every load flashes the wrong theme).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   readTheme, saveTheme, applyTheme, resolvedTheme,
@@ -151,21 +151,56 @@ describe('the token layer backs both themes', () => {
     expect(css).toMatch(/@media \(prefers-color-scheme: light\)[\s\S]*:root:not\(\[data-theme\]\)/);
   });
 
-  it('keeps the BRAND gold identical in both themes', () => {
-    // It is the Pi mark's colour. It does not become a different colour just
-    // because the page turned white — Pi itself paints the mark and its
-    // headline in this exact amber on a near-white splash.
-    const light = css.slice(css.indexOf("[data-theme='light']"));
-    expect(light).toMatch(/--tec-gold:\s*#F8B820/i);
+  it('carries a Pi amber in each theme — both sampled from the Pi app', () => {
+    // #FBB44A is the splash mark (318k pixels of it); #FEA500 is the
+    // "Welcome to Pi" headline. The lighter one carries a dark page, the
+    // deeper one holds up on white. Neither is invented.
+    const dark  = css.slice(css.indexOf(':root {'), css.indexOf("[data-theme='dark']"));
+    const light = css.slice(css.indexOf("[data-theme='light']"), css.indexOf('@media (prefers-color-scheme: light)'));
+    expect(dark).toMatch(/--tec-gold:\s*#FBB44A/i);
+    expect(light).toMatch(/--tec-gold:\s*#FEA500/i);
+  });
+
+  it('exposes the hue as CHANNELS so every alpha can follow the theme', () => {
+    // ~200 places needed the brand hue at some alpha, across 32 distinct
+    // values. A token per alpha is absurd; a token for the channels lets
+    // rgba(var(--tec-gold-rgb), .06) switch with everything else.
+    const dark  = css.slice(css.indexOf(':root {'), css.indexOf("[data-theme='dark']"));
+    const light = css.slice(css.indexOf("[data-theme='light']"), css.indexOf('@media (prefers-color-scheme: light)'));
+    expect(dark).toMatch(/--tec-gold-rgb:\s*251,\s*180,\s*74/);
+    expect(light).toMatch(/--tec-gold-rgb:\s*254,\s*165,\s*0/);
   });
 
   it('gives SMALL gold copy a readable amber in light mode only', () => {
-    // #F8B820 on white measures 1.77:1. That is fine for a logo and a 42px
-    // figure and unreadable for a 9px label, so the split is by role, not by
-    // theme: --tec-gold stays the brand tone, --tec-gold-ink carries text.
+    // The light brand tone on white measures 1.98:1 — right for a logo or a
+    // 42px figure, unreadable for a 9px label. The split is by ROLE, not theme.
     const dark  = css.slice(css.indexOf(':root {'), css.indexOf("[data-theme='dark']"));
     const light = css.slice(css.indexOf("[data-theme='light']"), css.indexOf('@media (prefers-color-scheme: light)'));
-    expect(dark).toMatch(/--tec-gold-ink:\s*#F8B820/i);
-    expect(light).toMatch(/--tec-gold-ink:\s*#8f5f00/i);
+    expect(dark).toMatch(/--tec-gold-ink:\s*#FBB44A/i);
+    expect(light).toMatch(/--tec-gold-ink:\s*#A86300/i);
+  });
+
+  it('leaves no hardcoded brand hex outside the token layer', () => {
+    // The accent is now two values chosen by theme. Anything still naming a
+    // literal is frozen on one of them and looks wrong in the other — which is
+    // how ~200 hardcoded golds survived the last three colour changes.
+    const src = join(process.cwd(), 'src');
+    const bad: string[] = [];
+    const walk = (dir: string) => {
+      for (const e of readdirSync(dir, { withFileTypes: true })) {
+        const full = join(dir, e.name);
+        if (e.isDirectory()) { if (e.name !== '__tests__') walk(full); continue; }
+        // layout.tsx is the one honest exception: `themeColor` becomes a
+        // <meta> tag, and a meta tag cannot read a CSS variable. It names both
+        // ambers and picks between them with the same media query.
+        if (!/\.(ts|tsx|css)$/.test(e.name) || e.name === 'tec-design-tokens.css') continue;
+        if (full.endsWith(join('app', 'layout.tsx'))) continue;
+        if (/#F8B820|#FBB44A|#FEA500|rgba\(\s*248\s*,\s*184\s*,\s*32/i.test(readFileSync(full, 'utf8'))) {
+          bad.push(full.slice(src.length + 1));
+        }
+      }
+    };
+    walk(src);
+    expect(bad).toEqual([]);
   });
 });

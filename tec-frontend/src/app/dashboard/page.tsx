@@ -103,7 +103,7 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
       {/* Legend */}
       <div style={{ display: 'flex', gap: 16, marginBottom: 6 }}>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--tec-text-3)' }}>
-          <span style={{ width: 10, height: 3, borderRadius: 2, background: '#F8B820' }} />{spentLabel}
+          <span style={{ width: 10, height: 3, borderRadius: 2, background: 'var(--tec-gold)' }} />{spentLabel}
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--tec-text-3)' }}>
           <span style={{ width: 10, height: 3, borderRadius: 2, background: '#22C55E' }} />{receivedLabel}
@@ -138,22 +138,22 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
           <polygon
             points={[`${PAD.l},${PAD.t + innerH}`, ...chartData.map((d, i) => `${xOf(i)},${yOf(d.spent)}`), `${PAD.l + innerW},${PAD.t + innerH}`].join(' ')}
             fill="url(#gold-grad)" opacity={0.15} />
-          <polyline points={seriesPolyline('spent')} fill="none" stroke="#F8B820" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+          <polyline points={seriesPolyline('spent')} fill="none" stroke="var(--tec-gold)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Received line */}
           <polyline points={seriesPolyline('received')} fill="none" stroke="#22C55E" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 0" />
 
           <defs>
             <linearGradient id="gold-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#F8B820" stopOpacity={1} />
-              <stop offset="100%" stopColor="#F8B820" stopOpacity={0} />
+              <stop offset="0%" stopColor="var(--tec-gold)" stopOpacity={1} />
+              <stop offset="100%" stopColor="var(--tec-gold)" stopOpacity={0} />
             </linearGradient>
           </defs>
 
           {/* Dots + X labels */}
           {chartData.map((d, i) => (
             <g key={i}>
-              {d.spent    > 0 && <circle cx={xOf(i)} cy={yOf(d.spent)}    r={3.5} fill="#F8B820" />}
+              {d.spent    > 0 && <circle cx={xOf(i)} cy={yOf(d.spent)}    r={3.5} fill="var(--tec-gold)" />}
               {d.received > 0 && <circle cx={xOf(i)} cy={yOf(d.received)} r={3.5} fill="#22C55E" />}
               <text x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.4)">
                 {d.label}
@@ -168,13 +168,13 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
 
 // ── Transaction Type Config (icon + color; label comes from i18n) ──
 const TX_CONFIG: Record<string, { icon: string; color: string }> = {
-  payment:   { icon: '💳', color: '#F8B820' },
+  payment:   { icon: '💳', color: 'var(--tec-gold)' },
   receive:   { icon: '📥', color: '#22C55E' },
   credit:    { icon: '📥', color: '#22C55E' },
   debit:     { icon: '📤', color: '#ef4444' },
   transfer:  { icon: '↔️', color: '#3b82f6' },
   refund:    { icon: '↩️', color: '#8b5cf6' },
-  withdraw:  { icon: '📤', color: '#d88810' },
+  withdraw:  { icon: '📤', color: 'var(--tec-gold-dark)' },
   deposit:   { icon: '📥', color: '#22C55E' },
 };
 
@@ -193,7 +193,7 @@ function TxRow({ payment, txLabels, detail, locale }: { payment: Payment } & TxL
   const positive = ['credit', 'receive', 'refund', 'deposit'].includes(type);
 
   const statusColor = payment.status === 'completed' ? '#22C55E'
-    : payment.status === 'failed'    ? '#ef4444' : '#d88810';
+    : payment.status === 'failed'    ? '#ef4444' : 'var(--tec-gold-dark)';
 
   return (
     <div onClick={() => setExpanded(p => !p)}
@@ -363,7 +363,7 @@ export default function DashboardPage() {
 
       {/* ── Welcome Banner ─────────────────────────────── */}
       {isNewUser && (
-        <div className="tec-fade-in" style={{ padding: 'var(--sp-4) var(--sp-5)', background: 'linear-gradient(135deg, rgba(248,184,32,0.1), rgba(248,184,32,0.05))', border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--sp-6)', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div className="tec-fade-in" style={{ padding: 'var(--sp-4) var(--sp-5)', background: 'linear-gradient(135deg, rgba(var(--tec-gold-rgb),0.1), rgba(var(--tec-gold-rgb),0.05))', border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-lg)', marginBottom: 'var(--sp-6)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span style={{ fontSize: 24 }}>🎉</span>
           <div>
             <div style={{ fontSize: 'var(--text-base)', fontWeight: 700, color: 'var(--tec-gold)' }}>{t.dashboard.welcomeTitle}</div>
@@ -377,7 +377,7 @@ export default function DashboardPage() {
         <div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 4 }}>{t.dashboard.greeting}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,#F8B820,#D88810)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800' }}>
               {user?.piUsername?.[0]?.toUpperCase()}
             </div>
             <div>
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                 { label: t.dashboard.overview.wallet,        icon: '💳', href: '/dashboard/wallet',        color: '#3b82f6' },
                 { label: t.dashboard.overview.kyc,           icon: '🪪', href: '/dashboard/kyc',           color: '#22C55E' },
                 { label: t.dashboard.overview.subscription,  icon: '◈',  href: '/dashboard/subscription',  color: '#8b5cf6' },
-                { label: t.dashboard.overview.notifications, icon: '🔔', href: '/dashboard/notifications', color: '#d88810' },
+                { label: t.dashboard.overview.notifications, icon: '🔔', href: '/dashboard/notifications', color: 'var(--tec-gold-dark)' },
               ].map(a => (
                 <button key={a.href} onClick={() => router.push(a.href)} className="tec-btn"
                   style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: dir === 'rtl' ? 'right' : 'left', width: '100%' }}>
@@ -522,7 +522,7 @@ export default function DashboardPage() {
               {hubApps.slice(0, 8).map(app => (
                 <button key={app.slug} onClick={() => router.push('/hub')} className="tec-btn"
                   style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer' }}>
-                  <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(248,184,32,0.18), rgba(248,184,32,0.05))', border: '1px solid rgba(248,184,32,0.28)', boxShadow: '0 4px 14px rgba(248,184,32,0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(var(--tec-gold-rgb),0.18), rgba(var(--tec-gold-rgb),0.05))', border: '1px solid rgba(var(--tec-gold-rgb),0.28)', boxShadow: '0 4px 14px rgba(var(--tec-gold-rgb),0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={iconOf(app.slug)} size={26} color={accentOf(app.slug)} strokeWidth={1.8} />
                   </div>
                   <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
@@ -587,7 +587,7 @@ export default function DashboardPage() {
           >
             {historyLoading ? (
               <div style={{ padding: 'var(--sp-8)', display: 'flex', justifyContent: 'center' }}>
-                <div className="tec-spin" style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid rgba(248,184,32,0.15)', borderTopColor: 'var(--tec-gold)' }} />
+                <div className="tec-spin" style={{ width: 24, height: 24, borderRadius: '50%', border: '2px solid rgba(var(--tec-gold-rgb),0.15)', borderTopColor: 'var(--tec-gold)' }} />
               </div>
             ) : payments.length === 0 ? (
               <div style={{ padding: 'var(--sp-8)', textAlign: 'center', color: 'var(--tec-text-3)' }}>

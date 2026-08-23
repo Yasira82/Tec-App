@@ -33,7 +33,7 @@ export default function PioneersOG() {
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'linear-gradient(rgba(248,184,32,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(248,184,32,0.06) 1px, transparent 1px)',
+              'linear-gradient(rgba(var(--tec-gold-rgb),0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--tec-gold-rgb),0.06) 1px, transparent 1px)',
             backgroundSize: '80px 80px',
             display: 'flex',
           }}
@@ -59,19 +59,19 @@ export default function PioneersOG() {
             alignItems: 'center',
             gap: '10px',
             padding: '8px 22px',
-            border: '1px solid rgba(248,184,32,0.3)',
+            border: '1px solid rgba(var(--tec-gold-rgb),0.3)',
             borderRadius: '100px',
-            background: 'rgba(248,184,32,0.07)',
+            background: 'rgba(var(--tec-gold-rgb),0.07)',
             marginBottom: '36px',
           }}
         >
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#F8B820', boxShadow: '0 0 10px #F8B820', display: 'flex' }} />
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--tec-gold)', boxShadow: '0 0 10px var(--tec-gold)', display: 'flex' }} />
           <span
             style={{
               fontSize: '15px',
               letterSpacing: '0.24em',
               textTransform: 'uppercase',
-              color: 'rgba(248,184,32,0.85)',
+              color: 'rgba(var(--tec-gold-rgb),0.85)',
             }}
           >
             Founding 100 · Live on Pi Mainnet
@@ -87,7 +87,7 @@ export default function PioneersOG() {
             style={{
               fontSize: '92px',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #FDCF33, #F8B820, #D88810)',
+              background: 'linear-gradient(135deg, var(--tec-gold-light), var(--tec-gold), var(--tec-gold-dark))',
               backgroundClip: 'text',
               color: 'transparent',
               letterSpacing: '-0.02em',
@@ -108,10 +108,10 @@ export default function PioneersOG() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            border: '1px solid rgba(248,184,32,0.12)',
+            border: '1px solid rgba(var(--tec-gold-rgb),0.12)',
             borderRadius: '16px',
             overflow: 'hidden',
-            background: 'rgba(248,184,32,0.02)',
+            background: 'rgba(var(--tec-gold-rgb),0.02)',
           }}
         >
           {[
@@ -120,9 +120,9 @@ export default function PioneersOG() {
             { num: '1', label: 'Pi identity' },
           ].map((s, i) => (
             <div key={s.label} style={{ display: 'flex', alignItems: 'center' }}>
-              {i > 0 && <div style={{ width: '1px', height: '44px', background: 'rgba(248,184,32,0.12)' }} />}
+              {i > 0 && <div style={{ width: '1px', height: '44px', background: 'rgba(var(--tec-gold-rgb),0.12)' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '20px 52px' }}>
-                <span style={{ fontSize: '44px', fontWeight: 600, color: '#F8B820', lineHeight: 1 }}>{s.num}</span>
+                <span style={{ fontSize: '44px', fontWeight: 600, color: 'var(--tec-gold)', lineHeight: 1 }}>{s.num}</span>
                 <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(229,231,235,0.4)' }}>
                   {s.label}
                 </span>
@@ -131,7 +131,7 @@ export default function PioneersOG() {
           ))}
         </div>
 
-        <p style={{ position: 'absolute', bottom: '32px', right: '44px', fontSize: '13px', color: 'rgba(248,184,32,0.35)', letterSpacing: '0.1em' }}>
+        <p style={{ position: 'absolute', bottom: '32px', right: '44px', fontSize: '13px', color: 'rgba(var(--tec-gold-rgb),0.35)', letterSpacing: '0.1em' }}>
           hub.tecosystem.app/pioneers
         </p>
       </div>

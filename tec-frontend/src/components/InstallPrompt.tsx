@@ -58,14 +58,14 @@ export default function InstallPrompt() {
           alignItems: 'center',
           gap: 12,
           padding: '14px 16px',
-          border: '1px solid rgba(248,184,32,0.18)',
-          background: 'rgba(248,184,32,0.04)',
+          border: '1px solid rgba(var(--tec-gold-rgb),0.18)',
+          background: 'rgba(var(--tec-gold-rgb),0.04)',
           borderRadius: 16,
         }}
       >
         <span style={{ fontSize: 24, lineHeight: 1 }} aria-hidden>📲</span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: '#F8B820', fontWeight: 600, fontSize: 14 }}>{i.cta}</div>
+          <div style={{ color: 'var(--tec-gold)', fontWeight: 600, fontSize: 14 }}>{i.cta}</div>
           <div style={{ color: 'rgba(232,224,208,0.5)', fontSize: 12, marginTop: 2 }}>{i.sub}</div>
         </div>
         <button
@@ -79,7 +79,7 @@ export default function InstallPrompt() {
             fontWeight: 700,
             fontSize: 13,
             color: '#020205',
-            background: 'linear-gradient(135deg, #f5d060 0%, #F8B820 45%, #d4af37 100%)',
+            background: 'linear-gradient(135deg, #f5d060 0%, var(--tec-gold) 45%, #d4af37 100%)',
           }}
         >
           {deferred ? i.button : i.openInBrowser}
@@ -109,12 +109,12 @@ export default function InstallPrompt() {
           style={{
             marginTop: 8,
             padding: '14px 18px',
-            border: '1px solid rgba(248,184,32,0.12)',
+            border: '1px solid rgba(var(--tec-gold-rgb),0.12)',
             background: 'rgba(2,2,5,0.5)',
             borderRadius: 14,
           }}
         >
-          <div style={{ color: '#F8B820', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
+          <div style={{ color: 'var(--tec-gold)', fontWeight: 600, fontSize: 13, marginBottom: 10 }}>
             {i.stepsTitle}
           </div>
           {[i.step1, i.step2, i.step3].map((step, idx) => (
@@ -125,8 +125,8 @@ export default function InstallPrompt() {
                   width: 22,
                   height: 22,
                   borderRadius: 999,
-                  background: 'rgba(248,184,32,0.14)',
-                  color: '#F8B820',
+                  background: 'rgba(var(--tec-gold-rgb),0.14)',
+                  color: 'var(--tec-gold)',
                   fontSize: 12,
                   fontWeight: 700,
                   display: 'inline-flex',
@@ -146,7 +146,7 @@ export default function InstallPrompt() {
             {installUrl}
           </div>
           <button onClick={onCopy}
-            style={{ width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(248,184,32,0.3)', background: 'rgba(248,184,32,0.1)', color: '#F8B820', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+            style={{ width: '100%', marginTop: 8, padding: '9px 12px', borderRadius: 10, border: '1px solid rgba(var(--tec-gold-rgb),0.3)', background: 'rgba(var(--tec-gold-rgb),0.1)', color: 'var(--tec-gold)', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
             {copied ? i.copied : i.copyLink}
           </button>
           <div style={{ marginTop: 10, fontSize: 11, color: 'rgba(232,224,208,0.45)', lineHeight: 1.6 }}>

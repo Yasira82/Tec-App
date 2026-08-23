@@ -207,7 +207,7 @@ export const en = {
       // the product's name says nothing about where the tab goes. The Arabic
       // side has read الرئيسية (home) all along.
       hub: 'Home', wallet: 'Wallet', dashboard: 'Dashboard',
-      verify: 'Verify', ai: 'AI', plan: 'Plan', settings: 'Settings',
+      verify: 'Verify', ai: 'AI', plan: 'Plan', profile: 'Profile',
     },
     header: { ecosystem: 'ECOSYSTEM', openDashboard: 'Open dashboard', notifications: 'Notifications' },
     greeting: {

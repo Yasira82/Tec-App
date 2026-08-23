@@ -31,7 +31,9 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
     { icon: 'spark'           , label: t.hub.nav.ai, aria: t.hub.ai.open, active: false, raised: true, action: () => { haptic('medium'); onOpenAi(); } },
     { icon: 'shield'          , label: t.hub.nav.verify,    active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
     { icon: 'tiers'           , label: t.hub.nav.plan,      active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
-    { icon: 'settings'        , label: t.hub.nav.settings,  active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
+    // Goes to /hub/profile, so it says Profile and wears a person — a cog
+    // promised preferences and delivered an account page.
+    { icon: 'user'            , label: t.hub.nav.profile,   active: false, action: () => { haptic('light'); router.push('/hub/profile'); } },
   ];
 
   return (

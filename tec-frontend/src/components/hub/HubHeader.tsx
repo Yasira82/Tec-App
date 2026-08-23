@@ -20,14 +20,15 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
   const router = useRouter();
 
   return (
-    <header className="tec-on-band" style={{
+    <header style={{
       padding: '14px 16px 16px', display: 'flex', alignItems: 'center',
       justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100,
-      // A band, not a continuation of the page — solid, with the bottom corners
-      // rounded off. See --tec-topbar: it is dark in both themes, so nothing
-      // painted on it has to flip.
-      background: 'var(--tec-topbar)',
-      borderRadius: '0 0 var(--tec-topbar-radius) var(--tec-topbar-radius)',
+      // NO band here. The band (--tec-topbar) marks a page you navigated INTO
+      // and can come back from; the Hub is the ground floor, so a band on it
+      // framed the home screen as if it were a sub-page. It stays on the inner
+      // pages — HubSubShell and the dashboard — where it means something.
+      // Opaque, because the header is sticky and content scrolls under it.
+      background: 'var(--tec-bg)',
       borderBottom: 'none',
       // A header that overflows does not just look wrong — it gives the whole page
       // a horizontal scrollbar and slides the account chip past the screen edge.

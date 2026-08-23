@@ -159,15 +159,19 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   const Section = ({ title, items, featured = false }: {
     title: string; items: HubApp[]; featured?: boolean;
   }) => (
+    // Every group is the same card, Favourites included. Favourites used to be
+    // transparent and borderless, so on a page where each group is a bounded
+    // card it read as a stray tile someone had left on the background. What
+    // makes it featured is the tile treatment inside, not the absence of a box.
     <div style={{
       marginTop: 12,
-      background: featured ? 'transparent' : 'var(--tec-surface-1)',
-      border: featured ? 'none' : '1px solid var(--tec-border)',
+      background: 'var(--tec-surface-1)',
+      border: '1px solid var(--tec-border)',
       borderRadius: 20,
-      padding: featured ? '4px 4px 0' : '14px 8px 4px',
+      padding: '14px 8px 4px',
     }}>
       <div style={{
-        fontSize: featured ? 13 : 15, fontWeight: featured ? 600 : 800,
+        fontSize: 15, fontWeight: 800,
         color: 'var(--tec-text-1)', margin: '0 8px 10px',
       }}>{title}</div>
       <div style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID_COLUMNS},1fr)`, gap: 4 }}>

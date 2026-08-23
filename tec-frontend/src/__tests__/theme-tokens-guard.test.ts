@@ -58,7 +58,9 @@ describe('the balance card is a card like any other', () => {
     // first element the eye lands on the one that ignored the system.
     expect(card).not.toContain('#0a1628');
     expect(card).not.toContain('rgba(6,182,212');
-    expect(card).not.toContain('--tec-hero');
+    // Usage, not the name — the comment above it names the token to explain
+    // why the card no longer has one, and that history is worth keeping.
+    expect(card).not.toContain('var(--tec-hero');
   });
 
   it('leaves no orphan hero token behind in the palette', () => {

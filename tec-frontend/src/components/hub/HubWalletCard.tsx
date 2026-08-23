@@ -32,27 +32,34 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
 
   return (
     <div style={{ padding: '20px 16px 0', animation: 'tec-fade-in 0.4s ease both' }}>
+      {/*
+        ONE card for the whole wallet.
+
+        The balance, the three actions and the ledger note used to be four
+        separate objects stacked with gaps: a card, then three individually
+        bordered buttons, then a loose caption. Four boundaries for one idea —
+        and the result was that the most important number on the Hub sat in a
+        container with exactly the same visual weight as the Founding-100 promo
+        next to it.
+
+        Fixing that by giving the card its own colour is what --tec-hero tried,
+        and it made this the one element that ignored the theme. Size is the
+        honest tool: one boundary around a taller object outranks a small one
+        without spending any colour.
+      */}
+      <div style={{
+        borderRadius: 20, overflow: 'hidden',
+        background: 'var(--tec-surface-1)',
+        border: '1px solid var(--tec-border)',
+      }}>
       <button className="tec-btn"
         onClick={() => { haptic('light'); router.push('/dashboard/wallet'); }}
         style={{
-          width: '100%', borderRadius: 24, overflow: 'hidden',
-          // The same card as every other card on the page. It has been three
-          // things now: a purple→navy→green gradient, then a fixed dark slab
-          // that stayed dark in light mode. Both made the first element the eye
-          // lands on the one element that did not follow the system.
-          background: 'var(--tec-surface-1)',
-          border: '1px solid var(--tec-border)',
-          padding: '24px', cursor: 'pointer', textAlign: 'start',
-                    position: 'relative',
+          width: '100%', background: 'none', border: 'none',
+          padding: '22px 22px 20px', cursor: 'pointer', textAlign: 'start',
+          display: 'block',
         }}>
-        {/* One warm wash, in the brand colour only — enough to keep the card from
-            reading as flat grey, not enough to become decoration. */}
-        <div style={{
-          position: 'absolute', inset: 0, borderRadius: 24, pointerEvents: 'none',
-          background: 'radial-gradient(ellipse 85% 65% at 15% 30%, rgba(248,184,32,0.08) 0%, transparent 65%)',
-        }} />
-
-        <div style={{ position: 'relative' }}>
+        <div>
           <div style={{ fontSize: 10, color: 'var(--tec-text-3)', letterSpacing: 3, textTransform: 'uppercase', marginBottom: 12, fontWeight: 600 }}>
             {t.hub.wallet.internalBalance}
           </div>
@@ -127,14 +134,16 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
         </div>
       </button>
 
-      {/* Quick actions — open the real wallet Send/Receive/history flow */}
-      <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-        {ACTIONS.map(a => (
+      {/* Quick actions — open the real wallet Send/Receive/history flow.
+          Segments of the same card: hairlines instead of three more borders. */}
+      <div style={{ display: 'flex', borderTop: '1px solid var(--tec-border)' }}>
+        {ACTIONS.map((a, i) => (
           <button key={a.key} className="tec-btn" onClick={() => go(a.path)} aria-label={a.label}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
-              padding: '11px 0', borderRadius: 16, cursor: 'pointer',
-              background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)',
+              padding: '13px 0', cursor: 'pointer',
+              background: 'none', border: 'none',
+              borderInlineStart: i === 0 ? 'none' : '1px solid var(--tec-border)',
             }}>
             <Icon name={a.icon} size={17} color="var(--tec-gold)" strokeWidth={2.2} />
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-1)', letterSpacing: 0.3 }}>{a.label}</span>
@@ -144,9 +153,15 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
 
       {/* Send/Receive move π between TEC accounts on the internal ledger — they do
           NOT send to a Pi Network wallet. Kept explicit so the actions aren't mistaken
-          for on-chain Pi transfers. */}
-      <div style={{ fontSize: 10, color: 'var(--tec-text-3)', textAlign: 'center', marginTop: 8 }}>
+          for on-chain Pi transfers. Inside the card, because it describes the row
+          directly above it — as a loose caption underneath it read as a footnote
+          for the whole page. */}
+      <div style={{
+        fontSize: 10, color: 'var(--tec-text-3)', textAlign: 'center',
+        padding: '9px 12px', borderTop: '1px solid var(--tec-border)',
+      }}>
         {t.hub.wallet.internalOnly}
+      </div>
       </div>
     </div>
   );

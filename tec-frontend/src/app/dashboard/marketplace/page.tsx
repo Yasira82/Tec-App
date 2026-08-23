@@ -97,8 +97,8 @@ export default function MarketplacePage() {
       {/* Header */}
       <div style={s({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 })}>
         <div>
-          <h1 style={s({ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0 })}>Marketplace</h1>
-          <p style={s({ fontSize: 13, color: '#6b6b7a', marginTop: 4 })}>{total} assets for sale</p>
+          <h1 style={s({ fontSize: 28, fontWeight: 800, color: 'var(--tec-text-1)', margin: 0 })}>Marketplace</h1>
+          <p style={s({ fontSize: 13, color: 'var(--tec-text-2)', marginTop: 4 })}>{total} assets for sale</p>
         </div>
         <button onClick={() => fetchListings(true)} disabled={isRefreshing}
           style={s({ background: 'var(--tec-gold)15', border: '1px solid var(--tec-gold)30', borderRadius: 10, padding: '8px 14px', color: 'var(--tec-gold)', fontSize: 12, fontWeight: 600, cursor: 'pointer' })}>
@@ -108,19 +108,19 @@ export default function MarketplacePage() {
 
       {/* Alerts */}
       {error && (
-        <div style={s({ padding: '12px 16px', borderRadius: 12, background: '#1f0505', border: '1px solid #e74c3c30', color: '#e74c3c', fontSize: 13, marginBottom: 16 })}>
+        <div style={s({ padding: '12px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.18)', color: 'var(--tec-red)', fontSize: 13, marginBottom: 16 })}>
           ⚠️ {error}
         </div>
       )}
       {success && (
-        <div style={s({ padding: '12px 16px', borderRadius: 12, background: '#051a0a', border: '1px solid #7ee7c030', color: '#7ee7c0', fontSize: 13, marginBottom: 16 })}>
+        <div style={s({ padding: '12px 16px', borderRadius: 12, background: 'rgba(34,197,94,0.12)', border: '1px solid rgba(34,197,94,0.18)', color: 'var(--tec-green)', fontSize: 13, marginBottom: 16 })}>
           ✅ {success}
         </div>
       )}
 
       {/* Sell CTA */}
       <button onClick={() => router.push('/dashboard/assets')}
-        style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,#1a1208,#0B1020)', border: '1px solid var(--tec-gold)30', color: 'var(--tec-gold)', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
+        style={s({ width: '100%', padding: '14px', borderRadius: 16, background: 'linear-gradient(135deg,rgba(var(--tec-gold-rgb),0.12),#0B1020)', border: '1px solid var(--tec-gold)30', color: 'var(--tec-gold)', fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 })}>
         <span>💎</span>
         <span>List Your Asset for Sale</span>
         <span>→</span>
@@ -128,10 +128,10 @@ export default function MarketplacePage() {
 
       {/* Empty State */}
       {listings.length === 0 && !error && (
-        <div style={s({ textAlign: 'center', padding: '60px 20px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 18 })}>
+        <div style={s({ textAlign: 'center', padding: '60px 20px', background: '#0B1020', border: '1px solid var(--tec-fill-soft)', borderRadius: 18 })}>
           <div style={s({ fontSize: 48, marginBottom: 16 })}>🏪</div>
-          <p style={s({ fontSize: 16, fontWeight: 600, color: '#6b6b7a' })}>No listings yet</p>
-          <p style={s({ fontSize: 13, color: '#4a4a5a', marginTop: 4 })}>Be the first to list an asset</p>
+          <p style={s({ fontSize: 16, fontWeight: 600, color: 'var(--tec-text-2)' })}>No listings yet</p>
+          <p style={s({ fontSize: 13, color: 'var(--tec-text-3)', marginTop: 4 })}>Be the first to list an asset</p>
         </div>
       )}
 
@@ -151,21 +151,21 @@ export default function MarketplacePage() {
                     {emoji}
                   </div>
                   <div style={s({ flex: 1, minWidth: 0 })}>
-                    <div style={s({ fontSize: 15, fontWeight: 700, color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
+                    <div style={s({ fontSize: 15, fontWeight: 700, color: 'var(--tec-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
                       {listing.title ?? listing.asset.slug}
                     </div>
-                    <div style={s({ fontSize: 11, color: '#6b6b7a', marginTop: 2 })}>
+                    <div style={s({ fontSize: 11, color: 'var(--tec-text-2)', marginTop: 2 })}>
                       {listing.asset.category.replace(/_/g, ' ')} · {listing.asset.slug}
                     </div>
                     {listing.description && (
-                      <div style={s({ fontSize: 11, color: '#4a4a5a', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
+                      <div style={s({ fontSize: 11, color: 'var(--tec-text-3)', marginTop: 4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
                         {listing.description}
                       </div>
                     )}
                   </div>
                   <div style={s({ textAlign: 'right', minWidth: 80 })}>
                     <div style={s({ fontSize: 20, fontWeight: 900, color: 'var(--tec-gold)' })}>{listing.price}</div>
-                    <div style={s({ fontSize: 10, color: '#4a4a5a' })}>π</div>
+                    <div style={s({ fontSize: 10, color: 'var(--tec-text-3)' })}>π</div>
                   </div>
                 </div>
 
@@ -180,10 +180,10 @@ export default function MarketplacePage() {
                       padding:    '12px',
                       borderRadius: 12,
                       background: isBuying
-                        ? '#7ee7c020'
-                        : 'linear-gradient(135deg,#0d2e14,#0a1f0f)',
-                      border: `1px solid ${isBuying ? '#7ee7c030' : '#7ee7c040'}`,
-                      color:      '#7ee7c0',
+                        ? 'rgba(34,197,94,0.12)'
+                        : 'linear-gradient(135deg,rgba(34,197,94,0.14),rgba(34,197,94,0.12))',
+                      border: `1px solid ${isBuying ? 'rgba(34,197,94,0.18)' : 'rgba(34,197,94,0.25)'}`,
+                      color:      'var(--tec-green)',
                       fontSize:   13,
                       fontWeight: 700,
                       cursor:     buying ? 'not-allowed' : 'pointer',
@@ -194,7 +194,7 @@ export default function MarketplacePage() {
                     })}>
                     {isBuying ? (
                       <>
-                        <div style={s({ width: 14, height: 14, border: '2px solid #7ee7c030', borderTop: '2px solid #7ee7c0', borderRadius: '50%', animation: 'spin 0.6s linear infinite' })} />
+                        <div style={s({ width: 14, height: 14, border: '2px solid rgba(34,197,94,0.18)', borderTop: '2px solid var(--tec-green)', borderRadius: '50%', animation: 'spin 0.6s linear infinite' })} />
                         <span>Processing...</span>
                       </>
                     ) : (

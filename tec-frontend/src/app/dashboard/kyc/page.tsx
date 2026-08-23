@@ -13,7 +13,7 @@ const STATUS_CONFIG: Record<KycStatus, {
   NOT_STARTED: {
     icon: '📋', label: 'Not Started',
     desc: 'Complete your identity verification to unlock all TEC features.',
-    bg: 'rgba(255,255,255,0.03)', border: 'var(--tec-border)', color: 'var(--tec-text-2)',
+    bg: 'var(--tec-fill-softer)', border: 'var(--tec-border)', color: 'var(--tec-text-2)',
   },
   PENDING: {
     icon: '⏳', label: 'Under Review',
@@ -23,12 +23,12 @@ const STATUS_CONFIG: Record<KycStatus, {
   VERIFIED: {
     icon: '✅', label: 'Verified',
     desc: 'Your identity has been successfully verified.',
-    bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: '#22C55E',
+    bg: 'rgba(34,197,94,0.08)', border: 'rgba(34,197,94,0.25)', color: 'var(--tec-green)',
   },
   REJECTED: {
     icon: '❌', label: 'Rejected',
     desc: 'Your verification was rejected. Please resubmit with correct documents.',
-    bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: '#ef4444',
+    bg: 'rgba(239,68,68,0.08)', border: 'rgba(239,68,68,0.25)', color: 'var(--tec-red)',
   },
 };
 
@@ -87,7 +87,7 @@ function StepIndicator({ step }: { step: 'docs' | 'review' }) {
                 border: `1px solid ${isDone  ? 'rgba(34,197,94,0.4)'
                                     : isActive ? 'var(--tec-border-gold)'
                                     : 'var(--tec-border)'}`,
-                color: isDone ? '#22C55E' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
+                color: isDone ? 'var(--tec-green)' : isActive ? 'var(--tec-gold)' : 'var(--tec-text-3)',
               }}>
                 {isDone ? '✓' : i + 1}
               </div>
@@ -162,7 +162,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             initialValue={kyc.selfie_url} onChange={setSelfieUrl} />
 
           {uploadErr && (
-            <div style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
+            <div style={{ padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)' }}>
               ⚠️ {uploadErr}
             </div>
           )}
@@ -172,7 +172,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
               style={{
                 padding: '12px 28px', borderRadius: 'var(--radius-md)',
                 background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'var(--tec-gold)',
-                border: 'none', color: '#0a0800', fontWeight: 700, fontSize: 'var(--text-sm)',
+                border: 'none', color: 'var(--tec-on-gold)', fontWeight: 700, fontSize: 'var(--text-sm)',
                 cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
                 opacity: uploading ? 0.6 : 1,
               }}>
@@ -199,7 +199,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
                 <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{item.label}</span>
                 <span style={{
                   fontSize: 'var(--text-sm)', fontWeight: 600,
-                  color: item.value ? '#22C55E' : item.required ? '#ef4444' : 'var(--tec-text-3)',
+                  color: item.value ? 'var(--tec-green)' : item.required ? 'var(--tec-red)' : 'var(--tec-text-3)',
                 }}>
                   {item.value ? '✓ Uploaded' : item.required ? '✗ Missing' : '— Optional'}
                 </span>
@@ -224,7 +224,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
               style={{
                 padding: '11px 28px', borderRadius: 'var(--radius-md)',
                 background: 'var(--tec-gold)',
-                border: 'none', color: '#0a0800', fontWeight: 700,
+                border: 'none', color: 'var(--tec-on-gold)', fontWeight: 700,
                 fontSize: 'var(--text-sm)', cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
               }}>
@@ -251,7 +251,7 @@ function PendingState() {
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxWidth: 240, margin: 'var(--sp-6) auto 0' }}>
           {['Documents submitted', 'Manual review in progress', 'Decision notification'].map((s, i) => (
-            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? '#22C55E' : i === 1 ? 'var(--tec-gold-dark)' : 'var(--tec-text-3)' }}>
+            <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--text-sm)', color: i === 0 ? 'var(--tec-green)' : i === 1 ? 'var(--tec-gold-dark)' : 'var(--tec-text-3)' }}>
               <span>{i === 0 ? '✓' : i === 1 ? '◉' : '○'}</span>
               <span>{s}</span>
             </div>
@@ -268,7 +268,7 @@ function VerifiedState({ kyc }: { kyc: KycRecord }) {
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
         <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>✅</div>
-        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#22C55E', marginBottom: 'var(--sp-3)' }}>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-green)', marginBottom: 'var(--sp-3)' }}>
           Identity Verified
         </div>
         <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7, marginBottom: 'var(--sp-6)' }}>
@@ -298,7 +298,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
     <DashboardCard>
       <div style={{ textAlign: 'center', padding: 'var(--sp-8) var(--sp-6)' }}>
         <div style={{ fontSize: 48, marginBottom: 'var(--sp-4)' }}>❌</div>
-        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: '#ef4444', marginBottom: 'var(--sp-3)' }}>
+        <div style={{ fontSize: 'var(--text-xl)', fontWeight: 700, color: 'var(--tec-red)', marginBottom: 'var(--sp-3)' }}>
           Verification Rejected
         </div>
         {reason && (
@@ -307,7 +307,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
             background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
             borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)', lineHeight: 1.6,
           }}>
-            <span style={{ display: 'block', fontSize: 10, color: '#ef4444', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Reason</span>
+            <span style={{ display: 'block', fontSize: 10, color: 'var(--tec-red)', letterSpacing: 1.5, textTransform: 'uppercase', marginBottom: 4 }}>Reason</span>
             {reason}
           </div>
         )}
@@ -318,7 +318,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
           style={{
             padding: '12px 32px', borderRadius: 'var(--radius-md)',
             background: 'var(--tec-gold)',
-            border: 'none', color: '#0a0800', fontWeight: 700,
+            border: 'none', color: 'var(--tec-on-gold)', fontWeight: 700,
             fontSize: 'var(--text-sm)', cursor: 'pointer',
             opacity: isSubmitting ? 0.6 : 1,
           }}>
@@ -353,7 +353,7 @@ export default function KycPage() {
         <div style={{
           padding: 'var(--sp-3) var(--sp-5)', marginBottom: 'var(--sp-4)',
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
-          borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444',
+          borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)',
         }}>
           ⚠️ {error}
         </div>

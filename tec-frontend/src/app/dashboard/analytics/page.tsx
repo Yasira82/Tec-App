@@ -27,7 +27,7 @@ function StatCard({ icon, label, value, color = 'var(--tec-gold)' }: {
     <div style={s({ background: '#0B1020', border: `1px solid ${color}20`, borderRadius: 18, padding: '16px 20px' })}>
       <div style={s({ fontSize: 24, marginBottom: 8 })}>{icon}</div>
       <div style={s({ fontSize: 24, fontWeight: 900, color, lineHeight: 1 })}>{value}</div>
-      <div style={s({ fontSize: 11, color: '#4a4a5a', marginTop: 4, letterSpacing: 1 })}>{label}</div>
+      <div style={s({ fontSize: 11, color: 'var(--tec-text-3)', marginTop: 4, letterSpacing: 1 })}>{label}</div>
     </div>
   );
 }
@@ -39,10 +39,10 @@ function MetricBar({ label, value, max, color }: {
   return (
     <div style={s({ marginBottom: 12 })}>
       <div style={s({ display: 'flex', justifyContent: 'space-between', marginBottom: 4 })}>
-        <span style={s({ fontSize: 12, color: '#6b6b7a' })}>{label}</span>
+        <span style={s({ fontSize: 12, color: 'var(--tec-text-2)' })}>{label}</span>
         <span style={s({ fontSize: 12, fontWeight: 700, color })}>{value}</span>
       </div>
-      <div style={s({ height: 4, background: '#ffffff08', borderRadius: 4, overflow: 'hidden' })}>
+      <div style={s({ height: 4, background: 'var(--tec-fill-soft)', borderRadius: 4, overflow: 'hidden' })}>
         <div style={s({ height: '100%', width: `${pct}%`, background: color, borderRadius: 4, transition: 'width 0.5s ease' })} />
       </div>
     </div>
@@ -100,8 +100,8 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div style={s({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 })}>
         <div>
-          <h1 style={s({ fontSize: 28, fontWeight: 800, color: '#fff', margin: 0 })}>Analytics</h1>
-          <p style={s({ fontSize: 13, color: '#6b6b7a', marginTop: 4 })}>TEC Platform Metrics</p>
+          <h1 style={s({ fontSize: 28, fontWeight: 800, color: 'var(--tec-text-1)', margin: 0 })}>Analytics</h1>
+          <p style={s({ fontSize: 13, color: 'var(--tec-text-2)', marginTop: 4 })}>TEC Platform Metrics</p>
         </div>
         <button
           onClick={() => fetchOverview(true)}
@@ -114,33 +114,33 @@ export default function AnalyticsPage() {
 
       {/* Error */}
       {error && (
-        <div style={s({ padding: '12px 16px', borderRadius: 12, background: '#1f0505', border: '1px solid #e74c3c30', color: '#e74c3c', fontSize: 13, marginBottom: 16 })}>
+        <div style={s({ padding: '12px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.18)', color: 'var(--tec-red)', fontSize: 13, marginBottom: 16 })}>
           ⚠️ {error}
         </div>
       )}
 
       {/* Stats Grid */}
       <div style={s({ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 20 })}>
-        <StatCard icon="💳" label="TOTAL PAYMENTS"   value={overview?.totalPayments ?? 0} color="#7ee7c0" />
-        <StatCard icon="👥" label="TOTAL USERS"      value={overview?.totalUsers    ?? 0} color="#7eb8f7" />
+        <StatCard icon="💳" label="TOTAL PAYMENTS"   value={overview?.totalPayments ?? 0} color="var(--tec-green)" />
+        <StatCard icon="👥" label="TOTAL USERS"      value={overview?.totalUsers    ?? 0} color="var(--tec-blue)" />
         <StatCard icon="📊" label="TOTAL EVENTS"     value={overview?.totalEvents   ?? 0} color="var(--tec-gold)" />
-        <StatCard icon="💰" label="TOTAL VOLUME (π)" value={totalVol.toFixed(2)}          color="#e67e22" />
+        <StatCard icon="💰" label="TOTAL VOLUME (π)" value={totalVol.toFixed(2)}          color="var(--tec-gold-dark)" />
       </div>
 
       {/* 7-Day Metrics */}
       {metrics.length > 0 && (
-        <div style={s({ background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 18, padding: '20px', marginBottom: 16 })}>
-          <div style={s({ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 })}>
+        <div style={s({ background: '#0B1020', border: '1px solid var(--tec-fill-soft)', borderRadius: 18, padding: '20px', marginBottom: 16 })}>
+          <div style={s({ fontSize: 11, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 16 })}>
             Last {metrics.length} Days
           </div>
           {metrics.map((m, i) => (
-            <div key={i} style={s({ marginBottom: 20, paddingBottom: 20, borderBottom: i < metrics.length - 1 ? '1px solid #ffffff06' : 'none' })}>
-              <div style={s({ fontSize: 12, color: '#6b6b7a', marginBottom: 8 })}>
+            <div key={i} style={s({ marginBottom: 20, paddingBottom: 20, borderBottom: i < metrics.length - 1 ? '1px solid var(--tec-fill-soft)' : 'none' })}>
+              <div style={s({ fontSize: 12, color: 'var(--tec-text-2)', marginBottom: 8 })}>
                 {new Date(m.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </div>
-              <MetricBar label="Payments"  value={m.total_payments} max={maxPay}   color="#7ee7c0" />
+              <MetricBar label="Payments"  value={m.total_payments} max={maxPay}   color="var(--tec-green)" />
               <MetricBar label="Volume π"  value={m.total_volume}   max={maxVol}   color="var(--tec-gold)" />
-              <MetricBar label="New Users" value={m.new_users}      max={maxUsers} color="#7eb8f7" />
+              <MetricBar label="New Users" value={m.new_users}      max={maxUsers} color="var(--tec-blue)" />
             </div>
           ))}
         </div>
@@ -148,10 +148,10 @@ export default function AnalyticsPage() {
 
       {/* Empty State */}
       {metrics.length === 0 && !error && (
-        <div style={s({ textAlign: 'center', padding: '48px 20px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 18 })}>
+        <div style={s({ textAlign: 'center', padding: '48px 20px', background: '#0B1020', border: '1px solid var(--tec-fill-soft)', borderRadius: 18 })}>
           <div style={s({ fontSize: 48, marginBottom: 16 })}>📊</div>
-          <p style={s({ fontSize: 16, fontWeight: 600, color: '#6b6b7a' })}>No data yet</p>
-          <p style={s({ fontSize: 13, color: '#4a4a5a', marginTop: 4 })}>Analytics will appear after platform activity</p>
+          <p style={s({ fontSize: 16, fontWeight: 600, color: 'var(--tec-text-2)' })}>No data yet</p>
+          <p style={s({ fontSize: 13, color: 'var(--tec-text-3)', marginTop: 4 })}>Analytics will appear after platform activity</p>
         </div>
       )}
 

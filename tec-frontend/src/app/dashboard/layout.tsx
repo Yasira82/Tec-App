@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           style={{
             position: 'fixed', inset: 0,
             zIndex: 200,
-            background: 'rgba(5,8,22,0.75)',
+            background: 'var(--tec-bg)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
           }}

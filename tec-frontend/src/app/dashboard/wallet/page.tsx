@@ -39,24 +39,24 @@ const overlayStyle: React.CSSProperties = {
   zIndex: 1000, padding: '20px',
 };
 const modalStyle: React.CSSProperties = {
-  background: '#0a0a0f', border: '1px solid var(--tec-gold)30',
+  background: 'var(--tec-surface-1)', border: '1px solid var(--tec-gold)30',
   borderRadius: 20, padding: '28px 24px', width: '100%', maxWidth: 420,
 };
 const labelStyle: React.CSSProperties = {
-  display: 'block', fontSize: 12, color: '#6b6b7a', marginBottom: 6, letterSpacing: 0.5,
+  display: 'block', fontSize: 12, color: 'var(--tec-text-2)', marginBottom: 6, letterSpacing: 0.5,
 };
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '10px 14px', background: '#0B1020',
-  border: '1px solid #ffffff15', borderRadius: 10, color: '#fff',
+  border: '1px solid var(--tec-border)', borderRadius: 10, color: 'var(--tec-text-1)',
   fontSize: 14, outline: 'none', boxSizing: 'border-box',
 };
 const btnPrimary: React.CSSProperties = {
   padding: '10px 20px', background: 'var(--tec-gold)',
-  border: 'none', borderRadius: 10, color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+  border: 'none', borderRadius: 10, color: 'var(--tec-on-gold)', fontSize: 13, fontWeight: 700, cursor: 'pointer',
 };
 const btnOutline: React.CSSProperties = {
-  padding: '10px 20px', background: 'none', border: '1px solid #ffffff20',
-  borderRadius: 10, color: '#6b6b7a', fontSize: 13, cursor: 'pointer',
+  padding: '10px 20px', background: 'none', border: '1px solid var(--tec-border)',
+  borderRadius: 10, color: 'var(--tec-text-2)', fontSize: 13, cursor: 'pointer',
 };
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -142,17 +142,17 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
   const tabBtn = (active: boolean): React.CSSProperties => ({
     flex: 1, padding: '10px', background: active ? 'var(--tec-gold)15' : 'none',
     border: 'none', borderBottom: active ? '2px solid var(--tec-gold)' : '2px solid transparent',
-    color: active ? 'var(--tec-gold)' : '#6b6b7a', fontSize: 13,
+    color: active ? 'var(--tec-gold)' : 'var(--tec-text-2)', fontSize: 13,
     fontWeight: active ? 700 : 400, cursor: 'pointer',
   });
 
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↑ Send π</h2>
+        <h2 style={{ color: 'var(--tec-text-1)', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↑ Send π</h2>
 
         {/* Tabs */}
-        <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid #ffffff10' }}>
+        <div style={{ display: 'flex', marginBottom: 20, borderBottom: '1px solid var(--tec-fill-soft)' }}>
           <button style={tabBtn(tab === 'internal')} onClick={() => setTab('internal')}>
             🏦 Internal (TEC)
           </button>
@@ -163,8 +163,8 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
 
         {tab === 'internal' && (
           <>
-            <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 14 }}>
-              <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
+            <div style={{ padding: '8px 12px', background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.18)', borderRadius: 8, marginBottom: 14 }}>
+              <p style={{ color: 'var(--tec-green)', fontSize: 11, margin: 0 }}>
                 💡 Enter recipient <strong>Wallet ID</strong> (from their Receive screen) or <strong>Pi Username</strong>
               </p>
             </div>
@@ -207,7 +207,7 @@ function SendModal({ myWalletId, onClose, onSuccess }: {
           </>
         )}
 
-        {error && <p style={{ color: '#e74c3c', fontSize: 13, marginTop: 8 }}>⚠️ {error}</p>}
+        {error && <p style={{ color: 'var(--tec-red)', fontSize: 13, marginTop: 8 }}>⚠️ {error}</p>}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
           <button style={btnOutline} onClick={onClose}>Cancel</button>
@@ -241,10 +241,10 @@ function ReceiveModal({ walletId, balance, onClose }: {
   return (
     <div style={overlayStyle}>
       <div style={modalStyle}>
-        <h2 style={{ color: '#fff', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↓ Receive π</h2>
+        <h2 style={{ color: 'var(--tec-text-1)', fontSize: 20, fontWeight: 700, marginBottom: 16 }}>↓ Receive π</h2>
 
-        <div style={{ padding: '8px 12px', background: '#0d1a0d', border: '1px solid #7ee7c030', borderRadius: 8, marginBottom: 16 }}>
-          <p style={{ color: '#7ee7c0', fontSize: 11, margin: 0 }}>
+        <div style={{ padding: '8px 12px', background: 'rgba(34,197,94,0.10)', border: '1px solid rgba(34,197,94,0.18)', borderRadius: 8, marginBottom: 16 }}>
+          <p style={{ color: 'var(--tec-green)', fontSize: 11, margin: 0 }}>
             💡 Share your <strong>Wallet ID</strong> so others can send you TEC balance.
           </p>
         </div>
@@ -265,7 +265,7 @@ function ReceiveModal({ walletId, balance, onClose }: {
         </div>
 
         <div style={{ padding: '12px 16px', background: '#0B1020', border: '1px solid var(--tec-gold)20', borderRadius: 10 }}>
-          <div style={{ fontSize: 11, color: '#4a4a5a', marginBottom: 4 }}>Current Balance</div>
+          <div style={{ fontSize: 11, color: 'var(--tec-text-3)', marginBottom: 4 }}>Current Balance</div>
           <div style={{ fontSize: 24, fontWeight: 800, color: 'var(--tec-gold)' }}>{balance.toFixed(2)} π</div>
         </div>
 

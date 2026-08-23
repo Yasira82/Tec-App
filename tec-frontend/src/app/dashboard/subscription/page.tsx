@@ -32,9 +32,9 @@ interface Subscription {
 const PLAN_CONFIG: Record<string, {
   color: string; bg: string; border: string; icon: string; popular?: boolean;
 }> = {
-  FREE:       { color: '#6b7280', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)', icon: '◯' },
+  FREE:       { color: 'var(--tec-text-2)', bg: 'rgba(107,114,128,0.08)', border: 'rgba(107,114,128,0.2)', icon: '◯' },
   PRO:        { color: 'var(--tec-gold)', bg: 'rgba(var(--tec-gold-rgb),0.08)',  border: 'rgba(var(--tec-gold-rgb),0.25)',  icon: '◈', popular: true },
-  ENTERPRISE: { color: '#7eb8f7', bg: 'rgba(126,184,247,0.08)', border: 'rgba(126,184,247,0.25)', icon: '◉' },
+  ENTERPRISE: { color: 'var(--tec-blue)', bg: 'rgba(126,184,247,0.08)', border: 'rgba(126,184,247,0.25)', icon: '◉' },
 };
 
 // ── Current Plan Card ──────────────────────────────────────────
@@ -71,8 +71,8 @@ function CurrentPlanCard({ sub, onCancel, cancelling }: {
       </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: sub.current_period_end ? 'var(--sp-3)' : 0 }}>
-        <span style={{ width: 7, height: 7, borderRadius: '50%', background: isActive ? '#22C55E' : '#ef4444', display: 'inline-block' }} />
-        <span style={{ fontSize: 'var(--text-sm)', color: isActive ? '#22C55E' : '#ef4444', fontWeight: 600 }}>
+        <span style={{ width: 7, height: 7, borderRadius: '50%', background: isActive ? 'var(--tec-green)' : 'var(--tec-red)', display: 'inline-block' }} />
+        <span style={{ fontSize: 'var(--text-sm)', color: isActive ? 'var(--tec-green)' : 'var(--tec-red)', fontWeight: 600 }}>
           {isActive ? 'Active' : sub.status}
         </span>
       </div>
@@ -85,7 +85,7 @@ function CurrentPlanCard({ sub, onCancel, cancelling }: {
 
       {sub.plan !== 'FREE' && isActive && (
         <button onClick={onCancel} disabled={cancelling}
-          style={{ padding: '7px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer', opacity: cancelling ? 0.6 : 1 }}>
+          style={{ padding: '7px 16px', borderRadius: 'var(--radius-sm)', background: 'transparent', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--tec-red)', fontSize: 'var(--text-xs)', cursor: 'pointer', opacity: cancelling ? 0.6 : 1 }}>
           {cancelling ? 'Cancelling…' : 'Cancel Subscription'}
         </button>
       )}
@@ -274,12 +274,12 @@ export default function SubscriptionPage() {
     >
       {/* ── Alerts ────────────────────────────── */}
       {error && (
-        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#ef4444' }}>
+        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-red)' }}>
           ⚠️ {error}
         </div>
       )}
       {success && (
-        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: '#22C55E' }}>
+        <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 'var(--radius-md)', fontSize: 'var(--text-sm)', color: 'var(--tec-green)' }}>
           ✓ {success}
         </div>
       )}

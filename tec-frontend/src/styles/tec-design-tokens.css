@@ -80,6 +80,24 @@
   --tec-fill-softer: rgba(255,255,255,0.02);
 
 
+  /* ── Top band ───────────────────────────────────────── */
+  /* The header is a BAND, not a continuation of the page: a solid bar with
+     rounded bottom corners, the way the Pi app frames its own screens.
+     Sampled there rather than invented — Pi runs page #1c1c1e under band
+     #372744, which is the brand hue mixed INTO the page, not a bright slab.
+     Same relationship here in amber.
+
+     The band is dark in BOTH themes, so everything painted on it — ink, the
+     mark, chips — keeps one set of values and does not flip with the page. */
+  --tec-topbar:        #3f311f;   /* dark theme: ~20% gold mixed into the page */
+  --tec-topbar-ink-1:  rgba(255,255,255,0.95);
+  --tec-topbar-ink-2:  rgba(255,255,255,0.60);
+  --tec-topbar-ink-3:  rgba(255,255,255,0.42);
+  --tec-topbar-gold:   #FBB44A;
+  --tec-topbar-fill:   rgba(255,255,255,0.07);
+  --tec-topbar-border: rgba(255,255,255,0.12);
+  --tec-topbar-radius: 22px;
+
   /* ── Sub-page header band ───────────────────────────── */
   /* Inner pages open with a branded band, so you can feel you went somewhere.
      A wash, not a slab: it fades into the page rather than cutting it. */
@@ -167,6 +185,7 @@
    fill keeps the brand hue. */
 [data-theme='light'] {
   --tec-bg:          #f4f3f1;
+  --tec-topbar:      #17171d;
   --tec-surface-1:   #ffffff;
   --tec-surface-2:   #f1efec;
   --tec-surface-3:   #e7e4df;
@@ -199,6 +218,7 @@
 @media (prefers-color-scheme: light) {
   :root:not([data-theme]) {
     --tec-bg:          #f4f3f1;
+    --tec-topbar:      #17171d;
     --tec-surface-1:   #ffffff;
     --tec-surface-2:   #f1efec;
     --tec-surface-3:   #e7e4df;
@@ -225,6 +245,74 @@
     --tec-fill-softer: rgba(0,0,0,0.025);
     --tec-band:        linear-gradient(180deg, rgba(var(--tec-gold-rgb),0.22), rgba(var(--tec-gold-rgb),0));
   }
+}
+
+/* ── Inside the band ─────────────────────────────────── */
+/*
+ * The band is dark in both themes, so anything rendered ON it needs the ink
+ * and fills of a dark surface regardless of the page.
+ *
+ * Rather than rewrite every control that can appear there — the theme toggle,
+ * the language chip, the bell, the account chip, the back button, and whatever
+ * gets added next — this REDEFINES the tokens for that subtree. A component
+ * drops into the header and is correct without knowing the band exists, which
+ * is the only version of this that stays true after the next change.
+ */
+.tec-on-band {
+  --tec-text-1:      var(--tec-topbar-ink-1);
+  --tec-text-2:      var(--tec-topbar-ink-2);
+  --tec-text-3:      var(--tec-topbar-ink-3);
+  --tec-text-4:      var(--tec-topbar-ink-3);
+  --tec-icon:        var(--tec-topbar-ink-1);
+  --tec-gold:        var(--tec-topbar-gold);
+  --tec-gold-rgb:    251, 180, 74;
+  --tec-surface-1:   var(--tec-topbar-fill);
+  --tec-surface-2:   var(--tec-topbar-fill);
+  --tec-surface-3:   var(--tec-topbar-fill);
+  --tec-border:      var(--tec-topbar-border);
+  --tec-border-gold: rgba(251,180,74,0.35);
+  --tec-fill-soft:   var(--tec-topbar-fill);
+  --tec-fill-softer: rgba(255,255,255,0.04);
+  --tec-gold-dim:    rgba(251,180,74,0.16);
+  --tec-gold-glow:   rgba(251,180,74,0.10);
+}
+
+/* A surface that is dark in BOTH themes — the marketing landing and the
+   Pioneers campaign, which paint their own near-black ground by design and
+   should not flip to white.
+   They still read the palette from here, though, so on a light phone they
+   got light-theme values on a black ground: the LIGHT amber (#FEA500, chosen
+   to hold up on white) went muddy, and any shared component dropped on the
+   page — the language switcher, a button — turned near-black ink on a
+   near-black fill and disappeared.
+   So this pins the WHOLE dark palette, not only the hue: the pages keep
+   their own hardcoded ground, and everything themed that lands on them
+   inherits ink and surfaces that suit it.
+   Use `.tec-on-band` instead for the topbar strip: that one re-scopes
+   surfaces to a translucent fill over the band colour, which would flatten a
+   whole page into one flat sheet. */
+.tec-on-dark {
+  --tec-gold:        #FBB44A;
+  --tec-gold-rgb:    251, 180, 74;
+  --tec-gold-dark:   #E8962A;
+  --tec-gold-light:  #FDCF7A;
+  --tec-gold-dim:    rgba(251,180,74,0.15);
+  --tec-gold-glow:   rgba(251,180,74,0.08);
+  --tec-border-gold: rgba(251,180,74,0.28);
+  --tec-on-gold:     #0a0800;
+
+  --tec-text-1:      rgba(255,255,255,0.92);
+  --tec-text-2:      rgba(255,255,255,0.62);
+  --tec-text-3:      rgba(255,255,255,0.38);
+  --tec-text-4:      rgba(255,255,255,0.25);
+  --tec-icon:        rgba(255,255,255,0.80);
+
+  --tec-surface-1:   #21212a;
+  --tec-surface-2:   #2c2c37;
+  --tec-surface-3:   #383844;
+  --tec-border:      rgba(255,255,255,0.07);
+  --tec-fill-soft:   rgba(255,255,255,0.05);
+  --tec-fill-softer: rgba(255,255,255,0.02);
 }
 
 /* ── Global resets ───────────────────────────────────── */

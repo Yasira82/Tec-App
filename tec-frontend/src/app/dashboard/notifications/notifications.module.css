@@ -57,7 +57,7 @@
   font-family: 'DM Sans', sans-serif;
   white-space: nowrap;
 }
-.btnOutline:hover { background: rgba(201,168,76,0.08); }
+.btnOutline:hover { background: rgba(var(--tec-gold-rgb),0.08); }
 
 /* ── Section ── */
 .section { margin-bottom: 32px; }
@@ -98,9 +98,9 @@
   position: relative;
   cursor: default;
 }
-.card:hover          { background: rgba(255,255,255,0.02); }
-.cardUnread          { border-color: rgba(201,168,76,0.2); background: rgba(201,168,76,0.04); cursor: pointer; }
-.cardUnread:hover    { background: rgba(201,168,76,0.07); }
+.card:hover          { background: var(--tec-fill-softer); }
+.cardUnread          { border-color: rgba(var(--tec-gold-rgb),0.2); background: rgba(var(--tec-gold-rgb),0.04); cursor: pointer; }
+.cardUnread:hover    { background: rgba(var(--tec-gold-rgb),0.07); }
 
 /* ── Icon ── */
 .iconWrap {
@@ -114,9 +114,9 @@
   flex-shrink: 0;
 }
 .typePayment  { background: rgba(33,150,243,0.15); }
-.typeWallet   { background: rgba(212,160,23,0.15); }
+.typeWallet   { background: rgba(var(--tec-gold-rgb),0.15); }
 .typeKyc      { background: rgba(156,39,176,0.15); }
-.typeSecurity { background: rgba(231,76,60,0.15);  }
+.typeSecurity { background: rgba(239,68,68,0.15);  }
 .typeSystem   { background: rgba(107,107,122,0.15); }
 
 /* ── Card Body ── */

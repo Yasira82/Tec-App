@@ -73,7 +73,7 @@ function BarRow({
         {label}
       </div>
       <div style={{
-        flex: 1, height: 8, background: 'rgba(255,255,255,0.06)',
+        flex: 1, height: 8, background: 'var(--tec-fill-soft)',
         borderRadius: 4, overflow: 'hidden',
       }}>
         <div style={{
@@ -177,7 +177,7 @@ export default function ObservabilityPage() {
         <div style={{
           background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
           borderRadius: 'var(--radius-lg)', padding: 'var(--sp-4)',
-          color: '#ef4444', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)',
+          color: 'var(--tec-red)', fontSize: 'var(--text-sm)', marginBottom: 'var(--sp-5)',
         }}>
           ⚠ {error}
         </div>
@@ -192,8 +192,8 @@ export default function ObservabilityPage() {
             gap: 12, marginBottom: 'var(--sp-5)',
           }}>
             <StatCard label="Total Tx"  value={metrics.total}                   color="var(--tec-text-1)" sub="last 24h" />
-            <StatCard label="Completed" value={metrics.completed}               color="#22C55E"           sub="successful" />
-            <StatCard label="Failed"    value={metrics.failed}                  color="#ef4444"           sub="errored" />
+            <StatCard label="Completed" value={metrics.completed}               color="var(--tec-green)"           sub="successful" />
+            <StatCard label="Failed"    value={metrics.failed}                  color="var(--tec-red)"           sub="errored" />
             <StatCard label="Volume"    value={`${metrics.volume.toFixed(2)}π`} color="var(--tec-gold)"           sub="completed value" />
           </div>
 
@@ -204,22 +204,22 @@ export default function ObservabilityPage() {
             action={
               <span style={{
                 fontSize: 'var(--text-2xl)', fontWeight: 800,
-                color: metrics.healthy ? '#22C55E' : '#ef4444',
+                color: metrics.healthy ? 'var(--tec-green)' : 'var(--tec-red)',
               }}>
                 {metrics.successRate === null ? '—' : `${metrics.successRate}%`}
               </span>
             }
           >
             <div style={{
-              height: 12, background: 'rgba(255,255,255,0.06)',
+              height: 12, background: 'var(--tec-fill-soft)',
               borderRadius: 6, overflow: 'hidden', marginBottom: 8,
             }}>
               <div style={{
                 width: `${metrics.successRate ?? 0}%`,
                 height: '100%',
                 background: metrics.healthy
-                  ? 'linear-gradient(90deg,#22C55E,#34d399)'
-                  : 'linear-gradient(90deg,#ef4444,#f87171)',
+                  ? 'linear-gradient(90deg,var(--tec-green),var(--tec-green))'
+                  : 'linear-gradient(90deg,var(--tec-red),var(--tec-red))',
                 borderRadius: 6,
                 transition: 'width 0.7s ease',
               }} />
@@ -234,10 +234,10 @@ export default function ObservabilityPage() {
           {/* ── Breakdown ── */}
           <div style={{ marginTop: 'var(--sp-4)' }}>
             <DashboardCard title="Breakdown" subtitle="transaction status distribution">
-              <BarRow label="Completed" value={metrics.completed} total={metrics.total} color="#22C55E" />
+              <BarRow label="Completed" value={metrics.completed} total={metrics.total} color="var(--tec-green)" />
               <BarRow label="Cancelled" value={metrics.cancelled} total={metrics.total} color="var(--tec-gold-dark)" />
-              <BarRow label="Failed"    value={metrics.failed}    total={metrics.total} color="#ef4444" />
-              <BarRow label="Pending"   value={metrics.pending}   total={metrics.total} color="#6366f1" />
+              <BarRow label="Failed"    value={metrics.failed}    total={metrics.total} color="var(--tec-red)" />
+              <BarRow label="Pending"   value={metrics.pending}   total={metrics.total} color="var(--tec-blue)" />
             </DashboardCard>
           </div>
 

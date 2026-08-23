@@ -69,10 +69,10 @@ function AssetThumb({ asset }: { asset: Asset }) {
 }
 
 const STATUS_COLOR: Record<string, string> = {
-  ACTIVE:  '#7ee7c0',
+  ACTIVE:  'var(--tec-green)',
   PENDING: 'var(--tec-gold)',
-  LOCKED:  '#e74c3c',
-  ON_SALE: '#7eb8f7',
+  LOCKED:  'var(--tec-red)',
+  ON_SALE: 'var(--tec-blue)',
 };
 
 export default function AssetsPage() {
@@ -133,8 +133,8 @@ export default function AssetsPage() {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24 }}>
         <div>
-          <h1 style={{ fontSize: 28, fontWeight: 800, color: '#ffffff', margin: 0 }}>Assets</h1>
-          <p style={{ fontSize: 13, color: '#6b6b7a', marginTop: 4 }}>Your digital assets on Pi Network</p>
+          <h1 style={{ fontSize: 28, fontWeight: 800, color: 'var(--tec-text-1)', margin: 0 }}>Assets</h1>
+          <p style={{ fontSize: 13, color: 'var(--tec-text-2)', marginTop: 4 }}>Your digital assets on Pi Network</p>
         </div>
         <button
           onClick={() => fetchAssets(true)}
@@ -151,10 +151,10 @@ export default function AssetsPage() {
       {categoryCounts.length > 0 && (
         <div style={{ display: 'grid', gridTemplateColumns: `repeat(${Math.min(categoryCounts.length, 3)}, 1fr)`, gap: 10, marginBottom: 20 }}>
           {categoryCounts.map(([cat, count]) => (
-            <div key={cat} style={{ padding: '12px', background: '#0B1020', border: '1px solid #ffffff08', borderRadius: 14, textAlign: 'center' }}>
+            <div key={cat} style={{ padding: '12px', background: '#0B1020', border: '1px solid var(--tec-fill-soft)', borderRadius: 14, textAlign: 'center' }}>
               <div style={{ fontSize: 20, marginBottom: 4 }}>{CATEGORY_EMOJI[cat] ?? '📦'}</div>
               <div style={{ fontSize: 18, fontWeight: 800, color: 'var(--tec-gold)' }}>{count}</div>
-              <div style={{ fontSize: 9, color: '#4a4a5a', letterSpacing: 0.5 }}>
+              <div style={{ fontSize: 9, color: 'var(--tec-text-3)', letterSpacing: 0.5 }}>
                 {cat.replace(/_/g, ' ')}
               </div>
             </div>
@@ -164,7 +164,7 @@ export default function AssetsPage() {
 
       {/* Error */}
       {error && (
-        <div style={{ padding: '12px 16px', borderRadius: 12, background: '#1f0505', border: '1px solid #e74c3c30', color: '#e74c3c', fontSize: 13, marginBottom: 16 }}>
+        <div style={{ padding: '12px 16px', borderRadius: 12, background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.18)', color: 'var(--tec-red)', fontSize: 13, marginBottom: 16 }}>
           ⚠️ {error}
         </div>
       )}
@@ -173,15 +173,15 @@ export default function AssetsPage() {
       {assets.length === 0 && !error && (
         <div style={{ textAlign: 'center', padding: '60px 20px' }}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>💼</div>
-          <p style={{ fontSize: 16, fontWeight: 600, color: '#6b6b7a' }}>No assets yet</p>
-          <p style={{ fontSize: 13, color: '#4a4a5a', marginTop: 4 }}>Assets you purchase will appear here</p>
+          <p style={{ fontSize: 16, fontWeight: 600, color: 'var(--tec-text-2)' }}>No assets yet</p>
+          <p style={{ fontSize: 13, color: 'var(--tec-text-3)', marginTop: 4 }}>Assets you purchase will appear here</p>
         </div>
       )}
 
       {/* Assets List */}
       {assets.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
+          <div style={{ fontSize: 11, color: 'var(--tec-text-3)', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 4 }}>
             {assets.length} Asset{assets.length !== 1 ? 's' : ''}
           </div>
           {assets.map(asset => (
@@ -192,10 +192,10 @@ export default function AssetsPage() {
                 {/* Wrap to a second line instead of clipping: every NFT in a series
                     shares a prefix ("TEC Genesis — …"), so a single clipped line made
                     all 47 of them read identically. */}
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#ffffff', marginBottom: 3, lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 3, lineHeight: 1.25, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', wordBreak: 'break-word' }}>
                   {assetName(asset)}
                 </div>
-                <div style={{ fontSize: 11, color: '#6b6b7a' }}>
+                <div style={{ fontSize: 11, color: 'var(--tec-text-2)' }}>
                   {(asset.category ?? 'ASSET').replace(/_/g, ' ')}
                 </div>
               </div>
@@ -203,7 +203,7 @@ export default function AssetsPage() {
                 <span style={{ fontSize: 10, fontWeight: 700, color: STATUS_COLOR[asset.status], background: `${STATUS_COLOR[asset.status]}15`, border: `1px solid ${STATUS_COLOR[asset.status]}30`, padding: '3px 8px', borderRadius: 20, letterSpacing: 0.5 }}>
                   {asset.status}
                 </span>
-                <span style={{ fontSize: 10, color: '#4a4a5a' }}>
+                <span style={{ fontSize: 10, color: 'var(--tec-text-3)' }}>
                   {new Date(asset.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </span>
               </div>

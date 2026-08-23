@@ -294,7 +294,9 @@ export default function PioneersClient() {
     : t.tierGettingStarted;
 
   return (
-    <main style={page}>
+    // C.bg is a fixed near-black in both themes, so the brand hue this page
+    // reads has to be pinned to the dark-ground amber too.
+    <main className="tec-on-dark" style={page}>
       <div style={inner}>
         {/* Top bar — eyebrow + language */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>

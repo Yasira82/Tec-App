@@ -17,11 +17,11 @@ function formatDate(iso: string) {
 }
 
 const TYPE_CONFIG: Record<NotifType, { icon: string; color: string; bg: string }> = {
-  PAYMENT:  { icon: '💳', color: '#3b82f6', bg: 'rgba(59,130,246,0.1)'  },
+  PAYMENT:  { icon: '💳', color: 'var(--tec-blue)', bg: 'rgba(59,130,246,0.1)'  },
   WALLET:   { icon: '💰', color: 'var(--tec-gold)', bg: 'rgba(var(--tec-gold-rgb),0.1)'  },
-  KYC:      { icon: '🪪', color: '#8b5cf6', bg: 'rgba(139,92,246,0.1)'  },
-  SECURITY: { icon: '🔒', color: '#ef4444', bg: 'rgba(239,68,68,0.1)'   },
-  SYSTEM:   { icon: '⚙️', color: '#6b7280', bg: 'rgba(107,114,128,0.1)' },
+  KYC:      { icon: '🪪', color: 'var(--tec-purple)', bg: 'rgba(139,92,246,0.1)'  },
+  SECURITY: { icon: '🔒', color: 'var(--tec-red)', bg: 'rgba(239,68,68,0.1)'   },
+  SYSTEM:   { icon: '⚙️', color: 'var(--tec-text-2)', bg: 'rgba(107,114,128,0.1)' },
 };
 
 // ── Notification Card ──────────────────────────────────────────
@@ -149,9 +149,9 @@ export default function NotificationsPage() {
       {error && (
         <div style={{ padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', gap: 12 }}>
           <span>⚠️</span>
-          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: '#ef4444' }}>{error}</span>
+          <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--tec-red)' }}>{error}</span>
           <button onClick={refetch}
-            style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
+            style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--tec-red)', fontSize: 'var(--text-xs)', cursor: 'pointer' }}>
             Retry
           </button>
         </div>

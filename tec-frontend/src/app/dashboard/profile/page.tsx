@@ -27,7 +27,7 @@ function InfoRow({ label, value, mono, copyable }: {
       </div>
       {copyable && (
         <button onClick={copy}
-          style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: copied ? 'rgba(34,197,94,0.1)' : 'var(--tec-surface-1)', border: `1px solid ${copied ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`, color: copied ? '#22C55E' : 'var(--tec-text-2)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+          style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: copied ? 'rgba(34,197,94,0.1)' : 'var(--tec-surface-1)', border: `1px solid ${copied ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)'}`, color: copied ? 'var(--tec-green)' : 'var(--tec-text-2)', fontSize: 'var(--text-xs)', cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
           {copied ? '✓' : 'Copy'}
         </button>
       )}
@@ -50,7 +50,7 @@ export default function ProfilePage() {
   const { kyc }    = useKyc();
   const kycStatus  = (kyc?.status ?? '').toUpperCase();
   const kycVerified = kycStatus === 'VERIFIED';
-  const kycAccent  = kycVerified ? '#22C55E' : kycStatus === 'REJECTED' ? '#ef4444' : 'var(--tec-gold-dark)';
+  const kycAccent  = kycVerified ? 'var(--tec-green)' : kycStatus === 'REJECTED' ? 'var(--tec-red)' : 'var(--tec-gold-dark)';
   const kycMessage = kycVerified
     ? `Verified${kyc?.level ? ` — Level ${kyc.level}` : ''}`
     : kycStatus === 'REJECTED'  ? 'Rejected — please resubmit your documents'
@@ -77,7 +77,7 @@ export default function ProfilePage() {
         background: 'linear-gradient(135deg,rgba(var(--tec-gold-rgb),0.06),rgba(var(--tec-gold-rgb),0.02))',
         border: '1px solid var(--tec-border-gold)', borderRadius: 'var(--radius-xl)',
       }}>
-        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: '#0a0800', boxShadow: '0 4px 20px rgba(var(--tec-gold-rgb),0.25)' }}>
+        <div style={{ width: 72, height: 72, borderRadius: '50%', flexShrink: 0, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28, fontWeight: 900, color: 'var(--tec-on-gold)', boxShadow: '0 4px 20px rgba(var(--tec-gold-rgb),0.25)' }}>
           {initial}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
@@ -88,7 +88,7 @@ export default function ProfilePage() {
             <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: 'var(--tec-gold)', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
               {(user?.role ?? 'USER').toUpperCase()}
             </span>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: '#8b5cf6', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1.5, color: 'var(--tec-purple)', background: 'rgba(139,92,246,0.1)', border: '1px solid rgba(139,92,246,0.25)', padding: '3px 10px', borderRadius: 'var(--radius-full)' }}>
               {planLabel}
             </span>
           </div>
@@ -143,12 +143,12 @@ export default function ProfilePage() {
       {/* ── Connected Apps ────────────────────────── */}
       <DashboardCard title="Connected Apps">
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-3) var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(34,197,94,0.15)', borderRadius: 'var(--radius-md)' }}>
-          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800', flexShrink: 0 }}>T</div>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: 'var(--tec-on-gold)', flexShrink: 0 }}>T</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-text-1)' }}>TEC Platform</div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Pi Network</div>
           </div>
-          <span style={{ fontSize: 10, fontWeight: 700, color: '#22C55E', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 10px', borderRadius: 'var(--radius-full)', letterSpacing: 1 }}>CONNECTED</span>
+          <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--tec-green)', background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', padding: '2px 10px', borderRadius: 'var(--radius-full)', letterSpacing: 1 }}>CONNECTED</span>
         </div>
       </DashboardCard>
 
@@ -177,13 +177,13 @@ export default function ProfilePage() {
       <DashboardCard title="Danger Zone">
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--sp-4)', flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: '#ef4444', marginBottom: 4 }}>Delete Account</div>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-red)', marginBottom: 4 }}>Delete Account</div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
               Permanently delete your account and all associated data.
             </div>
           </div>
           <button onClick={handleDelete}
-            style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: '#ef4444', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
+            style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
             Delete Account
           </button>
         </div>

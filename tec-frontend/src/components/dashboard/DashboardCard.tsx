@@ -14,7 +14,7 @@ interface Props {
 export function DashboardCard({ title, subtitle, action, children, glass, padding }: Props) {
   return (
     <div style={{
-      background:   glass ? 'rgba(255,255,255,0.02)' : 'var(--tec-surface-2)',
+      background:   glass ? 'var(--tec-fill-softer)' : 'var(--tec-surface-2)',
       border:       '1px solid var(--tec-border)',
       borderRadius: 'var(--radius-xl)',
       overflow:     'hidden',

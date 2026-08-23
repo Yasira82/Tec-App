@@ -65,7 +65,7 @@
 
 .planCardActive {
   border-color: var(--gold);
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.05), rgba(201, 168, 76, 0.02));
+  background: linear-gradient(135deg, rgba(var(--tec-gold-rgb), 0.05), rgba(var(--tec-gold-rgb), 0.02));
 }
 
 .planHeader {
@@ -164,7 +164,7 @@
 .currentPlanLabel {
   text-align: center;
   padding: 12px;
-  background: linear-gradient(135deg, rgba(201, 168, 76, 0.2), rgba(201, 168, 76, 0.1));
+  background: linear-gradient(135deg, rgba(var(--tec-gold-rgb), 0.2), rgba(var(--tec-gold-rgb), 0.1));
   border-radius: 8px;
   color: var(--gold);
   font-weight: 500;

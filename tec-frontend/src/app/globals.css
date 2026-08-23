@@ -1,16 +1,31 @@
 /* Fonts are loaded via next/font in layout.tsx – no external @import needed */
 
+/*
+ * The pre-token palette, kept ONLY as aliases.
+ *
+ * These names predate tec-design-tokens.css and still drive roughly twenty
+ * dashboard CSS modules. While they held their own hex values there were two
+ * palettes running side by side: one that followed the theme and one frozen on
+ * a dark page. That is why the dashboard drawer stayed black with unreadable
+ * labels the moment the Hub turned light — nothing was "missing a fix", the
+ * page was painted from the other palette.
+ *
+ * Pointing them at the tokens themes every one of those modules at once, and
+ * without a 20-file rewrite that would have had to be verified page by page.
+ * Do NOT give any of these a literal value again. New code should use the
+ * --tec-* names directly; these exist so the old code follows along.
+ */
 :root {
-  --black:    #050507;
-  --dark:     #0d0d12;
-  --surface:  #12121a;
-  --border:   #1e1e2a;
-  --gold:     #c9a84c;
-  --gold-dim: #8a6e2f;
-  --white:    #f0ede8;
-  --muted:    #6b6b7a;
-  --success:  #2ecc71;
-  --error:    #e74c3c;
+  --black:    var(--tec-bg);
+  --dark:     var(--tec-surface-1);
+  --surface:  var(--tec-surface-2);
+  --border:   var(--tec-border);
+  --gold:     var(--tec-gold);
+  --gold-dim: var(--tec-gold-dark);
+  --white:    var(--tec-text-1);
+  --muted:    var(--tec-text-2);
+  --success:  var(--tec-green);
+  --error:    var(--tec-red);
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -70,12 +85,14 @@ h1, h2, h3 {
   line-height: 1.1;
 }
 
-.gold-text {
-  background: linear-gradient(135deg, #c9a84c, #e8d5a3, #c9a84c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/*
+ * Was a three-stop gradient (#c9a84c → #e8d5a3 → #c9a84c) clipped to the text.
+ * Two problems: the values predate the token layer, so the wallet balance
+ * stayed pale tan on a white page and ignored the theme; and a gradient inside
+ * a number is the same two-tone-gold mistake that was removed everywhere else.
+ * One flat brand value.
+ */
+.gold-text { color: var(--tec-gold); }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }

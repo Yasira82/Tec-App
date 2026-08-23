@@ -10,23 +10,23 @@ interface Props {
 export function MobileTopbar({ mobileOpen, onToggle }: Props) {
   return (
     <div
-      className="tec-mobile-topbar"
+      className="tec-mobile-topbar tec-on-band"
       style={{
-        position: 'fixed', top: 0, left: 0, right: 0,
+        // Sticky, not fixed: fixed took it out of the flow and painted it on
+        // top of the "open in Pi Browser" banner above it.
+        position: 'sticky', top: 0,
         zIndex: 'var(--z-topbar)' as unknown as number,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '14px 20px',
-        background: 'rgba(5,8,22,0.9)',
-        backdropFilter: 'blur(20px)',
-        WebkitBackdropFilter: 'blur(20px)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '14px 20px 16px',
+        background: 'var(--tec-topbar)',
+        borderRadius: '0 0 var(--tec-topbar-radius) var(--tec-topbar-radius)',
       }}>
       <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         <div style={{
           width: 28, height: 28, borderRadius: 8,
           background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 900, fontSize: 11, color: '#0a0800',
+          fontWeight: 900, fontSize: 11, color: 'var(--tec-on-gold)',
         }}>T</div>
         <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5 }}>TEC</span>
       </Link>
@@ -39,15 +39,15 @@ export function MobileTopbar({ mobileOpen, onToggle }: Props) {
         aria-controls="tec-sidebar"
         style={{
           width: 36, height: 36, borderRadius: 10,
-          background: mobileOpen ? 'rgba(var(--tec-gold-rgb),0.1)' : 'rgba(255,255,255,0.06)',
-          border: `1px solid ${mobileOpen ? 'rgba(var(--tec-gold-rgb),0.25)' : 'rgba(255,255,255,0.08)'}`,
+          background: 'var(--tec-fill-soft)',
+          border: '1px solid var(--tec-border)',
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           justifyContent: 'center', gap: 4, cursor: 'pointer', padding: 0,
         }}>
         {[0, 1, 2].map(i => (
           <span key={i} style={{
             width: 16, height: 1.5, borderRadius: 999, display: 'block',
-            background: mobileOpen ? 'var(--tec-gold)' : 'rgba(255,255,255,0.6)',
+            background: mobileOpen ? 'var(--tec-gold)' : 'var(--tec-text-1)',
             transform: mobileOpen
               ? i === 0 ? 'rotate(45deg) translate(4px,4px)'
               : i === 2 ? 'rotate(-45deg) translate(4px,-4px)'

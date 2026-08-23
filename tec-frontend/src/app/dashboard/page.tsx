@@ -106,7 +106,7 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
           <span style={{ width: 10, height: 3, borderRadius: 2, background: 'var(--tec-gold)' }} />{spentLabel}
         </span>
         <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color: 'var(--tec-text-3)' }}>
-          <span style={{ width: 10, height: 3, borderRadius: 2, background: '#22C55E' }} />{receivedLabel}
+          <span style={{ width: 10, height: 3, borderRadius: 2, background: 'var(--tec-green)' }} />{receivedLabel}
         </span>
       </div>
 
@@ -122,14 +122,14 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
             <line key={r}
               x1={PAD.l} y1={PAD.t + innerH * (1 - r)}
               x2={PAD.l + innerW} y2={PAD.t + innerH * (1 - r)}
-              stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+              stroke="var(--tec-fill-soft)" strokeWidth={1} />
           ))}
 
           {/* Y axis labels */}
           {[0, 0.5, 1].map(r => (
             <text key={r}
               x={PAD.l - 4} y={PAD.t + innerH * (1 - r) + 4}
-              textAnchor="end" fontSize={8} fill="rgba(255,255,255,0.3)">
+              textAnchor="end" fontSize={8} fill="var(--tec-text-3)">
               {(maxVal * r).toFixed(0)}π
             </text>
           ))}
@@ -141,7 +141,7 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
           <polyline points={seriesPolyline('spent')} fill="none" stroke="var(--tec-gold)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
 
           {/* Received line */}
-          <polyline points={seriesPolyline('received')} fill="none" stroke="#22C55E" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 0" />
+          <polyline points={seriesPolyline('received')} fill="none" stroke="var(--tec-green)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" strokeDasharray="1 0" />
 
           <defs>
             <linearGradient id="gold-grad" x1="0" y1="0" x2="0" y2="1">
@@ -154,8 +154,8 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
           {chartData.map((d, i) => (
             <g key={i}>
               {d.spent    > 0 && <circle cx={xOf(i)} cy={yOf(d.spent)}    r={3.5} fill="var(--tec-gold)" />}
-              {d.received > 0 && <circle cx={xOf(i)} cy={yOf(d.received)} r={3.5} fill="#22C55E" />}
-              <text x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={8} fill="rgba(255,255,255,0.4)">
+              {d.received > 0 && <circle cx={xOf(i)} cy={yOf(d.received)} r={3.5} fill="var(--tec-green)" />}
+              <text x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={8} fill="var(--tec-text-3)">
                 {d.label}
               </text>
             </g>
@@ -169,13 +169,13 @@ function BalanceChart({ payments, noDataLabel, spentLabel, receivedLabel, locale
 // ── Transaction Type Config (icon + color; label comes from i18n) ──
 const TX_CONFIG: Record<string, { icon: string; color: string }> = {
   payment:   { icon: '💳', color: 'var(--tec-gold)' },
-  receive:   { icon: '📥', color: '#22C55E' },
-  credit:    { icon: '📥', color: '#22C55E' },
-  debit:     { icon: '📤', color: '#ef4444' },
-  transfer:  { icon: '↔️', color: '#3b82f6' },
-  refund:    { icon: '↩️', color: '#8b5cf6' },
+  receive:   { icon: '📥', color: 'var(--tec-green)' },
+  credit:    { icon: '📥', color: 'var(--tec-green)' },
+  debit:     { icon: '📤', color: 'var(--tec-red)' },
+  transfer:  { icon: '↔️', color: 'var(--tec-blue)' },
+  refund:    { icon: '↩️', color: 'var(--tec-purple)' },
   withdraw:  { icon: '📤', color: 'var(--tec-gold-dark)' },
-  deposit:   { icon: '📥', color: '#22C55E' },
+  deposit:   { icon: '📥', color: 'var(--tec-green)' },
 };
 
 interface TxLabels {
@@ -192,8 +192,8 @@ function TxRow({ payment, txLabels, detail, locale }: { payment: Payment } & TxL
   const cfg     = { ...meta, label: txLabels[type] ?? payment.type };
   const positive = ['credit', 'receive', 'refund', 'deposit'].includes(type);
 
-  const statusColor = payment.status === 'completed' ? '#22C55E'
-    : payment.status === 'failed'    ? '#ef4444' : 'var(--tec-gold-dark)';
+  const statusColor = payment.status === 'completed' ? 'var(--tec-green)'
+    : payment.status === 'failed'    ? 'var(--tec-red)' : 'var(--tec-gold-dark)';
 
   return (
     <div onClick={() => setExpanded(p => !p)}
@@ -225,7 +225,7 @@ function TxRow({ payment, txLabels, detail, locale }: { payment: Payment } & TxL
 
         {/* Amount */}
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: positive ? '#22C55E' : 'var(--tec-text-1)', lineHeight: 1 }}>
+          <div style={{ fontSize: 'var(--text-lg)', fontWeight: 800, color: positive ? 'var(--tec-green)' : 'var(--tec-text-1)', lineHeight: 1 }}>
             {positive ? '+' : '-'}{Number(payment.amount).toFixed(2)}π
           </div>
           <div style={{ fontSize: 10, color: 'var(--tec-text-3)', marginTop: 2 }}>
@@ -377,7 +377,7 @@ export default function DashboardPage() {
         <div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 4 }}>{t.dashboard.greeting}</div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: '#0a0800' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--tec-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 900, color: 'var(--tec-on-gold)' }}>
               {user?.piUsername?.[0]?.toUpperCase()}
             </div>
             <div>
@@ -391,7 +391,7 @@ export default function DashboardPage() {
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {kycVerified !== null && (
-            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: kycVerified ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${kycVerified ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, color: kycVerified ? '#22C55E' : '#ef4444' }}>
+            <span style={{ fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 'var(--radius-full)', background: kycVerified ? 'rgba(34,197,94,0.1)' : 'rgba(239,68,68,0.1)', border: `1px solid ${kycVerified ? 'rgba(34,197,94,0.25)' : 'rgba(239,68,68,0.25)'}`, color: kycVerified ? 'var(--tec-green)' : 'var(--tec-red)' }}>
               {kycVerified ? t.dashboard.header.kycVerified : t.dashboard.header.kycPending}
             </span>
           )}
@@ -411,7 +411,7 @@ export default function DashboardPage() {
           <span style={{ fontSize: 16 }}>⚠️</span>
           <span style={{ flex: 1, fontSize: 'var(--text-sm)', color: 'var(--tec-text-2)' }}>{t.dashboard.errors.loadFailed}</span>
           <button onClick={refreshAll} disabled={refreshing} className="tec-btn"
-            style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: '#ef4444', fontSize: 'var(--text-xs)', fontWeight: 700, cursor: refreshing ? 'default' : 'pointer' }}>
+            style={{ padding: '5px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)', color: 'var(--tec-red)', fontSize: 'var(--text-xs)', fontWeight: 700, cursor: refreshing ? 'default' : 'pointer' }}>
             {t.dashboard.errors.retry}
           </button>
         </div>
@@ -421,8 +421,8 @@ export default function DashboardPage() {
       <div className="tec-fade-in" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))', gap: 'var(--sp-3)', marginBottom: 'var(--sp-6)' }}>
         <StatCard icon="π"  label={t.dashboard.stats.piBalance} value={balance !== null ? `${balance.toFixed(2)}π` : '—π'} sub={t.dashboard.stats.walletBalance} accent="var(--tec-gold)" />
         <StatCard icon="📤" label={t.dashboard.stats.piSpent}   value={`${totalPiSpent.toFixed(2)}π`}                    sub={`${completedPayments.length} ${t.dashboard.stats.transactions}`} accent="var(--tec-text-1)" />
-        <StatCard icon="🚀" label={t.dashboard.stats.liveApps}  value={`${LIVE_APPS.length}`}                             sub={fmt(t.dashboard.stats.ofTotal, LIVE_DOMAINS.length + COMING_SOON.length)} accent="#22C55E" />
-        <StatCard icon="◈"  label={t.dashboard.stats.plan}      value={planLabel} sub={userPro ? t.dashboard.stats.activeSub : t.dashboard.stats.upgradeAvail} accent={userPro ? '#8b5cf6' : 'var(--tec-text-2)'} />
+        <StatCard icon="🚀" label={t.dashboard.stats.liveApps}  value={`${LIVE_APPS.length}`}                             sub={fmt(t.dashboard.stats.ofTotal, LIVE_DOMAINS.length + COMING_SOON.length)} accent="var(--tec-green)" />
+        <StatCard icon="◈"  label={t.dashboard.stats.plan}      value={planLabel} sub={userPro ? t.dashboard.stats.activeSub : t.dashboard.stats.upgradeAvail} accent={userPro ? 'var(--tec-purple)' : 'var(--tec-text-2)'} />
       </div>
 
       {/* ── Tabs ───────────────────────────────────────── */}
@@ -455,9 +455,9 @@ export default function DashboardPage() {
           <DashboardCard title={t.dashboard.overview.quickActions}>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(140px,1fr))', gap: 'var(--sp-3)' }}>
               {[
-                { label: t.dashboard.overview.wallet,        icon: '💳', href: '/dashboard/wallet',        color: '#3b82f6' },
-                { label: t.dashboard.overview.kyc,           icon: '🪪', href: '/dashboard/kyc',           color: '#22C55E' },
-                { label: t.dashboard.overview.subscription,  icon: '◈',  href: '/dashboard/subscription',  color: '#8b5cf6' },
+                { label: t.dashboard.overview.wallet,        icon: '💳', href: '/dashboard/wallet',        color: 'var(--tec-blue)' },
+                { label: t.dashboard.overview.kyc,           icon: '🪪', href: '/dashboard/kyc',           color: 'var(--tec-green)' },
+                { label: t.dashboard.overview.subscription,  icon: '◈',  href: '/dashboard/subscription',  color: 'var(--tec-purple)' },
                 { label: t.dashboard.overview.notifications, icon: '🔔', href: '/dashboard/notifications', color: 'var(--tec-gold-dark)' },
               ].map(a => (
                 <button key={a.href} onClick={() => router.push(a.href)} className="tec-btn"
@@ -475,10 +475,10 @@ export default function DashboardPage() {
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 'var(--sp-4) var(--sp-5)', width: '100%', textAlign: dir === 'rtl' ? 'right' : 'left', background: 'linear-gradient(135deg, rgba(139,92,246,0.12), rgba(139,92,246,0.05))', border: '1px solid rgba(139,92,246,0.3)', borderRadius: 'var(--radius-lg)', cursor: 'pointer' }}>
               <span style={{ fontSize: 24 }}>◈</span>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 'var(--text-base)', fontWeight: 800, color: '#a78bfa' }}>{t.dashboard.pro.title}</div>
+                <div style={{ fontSize: 'var(--text-base)', fontWeight: 800, color: 'var(--tec-purple)' }}>{t.dashboard.pro.title}</div>
                 <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.dashboard.pro.desc}</div>
               </div>
-              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: '#a78bfa', flexShrink: 0 }}>
+              <span style={{ fontSize: 'var(--text-sm)', fontWeight: 700, padding: '6px 14px', borderRadius: 'var(--radius-full)', background: 'rgba(139,92,246,0.15)', border: '1px solid rgba(139,92,246,0.35)', color: 'var(--tec-purple)', flexShrink: 0 }}>
                 {t.dashboard.pro.cta} {dir === 'rtl' ? '←' : '→'}
               </span>
             </button>
@@ -525,7 +525,7 @@ export default function DashboardPage() {
                   <div style={{ width: 54, height: 54, borderRadius: 17, background: 'linear-gradient(135deg, rgba(var(--tec-gold-rgb),0.18), rgba(var(--tec-gold-rgb),0.05))', border: '1px solid rgba(var(--tec-gold-rgb),0.28)', boxShadow: '0 4px 14px rgba(var(--tec-gold-rgb),0.10)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Icon name={iconOf(app.slug)} size={26} color={accentOf(app.slug)} strokeWidth={1.8} />
                   </div>
-                  <span style={{ fontSize: 11, fontWeight: 600, color: 'rgba(255,255,255,0.82)', textAlign: 'center', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--tec-text-2)', textAlign: 'center', lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
                     {app.name}
                   </span>
                 </button>
@@ -600,7 +600,7 @@ export default function DashboardPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 1, background: 'var(--tec-border)', marginBottom: 1 }}>
                   {[
                     { label: t.dashboard.activity.total,     value: payments.length,               color: 'var(--tec-text-1)' },
-                    { label: t.dashboard.activity.completed, value: completedPayments.length,      color: '#22C55E'           },
+                    { label: t.dashboard.activity.completed, value: completedPayments.length,      color: 'var(--tec-green)'           },
                     { label: t.dashboard.activity.volume,    value: `${totalPiSpent.toFixed(1)}π`, color: 'var(--tec-gold)'   },
                   ].map(s => (
                     <div key={s.label} style={{ padding: 'var(--sp-3)', background: 'var(--tec-surface-2)', textAlign: 'center' }}>

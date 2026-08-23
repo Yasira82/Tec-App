@@ -70,7 +70,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           style={{
             position: 'fixed', inset: 0,
             zIndex: 200,
-            background: 'rgba(5,8,22,0.75)',
+            background: 'var(--tec-bg)',
             backdropFilter: 'blur(8px)',
             WebkitBackdropFilter: 'blur(8px)',
           }}
@@ -93,26 +93,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         />
       </div>
 
-      {/* ── Mobile Top Bar ─────────────────────────── */}
-      {!isDesktop && (
-        <MobileTopbar
-          mobileOpen={mobileOpen}
-          onToggle={() => setMobileOpen(p => !p)}
-        />
-      )}
+      {/* ── Topbar + content ───────────────────────────
+          One COLUMN inside the row. The topbar used to be `fixed`, which kept
+          it out of the flow entirely — so it painted over the "open in Pi
+          Browser" banner, and the content underneath needed a hand-tuned
+          offset to clear it. Sticky fixes both, but only from inside a column:
+          as a direct child of the row it became a flex sibling of <main> and
+          ate a third of the viewport width. */}
+      <div style={{
+        flex: 1,
+        // Without this a wide child (a table, a long balance) refuses to
+        // shrink below its content and pushes the column past the viewport.
+        minWidth: 0,
+        display: 'flex', flexDirection: 'column',
+      }}>
+        {!isDesktop && (
+          <MobileTopbar
+            mobileOpen={mobileOpen}
+            onToggle={() => setMobileOpen(p => !p)}
+          />
+        )}
 
-     {/* ── Main Content ───────────────────────────── */}
-      <main
-        className="tec-main-content"
-        style={{
-          flex: 1,
-          marginLeft: isDesktop ? 240 : 0,
-          marginTop:  isDesktop ? 0   : 64,
-          minHeight:  '100vh',
-          transition: 'margin-left 0.3s ease, margin-top 0.3s ease',
-        }}>
-        {children}
-      </main>
+        <main
+          className="tec-main-content"
+          style={{
+            flex: 1,
+            marginLeft: isDesktop ? 240 : 0,
+            transition: 'margin-left 0.3s ease',
+          }}>
+          {children}
+        </main>
+      </div>
     </div>
   );
 } 

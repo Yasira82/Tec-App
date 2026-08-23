@@ -67,7 +67,7 @@ export default function HomePage() {
   const openApp = (_app: EcosystemApp) => goToSignIn();
 
   return (
-    <main className={styles.main} dir={dir}>
+    <main className={`${styles.main} tec-on-dark`} dir={dir}>
       {/* Background */}
       <div className={styles.bg} aria-hidden>
         <div className={styles.bgOrb1} />
@@ -276,7 +276,9 @@ export default function HomePage() {
       {/* Floating AI Button */}
       <Link href="/ai" className={styles.floatingAi} aria-label="TEC Assistant">
         <span className={styles.floatingAiIcon}>
-          <Icon name="spark" size={26} color="var(--tec-bg)" strokeWidth={1.9} />
+          {/* Ink on a gold disc, not on the page: --tec-bg turned this icon
+              near-white on a light phone, invisible against the gold. */}
+          <Icon name="spark" size={26} color="var(--tec-on-gold)" strokeWidth={1.9} />
         </span>
         <span className={styles.floatingAiPulse} />
       </Link>

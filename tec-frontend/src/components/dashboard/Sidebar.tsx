@@ -91,21 +91,21 @@ export function Sidebar({ user, onLogout }: Props) {
       style={{
         width: 240, flexShrink: 0,
         height: '100%',
-        background: 'rgba(10,10,15,0.97)',
+        background: 'var(--tec-surface-1)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        borderRight: '1px solid rgba(255,255,255,0.06)',
+        borderRight: '1px solid var(--tec-fill-soft)',
         display: 'flex', flexDirection: 'column',
       }}>
 
       {/* ── Logo ─────────────────────────────────────── */}
-      <div style={{ padding: 'var(--sp-5) var(--sp-5) var(--sp-4)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ padding: 'var(--sp-5) var(--sp-5) var(--sp-4)', borderBottom: '1px solid var(--tec-fill-soft)' }}>
         <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div style={{
             width: 36, height: 36, borderRadius: 11,
             background: 'var(--tec-gold)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 900, fontSize: 14, color: '#0a0800',
+            fontWeight: 900, fontSize: 14, color: 'var(--tec-on-gold)',
             boxShadow: '0 2px 12px rgba(var(--tec-gold-rgb),0.3)',
           }}>T</div>
           <div>
@@ -116,17 +116,17 @@ export function Sidebar({ user, onLogout }: Props) {
       </div>
 
       {/* ── User card ─────────────────────────────────── */}
-      <div style={{ padding: 'var(--sp-3) var(--sp-4)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ padding: 'var(--sp-3) var(--sp-4)', borderBottom: '1px solid var(--tec-fill-soft)', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 34, height: 34, borderRadius: '50%',
           background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 13, fontWeight: 800, color: '#0a0800', flexShrink: 0,
+          fontSize: 13, fontWeight: 800, color: 'var(--tec-on-gold)', flexShrink: 0,
         }}>
           {user?.piUsername?.[0]?.toUpperCase() ?? 'U'}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--tec-text-1)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             @{user?.piUsername}
           </div>
           <div style={{ fontSize: 10, color: 'var(--tec-text-3)' }}>
@@ -138,7 +138,7 @@ export function Sidebar({ user, onLogout }: Props) {
             because KYC was pending — two unrelated facts under one label. */}
         <div style={{
           fontSize: 9, fontWeight: 700, letterSpacing: 1,
-          color: isPaid ? '#a78bfa' : 'var(--tec-gold)',
+          color: isPaid ? 'var(--tec-purple)' : 'var(--tec-gold)',
           background: isPaid ? 'rgba(139,92,246,0.12)' : 'var(--tec-gold-glow)',
           border: `1px solid ${isPaid ? 'rgba(139,92,246,0.35)' : 'var(--tec-border-gold)'}`,
           borderRadius: 'var(--radius-full)', padding: '2px 8px',
@@ -198,7 +198,7 @@ export function Sidebar({ user, onLogout }: Props) {
       </nav>
 
       {/* ── Bottom ───────────────────────────────────── */}
-      <div style={{ padding: 'var(--sp-3)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+      <div style={{ padding: 'var(--sp-3)', borderTop: '1px solid var(--tec-fill-soft)' }}>
 
         {/* Install — the prompt existed but only ever rendered on the landing page,
             so a signed-in user could never reach it. Hidden once already installed. */}

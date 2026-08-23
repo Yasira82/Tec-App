@@ -277,6 +277,44 @@
   --tec-gold-glow:   rgba(251,180,74,0.10);
 }
 
+/* A surface that is dark in BOTH themes — the marketing landing and the
+   Pioneers campaign, which paint their own near-black ground by design and
+   should not flip to white.
+   They still read the palette from here, though, so on a light phone they
+   got light-theme values on a black ground: the LIGHT amber (#FEA500, chosen
+   to hold up on white) went muddy, and any shared component dropped on the
+   page — the language switcher, a button — turned near-black ink on a
+   near-black fill and disappeared.
+   So this pins the WHOLE dark palette, not only the hue: the pages keep
+   their own hardcoded ground, and everything themed that lands on them
+   inherits ink and surfaces that suit it.
+   Use `.tec-on-band` instead for the topbar strip: that one re-scopes
+   surfaces to a translucent fill over the band colour, which would flatten a
+   whole page into one flat sheet. */
+.tec-on-dark {
+  --tec-gold:        #FBB44A;
+  --tec-gold-rgb:    251, 180, 74;
+  --tec-gold-dark:   #E8962A;
+  --tec-gold-light:  #FDCF7A;
+  --tec-gold-dim:    rgba(251,180,74,0.15);
+  --tec-gold-glow:   rgba(251,180,74,0.08);
+  --tec-border-gold: rgba(251,180,74,0.28);
+  --tec-on-gold:     #0a0800;
+
+  --tec-text-1:      rgba(255,255,255,0.92);
+  --tec-text-2:      rgba(255,255,255,0.62);
+  --tec-text-3:      rgba(255,255,255,0.38);
+  --tec-text-4:      rgba(255,255,255,0.25);
+  --tec-icon:        rgba(255,255,255,0.80);
+
+  --tec-surface-1:   #21212a;
+  --tec-surface-2:   #2c2c37;
+  --tec-surface-3:   #383844;
+  --tec-border:      rgba(255,255,255,0.07);
+  --tec-fill-soft:   rgba(255,255,255,0.05);
+  --tec-fill-softer: rgba(255,255,255,0.02);
+}
+
 /* ── Global resets ───────────────────────────────────── */
 *, *::before, *::after {
   -webkit-tap-highlight-color: transparent;

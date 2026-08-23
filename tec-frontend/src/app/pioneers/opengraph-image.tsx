@@ -1,3 +1,15 @@
+/*
+ * NOTE — literal hexes on purpose.
+ *
+ * This file renders through Satori (`next/og`), which rasterises to PNG on the
+ * server. It resolves no CSS custom properties: `var(--tec-gold)` here paints
+ * nothing. The card also has a fixed dark background and is seen outside the
+ * app entirely, so it has no theme to follow — the dark-theme brand amber is
+ * simply the brand amber for a share card.
+ *
+ * Keep these in step with --tec-gold / --tec-gold-rgb in tec-design-tokens.css.
+ * The brand-literal guard in theme-choice.test.ts exempts this path by name.
+ */
 import { ImageResponse } from 'next/og';
 import { LIVE_DOMAINS } from '@/domains/_registry';
 
@@ -33,7 +45,7 @@ export default function PioneersOG() {
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'linear-gradient(rgba(var(--tec-gold-rgb),0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--tec-gold-rgb),0.06) 1px, transparent 1px)',
+              'linear-gradient(rgba(251,180,74,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(251,180,74,0.06) 1px, transparent 1px)',
             backgroundSize: '80px 80px',
             display: 'flex',
           }}
@@ -59,19 +71,19 @@ export default function PioneersOG() {
             alignItems: 'center',
             gap: '10px',
             padding: '8px 22px',
-            border: '1px solid rgba(var(--tec-gold-rgb),0.3)',
+            border: '1px solid rgba(251,180,74,0.3)',
             borderRadius: '100px',
-            background: 'rgba(var(--tec-gold-rgb),0.07)',
+            background: 'rgba(251,180,74,0.07)',
             marginBottom: '36px',
           }}
         >
-          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--tec-gold)', boxShadow: '0 0 10px var(--tec-gold)', display: 'flex' }} />
+          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FBB44A', boxShadow: '0 0 10px #FBB44A', display: 'flex' }} />
           <span
             style={{
               fontSize: '15px',
               letterSpacing: '0.24em',
               textTransform: 'uppercase',
-              color: 'rgba(var(--tec-gold-rgb),0.85)',
+              color: 'rgba(251,180,74,0.85)',
             }}
           >
             Founding 100 · Live on Pi Mainnet
@@ -87,7 +99,7 @@ export default function PioneersOG() {
             style={{
               fontSize: '92px',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, var(--tec-gold-light), var(--tec-gold), var(--tec-gold-dark))',
+              background: 'linear-gradient(135deg, #FDCF7A, #FBB44A, #E8962A)',
               backgroundClip: 'text',
               color: 'transparent',
               letterSpacing: '-0.02em',
@@ -108,10 +120,10 @@ export default function PioneersOG() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            border: '1px solid rgba(var(--tec-gold-rgb),0.12)',
+            border: '1px solid rgba(251,180,74,0.12)',
             borderRadius: '16px',
             overflow: 'hidden',
-            background: 'rgba(var(--tec-gold-rgb),0.02)',
+            background: 'rgba(251,180,74,0.02)',
           }}
         >
           {[
@@ -120,9 +132,9 @@ export default function PioneersOG() {
             { num: '1', label: 'Pi identity' },
           ].map((s, i) => (
             <div key={s.label} style={{ display: 'flex', alignItems: 'center' }}>
-              {i > 0 && <div style={{ width: '1px', height: '44px', background: 'rgba(var(--tec-gold-rgb),0.12)' }} />}
+              {i > 0 && <div style={{ width: '1px', height: '44px', background: 'rgba(251,180,74,0.12)' }} />}
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', padding: '20px 52px' }}>
-                <span style={{ fontSize: '44px', fontWeight: 600, color: 'var(--tec-gold)', lineHeight: 1 }}>{s.num}</span>
+                <span style={{ fontSize: '44px', fontWeight: 600, color: '#FBB44A', lineHeight: 1 }}>{s.num}</span>
                 <span style={{ fontSize: '11px', letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(229,231,235,0.4)' }}>
                   {s.label}
                 </span>
@@ -131,7 +143,7 @@ export default function PioneersOG() {
           ))}
         </div>
 
-        <p style={{ position: 'absolute', bottom: '32px', right: '44px', fontSize: '13px', color: 'rgba(var(--tec-gold-rgb),0.35)', letterSpacing: '0.1em' }}>
+        <p style={{ position: 'absolute', bottom: '32px', right: '44px', fontSize: '13px', color: 'rgba(251,180,74,0.35)', letterSpacing: '0.1em' }}>
           hub.tecosystem.app/pioneers
         </p>
       </div>

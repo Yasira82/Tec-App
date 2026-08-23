@@ -26,7 +26,7 @@ export default function Header() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 32, height: 32, borderRadius: 10,
-          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+          background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 13, color: '#0a0800',
           boxShadow: '0 2px 10px rgba(var(--tec-gold-rgb),0.25)',
@@ -53,7 +53,7 @@ export default function Header() {
             }}>
               <div style={{
                 width: 22, height: 22, borderRadius: '50%',
-                background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+                background: 'var(--tec-gold)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: 10, fontWeight: 800, color: '#0a0800',
               }}>

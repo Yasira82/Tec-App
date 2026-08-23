@@ -237,7 +237,7 @@
 .input::placeholder { color: rgba(216,208,192,0.25); }
 .sendBtn {
   width: 36px; height: 36px; border-radius: 10px;
-  background: linear-gradient(135deg, var(--tec-gold), #a08020);
+  background: var(--tec-gold);
   border: none; cursor: pointer;
   color: #080810; font-size: 18px; font-weight: bold;
   display: flex; align-items: center; justify-content: center;

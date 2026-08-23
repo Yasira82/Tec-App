@@ -113,7 +113,7 @@
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: 22px;
   font-weight: 400;
-  color: #a08020;
+  color: var(--tec-gold);
   letter-spacing: 0.15em;
 }
 
@@ -203,7 +203,7 @@
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: clamp(72px, 12vw, 120px);
   font-weight: 600;
-  background: linear-gradient(135deg, #f5d060 0%, var(--tec-gold) 40%, #a08020 100%);
+  background: var(--tec-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -371,7 +371,7 @@
   font-family: var(--font-cormorant), 'Cormorant Garamond', serif;
   font-size: 36px;
   font-weight: 500;
-  background: linear-gradient(135deg, #f5d060, var(--tec-gold));
+  background: var(--tec-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -436,7 +436,7 @@
 }
 
 .goldText {
-  background: linear-gradient(135deg, #f5d060 0%, var(--tec-gold) 50%, #a08020 100%);
+  background: var(--tec-gold);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -818,7 +818,7 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--tec-gold), #a08020);
+  background: var(--tec-gold);
   display: flex;
   align-items: center;
   justify-content: center;

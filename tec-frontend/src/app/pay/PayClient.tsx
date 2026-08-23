@@ -293,7 +293,7 @@ const styles: Record<string, React.CSSProperties> = {
   },
   btn: {
     width: '100%', padding: '16px',
-    background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+    background: 'var(--tec-gold)',
     border: 'none', borderRadius: 16,
     color: '#0a0800', fontSize: 16, fontWeight: 800, cursor: 'pointer',
   },

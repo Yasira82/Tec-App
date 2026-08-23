@@ -70,7 +70,7 @@ function AssetThumb({ asset }: { asset: Asset }) {
 
 const STATUS_COLOR: Record<string, string> = {
   ACTIVE:  '#7ee7c0',
-  PENDING: '#f0c040',
+  PENDING: 'var(--tec-gold)',
   LOCKED:  '#e74c3c',
   ON_SALE: '#7eb8f7',
 };

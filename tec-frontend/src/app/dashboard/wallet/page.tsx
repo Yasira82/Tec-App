@@ -51,7 +51,7 @@ const inputStyle: React.CSSProperties = {
   fontSize: 14, outline: 'none', boxSizing: 'border-box',
 };
 const btnPrimary: React.CSSProperties = {
-  padding: '10px 20px', background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+  padding: '10px 20px', background: 'var(--tec-gold)',
   border: 'none', borderRadius: 10, color: '#0a0800', fontSize: 13, fontWeight: 700, cursor: 'pointer',
 };
 const btnOutline: React.CSSProperties = {

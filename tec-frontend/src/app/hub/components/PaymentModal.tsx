@@ -170,7 +170,7 @@ await new Promise(r => setTimeout(r, 1000));
       }}>
         <div style={{
           width: 64, height: 64, borderRadius: 20,
-          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+          background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: 'var(--tec-on-gold)',
         }}>T</div>
@@ -203,7 +203,7 @@ await new Promise(r => setTimeout(r, 1000));
               disabled={!isReady}
               style={{
                 padding: '18px 48px', borderRadius: 20,
-                background: isReady ? 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))' : '#333',
+                background: isReady ? 'var(--tec-gold)' : '#333',
                 border: 'none',
                 color: isReady ? 'var(--tec-on-gold)' : 'var(--tec-text-3)',
                 fontSize: 18, fontWeight: 900,
@@ -247,7 +247,7 @@ await new Promise(r => setTimeout(r, 1000));
         {status === 'cancelled' && (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <div style={{ fontSize: 48 }}>⚠️</div>
-            <div style={{ fontSize: 16, fontWeight: 700, color: '#f0c040' }}>{p.cancelledTitle}</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--tec-gold)' }}>{p.cancelledTitle}</div>
             <button
               onClick={onClose}
               style={{
@@ -285,7 +285,7 @@ await new Promise(r => setTimeout(r, 1000));
                 }}
                 style={{
                   padding: '12px 24px', borderRadius: 14,
-                  background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+                  background: 'var(--tec-gold)',
                   border: 'none', color: 'var(--tec-on-gold)',
                   fontSize: 13, fontWeight: 700, cursor: 'pointer',
                 }}

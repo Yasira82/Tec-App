@@ -46,7 +46,6 @@
   --tec-gold-light:  #FDCF7A;
   --tec-gold-dim:    rgba(251,180,74,0.15);
   --tec-gold-glow:   rgba(251,180,74,0.08);
-  --tec-gold-grad:   linear-gradient(135deg, #FBB44A, #E8962A);
   /* Ink that sits ON the gold gradient — a light-on-gold label fails contrast,
      so the pairing is fixed here rather than guessed per component. */
   --tec-on-gold:     #0a0800;
@@ -179,7 +178,6 @@
   --tec-gold-dim:    rgba(254,165,0,0.20);
   --tec-gold-glow:   rgba(254,165,0,0.10);
   --tec-gold-light:  #FFC04D;
-  --tec-gold-grad:   linear-gradient(135deg, #FEA500, #E08800);
   --tec-on-gold:     #0a0800;
   --tec-accent-tile: rgba(254,165,0,0.18);
   --tec-green:       #15803d;
@@ -210,7 +208,6 @@
     --tec-gold-rgb:    254, 165, 0;
     --tec-gold-dark:   #E08800;
     --tec-gold-light:  #FFC04D;
-    --tec-gold-grad:   linear-gradient(135deg, #FEA500, #E08800);
     --tec-gold-dim:    rgba(254,165,0,0.20);
     --tec-gold-glow:   rgba(254,165,0,0.10);
     --tec-on-gold:     #0a0800;

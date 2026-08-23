@@ -181,6 +181,14 @@ describe('the token layer backs both themes', () => {
     expect(css).not.toContain('--tec-gold-ink');
   });
 
+  it('paints solid gold FLAT — no two-tone fill', () => {
+    // Every filled gold shape ran `linear-gradient(135deg, gold, gold-dark)`,
+    // so the logo tile, the avatar and the assistant button all ended darker
+    // than the gold text beside them. One accent means one value, including
+    // inside a fill.
+    expect(css).not.toContain('--tec-gold-grad');
+  });
+
   it('leaves no hardcoded brand hex outside the token layer', () => {
     // The accent is now two values chosen by theme. Anything still naming a
     // literal is frozen on one of them and looks wrong in the other — which is
@@ -196,7 +204,17 @@ describe('the token layer backs both themes', () => {
         // ambers and picks between them with the same media query.
         if (!/\.(ts|tsx|css)$/.test(e.name) || e.name === 'tec-design-tokens.css') continue;
         if (full.endsWith(join('app', 'layout.tsx'))) continue;
-        if (/#F8B820|#FBB44A|#FEA500|rgba\(\s*248\s*,\s*184\s*,\s*32/i.test(readFileSync(full, 'utf8'))) {
+        // Satori (next/og) rasterises these on the server and resolves no CSS
+        // custom properties — a var() here paints nothing. They also render on
+        // a fixed dark background outside the app, so there is no theme to
+        // follow. They name the dark brand amber directly, and say so.
+        if (e.name === 'opengraph-image.tsx') continue;
+        // The whole gold family, not just the current pair: #f5d060, #a08020,
+        // #d4af37, #f0c040 and #ffd700 were all still sitting in components,
+        // survivors of earlier colour changes that only swept the value of the
+        // day.
+        const GOLD = /#F8B820|#FBB44A|#FEA500|#FABE25|#FBBF24|#f5d060|#a08020|#d4af37|#f0c040|#ffd700|rgba\(\s*248\s*,\s*184\s*,\s*32|rgba\(\s*216\s*,\s*136\s*,\s*16/i;
+        if (GOLD.test(readFileSync(full, 'utf8'))) {
           bad.push(full.slice(src.length + 1));
         }
       }

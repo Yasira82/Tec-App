@@ -17,7 +17,7 @@ export function ToastContainer({ toasts, onDismiss }: {
     success: { bg: '#051a0a', border: '#7ee7c040', color: '#7ee7c0', icon: '✅' },
     error:   { bg: '#1a0505', border: '#e74c3c40', color: '#e74c3c', icon: '❌' },
     info:    { bg: '#0a0f1a', border: '#7eb8f740', color: '#7eb8f7', icon: 'ℹ️' },
-    warning: { bg: '#1a1505', border: '#f0c04040', color: '#f0c040', icon: '⚠️' },
+    warning: { bg: '#1a1505', border: 'var(--tec-gold)40', color: 'var(--tec-gold)', icon: '⚠️' },
   };
   return (
     <div style={{ position: 'fixed', top: 70, left: 16, right: 16, zIndex: 999, display: 'flex', flexDirection: 'column', gap: 8, pointerEvents: 'none' }}>

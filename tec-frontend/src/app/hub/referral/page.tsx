@@ -306,7 +306,7 @@ function btn(active: boolean): React.CSSProperties {
 function btnGold(disabled = false): React.CSSProperties {
   return {
     padding: '10px 18px', borderRadius: 'var(--radius-md)',
-    background: disabled ? 'var(--tec-surface-1)' : 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+    background: disabled ? 'var(--tec-surface-1)' : 'var(--tec-gold)',
     border: 'none', color: disabled ? 'var(--tec-text-3)' : '#0a0800',
     fontSize: 'var(--text-sm)', fontWeight: 800,
     cursor: disabled ? 'not-allowed' : 'pointer', whiteSpace: 'nowrap',

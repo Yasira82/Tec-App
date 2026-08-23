@@ -24,7 +24,7 @@ export function MobileTopbar({ mobileOpen, onToggle }: Props) {
       <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none' }}>
         <div style={{
           width: 28, height: 28, borderRadius: 8,
-          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+          background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 900, fontSize: 11, color: '#0a0800',
         }}>T</div>

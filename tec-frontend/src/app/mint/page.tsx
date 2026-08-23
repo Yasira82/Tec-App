@@ -41,7 +41,7 @@ function MintPageInner() {
   const [sdkReady, setSdkReady] = useState(false);
   const hasStarted = useRef(false);
 
-  const tierColor = tier === 'Legendary'  ? '#ffd700'
+  const tierColor = tier === 'Legendary'  ? 'var(--tec-gold)'
                   : tier === 'Ultra Rare' ? '#b39ddb'
                   : tier === 'Rare'       ? '#7eb8f7'
                   : tier === 'Uncommon'   ? '#7ee7c0'

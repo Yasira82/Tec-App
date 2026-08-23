@@ -48,7 +48,7 @@ export default function AuthBootstrapPage() {
     }}>
       <div style={{
         width: 56, height: 56, borderRadius: 16,
-        background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+        background: 'var(--tec-gold)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 24, fontWeight: 900, color: '#0a0800',
       }}>T</div>

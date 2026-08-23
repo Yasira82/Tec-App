@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<KycStatus, {
   PENDING: {
     icon: '⏳', label: 'Under Review',
     desc: 'Your documents are being reviewed. This usually takes 1–2 business days.',
-    bg: 'rgba(216,136,16,0.08)', border: 'rgba(216,136,16,0.25)', color: 'var(--tec-gold-dark)',
+    bg: 'rgba(var(--tec-gold-rgb),0.08)', border: 'rgba(var(--tec-gold-rgb),0.25)', color: 'var(--tec-gold-dark)',
   },
   VERIFIED: {
     icon: '✅', label: 'Verified',
@@ -171,7 +171,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={handleUpload} disabled={uploading || !idFrontUrl || !selfieUrl}
               style={{
                 padding: '12px 28px', borderRadius: 'var(--radius-md)',
-                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+                background: (!idFrontUrl || !selfieUrl) ? 'var(--tec-surface-3)' : 'var(--tec-gold)',
                 border: 'none', color: '#0a0800', fontWeight: 700, fontSize: 'var(--text-sm)',
                 cursor: (!idFrontUrl || !selfieUrl) ? 'not-allowed' : 'pointer',
                 opacity: uploading ? 0.6 : 1,
@@ -223,7 +223,7 @@ function KycForm({ kyc, isSubmitting, onUpload, onSubmit }: {
             <button onClick={onSubmit} disabled={isSubmitting}
               style={{
                 padding: '11px 28px', borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+                background: 'var(--tec-gold)',
                 border: 'none', color: '#0a0800', fontWeight: 700,
                 fontSize: 'var(--text-sm)', cursor: 'pointer',
                 opacity: isSubmitting ? 0.6 : 1,
@@ -317,7 +317,7 @@ function RejectedState({ reason, isSubmitting, onReset }: {
         <button onClick={onReset} disabled={isSubmitting}
           style={{
             padding: '12px 32px', borderRadius: 'var(--radius-md)',
-            background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+            background: 'var(--tec-gold)',
             border: 'none', color: '#0a0800', fontWeight: 700,
             fontSize: 'var(--text-sm)', cursor: 'pointer',
             opacity: isSubmitting ? 0.6 : 1,

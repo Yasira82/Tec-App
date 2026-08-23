@@ -234,7 +234,7 @@ export function PiTestClient() {
   );
 
   const logColors: Record<LogEntry['type'], string> = {
-    info: '#9898a8', success: '#7ee7c0', error: '#e74c3c', warn: '#f0c040',
+    info: '#9898a8', success: '#7ee7c0', error: '#e74c3c', warn: 'var(--tec-gold)',
   };
 
   return (

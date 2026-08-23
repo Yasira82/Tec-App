@@ -103,7 +103,7 @@ export function Sidebar({ user, onLogout }: Props) {
         <Link href="/hub" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
           <div style={{
             width: 36, height: 36, borderRadius: 11,
-            background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+            background: 'var(--tec-gold)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 900, fontSize: 14, color: '#0a0800',
             boxShadow: '0 2px 12px rgba(var(--tec-gold-rgb),0.3)',
@@ -119,7 +119,7 @@ export function Sidebar({ user, onLogout }: Props) {
       <div style={{ padding: 'var(--sp-3) var(--sp-4)', borderBottom: '1px solid rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
           width: 34, height: 34, borderRadius: '50%',
-          background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
+          background: 'var(--tec-gold)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 13, fontWeight: 800, color: '#0a0800', flexShrink: 0,
         }}>

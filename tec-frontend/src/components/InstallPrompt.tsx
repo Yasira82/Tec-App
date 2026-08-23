@@ -79,7 +79,7 @@ export default function InstallPrompt() {
             fontWeight: 700,
             fontSize: 13,
             color: '#020205',
-            background: 'linear-gradient(135deg, #f5d060 0%, var(--tec-gold) 45%, #d4af37 100%)',
+            background: 'var(--tec-gold)',
           }}
         >
           {deferred ? i.button : i.openInBrowser}

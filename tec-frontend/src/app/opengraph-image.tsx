@@ -1,3 +1,15 @@
+/*
+ * NOTE — literal hexes on purpose.
+ *
+ * This file renders through Satori (`next/og`), which rasterises to PNG on the
+ * server. It resolves no CSS custom properties: `var(--tec-gold)` here paints
+ * nothing. The card also has a fixed dark background and is seen outside the
+ * app entirely, so it has no theme to follow — the dark-theme brand amber is
+ * simply the brand amber for a share card.
+ *
+ * Keep these in step with --tec-gold / --tec-gold-rgb in tec-design-tokens.css.
+ * The brand-literal guard in theme-choice.test.ts exempts this path by name.
+ */
 import { ImageResponse } from 'next/og';
 
 export const runtime = 'edge';
@@ -27,7 +39,7 @@ export default function OGImage() {
             position: 'absolute',
             inset: 0,
             backgroundImage:
-              'linear-gradient(rgba(var(--tec-gold-rgb),0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(var(--tec-gold-rgb),0.06) 1px, transparent 1px)',
+              'linear-gradient(rgba(251,180,74,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(251,180,74,0.06) 1px, transparent 1px)',
             backgroundSize: '80px 80px',
             display: 'flex',
           }}
@@ -42,7 +54,7 @@ export default function OGImage() {
             transform: 'translateX(-50%)',
             width: '800px',
             height: '400px',
-            background: 'radial-gradient(ellipse, rgba(var(--tec-gold-rgb),0.12) 0%, transparent 70%)',
+            background: 'radial-gradient(ellipse, rgba(251,180,74,0.12) 0%, transparent 70%)',
             display: 'flex',
           }}
         />
@@ -67,9 +79,9 @@ export default function OGImage() {
             alignItems: 'center',
             gap: '8px',
             padding: '6px 20px',
-            border: '1px solid rgba(var(--tec-gold-rgb),0.25)',
+            border: '1px solid rgba(251,180,74,0.25)',
             borderRadius: '100px',
-            background: 'rgba(var(--tec-gold-rgb),0.06)',
+            background: 'rgba(251,180,74,0.06)',
             marginBottom: '40px',
           }}
         >
@@ -78,8 +90,8 @@ export default function OGImage() {
               width: '6px',
               height: '6px',
               borderRadius: '50%',
-              background: 'var(--tec-gold)',
-              boxShadow: '0 0 8px var(--tec-gold)',
+              background: '#FBB44A',
+              boxShadow: '0 0 8px #FBB44A',
             }}
           />
           <span
@@ -87,7 +99,7 @@ export default function OGImage() {
               fontSize: '14px',
               letterSpacing: '0.2em',
               textTransform: 'uppercase',
-              color: 'rgba(var(--tec-gold-rgb),0.7)',
+              color: 'rgba(251,180,74,0.7)',
             }}
           >
             Pi Network Ecosystem
@@ -119,7 +131,7 @@ export default function OGImage() {
             style={{
               fontSize: '96px',
               fontWeight: 700,
-              background: 'linear-gradient(135deg, #f5d060, var(--tec-gold), #a08020)',
+              background: '#FBB44A',
               backgroundClip: 'text',
               color: 'transparent',
               letterSpacing: '-0.02em',
@@ -148,10 +160,10 @@ export default function OGImage() {
             display: 'flex',
             alignItems: 'center',
             gap: '0',
-            border: '1px solid rgba(var(--tec-gold-rgb),0.1)',
+            border: '1px solid rgba(251,180,74,0.1)',
             borderRadius: '16px',
             overflow: 'hidden',
-            background: 'rgba(var(--tec-gold-rgb),0.02)',
+            background: 'rgba(251,180,74,0.02)',
           }}
         >
           {[
@@ -165,7 +177,7 @@ export default function OGImage() {
                   style={{
                     width: '1px',
                     height: '40px',
-                    background: 'rgba(var(--tec-gold-rgb),0.12)',
+                    background: 'rgba(251,180,74,0.12)',
                   }}
                 />
               )}
@@ -182,7 +194,7 @@ export default function OGImage() {
                   style={{
                     fontSize: '40px',
                     fontWeight: 600,
-                    color: 'var(--tec-gold)',
+                    color: '#FBB44A',
                     lineHeight: '1',
                   }}
                 >
@@ -210,7 +222,7 @@ export default function OGImage() {
             bottom: '32px',
             right: '40px',
             fontSize: '13px',
-            color: 'rgba(var(--tec-gold-rgb),0.3)',
+            color: 'rgba(251,180,74,0.3)',
             letterSpacing: '0.1em',
           }}
         >

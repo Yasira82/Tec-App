@@ -92,20 +92,23 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           )}
         </button>
 
-        {/* Avatar → the account menu (Profile · Dashboard). The caret is the
-            affordance: without it this reads as a name label, and users never
-            discovered it was a control at all. */}
+        {/* Avatar → the account menu (Profile · Dashboard).
+            No username text: at this width it truncated to "@y…", which is not
+            a name, not a label and not obviously a control — it read as a
+            hidden button. An avatar with a caret is unambiguously a menu, and
+            the full handle is the first thing the menu itself shows, so
+            nothing is lost by dropping it here. */}
         <button ref={chipRef} className="tec-btn" onClick={() => { haptic('light'); setMenuOpen(o => !o); }}
           aria-label={t.hub.account.title}
           aria-haspopup="menu"
           aria-expanded={menuOpen}
           title={t.hub.account.title}
           style={{
-            display: 'flex', alignItems: 'center', gap: 8,
+            display: 'flex', alignItems: 'center', gap: 4,
             background: notifCount > 0 ? 'var(--tec-gold-dim)' : 'var(--tec-fill-soft)',
             border: `1px solid ${notifCount > 0 ? 'var(--tec-border-gold)' : 'var(--tec-border)'}`,
-            borderRadius: 12, padding: '5px 10px 5px 5px', cursor: 'pointer',
-            minWidth: 0, flexShrink: 1,
+            borderRadius: 12, padding: '5px 7px 5px 5px', cursor: 'pointer',
+            flexShrink: 0,
           }}>
           <div style={{
             width: 26, height: 26, borderRadius: '50%',
@@ -115,8 +118,7 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
           }}>
             {piUsername[0]?.toUpperCase()}
           </div>
-          <span dir="ltr" style={{ fontSize: 12, color: 'var(--tec-gold)', fontWeight: 600, maxWidth: 84, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>@{piUsername}</span>
-          <Icon name={menuOpen ? 'caretUp' : 'caretDown'} size={13} color="var(--tec-gold)" strokeWidth={2.4} />
+          <Icon name={menuOpen ? 'caretUp' : 'caretDown'} size={14} color="var(--tec-gold)" strokeWidth={2.4} />
         </button>
 
         <HubAccountMenu open={menuOpen} onClose={() => setMenuOpen(false)} username={piUsername} anchor={chipRef} />

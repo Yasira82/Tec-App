@@ -155,10 +155,13 @@ describe('HubHeader', () => {
     onNotifClick: vi.fn(),
   };
 
-  it('renders username and time', () => {
-    const { container } = render(<HubHeader {...baseProps} />);
-    expect(container.textContent).toContain('@alice');
+  it('renders the time, and the handle only once the menu is open', () => {
+    const { container, getByLabelText } = render(<HubHeader {...baseProps} />);
     expect(container.textContent).toContain('12:00');
+    expect(container.textContent).not.toContain('@alice');
+
+    fireEvent.click(getByLabelText('Your account'));
+    expect(document.body.textContent).toContain('@alice');
   });
 
   it('shows no badge when notifCount is 0', () => {

@@ -31,10 +31,13 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
 
   const items: { icon: IconName; label: string; aria?: string; active: boolean; raised?: boolean; action: () => void }[] = [
     { icon: 'hub'    , label: t.hub.nav.hub,    active: true,  action: () => {} },
-    { icon: 'wallet' , label: t.hub.nav.wallet, active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
+    { icon: 'tiers'  , label: t.hub.nav.plan,   active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
     { icon: 'spark'  , label: t.hub.nav.ai, aria: t.hub.ai.open, active: false, raised: true, action: () => { haptic('medium'); onOpenAi(); } },
     { icon: 'shield' , label: t.hub.nav.verify, active: false, action: () => { haptic('light'); router.push('/hub/kyc'); } },
-    { icon: 'tiers'  , label: t.hub.nav.plan,   active: false, action: () => { haptic('light'); router.push('/hub/subscription'); } },
+    // Wallet sits at the far end on purpose: it is the most-tapped destination
+    // here, and the outermost slot is the shortest reach for a thumb holding
+    // the phone — not the hardest, the way it is on a desktop toolbar.
+    { icon: 'wallet' , label: t.hub.nav.wallet, active: false, action: () => { haptic('light'); router.push('/dashboard/wallet'); } },
   ];
 
   return (

@@ -82,7 +82,10 @@ export function HubHeader({ piUsername, time, notifCount, onNotifClick }: Props)
             <span style={{
               position: 'absolute', top: -4, insetInlineEnd: -4,
               minWidth: 17, height: 17, borderRadius: 999,
-              background: 'var(--tec-red)', border: '2px solid var(--tec-topbar)',
+              // The ring punches the badge out of whatever it sits ON, so it
+              // has to track the header's background — it was still the band
+              // colour after the band was removed from this header.
+              background: 'var(--tec-red)', border: '2px solid var(--tec-bg)',
               fontSize: 9, fontWeight: 800, color: 'var(--tec-on-red)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               padding: '0 3px',

@@ -444,7 +444,7 @@
 @media (max-width: 900px) {
   .page {
     grid-template-columns: 1fr;
-    padding-top: 56px; /* height of mobileTopBar */
+    padding-top: 0; /* the topbar is sticky and takes its own space */
   }
 
   .mobileTopBar {

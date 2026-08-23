@@ -85,12 +85,14 @@ h1, h2, h3 {
   line-height: 1.1;
 }
 
-.gold-text {
-  background: linear-gradient(135deg, #c9a84c, #e8d5a3, #c9a84c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/*
+ * Was a three-stop gradient (#c9a84c → #e8d5a3 → #c9a84c) clipped to the text.
+ * Two problems: the values predate the token layer, so the wallet balance
+ * stayed pale tan on a white page and ignored the theme; and a gradient inside
+ * a number is the same two-tone-gold mistake that was removed everywhere else.
+ * One flat brand value.
+ */
+.gold-text { color: var(--tec-gold); }
 
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px); }

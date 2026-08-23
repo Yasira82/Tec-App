@@ -12,7 +12,9 @@ export function MobileTopbar({ mobileOpen, onToggle }: Props) {
     <div
       className="tec-mobile-topbar tec-on-band"
       style={{
-        position: 'fixed', top: 0, left: 0, right: 0,
+        // Sticky, not fixed: fixed took it out of the flow and painted it on
+        // top of the "open in Pi Browser" banner above it.
+        position: 'sticky', top: 0,
         zIndex: 'var(--z-topbar)' as unknown as number,
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         padding: '14px 20px 16px',

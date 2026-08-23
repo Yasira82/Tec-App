@@ -39,7 +39,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
           // purple→navy→green gradient with a cyan glow behind it: three hues in
           // one component, on the single element the user looks at first.
           background: 'var(--tec-hero)',
-          border: '1px solid var(--tec-border-gold)',
+          border: '1px solid var(--tec-border)',
           padding: '24px', cursor: 'pointer', textAlign: 'start',
           boxShadow: '0 8px 32px rgba(0,0,0,0.28)',
           position: 'relative',
@@ -130,7 +130,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }
             style={{
               flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 5,
               padding: '11px 0', borderRadius: 16, cursor: 'pointer',
-              background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)',
+              background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border)',
             }}>
             <span style={{ fontSize: 17, fontWeight: 900, color: 'var(--tec-gold)', lineHeight: 1 }}>{a.icon}</span>
             <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-1)', letterSpacing: 0.3 }}>{a.label}</span>

@@ -5,14 +5,30 @@ updates:
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 3
+    commit-message:
+      prefix: "chore(deps)"
+    # Major version bumps are coordinated MANUALLY across the platform — it pins
+    # Next 15, React 18, and @sentry/nextjs v8 (KB: v10 rejected). A lone major
+    # here breaks the release chain: the Hub is the SSO and payment authority
+    # every other app reads, so it cannot move ahead of them on its own.
+    # Ignore ALL majors; propose only minor/patch. The named-package entries
+    # this replaces (tec-sdk, tec-shared) are covered by the wildcard.
     ignore:
-      - dependency-name: "@yasser172/tec-sdk"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "@yasser172/tec-shared"
-        update-types: ["version-update:semver-major"]
+    # One grouped PR for all minor+patch (prod + dev) instead of a swarm.
+    groups:
+      all-minor-patch:
+        patterns: ["*"]
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "monthly"
     open-pull-requests-limit: 2
+    commit-message:
+      prefix: "chore(ci)"
+    groups:
+      github-actions:
+        patterns: ["*"]

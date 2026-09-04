@@ -31,7 +31,7 @@ const L = {
     replyLen: 'طول الرد', short: 'مختصر', detailed: 'مفصّل',
     clearAll: 'مسح كل المحادثات', confirm: 'متأكد؟ مش هينفع ترجعها',
     now: 'دلوقتي', minsAgo: 'من {n} د', hoursAgo: 'من {n} س',
-    rate: 'قيّم تجربتك', rated: '✅ شكراً على تقييمك!', contact: 'تواصل معنا',
+    rate: 'قيّم تجربتك', rated: '✅ شكراً على تقييمك!', contact: 'تواصل معنا', social: 'TEC على السوشيال',
     supportNote: '💡 لو المساعد مجاوبش على سؤالك، كلّم الدعم مباشرة.',
     close: 'إغلاق',
   },
@@ -44,7 +44,7 @@ const L = {
     replyLen: 'Reply length', short: 'Short', detailed: 'Detailed',
     clearAll: 'Clear all conversations', confirm: 'Sure? This cannot be undone',
     now: 'just now', minsAgo: '{n}m ago', hoursAgo: '{n}h ago',
-    rate: 'Rate your experience', rated: '✅ Thanks for your rating!', contact: 'Contact us',
+    rate: 'Rate your experience', rated: '✅ Thanks for your rating!', contact: 'Contact us', social: 'TEC on social',
     supportNote: "💡 If the assistant couldn't answer, reach a human directly.",
     close: 'Close',
   },
@@ -56,10 +56,38 @@ const L = {
  * cannot silently have support the other lacks (the drift this component exists to stop).
  */
 const SUPPORT_LINKS = [
-  { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201115141346',      color: '#25D366' },
-  { emoji: '✈️', label: 'Telegram', href: 'https://t.me/Yasira17',           color: '#229ED9' },
+  // 201109742713 — the number nominated for support. NOT the one `Call` uses
+  // below: those were the same number and are now two, deliberately left that
+  // way rather than guessed at. See the note on `Call`.
+  { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201109742713',      color: '#25D366' },
+  // A group INVITE link, replacing the personal @Yasira17 handle. An invite is
+  // revocable from inside Telegram; a handle is not, and it also pointed at one
+  // person's account rather than at the platform.
+  { emoji: '✈️', label: 'Telegram', href: 'https://t.me/+7yEiJGgSZ2QzM2M0',  color: '#229ED9' },
   { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: 'var(--tec-gold)' },
+  // ⚠️ Still the OLD number. WhatsApp moved to 201109742713 and this did not,
+  // because "the WhatsApp number changed" and "the phone number changed" are
+  // different statements and only the first was made. Retiring a line people
+  // may already be calling is not a change to infer.
   { emoji: '📞', label: 'Call',     href: 'tel:+201115141346',               color: '#7ee7c0' },
+] as const;
+
+/**
+ * Social — where TEC can be found, as opposed to how support is reached.
+ *
+ * Separate from SUPPORT_LINKS on purpose: one is "I need help now", the other
+ * is "who are these people". Mixing them puts a Facebook page next to a phone
+ * number under a heading that says Contact us, and the person in trouble has to
+ * read five options to find the two that answer.
+ *
+ * ⚠️ The Facebook URL is a /share/ link, which Facebook mints per share and can
+ * regenerate — the same profile produced two different ones thirteen minutes
+ * apart. It resolves today and can stop with no error on our side. The durable
+ * form is facebook.com/<username>; replace it here the moment one exists.
+ */
+const SOCIAL_LINKS = [
+  { emoji: '📘', label: 'Facebook', href: 'https://www.facebook.com/share/198YXN8kaF/', color: '#4267B2' },
+  { emoji: '✕',  label: 'X',        href: 'https://x.com/TEC1c5',                       color: 'var(--tec-text)' },
 ] as const;
 
 /** Questions that FILL THE INPUT — they ask the assistant, they do not navigate away. */
@@ -205,6 +233,20 @@ export function AIMenu({
               <div style={S.groupTitle}>{tr.contact}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {SUPPORT_LINKS.map(l => (
+                  <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
+                     style={{ ...S.support, borderColor: `${l.color}30` }}>
+                    <span aria-hidden style={{ fontSize: 15 }}>{l.emoji}</span>
+                    <span style={{ flex: 1 }}>{l.label}</span>
+                    <span aria-hidden style={{ opacity: 0.5, fontSize: 11 }}>↗</span>
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <div style={S.groupTitle}>{tr.social}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {SOCIAL_LINKS.map(l => (
                   <a key={l.label} href={l.href} target="_blank" rel="noopener noreferrer"
                      style={{ ...S.support, borderColor: `${l.color}30` }}>
                     <span aria-hidden style={{ fontSize: 15 }}>{l.emoji}</span>

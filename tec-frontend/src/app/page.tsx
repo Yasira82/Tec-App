@@ -33,20 +33,23 @@ export default function HomePage() {
   // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
   useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
 
-  // ── Send a signed-in visitor onward ──────────────────────────────────────
-  // Two problems, one fix. A guard elsewhere bounces an unresolved session to
-  // this page, and this page had nothing to say to somebody who IS signed in —
-  // so they landed on the marketing copy and had to navigate back by hand.
+  // ── Return a bounced visitor to where they were ──────────────────────────
+  // A guard elsewhere bounces an unresolved session to this page. It used to
+  // throw away the destination, so the person signed in again and landed here
+  // instead of on the screen they were already using. `rememberReturn` records
+  // it; `takeReturn()` is one-shot and validated, and returns it or null.
   //
-  // `takeReturn()` is one-shot and validated: it returns the screen they were
-  // on, or null. Falling back to /hub rather than staying here, because an
-  // authenticated person has no use for a page whose whole job is to explain
-  // what TEC is.
+  // ONLY when there is one. An earlier version also forwarded every signed-in
+  // visitor to /hub — which meant this page could no longer be reached at all
+  // once you had a session: no way back to the ecosystem list, the social
+  // links, or the sign-in screen itself. Arriving here deliberately is a
+  // choice, and the fix for a lost destination is not to remove a destination.
   const router = useRouter();
   const { isAuthenticated, isLoading } = usePiAuth();
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
-    router.replace(takeReturn() ?? '/hub');
+    const back = takeReturn();
+    if (back) router.replace(back);
   }, [isAuthenticated, isLoading, router]);
 
   const { t, dir }                        = useTranslation();

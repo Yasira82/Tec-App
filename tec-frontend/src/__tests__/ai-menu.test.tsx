@@ -161,11 +161,26 @@ describe('starters and support', () => {
     const hrefs = Array.from(container.querySelectorAll('a')).map(a => a.getAttribute('href'));
 
     expect(hrefs).toContain('https://wa.me/201109742713');
+    expect(hrefs).toContain('tel:+201109742713');
     expect(hrefs).toContain('https://t.me/+7yEiJGgSZ2QzM2M0');
     // The personal handle it replaced pointed at one account rather than the
     // platform, and a @handle cannot be revoked the way an invite can.
     expect(hrefs).not.toContain('https://t.me/Yasira17');
     expect(hrefs).not.toContain('https://wa.me/201115141346');
+    expect(hrefs).not.toContain('tel:+201115141346');
+  });
+
+  it('WhatsApp and Call are the SAME number', () => {
+    // They were one line, drifted into two for a round, and are one again. A
+    // support panel offering two different numbers makes the user pick which is
+    // real — and whichever they pick, half the time nobody answers.
+    const { container } = menu();
+    fireEvent.click(screen.getByText('Support'));
+    const hrefs = Array.from(container.querySelectorAll('a')).map(a => a.getAttribute('href') ?? '');
+    const wa  = hrefs.find(h => h.startsWith('https://wa.me/'))?.replace('https://wa.me/', '');
+    const tel = hrefs.find(h => h.startsWith('tel:'))?.replace(/^tel:\+?/, '');
+    expect(wa).toBeTruthy();
+    expect(tel).toBe(wa);
   });
 
   it('separates "reach us now" from "who are you"', () => {

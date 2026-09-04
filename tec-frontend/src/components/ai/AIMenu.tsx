@@ -56,20 +56,19 @@ const L = {
  * cannot silently have support the other lacks (the drift this component exists to stop).
  */
 const SUPPORT_LINKS = [
-  // 201109742713 — the number nominated for support. NOT the one `Call` uses
-  // below: those were the same number and are now two, deliberately left that
-  // way rather than guessed at. See the note on `Call`.
+  // 201109742713 — one number for both WhatsApp and Call, as it was before.
+  // `Call` was held on the old line for a round while only "the WhatsApp number
+  // changed" had been said; the owner then confirmed the phone moved too.
   { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201109742713',      color: '#25D366' },
   // A group INVITE link, replacing the personal @Yasira17 handle. An invite is
   // revocable from inside Telegram; a handle is not, and it also pointed at one
   // person's account rather than at the platform.
   { emoji: '✈️', label: 'Telegram', href: 'https://t.me/+7yEiJGgSZ2QzM2M0',  color: '#229ED9' },
   { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: 'var(--tec-gold)' },
-  // ⚠️ Still the OLD number. WhatsApp moved to 201109742713 and this did not,
-  // because "the WhatsApp number changed" and "the phone number changed" are
-  // different statements and only the first was made. Retiring a line people
-  // may already be calling is not a change to infer.
-  { emoji: '📞', label: 'Call',     href: 'tel:+201115141346',               color: '#7ee7c0' },
+  // Same number as WhatsApp above — they are one line, and a support panel that
+  // offers two different numbers makes the user choose which one is real.
+  // +20 is the dialling form; wa.me above takes the same digits without the +.
+  { emoji: '📞', label: 'Call',     href: 'tel:+201109742713',               color: '#7ee7c0' },
 ] as const;
 
 /**

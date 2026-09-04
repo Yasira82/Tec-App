@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter }             from 'next/navigation';
 import Link                      from 'next/link';
 import { useTranslation }        from '@/lib/i18n';
 import LanguageSwitcher          from '@/components/LanguageSwitcher';
@@ -14,6 +15,9 @@ import type { Locale } from '@/domains/_types';
 import type { AppCategory } from '@/domains/_categories';
 import { iconOf }            from '@/domains/_categories';
 import { Icon }              from '@/components/ui/Icon';
+import { usePiAuth }         from '@/lib-client/hooks/usePiAuth';
+import { takeReturn }        from '@/lib-client/return-to';
+import { SocialLinks }       from '@/components/social/SocialLinks';
 import styles                    from './page.module.css';
 
 /**
@@ -28,6 +32,22 @@ const withCount = (s: string) => s.replace('{count}', String(ECOSYSTEM_SIZE));
 export default function HomePage() {
   // Fire-and-forget backend warmup (Railway cold starts — see /api/warmup).
   useEffect(() => { fetch('/api/warmup').catch(() => {}); }, []);
+
+  // ── Send a signed-in visitor onward ──────────────────────────────────────
+  // Two problems, one fix. A guard elsewhere bounces an unresolved session to
+  // this page, and this page had nothing to say to somebody who IS signed in —
+  // so they landed on the marketing copy and had to navigate back by hand.
+  //
+  // `takeReturn()` is one-shot and validated: it returns the screen they were
+  // on, or null. Falling back to /hub rather than staying here, because an
+  // authenticated person has no use for a page whose whole job is to explain
+  // what TEC is.
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = usePiAuth();
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    router.replace(takeReturn() ?? '/hub');
+  }, [isAuthenticated, isLoading, router]);
 
   const { t, dir }                        = useTranslation();
   const locale: Locale                    = dir === 'rtl' ? 'ar' : 'en';
@@ -270,6 +290,13 @@ export default function HomePage() {
         <p className={styles.footerText}>
           © 2026 {t.common.brand} · Built on Pi Network
         </p>
+        {/* Where TEC can be found. Under the legal links, not above them: this
+            is the last thing on the page a visitor reads, and "is anyone
+            actually behind this?" is a question they ask before signing in. */}
+        <div style={{ margin: '18px 0 14px' }}>
+          <SocialLinks compact />
+        </div>
+
         <div className={styles.footerLinks}>
           <a href="/privacy" className={styles.footerLink}>Privacy</a>
           <a href="/terms"   className={styles.footerLink}>Terms</a>

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter }                        from 'next/navigation';
 import { usePiAuth }                        from '@/lib-client/hooks/usePiAuth';
+import { rememberReturn }                   from '@/lib-client/return-to';
 import { usePiSdkReady }                    from '@/lib-client/hooks/usePiSdkReady';
 import { useRealtimeNotifications }         from '@/lib-client/hooks/useRealtimeNotifications';
 import { useExternalPayment }               from '@/lib-client/hooks/useExternalPayment';
@@ -102,7 +103,12 @@ function HubPageInner() {
 
   /* ── Auth guard ── */
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !pendingPayment) router.replace('/');
+    if (!isLoading && !isAuthenticated && !pendingPayment) {
+      // Remember the Hub before leaving it, so signing in returns here rather
+      // than to the marketing page. Same reason as the dashboard guard.
+      rememberReturn('/hub');
+      router.replace('/');
+    }
   }, [isLoading, isAuthenticated, pendingPayment, router]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({

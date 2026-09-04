@@ -483,4 +483,18 @@ export const en = {
       suggestions: ['What is TEC?', 'Show my balance', 'Which app fits me?'],
     },
   },
+  feedback: {
+    title: 'Send feedback',
+    hint: 'A bug, a confusing screen, or something you wish existed — it reaches the team directly.',
+    placeholder: 'What happened, or what would you change?',
+    send: 'Send', sending: 'Sending…',
+    thanks: 'Thank you — it arrived.',
+    thanksHint: 'A person reads every message. If it needs a reply, we will use your Pi handle.',
+    sendAnother: 'Send another',
+    tooShort: 'Please write a little more — a few words at least.',
+    tooLong: 'That is {n} characters; the limit is 2000. Please shorten it a little.',
+    failed: 'Could not send. Please try again.',
+    privacyNote: 'Sent with your Pi username and the screen you were on. Nothing else.',
+    adminTitle: 'Feedback inbox', adminSub: 'Read what people are telling us',
+  },
 };

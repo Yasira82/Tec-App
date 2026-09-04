@@ -10,6 +10,7 @@ import { useKyc }        from '@/lib-client/hooks/useKyc';
 import { normalizePlan } from '@/lib/subscription/entitlements';
 import { HubSubShell }   from '@/components/hub';
 import { DashboardCard } from '@/components/dashboard';
+import { FeedbackCard } from '@/components/feedback/FeedbackCard';
 
 function InfoRow({ label, value, mono, copyable }: {
   label: string; value: string; mono?: boolean; copyable?: boolean;
@@ -157,8 +158,25 @@ export default function HubProfilePage() {
             </div>
             <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
           </button>
+          <button onClick={() => router.push('/hub/admin/feedback')}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', marginTop: 'var(--sp-3)', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(var(--tec-gold-rgb),0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
+            <span style={{ fontSize: 22 }}>💬</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{t.feedback.adminTitle}</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.feedback.adminSub}</div>
+            </div>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
+          </button>
         </DashboardCard>
       )}
+
+      {/* ── Feedback ─────────────────────────────────────
+          Here rather than on the Hub home: someone opens Profile when they are
+          already thinking about their account and the app around it, which is
+          the same moment they have something to say about it. */}
+      <DashboardCard title={t.feedback.title} subtitle={t.feedback.hint}>
+        <FeedbackCard page="/hub/profile" />
+      </DashboardCard>
 
       {/* ── Connected Apps ───────────────────────────── */}
       <DashboardCard title={t.hub.profile.connectedApps}>

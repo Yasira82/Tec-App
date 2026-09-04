@@ -96,6 +96,11 @@
   --tec-topbar-gold:   #FBB44A;
   --tec-topbar-fill:   rgba(255,255,255,0.07);
   --tec-topbar-border: rgba(255,255,255,0.12);
+  /* 22 — the Hub sets this value for the fleet. It was briefly swept to 8
+     "from Life", which was backwards: the Hub is the reference the apps follow,
+     not the other way round, and the report that prompted the sweep was about
+     a band's HEIGHT on one app's home screen, not its curve. A tall band is
+     fixed by shortening the line inside it, not by filing down the corner. */
   --tec-topbar-radius: 22px;
 
   /* ── Sub-page header band ───────────────────────────── */

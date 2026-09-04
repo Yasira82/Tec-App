@@ -152,6 +152,49 @@ describe('starters and support', () => {
     }
   });
 
+  it('carries the CURRENT contact values, not the ones they replaced', () => {
+    // These changed once and would change again silently: a stale WhatsApp
+    // number or a retired Telegram handle still renders as a working link, and
+    // the first signal is a user saying nobody answered.
+    const { container } = menu();
+    fireEvent.click(screen.getByText('Support'));
+    const hrefs = Array.from(container.querySelectorAll('a')).map(a => a.getAttribute('href'));
+
+    expect(hrefs).toContain('https://wa.me/201109742713');
+    expect(hrefs).toContain('tel:+201109742713');
+    expect(hrefs).toContain('https://t.me/+7yEiJGgSZ2QzM2M0');
+    // The personal handle it replaced pointed at one account rather than the
+    // platform, and a @handle cannot be revoked the way an invite can.
+    expect(hrefs).not.toContain('https://t.me/Yasira17');
+    expect(hrefs).not.toContain('https://wa.me/201115141346');
+    expect(hrefs).not.toContain('tel:+201115141346');
+  });
+
+  it('WhatsApp and Call are the SAME number', () => {
+    // They were one line, drifted into two for a round, and are one again. A
+    // support panel offering two different numbers makes the user pick which is
+    // real — and whichever they pick, half the time nobody answers.
+    const { container } = menu();
+    fireEvent.click(screen.getByText('Support'));
+    const hrefs = Array.from(container.querySelectorAll('a')).map(a => a.getAttribute('href') ?? '');
+    const wa  = hrefs.find(h => h.startsWith('https://wa.me/'))?.replace('https://wa.me/', '');
+    const tel = hrefs.find(h => h.startsWith('tel:'))?.replace(/^tel:\+?/, '');
+    expect(wa).toBeTruthy();
+    expect(tel).toBe(wa);
+  });
+
+  it('separates "reach us now" from "who are you"', () => {
+    // Social under its own heading. Mixed into Contact us, a Facebook page sits
+    // beside a phone number and someone in trouble reads five options to find
+    // the two that answer.
+    const { container } = menu();
+    fireEvent.click(screen.getByText('Support'));
+    expect(screen.getByText('TEC on social')).toBeTruthy();
+    const hrefs = Array.from(container.querySelectorAll('a')).map(a => a.getAttribute('href') ?? '');
+    expect(hrefs.some(h => h.includes('facebook.com'))).toBe(true);
+    expect(hrefs.some(h => h.includes('x.com'))).toBe(true);
+  });
+
   it('records a rating without asking twice', () => {
     menu();
     fireEvent.click(screen.getByText('Support'));
@@ -171,9 +214,16 @@ describe('the menu is the assistant’s, not the Hub’s', () => {
       fireEvent.click(screen.getByText(tab));
       for (const a of Array.from(container.querySelectorAll('a'))) {
         const href = a.getAttribute('href') ?? '';
-        // A relative href is an in-platform destination — that is the thing this menu
-        // must never grow back. Support channels are all off-site schemes/hosts.
-        expect(href).toMatch(/^(https:\/\/(wa\.me|t\.me)\/|mailto:|tel:)/);
+        // A relative href is an in-platform destination — that is the thing this
+        // menu must never grow back.
+        //
+        // This used to enumerate the allowed HOSTS (wa.me|t.me). That made adding
+        // a legitimate channel — Facebook, X — look like a test failure, and the
+        // quickest way past a red test is to loosen it. Pinning the RULE instead
+        // of the roster means the guard survives the next channel without anyone
+        // having to weaken it.
+        expect(href).toMatch(/^(https:\/\/|mailto:|tel:)/);
+        expect(href).not.toMatch(/^https:\/\/[^/]*tecosystem\.app/);
       }
     }
   });

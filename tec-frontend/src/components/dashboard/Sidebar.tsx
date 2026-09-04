@@ -2,6 +2,7 @@
 
 import { useState }   from 'react';
 import Link          from 'next/link';
+import { SocialLinks } from '@/components/social/SocialLinks';
 import { usePathname } from 'next/navigation';
 import { useInstallApp } from '@/lib-client/hooks/useInstallApp';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -241,6 +242,14 @@ export function Sidebar({ user, onLogout }: Props) {
             </div>
           </div>
         )}
+
+        {/* Where TEC can be found. Above the legal links and below everything
+            actionable: it answers "is anyone behind this?", which is a question
+            asked once — so it must be findable and must not compete with the
+            menu. Renders nothing at all until a link is configured. */}
+        <div style={{ padding: '10px 10px 12px' }}>
+          <SocialLinks compact />
+        </div>
 
         {/* Legal — required by the Pi Portal and previously unreachable in-app. */}
         <div style={{ display: 'flex', gap: 12, padding: '0 10px 8px' }}>

@@ -12,6 +12,7 @@ import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 const mockUsePiAuth     = vi.hoisted(() => vi.fn());
 const mockUsePiSdkReady = vi.hoisted(() => vi.fn());
 const mockPush          = vi.hoisted(() => vi.fn());
+const mockReplace       = vi.hoisted(() => vi.fn());
 const mockRouter        = vi.hoisted(() => vi.fn());
 const mockPathname      = vi.hoisted(() => vi.fn());
 const mockLoginWithPi   = vi.hoisted(() => vi.fn());
@@ -93,7 +94,7 @@ const authedUser = { id: 'u1', piUsername: 'alice', subscriptionPlan: 'Free', ky
 
 beforeEach(() => {
   vi.resetAllMocks();
-  mockRouter.mockReturnValue({ push: mockPush, replace: vi.fn(), back: vi.fn() });
+  mockRouter.mockReturnValue({ push: mockPush, replace: mockReplace, back: vi.fn() });
   mockPathname.mockReturnValue('/dashboard');
   mockLoginWithPi.mockResolvedValue({ success: true });
   mockUsePiAuth.mockReturnValue({
@@ -265,14 +266,32 @@ describe('DashboardLayout', () => {
     expect(screen.queryByText('Content')).not.toBeInTheDocument();
   });
 
-  it('redirects to / when not authenticated', async () => {
+  it('redirects to / when not authenticated — and REPLACES, never pushes', async () => {
+    // `replace`, because `push` leaves the protected page in history: Back
+    // returns to a screen that immediately bounces you again, which reads as
+    // the app fighting the button.
     mockUsePiAuth.mockReturnValue({
       user: null, isAuthenticated: false, isLoading: false,
       logout: vi.fn(), login: vi.fn(), error: null, errorType: null,
     });
     render(<DashboardLayout><div>Protected</div></DashboardLayout>);
     await waitFor(() => {
-      expect(mockPush).toHaveBeenCalledWith('/');
+      expect(mockReplace).toHaveBeenCalledWith('/');
+    });
+    expect(mockPush).not.toHaveBeenCalledWith('/');
+  });
+
+  it('remembers the screen it bounced from', async () => {
+    // The whole point of the change: the person signs in and comes BACK here,
+    // instead of landing on the marketing page and navigating by hand.
+    sessionStorage.clear();
+    mockUsePiAuth.mockReturnValue({
+      user: null, isAuthenticated: false, isLoading: false,
+      logout: vi.fn(), login: vi.fn(), error: null, errorType: null,
+    });
+    render(<DashboardLayout><div>Protected</div></DashboardLayout>);
+    await waitFor(() => {
+      expect(sessionStorage.getItem('__tec_return_to')).toBeTruthy();
     });
   });
 

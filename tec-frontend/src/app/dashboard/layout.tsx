@@ -3,6 +3,7 @@
 import { useEffect, useState }    from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { usePiAuth }              from '@/lib-client/hooks/usePiAuth';
+import { rememberReturn }         from '@/lib-client/return-to';
 import { Sidebar }                from '@/components/dashboard/Sidebar';
 import { MobileTopbar }           from '@/components/dashboard/MobileTopbar';
 import '@/styles/tec-design-tokens.css';
@@ -26,8 +27,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) router.push('/');
-  }, [isAuthenticated, isLoading, router]);
+    if (!isLoading && !isAuthenticated) {
+      // Remember the screen before leaving it. This used to be a bare
+      // `router.push('/')`, which is right about the destination and wrong
+      // about everything else: the person signs in again and lands on the
+      // marketing page, then has to find their way back to where they already
+      // were. `replace`, not `push`, so Back does not return to a page that
+      // will immediately bounce them again.
+      rememberReturn(pathname);
+      router.replace('/');
+    }
+  }, [isAuthenticated, isLoading, router, pathname]);
 
   useEffect(() => {
     document.body.style.overflow = (!isDesktop && mobileOpen) ? 'hidden' : '';

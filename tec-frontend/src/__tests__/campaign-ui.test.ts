@@ -236,3 +236,27 @@ describe('a mission actually records the visit', () => {
     expect(page).toMatch(/done=\{me\?\.done\.includes\(slug\) \?\? false\}/);
   });
 });
+
+describe('the Connection mission points at the TEC group', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('sends Connection to the invite link, not just to the app', () => {
+    // The invite joins the pioneer in ONE tap with nobody to approve it. Saying
+    // "send a message in the TEC group" without saying where the group is turns
+    // a one-tap mission into a search.
+    expect(page).toMatch(/slug !== 'connection'\) return linkFor\(slug\)/);
+    expect(page).toContain('connection_invite_url');
+    expect(page).toMatch(/href=\{hrefFor\(slug\)\}/);
+  });
+
+  it('falls back to the app when no invite is configured', () => {
+    // A mission that sends someone to a broken URL is worse than one that sends
+    // them to the app and lets them find the group.
+    expect(page).toMatch(/me\?\.connection_invite_url \|\| status\?\.connection_invite_url \|\| linkFor\(slug\)/);
+  });
+
+  it('tells them what the link will do and what is still required', () => {
+    expect(page).toMatch(/puts you in the TEC group/);
+    expect(page).toMatch(/Opening the app is not enough/);
+  });
+});

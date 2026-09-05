@@ -20,6 +20,8 @@ import { useTranslation } from '@/lib/i18n';
 interface Me {
   apps:        string[];
   action_apps: string[];
+  /** Where the Connection mission happens — the group invite, from the service. */
+  connection_invite_url?: string;
   done:        string[];
   missing:     string[];
   eligible:    boolean;
@@ -34,6 +36,7 @@ interface Me {
 }
 
 interface Status {
+  connection_invite_url?: string;
   reward_pi: number;
   seats:     number;
   claimed:   number;
@@ -86,13 +89,14 @@ const recordOpen = (slug: string) => {
   } catch { /* ignore */ }
 };
 
-function Mission({ slug, done, needsAction, locale, onOpen }: {
+function Mission({ slug, done, needsAction, locale, href, onOpen }: {
   slug: string; done: boolean; needsAction: boolean; locale: 'en' | 'ar';
+  href: string;
   onOpen: (slug: string) => void;
 }) {
   return (
     <a
-      href={linkFor(slug)}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
       onClick={() => onOpen(slug)}
@@ -114,7 +118,9 @@ function Mission({ slug, done, needsAction, locale, onOpen }: {
             way to make a screen feel broken. */}
         {needsAction && !done && (
           <div style={{ fontSize: 11.5, color: 'var(--tec-gold)', marginTop: 2 }}>
-            Open a chat and send one message — opening the app is not enough here
+            {slug === 'connection'
+              ? 'This link puts you in the TEC group — say hello there. Opening the app is not enough.'
+              : 'Open a chat and send one message — opening the app is not enough here'}
           </div>
         )}
       </div>
@@ -195,6 +201,23 @@ export default function CampaignPage() {
 
   const claim = me?.claim ?? null;
 
+  /**
+   * Where a mission link goes.
+   *
+   * Connection is the exception: the invite URL joins the pioneer to the TEC
+   * group in one tap, with nobody to approve it. It comes from the service
+   * rather than the bundle so re-creating the link (which revokes the old one)
+   * is an env var and a restart, not a frontend rebuild.
+   *
+   * If it is unset the link falls back to the app itself — a mission that sends
+   * someone to a broken URL is worse than one that sends them to the app and
+   * lets them find the group.
+   */
+  const hrefFor = (slug: string) => {
+    if (slug !== 'connection') return linkFor(slug);
+    return me?.connection_invite_url || status?.connection_invite_url || linkFor(slug);
+  };
+
   return (
     <HubSubShell
       title="Pi Reward Campaign"
@@ -265,6 +288,7 @@ export default function CampaignPage() {
                   done={me?.done.includes(slug) ?? false}
                   needsAction={me?.action_apps.includes(slug) ?? false}
                   locale={locale}
+                  href={hrefFor(slug)}
                   onOpen={recordOpen}
                 />
               ))}

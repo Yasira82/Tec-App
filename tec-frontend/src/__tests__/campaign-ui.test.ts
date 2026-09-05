@@ -282,3 +282,20 @@ describe('a mission remembers where the pioneer was', () => {
     expect(code.indexOf('rememberReturn')).toBeLessThan(code.indexOf('fetch('));
   });
 });
+
+describe('the payout queue is reachable from the campaign itself', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('shows an admin an entry point to /hub/admin/campaign', () => {
+    // Reachable from Profile too, but a link there is a detour when you are
+    // standing on this page wondering who has claimed.
+    expect(page).toContain("/hub/admin/campaign");
+    expect(page).toMatch(/isAdmin && \(/);
+  });
+
+  it('gates it on the role, and only shows it', () => {
+    // The route and the service both check again, and they are the ones that
+    // decide (P5) — this hides a button, it does not grant anything.
+    expect(page).toMatch(/role\?: string \} \| null\)\?\.role === 'admin'/);
+  });
+});

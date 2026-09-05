@@ -195,3 +195,44 @@ describe('the status request stays out of the payment path', () => {
     expect(hookAt).toBeLessThan(firstRet);
   });
 });
+
+describe('a mission actually records the visit', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('POSTs the open when a mission link is clicked', () => {
+    // Regression: the missions were plain <a> links that recorded NOTHING. The
+    // campaign reads the same PioneerQuest.opened_apps the Founding Quest
+    // writes — so a pioneer could open all eight apps, stay at zero, and never
+    // reach the claim form. A campaign whose missions cannot be completed is
+    // worse than a closed one: it looks open.
+    expect(page).toContain("fetch('/api/bff/pioneer/open'");
+    expect(page).toMatch(/onClick=\{\(\) => onOpen\(slug\)\}/);
+    expect(page).toMatch(/onOpen=\{recordOpen\}/);
+  });
+
+  it('uses keepalive, because the mission navigates away', () => {
+    // A fetch in flight when the tab navigates is cancelled — the exact way the
+    // Founding open was lost before.
+    expect(page).toMatch(/keepalive:\s*true/);
+  });
+
+  it('sends the CSRF token', () => {
+    expect(page).toContain('tec_csrf');
+    expect(page).toContain('x-csrf-token');
+  });
+
+  it('re-reads progress when the pioneer comes back to the tab', () => {
+    // Missions open in a new tab, so this page never unmounts and never
+    // re-fetches: the ticks would stay empty until a manual reload, which reads
+    // as "my visit did not count" exactly when it did.
+    expect(page).toMatch(/addEventListener\('focus'/);
+    expect(page).toMatch(/removeEventListener\('focus'/);
+  });
+
+  it('never ticks a mission optimistically', () => {
+    // `connection` requires a message SENT, not a tab opened. A hopeful ✅ there
+    // would be a lie the claim button then refuses to honour — the server stays
+    // the only authority on what is done.
+    expect(page).toMatch(/done=\{me\?\.done\.includes\(slug\) \?\? false\}/);
+  });
+});

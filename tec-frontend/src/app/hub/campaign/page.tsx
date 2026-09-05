@@ -5,6 +5,7 @@ import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
+import { getSource }   from '@/lib-client/campaign';
 import { useTranslation } from '@/lib/i18n';
 
 /**
@@ -55,14 +56,46 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
   return typeof n === 'string' ? n : (n[locale] ?? n.en ?? slug);
 };
 
-function Mission({ slug, done, needsAction, locale }: {
+/**
+ * Record that this pioneer opened an app.
+ *
+ * The campaign reads the SAME `PioneerQuest.opened_apps` the Founding Quest
+ * writes — which is only true if somebody writes it. The Founding page does
+ * this on every app link; the mission links here did not, so a pioneer could
+ * open all eight apps and stay at zero, with no way ever to reach the claim
+ * form. A campaign whose missions cannot be completed is worse than one that is
+ * closed: it looks open.
+ *
+ * `keepalive` because these missions may leave the page, and a fetch in flight
+ * when the tab navigates is cancelled — the exact way the Founding open was lost
+ * before. Best-effort and silent: a failed record must never block the visit.
+ */
+const recordOpen = (slug: string) => {
+  try {
+    const csrf = document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '';
+    void fetch('/api/bff/pioneer/open', {
+      method:      'POST',
+      credentials: 'include',
+      keepalive:   true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}),
+      },
+      body: JSON.stringify({ app: slug, ...(getSource() ? { source: getSource() } : {}) }),
+    }).catch(() => {});
+  } catch { /* ignore */ }
+};
+
+function Mission({ slug, done, needsAction, locale, onOpen }: {
   slug: string; done: boolean; needsAction: boolean; locale: 'en' | 'ar';
+  onOpen: (slug: string) => void;
 }) {
   return (
     <a
       href={linkFor(slug)}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => onOpen(slug)}
       style={{
         display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
         background: 'var(--tec-surface)',
@@ -119,6 +152,21 @@ export default function CampaignPage() {
   }, [isAuthenticated]);
 
   useEffect(() => { if (!authLoading) void load(); }, [authLoading, load]);
+
+  /**
+   * Re-read progress when the pioneer comes back to this tab.
+   *
+   * Every mission opens in a new tab, so this page is never unmounted and never
+   * re-fetches on its own — the ticks would stay empty until a manual reload,
+   * which reads as "my visit did not count" precisely when it did. The server
+   * stays the only authority: nothing is ticked optimistically, because
+   * `connection` requires a message sent and a hopeful ✅ there would be a lie.
+   */
+  useEffect(() => {
+    const onFocus = () => { if (!authLoading) void load(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [authLoading, load]);
 
   const submit = async () => {
     // The button is never disabled on an empty field — a control that refuses in
@@ -217,6 +265,7 @@ export default function CampaignPage() {
                   done={me?.done.includes(slug) ?? false}
                   needsAction={me?.action_apps.includes(slug) ?? false}
                   locale={locale}
+                  onOpen={recordOpen}
                 />
               ))}
 

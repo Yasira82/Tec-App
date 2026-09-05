@@ -62,7 +62,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     founding: '★ Founding 100',
     h1: 'TEC is live on Pi Mainnet',
     lead: '24 connected apps · One Pi identity · Real Pi utility.',
-    heroTrust: '⏱️ A few minutes · Free · No purchase required · from Pi Browser',
+    heroTrust: '⏱️ A few minutes · Free · No payment, ever · Needs a Pi-verified account · from Pi Browser',
     heroCta: '🚀 Start the Pioneer Quest',
     heroRecognition: 'Complete the Quest to earn Founding Pioneer recognition. ⭐ Only the first 100 qualify.',
     callout: 'For the full Pioneer experience, open TEC in Pi Browser and sign in with Pi.',
@@ -87,7 +87,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
-    kycNeeded: (total) => `Open all ${total} apps to complete the Quest and earn your Founding badge — no payment required. Pi Network handles KYC for the domain claims itself.`,
+    kycNeeded: (total) => `Open all ${total} apps to complete the Quest — free, and no payment at any point. One condition: your Pi account must be KYC-verified by Pi Network, because only verified Pioneers count. We never ask you for documents and cannot see your Pi status — that is Pi's to decide.`,
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
     share: 'Share',
     shareCopied: 'Link copied ✓',
@@ -103,7 +103,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     founding: '★ نادي الـ 100 المؤسّس',
     h1: 'TEC شغّال على Pi Mainnet',
     lead: '24 تطبيق مترابط · هوية Pi واحدة · استخدام حقيقي داخل المنظومة.',
-    heroTrust: '⏱️ كام دقيقة · مجانًا · من غير شراء · من متصفح Pi',
+    heroTrust: '⏱️ كام دقيقة · مجانًا · من غير أي دفع · يتطلب حساب Pi موثّق · من متصفح Pi',
     heroCta: '🚀 ابدأ Pioneer Quest',
     heroRecognition: 'كمّل الـ Quest علشان تحصل على تقدير Founding Pioneer. ⭐ أول 100 فقط مؤهلين.',
     callout: 'لأفضل تجربة Pioneer، افتح TEC من متصفح Pi وسجّل دخول بحساب Pi.',
@@ -128,7 +128,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
-    kycNeeded: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest وتكسب شارة Founding — من غير أي دفع. Pi Network هو اللي بيتكفّل بالـ KYC لاستلام الدومينات.`,
+    kycNeeded: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest — مجانًا، ومن غير أي دفع في أي خطوة. شرط واحد: حسابك في Pi لازم يكون موثّق (KYC) من Pi Network، لأن الموثّقين بس هم اللي بيتحسبوا. إحنا مش بنطلب منك أي مستندات ومش بنقدر نشوف حالة توثيقك — دي حاجة Pi وحدها.`,
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
     share: 'شارك',
     shareCopied: 'اتنسخ اللينك ✓',
@@ -172,7 +172,6 @@ export default function PioneersClient() {
   const [visited, setVisited] = useState<string[]>([]);
   const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number; pioneers: number; completed: number } | null>(null);
   const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
-  const [kycNeeded, setKycNeeded] = useState(false);
   const [shared, setShared] = useState(false);
 
   // Share the campaign — native share sheet where available (mobile / Pi Browser),
@@ -232,7 +231,6 @@ export default function PioneersClient() {
           }
           if (typeof q.founding_number === 'number') setFoundingNumber(q.founding_number);
           // Logged-in but not KYC-verified (and no number yet) → nudge to verify.
-          if (q.founding_number == null && q.kyc_verified === false) setKycNeeded(true);
         }
       } catch { /* not logged in / backend down — local-only */ }
     })();
@@ -471,7 +469,13 @@ export default function PioneersClient() {
           {foundingNumber != null && (
             <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
           )}
-          {foundingNumber == null && kycNeeded && (
+          {/* Shown to EVERYONE, not gated on `kyc_verified`.
+              That flag is TEC's own KYC register; Pi's requirement is about Pi's,
+              which this app cannot read. Firing the note off the wrong register
+              told a Pi-verified visitor they were unverified — and hid the
+              condition entirely from someone who had not logged in yet, which is
+              exactly when a person decides whether the Quest is worth starting. */}
+          {foundingNumber == null && (
             <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded(total)}</div>
           )}
           <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>

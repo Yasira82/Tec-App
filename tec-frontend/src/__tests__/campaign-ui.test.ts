@@ -299,3 +299,20 @@ describe('the payout queue is reachable from the campaign itself', () => {
     expect(page).toMatch(/role\?: string \} \| null\)\?\.role === 'admin'/);
   });
 });
+
+describe('a rejected pioneer is offered another go', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('does not treat a REJECTED claim as an active one', () => {
+    // The service was changed to allow a second claim after a rejection. This
+    // page still gated the missions on ANY claim, so the rejected pioneer met
+    // a dead end: the notice, and nothing to do about it.
+    expect(page).toMatch(/claim\.status !== 'REJECTED' \? claim : null/);
+    expect(page).toMatch(/!activeClaim && \(/);
+  });
+
+  it('tells them what to DO, not just who to contact', () => {
+    // "Contact us" alone, on a screen with no way forward, reads as a polite no.
+    expect(page).toMatch(/try again below/i);
+  });
+});

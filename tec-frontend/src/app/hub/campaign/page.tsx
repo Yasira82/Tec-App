@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
@@ -140,7 +141,8 @@ function Mission({ slug, done, needsAction, locale, href, onOpen }: {
 }
 
 export default function CampaignPage() {
-  const { isAuthenticated, isLoading: authLoading } = usePiAuth();
+  const router = useRouter();
+  const { user, isAuthenticated, isLoading: authLoading } = usePiAuth();
   const { dir } = useTranslation();
   const locale: 'en' | 'ar' = dir === 'rtl' ? 'ar' : 'en';
 
@@ -218,7 +220,8 @@ export default function CampaignPage() {
     }
   };
 
-  const claim = me?.claim ?? null;
+  const claim   = me?.claim ?? null;
+  const isAdmin = (user as { role?: string } | null)?.role === 'admin';
 
   /**
    * Where a mission link goes.
@@ -243,6 +246,36 @@ export default function CampaignPage() {
       subtitle={status ? `${status.reward_pi} π · ${status.remaining} of ${status.seats} seats left` : 'Loading…'}
       loading={authLoading || loading}
     >
+      {/* The payout queue, for the one person who can act on it.
+          Reachable from Profile as well, but a link there is a detour when you
+          are standing on this page wondering who has claimed. Gated on the
+          role for looks only — the route and the service both check it again,
+          and they are the ones that decide (P5). */}
+      {isAdmin && (
+        <button
+          onClick={() => router.push('/hub/admin/campaign')}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+            marginBottom: 'var(--sp-4)', padding: 'var(--sp-3) var(--sp-4)',
+            background: 'var(--tec-fill-soft)',
+            border: '1px solid var(--tec-border-gold)',
+            borderRadius: 'var(--radius-md)', cursor: 'pointer',
+            textAlign: 'start', font: 'inherit',
+          }}
+        >
+          <span style={{ fontSize: 18 }}>π</span>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>
+              Campaign payouts
+            </div>
+            <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)' }}>
+              Who has claimed, and where to send the Pi
+            </div>
+          </div>
+          <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
+        </button>
+      )}
+
       {!status?.open && !claim ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>

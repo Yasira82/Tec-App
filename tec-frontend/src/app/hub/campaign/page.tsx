@@ -6,6 +6,7 @@ import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
 import { getSource }   from '@/lib-client/campaign';
+import { rememberReturn } from '@/lib-client/return-to';
 import { useTranslation } from '@/lib/i18n';
 
 /**
@@ -74,6 +75,15 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
  * before. Best-effort and silent: a failed record must never block the visit.
  */
 const recordOpen = (slug: string) => {
+  // Remember where they were BEFORE the mission takes them away.
+  //
+  // A mission leads to another tecosystem.app app, which may bounce through the
+  // Hub's SSO to resolve its own session. Coming back then walks into the middle
+  // of that chain and lands on the sign-in page — with the campaign, and the
+  // reason they were signing in at all, nowhere on screen. The Hub already knows
+  // how to forward a remembered destination after a bounce; this was the one
+  // place that never told it where the person had been standing.
+  try { rememberReturn('/hub/campaign'); } catch { /* ignore */ }
   try {
     const csrf = document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '';
     void fetch('/api/bff/pioneer/open', {

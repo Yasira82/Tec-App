@@ -260,3 +260,25 @@ describe('the Connection mission points at the TEC group', () => {
     expect(page).toMatch(/Opening the app is not enough/);
   });
 });
+
+describe('a mission remembers where the pioneer was', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('stashes /hub/campaign before the mission navigates away', () => {
+    // Reported from a phone: leaving an app landed on the sign-in page rather
+    // than back on the campaign. A mission goes to another tecosystem.app app,
+    // which may bounce through the Hub's SSO to resolve its own session —
+    // coming back walks into the middle of that chain. The Hub already knows
+    // how to forward a remembered destination; nothing was telling it where the
+    // person had been standing.
+    expect(page).toMatch(/rememberReturn\('\/hub\/campaign'\)/);
+    expect(page).toContain("from '@/lib-client/return-to'");
+  });
+
+  it('remembers BEFORE the record fetch, not after', () => {
+    // The navigation can begin the moment the click is handled. A stash queued
+    // behind a network call is a stash that may never happen.
+    const code = page.slice(page.indexOf('const recordOpen'));
+    expect(code.indexOf('rememberReturn')).toBeLessThan(code.indexOf('fetch('));
+  });
+});

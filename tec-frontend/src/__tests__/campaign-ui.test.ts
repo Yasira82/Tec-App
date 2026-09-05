@@ -127,3 +127,71 @@ describe('the payout queue is built for copying by hand', () => {
     expect(page).toContain('Access restricted');
   });
 });
+
+// ── The Hub spotlight ───────────────────────────────────────────────────────
+
+describe('the carousel slide appears only while a round is open', () => {
+  const carousel = codeOf('components/hub/HubCarousel.tsx');
+  const hub      = codeOf('app/hub/page.tsx');
+
+  it('renders the campaign slide conditionally', () => {
+    // A slide advertising a campaign that has ended is a dead promise on the
+    // Hub's most prominent surface.
+    expect(carousel).toMatch(/const showCampaign = campaignOpen && typeof goToCampaign === 'function'/);
+    expect(carousel).toMatch(/\{showCampaign && \(/);
+  });
+
+  it('moves the slide COUNT with it', () => {
+    // The count used to be the constant 3. A stale count either lets a swipe
+    // land on a slide that is not there, or makes the last one unreachable —
+    // both look like a broken carousel rather than a finished campaign.
+    expect(carousel).toMatch(/const SLIDES = showCampaign \? 4 : 3/);
+    expect(carousel).not.toMatch(/^const SLIDES = 3;$/m);
+  });
+
+  it('CLAMPS the index, because the count can shrink under a viewer', () => {
+    // A round ends while someone is parked on the last slide; an unclamped
+    // index then points past the track and the spotlight goes blank.
+    expect(carousel).toMatch(/const idx = Math\.min\(Math\.max\(carouselIdx, 0\), SLIDES - 1\)/);
+    expect(carousel).toMatch(/translateX\(\$\{rtl \? '' : '-'\}\$\{idx \* 100\}%\)/);
+  });
+
+  it('uses the clamped index for the dots too', () => {
+    // Otherwise the track and its indicator disagree about where you are.
+    expect(carousel).not.toMatch(/carouselIdx === i/);
+    expect(carousel).toMatch(/idx === i/);
+  });
+
+  it('the Hub treats an unreadable status as CLOSED', () => {
+    // The Hub must not headline Pi it cannot confirm is on offer (P6).
+    expect(hub).toMatch(/setCampaignOpen\(j\?\.data\?\.open === true\)/);
+    expect(hub).toMatch(/useState\(false\)/);
+  });
+
+  it('does not leave a setState behind after unmount', () => {
+    expect(hub).toMatch(/let alive = true;[\s\S]*?return \(\) => \{ alive = false; \};/);
+  });
+});
+
+describe('the status request stays out of the payment path', () => {
+  const hub = codeOf('app/hub/page.tsx');
+
+  it('is skipped during a Hub payment', () => {
+    // `/hub?pay=1&…` renders PaymentPreparing and then the modal — the carousel
+    // never appears, so the request is pure waste on the one screen where an
+    // extra round trip is most expensive. It also stopped three payment-flow
+    // tests passing, which is how it was noticed.
+    expect(hub).toMatch(/get\('pay'\) === '1'\) return;/);
+  });
+
+  it('declares its hooks ABOVE the early returns', () => {
+    // Two early returns sit lower in this component (HubSkeleton and
+    // PaymentPreparing). A hook below them is called conditionally, and React
+    // fails the whole page with "Rendered fewer hooks than expected".
+    const hookAt   = hub.indexOf('setCampaignOpen');
+    const firstRet = hub.indexOf('return <HubSkeleton />');
+    expect(hookAt).toBeGreaterThan(-1);
+    expect(firstRet).toBeGreaterThan(-1);
+    expect(hookAt).toBeLessThan(firstRet);
+  });
+});

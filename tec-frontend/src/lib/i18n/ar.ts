@@ -214,6 +214,9 @@ export const ar = {
       inviteTitle: 'ادعُ واكسب',
       inviteSub: 'ادعُ صديقًا — كلاكما يحصل على شهر PRO مجانًا',
       inviteCta: 'ادعُ',
+      campaignTitle: 'حملة مكافآت Pi',
+      campaignSub:   'زُر كام تطبيق، واستلم Pi حقيقي. مجانًا — من غير أي دفع.',
+      campaignCta:   'استلم',
       piNetwork: 'شبكة Pi',
     },
     apps: {

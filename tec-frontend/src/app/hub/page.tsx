@@ -61,6 +61,30 @@ function HubPageInner() {
 
   const [carouselIdx, setCarouselIdx] = useState(0);
   const [aiOpen,      setAiOpen]      = useState(false);
+
+  // Is a reward round open? The spotlight slide only exists while one is, so it
+  // never advertises a campaign that has ended. Failure is treated as CLOSED —
+  // the Hub must not headline Pi it cannot confirm is on offer (P6).
+  //
+  // Declared HERE, with the other hooks, and not beside `goToCampaign` further
+  // down: two early returns sit between the two places (`HubSkeleton` and
+  // `PaymentPreparing`), so a hook after them is called conditionally. React
+  // says "Rendered fewer hooks than expected" and the whole page throws.
+  const [campaignOpen, setCampaignOpen] = useState(false);
+  useEffect(() => {
+    // Skipped entirely during a Hub payment (`/hub?pay=1&…`). That path renders
+    // PaymentPreparing and then the modal — the carousel never appears, so the
+    // request is pure waste on the one screen where latency is most visible and
+    // an extra round trip is most expensive.
+    if (typeof window !== 'undefined'
+        && new URLSearchParams(window.location.search).get('pay') === '1') return;
+    let alive = true;
+    fetch('/api/bff/campaign/status', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((j) => { if (alive) setCampaignOpen(j?.data?.open === true); })
+      .catch(() => { /* closed */ });
+    return () => { alive = false; };
+  }, []);
   const [toasts,      setToasts]      = useState<Toast[]>([]);
 
   const showToast = useCallback((type: Toast['type'], message: string, txid?: string) => {
@@ -126,6 +150,7 @@ function HubPageInner() {
 
   const totalNotif = wsUnread > 0 ? wsUnread : notifCount;
   // Marketing missions entry — the Pioneer Quest / Founding 100 (public route, same origin).
+  const goToCampaign = () => { haptic('light'); router.push('/hub/campaign'); };
   const goToPioneers = () => { haptic('light'); router.push('/pioneers'); };
   const goToReferral = () => { haptic('light'); router.push('/hub/referral'); };
 
@@ -176,6 +201,8 @@ function HubPageInner() {
         carouselIdx={carouselIdx}
         setCarouselIdx={setCarouselIdx}
         piPrice={piPrice}
+        campaignOpen={campaignOpen}
+        goToCampaign={goToCampaign}
         goToPioneers={goToPioneers}
         goToReferral={goToReferral}
       />

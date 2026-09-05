@@ -221,6 +221,18 @@ export default function CampaignPage() {
   };
 
   const claim   = me?.claim ?? null;
+
+  /**
+   * A REJECTED claim is not an active one.
+   *
+   * The service was changed to let a rejected pioneer claim again — a rejection
+   * is a decision about that claim (a wrong address, a bad submission), not a
+   * ban on the person, and this screen tells them to get in touch if it was a
+   * mistake. This page was still treating any claim as final, so the rejected
+   * pioneer met a dead end: the notice, and nothing to do about it. The offer
+   * has to come back, or the sentence is decoration.
+   */
+  const activeClaim = claim && claim.status !== 'REJECTED' ? claim : null;
   const isAdmin = (user as { role?: string } | null)?.role === 'admin';
 
   /**
@@ -276,7 +288,7 @@ export default function CampaignPage() {
         </button>
       )}
 
-      {!status?.open && !claim ? (
+      {!status?.open && !activeClaim ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>
             No campaign is running
@@ -314,7 +326,9 @@ export default function CampaignPage() {
                   ? 'A person sends the Pi by hand, so this is not instant. You will see the transaction id here when it is done.'
                   : claim.status === 'PAID'
                     ? 'Check your Pi wallet.'
-                    : 'Contact us through the feedback form if you think this is a mistake.'}
+                    // Says what to DO. "Contact us" alone, on a screen with no
+                    // way forward, reads as a polite no.
+                    : 'You can try again below — check the address carefully first. Contact us through the feedback form if you think this was a mistake.'}
               </div>
               <div dir="ltr" style={{
                 marginTop: 8, fontSize: 11, fontFamily: 'var(--font-mono)',
@@ -327,7 +341,7 @@ export default function CampaignPage() {
           )}
 
           {/* ── Missions ───────────────────────────────────── */}
-          {!claim && (
+          {!activeClaim && (
             <>
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-3)', lineHeight: 1.6 }}>
                 Visit these apps, then claim {me?.reward_pi ?? status?.reward_pi} π. Free — there is no payment at any step.

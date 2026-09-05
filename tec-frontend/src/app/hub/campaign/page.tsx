@@ -288,7 +288,11 @@ export default function CampaignPage() {
         </button>
       )}
 
-      {!status?.open && !activeClaim ? (
+      {/* "No campaign is running" is for somebody with NO claim at all.
+          Keying it on `activeClaim` hid a rejected pioneer's own notice the
+          moment the round closed — the record of what happened to them, gone,
+          with nothing in its place. Any claim, in any state, keeps its detail. */}
+      {!status?.open && !claim ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>
             No campaign is running
@@ -341,7 +345,11 @@ export default function CampaignPage() {
           )}
 
           {/* ── Missions ───────────────────────────────────── */}
-          {!activeClaim && (
+          {/* The missions come back for a rejected pioneer — but only while a
+              round is actually open. Offering the form on a closed campaign
+              invites a claim the service will refuse, and being refused twice
+              reads as being refused personally. */}
+          {!activeClaim && status?.open && (
             <>
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-3)', lineHeight: 1.6 }}>
                 Visit these apps, then claim {me?.reward_pi ?? status?.reward_pi} π. Free — there is no payment at any step.

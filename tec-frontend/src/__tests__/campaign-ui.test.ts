@@ -308,11 +308,29 @@ describe('a rejected pioneer is offered another go', () => {
     // page still gated the missions on ANY claim, so the rejected pioneer met
     // a dead end: the notice, and nothing to do about it.
     expect(page).toMatch(/claim\.status !== 'REJECTED' \? claim : null/);
-    expect(page).toMatch(/!activeClaim && \(/);
+    expect(page).toMatch(/!activeClaim && status\?\.open && \(/);
   });
 
   it('tells them what to DO, not just who to contact', () => {
     // "Contact us" alone, on a screen with no way forward, reads as a polite no.
     expect(page).toMatch(/try again below/i);
+  });
+});
+
+describe('a claim keeps its record when the round ends', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('shows "no campaign" only to somebody with NO claim at all', () => {
+    // Keying this on `activeClaim` hid a rejected pioneer's own notice the
+    // moment the round closed — the record of what happened to them gone, with
+    // nothing in its place. A regression from the fix one commit earlier.
+    expect(page).toMatch(/!status\?\.open && !claim \?/);
+  });
+
+  it('offers the form only while a round is open', () => {
+    // The missions come back for a rejected pioneer, but a closed campaign
+    // would invite a claim the service refuses — and being refused twice reads
+    // as being refused personally.
+    expect(page).toMatch(/!activeClaim && status\?\.open && \(/);
   });
 });

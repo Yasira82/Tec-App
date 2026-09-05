@@ -158,6 +158,15 @@ export default function HubProfilePage() {
             </div>
             <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
           </button>
+          <button onClick={() => router.push('/hub/admin/pioneers')}
+            style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', marginTop: 'var(--sp-3)', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(var(--tec-gold-rgb),0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
+            <span style={{ fontSize: 22 }}>🏆</span>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>Pioneer coverage</div>
+              <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>Which apps are short of Pi&apos;s claim threshold</div>
+            </div>
+            <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
+          </button>
           <button onClick={() => router.push('/hub/admin/feedback')}
             style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', marginTop: 'var(--sp-3)', padding: 'var(--sp-4)', background: 'var(--tec-surface-1)', border: '1px solid rgba(var(--tec-gold-rgb),0.25)', borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'start' }}>
             <span style={{ fontSize: 22 }}>💬</span>

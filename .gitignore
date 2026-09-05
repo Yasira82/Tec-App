@@ -29,7 +29,13 @@ yarn-error.log*
 Thumbs.db
 
 # Test coverage
-coverage/
+# ANCHORED (leading slash). Unanchored, `coverage/` matches a directory of that
+# name at ANY depth — which silently swallowed the API route
+# `tec-frontend/src/app/api/admin/pioneers/coverage/`. `git add -A` said
+# nothing, the tests passed locally because the file was on disk, and CI failed
+# on a file it had never been given. Only build output is meant here.
+/coverage/
+tec-frontend/coverage/
 .nyc_output/
 
 # IDE

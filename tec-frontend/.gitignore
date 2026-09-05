@@ -22,7 +22,12 @@ test-results/
 playwright-report/
 
 # Coverage
-coverage/
+# ANCHORED (leading slash). Unanchored, `coverage/` matches a directory of that
+# name at ANY depth — which silently swallowed the API route
+# `src/app/api/admin/pioneers/coverage/`. `git add -A` said nothing, the tests
+# passed locally because the file was on disk, and CI failed on a file it had
+# never been given. Only the build output at the package root is meant here.
+/coverage/
 
 # OS
 .DS_Store

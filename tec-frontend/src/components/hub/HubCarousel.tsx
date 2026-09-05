@@ -8,22 +8,47 @@ import { PiPrice }      from '@/lib/hub/types';
 import { CountUp }      from '@/components/ui/CountUp';
 import { Icon }         from '@/components/ui/Icon';
 
-// Hub top spotlight. Marketing-first: slide 1 = the Founding-100 "missions" entry,
-// slide 2 = Invite & Earn (referral), slide 3 = the live Pi price. The old
-// "apps live on Pi" slide was removed — it linked to the same Pioneers page as
-// Founding-100 (a duplicate); app discovery lives in the apps grid / nav.
+// Hub top spotlight. Marketing-first: the Pi reward campaign leads WHEN it is
+// running, then the Founding-100 "missions" entry, Invite & Earn (referral), and
+// the live Pi price. The old "apps live on Pi" slide was removed — it linked to
+// the same Pioneers page as Founding-100 (a duplicate); app discovery lives in
+// the apps grid / nav.
+//
+// The campaign leads because real Pi is a stronger draw than a badge, and it is
+// time-boxed while Founding is permanent — the temporary thing is the one worth
+// putting in front of somebody now.
 interface Props {
   carouselIdx:    number;
   setCarouselIdx: (i: number) => void;
   piPrice:        PiPrice | null;
   goToPioneers:   () => void;
   goToReferral:   () => void;
+  /** Only true while a round is actually open — see the slide count below. */
+  campaignOpen?:  boolean;
+  goToCampaign?:  () => void;
 }
 
-const SLIDES = 3;
-
-export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers, goToReferral }: Props) {
+export function HubCarousel({
+  carouselIdx, setCarouselIdx, piPrice, goToPioneers, goToReferral,
+  campaignOpen = false, goToCampaign,
+}: Props) {
   const { t, dir } = useTranslation();
+  /**
+   * The campaign slide only exists while a round is open, so the slide COUNT
+   * has to move with it. It used to be the constant 3, which is exactly the
+   * kind of thing that breaks quietly: a stale count either lets a swipe land
+   * on a slide that is not there (a blank spotlight) or makes the last one
+   * unreachable. Both look like the carousel is broken rather than like a
+   * campaign that ended.
+   */
+  const showCampaign = campaignOpen && typeof goToCampaign === 'function';
+  const SLIDES = showCampaign ? 4 : 3;
+  /**
+   * Clamped, because the count can SHRINK under a viewer: a round ends while
+   * someone is parked on the last slide, and an unclamped index then points
+   * past the track — a blank spotlight where the Hub's headline should be.
+   */
+  const idx = Math.min(Math.max(carouselIdx, 0), SLIDES - 1);
   // An RTL flex row starts at the RIGHT, so the slides advance the other way.
   // A fixed `translateX(-N%)` pushed the track off-screen and left the Hub's top
   // slot blank in Arabic — the carousel was there, just nowhere visible.
@@ -45,7 +70,24 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
           }
         }}
         style={{ overflow: 'hidden', borderRadius: 20 }}>
-        <div style={{ display: 'flex', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: `translateX(${rtl ? '' : '-'}${carouselIdx * 100}%)` }}>
+        <div style={{ display: 'flex', transition: 'transform 0.4s cubic-bezier(0.16,1,0.3,1)', transform: `translateX(${rtl ? '' : '-'}${idx * 100}%)` }}>
+
+          {/* 0 — Pi reward campaign · only while a round is open */}
+          {showCampaign && (
+            <div style={{ minWidth: '100%' }}>
+              <button className="tec-btn" onClick={goToCampaign}
+                style={{ width: '100%', borderRadius: 20, background: 'var(--tec-surface-1)', border: '1px solid var(--tec-border-gold)', padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', textAlign: 'start', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0 }}>
+                  <div style={{ width: 48, height: 48, borderRadius: 16, flex: '0 0 auto', background: 'var(--tec-gold-glow)', border: '1px solid var(--tec-border-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, fontWeight: 900, color: 'var(--tec-gold)' }}>π</div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--tec-text-1)', marginBottom: 3 }}>{t.hub.carousel.campaignTitle}</div>
+                    <div style={{ fontSize: 11, color: 'var(--tec-text-3)', lineHeight: 1.4 }}>{t.hub.carousel.campaignSub}</div>
+                  </div>
+                </div>
+                <div style={{ flex: '0 0 auto', fontSize: 9, fontWeight: 800, color: 'var(--tec-gold)', letterSpacing: 1.5 }}>{t.hub.carousel.campaignCta} →</div>
+              </button>
+            </div>
+          )}
 
           {/* 1 — Founding 100 · Marketing missions entry */}
           <div style={{ minWidth: '100%' }}>
@@ -124,8 +166,8 @@ export function HubCarousel({ carouselIdx, setCarouselIdx, piPrice, goToPioneers
           <button key={i} onClick={() => { haptic('light'); setCarouselIdx(i); }}
             aria-label={`Slide ${i + 1}`}
             style={{
-              width: carouselIdx === i ? 20 : 6, height: 6, borderRadius: 3,
-              background: carouselIdx === i ? 'var(--tec-gold)' : 'var(--tec-border)',
+              width: idx === i ? 20 : 6, height: 6, borderRadius: 3,
+              background: idx === i ? 'var(--tec-gold)' : 'var(--tec-border)',
               border: 'none', cursor: 'pointer',
               transition: 'all 0.3s cubic-bezier(0.16,1,0.3,1)', padding: 0,
             }} />

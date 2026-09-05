@@ -244,6 +244,9 @@ export const en = {
       inviteTitle: 'Invite & Earn',
       inviteSub: 'Invite a friend — you both get a free PRO month',
       inviteCta: 'INVITE',
+      campaignTitle: 'Pi Reward Campaign',
+      campaignSub:   'Visit a few apps, claim real Pi. Free — no payment at any step.',
+      campaignCta:   'CLAIM',
       piNetwork: 'Pi Network',
     },
     apps: {

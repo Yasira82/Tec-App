@@ -5,6 +5,7 @@ import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
+import { getSource }   from '@/lib-client/campaign';
 import { useTranslation } from '@/lib/i18n';
 
 /**
@@ -19,6 +20,8 @@ import { useTranslation } from '@/lib/i18n';
 interface Me {
   apps:        string[];
   action_apps: string[];
+  /** Where the Connection mission happens — the group invite, from the service. */
+  connection_invite_url?: string;
   done:        string[];
   missing:     string[];
   eligible:    boolean;
@@ -33,6 +36,7 @@ interface Me {
 }
 
 interface Status {
+  connection_invite_url?: string;
   reward_pi: number;
   seats:     number;
   claimed:   number;
@@ -55,14 +59,47 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
   return typeof n === 'string' ? n : (n[locale] ?? n.en ?? slug);
 };
 
-function Mission({ slug, done, needsAction, locale }: {
+/**
+ * Record that this pioneer opened an app.
+ *
+ * The campaign reads the SAME `PioneerQuest.opened_apps` the Founding Quest
+ * writes — which is only true if somebody writes it. The Founding page does
+ * this on every app link; the mission links here did not, so a pioneer could
+ * open all eight apps and stay at zero, with no way ever to reach the claim
+ * form. A campaign whose missions cannot be completed is worse than one that is
+ * closed: it looks open.
+ *
+ * `keepalive` because these missions may leave the page, and a fetch in flight
+ * when the tab navigates is cancelled — the exact way the Founding open was lost
+ * before. Best-effort and silent: a failed record must never block the visit.
+ */
+const recordOpen = (slug: string) => {
+  try {
+    const csrf = document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '';
+    void fetch('/api/bff/pioneer/open', {
+      method:      'POST',
+      credentials: 'include',
+      keepalive:   true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}),
+      },
+      body: JSON.stringify({ app: slug, ...(getSource() ? { source: getSource() } : {}) }),
+    }).catch(() => {});
+  } catch { /* ignore */ }
+};
+
+function Mission({ slug, done, needsAction, locale, href, onOpen }: {
   slug: string; done: boolean; needsAction: boolean; locale: 'en' | 'ar';
+  href: string;
+  onOpen: (slug: string) => void;
 }) {
   return (
     <a
-      href={linkFor(slug)}
+      href={href}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => onOpen(slug)}
       style={{
         display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none',
         background: 'var(--tec-surface)',
@@ -81,7 +118,9 @@ function Mission({ slug, done, needsAction, locale }: {
             way to make a screen feel broken. */}
         {needsAction && !done && (
           <div style={{ fontSize: 11.5, color: 'var(--tec-gold)', marginTop: 2 }}>
-            Open a chat and send one message — opening the app is not enough here
+            {slug === 'connection'
+              ? 'This link puts you in the TEC group — say hello there. Opening the app is not enough.'
+              : 'Open a chat and send one message — opening the app is not enough here'}
           </div>
         )}
       </div>
@@ -120,6 +159,21 @@ export default function CampaignPage() {
 
   useEffect(() => { if (!authLoading) void load(); }, [authLoading, load]);
 
+  /**
+   * Re-read progress when the pioneer comes back to this tab.
+   *
+   * Every mission opens in a new tab, so this page is never unmounted and never
+   * re-fetches on its own — the ticks would stay empty until a manual reload,
+   * which reads as "my visit did not count" precisely when it did. The server
+   * stays the only authority: nothing is ticked optimistically, because
+   * `connection` requires a message sent and a hopeful ✅ there would be a lie.
+   */
+  useEffect(() => {
+    const onFocus = () => { if (!authLoading) void load(); };
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, [authLoading, load]);
+
   const submit = async () => {
     // The button is never disabled on an empty field — a control that refuses in
     // silence is the one form of validation a person cannot read.
@@ -146,6 +200,23 @@ export default function CampaignPage() {
   };
 
   const claim = me?.claim ?? null;
+
+  /**
+   * Where a mission link goes.
+   *
+   * Connection is the exception: the invite URL joins the pioneer to the TEC
+   * group in one tap, with nobody to approve it. It comes from the service
+   * rather than the bundle so re-creating the link (which revokes the old one)
+   * is an env var and a restart, not a frontend rebuild.
+   *
+   * If it is unset the link falls back to the app itself — a mission that sends
+   * someone to a broken URL is worse than one that sends them to the app and
+   * lets them find the group.
+   */
+  const hrefFor = (slug: string) => {
+    if (slug !== 'connection') return linkFor(slug);
+    return me?.connection_invite_url || status?.connection_invite_url || linkFor(slug);
+  };
 
   return (
     <HubSubShell
@@ -217,6 +288,8 @@ export default function CampaignPage() {
                   done={me?.done.includes(slug) ?? false}
                   needsAction={me?.action_apps.includes(slug) ?? false}
                   locale={locale}
+                  href={hrefFor(slug)}
+                  onOpen={recordOpen}
                 />
               ))}
 

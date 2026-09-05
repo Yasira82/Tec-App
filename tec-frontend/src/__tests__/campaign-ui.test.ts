@@ -195,3 +195,68 @@ describe('the status request stays out of the payment path', () => {
     expect(hookAt).toBeLessThan(firstRet);
   });
 });
+
+describe('a mission actually records the visit', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('POSTs the open when a mission link is clicked', () => {
+    // Regression: the missions were plain <a> links that recorded NOTHING. The
+    // campaign reads the same PioneerQuest.opened_apps the Founding Quest
+    // writes — so a pioneer could open all eight apps, stay at zero, and never
+    // reach the claim form. A campaign whose missions cannot be completed is
+    // worse than a closed one: it looks open.
+    expect(page).toContain("fetch('/api/bff/pioneer/open'");
+    expect(page).toMatch(/onClick=\{\(\) => onOpen\(slug\)\}/);
+    expect(page).toMatch(/onOpen=\{recordOpen\}/);
+  });
+
+  it('uses keepalive, because the mission navigates away', () => {
+    // A fetch in flight when the tab navigates is cancelled — the exact way the
+    // Founding open was lost before.
+    expect(page).toMatch(/keepalive:\s*true/);
+  });
+
+  it('sends the CSRF token', () => {
+    expect(page).toContain('tec_csrf');
+    expect(page).toContain('x-csrf-token');
+  });
+
+  it('re-reads progress when the pioneer comes back to the tab', () => {
+    // Missions open in a new tab, so this page never unmounts and never
+    // re-fetches: the ticks would stay empty until a manual reload, which reads
+    // as "my visit did not count" exactly when it did.
+    expect(page).toMatch(/addEventListener\('focus'/);
+    expect(page).toMatch(/removeEventListener\('focus'/);
+  });
+
+  it('never ticks a mission optimistically', () => {
+    // `connection` requires a message SENT, not a tab opened. A hopeful ✅ there
+    // would be a lie the claim button then refuses to honour — the server stays
+    // the only authority on what is done.
+    expect(page).toMatch(/done=\{me\?\.done\.includes\(slug\) \?\? false\}/);
+  });
+});
+
+describe('the Connection mission points at the TEC group', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('sends Connection to the invite link, not just to the app', () => {
+    // The invite joins the pioneer in ONE tap with nobody to approve it. Saying
+    // "send a message in the TEC group" without saying where the group is turns
+    // a one-tap mission into a search.
+    expect(page).toMatch(/slug !== 'connection'\) return linkFor\(slug\)/);
+    expect(page).toContain('connection_invite_url');
+    expect(page).toMatch(/href=\{hrefFor\(slug\)\}/);
+  });
+
+  it('falls back to the app when no invite is configured', () => {
+    // A mission that sends someone to a broken URL is worse than one that sends
+    // them to the app and lets them find the group.
+    expect(page).toMatch(/me\?\.connection_invite_url \|\| status\?\.connection_invite_url \|\| linkFor\(slug\)/);
+  });
+
+  it('tells them what the link will do and what is still required', () => {
+    expect(page).toMatch(/puts you in the TEC group/);
+    expect(page).toMatch(/Opening the app is not enough/);
+  });
+});

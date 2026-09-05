@@ -144,13 +144,22 @@ export default function CampaignPage() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
+      // TWO different envelopes, and reading one as the other is what broke this
+      // page. `status` is a plain route that passes the SERVICE body straight
+      // through, so it arrives wrapped: { success, data }. `me` goes through
+      // createHandler, which responds with the handler's return value at the TOP
+      // LEVEL — no `data` key at all. Reading `m.data` there yielded undefined,
+      // so `me` was null forever: no ticks, no Connection hint, and "Finish the
+      // list above to claim." with no way to ever finish it.
       const s = await fetch('/api/bff/campaign/status', { credentials: 'include' })
         .then((r) => r.json()).catch(() => ({}));
       setStatus(s?.data ?? null);
       if (isAuthenticated) {
         const m = await fetch('/api/bff/campaign/me', { credentials: 'include' })
           .then((r) => r.json()).catch(() => ({}));
-        setMe(m?.data ?? null);
+        // `apps` is the marker of a real payload — an error body has none, and
+        // must not be mistaken for "this pioneer has done nothing" (P6).
+        setMe(Array.isArray(m?.apps) ? (m as Me) : null);
       }
     } finally {
       setLoading(false);

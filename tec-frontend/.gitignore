@@ -14,7 +14,13 @@ node_modules/
 
 # Build outputs
 dist/
-build/
+# ANCHORED, for the same reason as /coverage/ below — and it had already
+# happened again: `build/` unanchored swallowed the SOURCE route
+# `src/app/api/admin/campaign/build/`. `git add -A` said nothing, and the file
+# would have been missing from the deploy with no error anywhere. The
+# tracked-files test is what caught it, which is the whole reason that test
+# exists.
+/build/
 *.tsbuildinfo
 
 # Playwright test results

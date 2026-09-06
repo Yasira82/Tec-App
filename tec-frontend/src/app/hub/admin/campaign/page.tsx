@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useRouter }  from 'next/navigation';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
@@ -286,6 +287,7 @@ function Row({ claim, onDone, canSend }: {
 }
 
 export default function AdminCampaignPage() {
+  const router = useRouter();
   const { user, isLoading: authLoading } = usePiAuth();
   const isAdmin = (user as { role?: string } | null)?.role === 'admin';
 
@@ -372,6 +374,21 @@ export default function AdminCampaignPage() {
               </button>
             ))}
           </div>
+
+          {/* The way out of "it is still broken" with no way to see why.
+              Read-only, and it prints what the server actually answered —
+              which is the thing a screenshot of a screen cannot show. */}
+          <button
+            onClick={() => router.push('/hub/admin/campaign/diagnose')}
+            style={{
+              display: 'block', marginBottom: 'var(--sp-3)',
+              background: 'none', border: 'none', padding: 0,
+              color: 'var(--tec-text-3)', fontSize: 12, fontWeight: 700,
+              cursor: 'pointer', font: 'inherit', textAlign: 'start',
+            }}
+          >
+            Something not working? Run diagnostics →
+          </button>
 
           {/* The state of the payout wallet, before anything that spends it.
               Green with the public key so it can be compared against the wallet

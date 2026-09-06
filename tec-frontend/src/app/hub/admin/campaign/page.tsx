@@ -15,7 +15,16 @@ import { Icon }        from '@/components/ui/Icon';
  * The address is shown large and monospaced with a copy button, because it is
  * copied by hand into a wallet app and a mis-copied character sends real Pi to
  * a stranger with no way back.
+ *
+ * "Mark sent" RECORDS a transfer that has already happened. It does not make
+ * one — the platform holds no wallet and cannot move Pi. That is why the
+ * transaction hash is required and why its shape is checked: the claimant is
+ * told "Sent — π on its way, check your wallet" on the strength of this field,
+ * and a field that accepts anything makes that sentence a guess.
  */
+
+/** A Pi (Stellar) transaction hash: 32 bytes, written as 64 hex characters. */
+const TX_HASH = /^[0-9a-fA-F]{64}$/;
 
 type Status = 'CLAIMED' | 'PAID' | 'REJECTED';
 
@@ -35,13 +44,22 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
   const [txId,   setTxId]   = useState('');
   const [busy,   setBusy]   = useState(false);
   const [copied, setCopied] = useState(false);
+  // Two taps, like Remove elsewhere: what this enables is paying twice.
+  const [armedUnpaid, setArmedUnpaid] = useState(false);
   const [error,  setError]  = useState<string | null>(null);
 
-  const act = async (action: 'paid' | 'reject') => {
-    if (action === 'paid' && !txId.trim()) {
-      // The service refuses this too. Saying it here saves a round trip and
-      // explains WHY the field matters rather than just rejecting.
-      setError('Paste the transaction id — a payment without one is not a record.');
+  const act = async (action: 'paid' | 'reject' | 'send' | 'unpaid') => {
+    // 'send' needs no hash: the chain gives one back. The field is for
+    // RECORDING a transfer somebody made by hand, which is still allowed.
+    if (action === 'paid' && !TX_HASH.test(txId.trim())) {
+      // The service refuses this too — it is the authority, and this copy only
+      // saves a round trip. `1` used to pass both, and a claim went out saying
+      // "Sent — 1 π on its way" while nothing had left any wallet.
+      setError(
+        txId.trim()
+          ? 'That is not a transaction hash. Paste the 64-character hash from your wallet.'
+          : 'Send the Pi first, then paste the transaction hash from your wallet.',
+      );
       return;
     }
     setBusy(true); setError(null);
@@ -52,7 +70,11 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
         body: JSON.stringify(
           action === 'paid'
             ? { id: claim.id, action: 'paid', tx_id: txId.trim() }
-            : { id: claim.id, action: 'reject', note: 'Rejected from the payout queue' },
+            : action === 'send'
+              ? { id: claim.id, action: 'send' }
+              : action === 'unpaid'
+                ? { id: claim.id, action: 'unpaid', note: 'Marked paid in error — no Pi was sent' }
+                : { id: claim.id, action: 'reject', note: 'Rejected from the payout queue' },
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -120,7 +142,7 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           <input
             value={txId}
             onChange={(e) => { setTxId(e.target.value); if (error) setError(null); }}
-            placeholder="Transaction id"
+            placeholder="Transaction hash (64 characters)"
             dir="ltr"
             spellCheck={false}
             aria-label={`Transaction id for seat ${claim.seat ?? ''}`}
@@ -131,6 +153,17 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
               fontFamily: 'var(--font-mono)', outline: 'none',
             }}
           />
+          {/* The one button that MOVES Pi. First, and gold, because it is the
+              normal path now — "Mark sent" beside it is for a transfer made by
+              hand, which is still allowed and is no longer the only way. */}
+          <button onClick={() => { void act('send'); }} disabled={busy} style={{
+            padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
+            background: 'linear-gradient(135deg,var(--tec-gold),#E8962A)',
+            color: '#1a1200', fontWeight: 800, fontSize: 12,
+            cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, font: 'inherit',
+          }}>
+            {busy ? 'Sending…' : `Send ${claim.amount_pi} π now`}
+          </button>
           <button onClick={() => { void act('paid'); }} disabled={busy} style={{
             padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
             background: 'linear-gradient(135deg,var(--tec-green),#16A34A)',
@@ -139,6 +172,18 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           }}>
             Mark sent
           </button>
+          {/* Which button does what, said once. They sit next to each other and
+              only one of them moves money — a person who mistakes the second
+              for the first records a payment that never happened and tells the
+              claimant to go and look for it. */}
+          <p style={{
+            width: '100%', margin: '2px 0 0', fontSize: 11, lineHeight: 1.5,
+            color: 'var(--tec-text-3)',
+          }}>
+            <strong>Send now</strong> transfers the Pi from the payout wallet and records the real
+            transaction. <strong>Mark sent</strong> only records one you already sent by hand — paste
+            its hash first.
+          </p>
           <button onClick={() => { void act('reject'); }} disabled={busy} style={{
             padding: '8px 14px', borderRadius: 'var(--radius-sm)',
             background: 'transparent', border: '1px solid rgba(239,68,68,0.4)',
@@ -147,6 +192,45 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           }}>
             Reject
           </button>
+        </div>
+      )}
+
+      {/* Putting a wrongly-paid claim back in the queue.
+          The mistake this undoes actually happened: a claim was marked PAID
+          with a transaction id of `1`. Without this the only remedy is editing
+          the row by hand — Forbidden Behavior #1 and #10 — so the governed
+          path is what stops the rule being broken, not a loosening of it.
+
+          TWO taps, and the label changes to say what the second one does. It is
+          the most dangerous control on this screen, because what it enables is
+          paying twice. */}
+      {claim.status === 'PAID' && (
+        <div style={{ marginTop: 'var(--sp-3)' }}>
+          <button
+            onClick={() => {
+              if (!armedUnpaid) { setArmedUnpaid(true); return; }
+              setArmedUnpaid(false);
+              void act('unpaid');
+            }}
+            disabled={busy}
+            style={{
+              padding: armedUnpaid ? '8px 14px' : '4px 0', borderRadius: 'var(--radius-sm)',
+              background: armedUnpaid ? 'rgba(239,68,68,0.1)' : 'transparent',
+              border: armedUnpaid ? '1px solid rgba(239,68,68,0.4)' : 'none',
+              color: 'var(--tec-red)', fontWeight: 700, fontSize: 12,
+              cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, font: 'inherit',
+            }}
+          >
+            {armedUnpaid
+              ? 'Confirm — put it back in the queue'
+              : 'Not actually paid? Put it back in the queue'}
+          </button>
+          {armedUnpaid && (
+            <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.5, color: 'var(--tec-text-3)' }}>
+              This does not claw anything back. If the Pi really did move, the record will
+              stop matching the chain — and the next payout will send it again.
+            </p>
+          )}
         </div>
       )}
 

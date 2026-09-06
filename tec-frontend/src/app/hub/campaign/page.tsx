@@ -152,6 +152,17 @@ export default function CampaignPage() {
   const [sending, setSending] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  // Correcting the address on a claim that has not been paid yet.
+  //
+  // A wallet address is 56 characters that mean nothing to a human, pasted from
+  // one app into another — getting it wrong is the expected failure of that
+  // task, not a rare accident. There was no way back from this screen: the only
+  // remedy was an admin REJECTING the claim, which reads like an accusation for
+  // a paste error and cannot be asked for from here.
+  const [editing, setEditing] = useState(false);
+  const [newAddr, setNewAddr] = useState('');
+  const [fixBusy, setFixBusy] = useState(false);
+  const [fixErr,  setFixErr]  = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -194,6 +205,27 @@ export default function CampaignPage() {
     window.addEventListener('focus', onFocus);
     return () => window.removeEventListener('focus', onFocus);
   }, [authLoading, load]);
+
+  const changeAddress = async () => {
+    setFixBusy(true); setFixErr(null);
+    try {
+      const res = await fetch('/api/bff/campaign/claim/address', {
+        method: 'PATCH', credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wallet_address: newAddr.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      // The service knows WHICH way an address was wrong, and its sentence is
+      // the only line a person can act on. A generic failure hides it.
+      if (!res.ok) throw new Error(data?.message ?? data?.error ?? `Failed (${res.status})`);
+      setEditing(false); setNewAddr('');
+      await load();
+    } catch (e) {
+      setFixErr((e as Error).message);
+    } finally {
+      setFixBusy(false);
+    }
+  };
 
   const submit = async () => {
     // The button is never disabled on an empty field — a control that refuses in
@@ -341,6 +373,77 @@ export default function CampaignPage() {
                 {claim.wallet_address}
                 {claim.tx_id && <><br />tx: {claim.tx_id}</>}
               </div>
+
+              {/* Offered ONLY while it is still waiting. Once the Pi has been
+                  sent the address is where it went, and rewriting the record
+                  afterwards would make it describe a transfer that never
+                  happened — the service refuses it too. */}
+              {claim.status === 'CLAIMED' && !editing && (
+                <button
+                  onClick={() => { setEditing(true); setNewAddr(claim.wallet_address); }}
+                  style={{
+                    marginTop: 10, background: 'none', border: 'none', padding: 0,
+                    color: 'var(--tec-gold)', fontSize: 12, fontWeight: 700,
+                    cursor: 'pointer', font: 'inherit',
+                  }}
+                >
+                  Wrong address? Change it before it is sent
+                </button>
+              )}
+
+              {claim.status === 'CLAIMED' && editing && (
+                <div style={{ marginTop: 10 }}>
+                  <input
+                    value={newAddr}
+                    onChange={(e) => { setNewAddr(e.target.value); if (fixErr) setFixErr(null); }}
+                    dir="ltr"
+                    spellCheck={false}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    aria-label="Your Pi wallet address"
+                    style={{
+                      width: '100%', boxSizing: 'border-box',
+                      background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+                      borderRadius: 'var(--radius-sm)', padding: '10px 12px',
+                      color: 'var(--tec-text-1)', fontSize: 12,
+                      fontFamily: 'var(--font-mono)', outline: 'none',
+                    }}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => { void changeAddress(); }} disabled={fixBusy}
+                      style={{
+                        padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
+                        background: 'var(--tec-gold)', color: '#1a1200',
+                        fontWeight: 800, fontSize: 12, font: 'inherit',
+                        cursor: fixBusy ? 'default' : 'pointer', opacity: fixBusy ? 0.6 : 1,
+                      }}
+                    >
+                      Save address
+                    </button>
+                    <button
+                      onClick={() => { setEditing(false); setFixErr(null); }} disabled={fixBusy}
+                      style={{
+                        padding: '8px 14px', borderRadius: 'var(--radius-sm)',
+                        background: 'transparent', border: '1px solid var(--tec-border)',
+                        color: 'var(--tec-text-3)', fontWeight: 700, fontSize: 12,
+                        font: 'inherit', cursor: 'pointer',
+                      }}
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                  {/* Your seat is not at stake. Somebody who thinks correcting
+                      a typo costs them their place will leave it wrong. */}
+                  <p style={{ margin: '8px 0 0', fontSize: 11, lineHeight: 1.5, color: 'var(--tec-text-3)' }}>
+                    You keep seat #{claim.seat}. Make sure this is the address YOUR wallet
+                    receives on — not one you copied from a payment you were sent.
+                  </p>
+                  {fixErr && (
+                    <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--tec-red)' }}>{fixErr}</p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

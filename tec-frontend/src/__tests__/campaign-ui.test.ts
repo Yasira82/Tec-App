@@ -33,10 +33,13 @@ describe('the admin payout route forwards the user, not a service credential', (
     expect(route).toMatch(/status: res\.status/);
   });
 
-  it('only ever sends the two actions it knows', () => {
+  it('only ever sends the actions it knows', () => {
     // An action taken from the body unchecked would let a caller reach any
-    // path segment under the claim.
-    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject' : 'paid'/);
+    // path segment under the claim — and one of them now MOVES Pi.
+    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
+    expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
+    expect(route).toMatch(/body\?\.action === 'unpaid' \? 'unpaid'/);
+    expect(route).toMatch(/: 'paid';/);
   });
 });
 
@@ -108,6 +111,44 @@ describe('the wait is stated, not implied away', () => {
   });
 });
 
+describe('a wrong address can be corrected before the Pi is sent', () => {
+  const page  = read('app/hub/campaign/page.tsx');
+  const route = codeOf('app/api/bff/campaign/claim/address/route.ts');
+
+  it('offers the fix ONLY while the claim is still waiting', () => {
+    // Once the Pi has been sent, the address is where it went. Rewriting the
+    // record afterwards would make it describe a transfer that never happened
+    // — the service refuses it too, and a control that always fails is worse
+    // than no control.
+    expect(page).toMatch(/claim\.status === 'CLAIMED' && !editing/);
+    expect(page).toMatch(/Wrong address\? Change it before it is sent/);
+  });
+
+  it('says the seat is not at stake', () => {
+    // Somebody who thinks correcting a typo costs them their place will leave
+    // it wrong.
+    expect(page).toMatch(/You keep seat/);
+  });
+
+  it('names the mistake that actually happens', () => {
+    // Pasting an address copied out of a payment you RECEIVED — which is the
+    // sender's address, not yours.
+    expect(page).toMatch(/not one you copied from a payment you were sent/);
+  });
+
+  it('the route sends ONLY the address — never an owner', () => {
+    // A route that can name whose claim to edit is a route that can redirect
+    // somebody else's reward.
+    expect(route).toMatch(/JSON\.stringify\(\{ wallet_address: input\.wallet_address \}\)/);
+    expect(route).not.toMatch(/owner|username|pi_uid/);
+    expect(route).toContain('requireAuth: true');
+  });
+
+  it('carries the service’s own message on failure', () => {
+    expect(route).toMatch(/data\?\.message \?\? data\?\.error/);
+  });
+});
+
 describe('the payout queue is built for copying by hand', () => {
   const page = read('app/hub/admin/campaign/page.tsx');
 
@@ -118,8 +159,51 @@ describe('the payout queue is built for copying by hand', () => {
     expect(page).toMatch(/navigator\.clipboard\.writeText\(claim\.wallet_address\)/);
   });
 
-  it('refuses "mark sent" without a transaction id, and says why', () => {
-    expect(page).toMatch(/a payment without one is not a record/);
+  it('refuses "mark sent" unless the id LOOKS like a transaction hash', () => {
+    // The rule used to be "not empty", and `1` passed it: a claim was marked
+    // PAID and the claimant was told "Sent — 1 π on its way, check your Pi
+    // wallet" while nothing had left any wallet. This field is the evidence
+    // that the transfer happened; one that takes any characters is not
+    // evidence, it is a checkbox with extra steps.
+    expect(page).toContain('/^[0-9a-fA-F]{64}$/');
+    expect(page).toMatch(/not a transaction hash/);
+  });
+
+  it('offers a button that actually SENDS, and one that only records', () => {
+    // They sit next to each other and only one of them moves money. A person
+    // who mistakes the second for the first records a payment that never
+    // happened and tells the claimant to go and look for it — which is exactly
+    // what happened with `tx: 1`.
+    expect(page).toMatch(/Send \$\{claim\.amount_pi\} π now/);
+    expect(page).toMatch(/<strong>Send now<\/strong> transfers the Pi/);
+    expect(page).toMatch(/<strong>Mark sent<\/strong> only records one you already sent/);
+  });
+
+  it('a wrongly-paid claim can be put back in the queue, in TWO taps', () => {
+    // The mistake this undoes actually happened: a claim marked PAID with a
+    // transaction id of `1`. Without it the only remedy is editing the row by
+    // hand — Forbidden Behavior #1 and #10 — so the governed path is what stops
+    // the rule being broken, not a loosening of it.
+    //
+    // Two taps because what it enables is paying twice, and the second label
+    // says what the tap will do.
+    expect(page).toMatch(/Not actually paid\? Put it back in the queue/);
+    expect(page).toMatch(/Confirm — put it back in the queue/);
+    expect(page).toContain('armedUnpaid');
+  });
+
+  it('warns that it claws nothing back', () => {
+    // If the Pi really did move, the record stops matching the chain — and the
+    // next payout sends it again.
+    expect(page).toMatch(/does not claw anything back/);
+  });
+
+  it('the send action is a CLOSED set, never the caller’s string', () => {
+    // One of these moves Pi. An action taken from the body unchecked would let
+    // a request reach any path segment under the claim.
+    const route = codeOf('app/api/admin/campaign/claims/route.ts');
+    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
+    expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
   });
 
   it('hides itself from non-admins', () => {

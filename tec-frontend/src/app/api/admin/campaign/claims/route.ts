@@ -32,7 +32,13 @@ export async function PATCH(req: NextRequest) {
 
   const body   = await req.json().catch(() => ({}));
   const id     = typeof body?.id === 'string' ? body.id : '';
-  const action = body?.action === 'reject' ? 'reject' : 'paid';
+  // A CLOSED set, never the caller's string: an action taken from the body
+  // unchecked would let a request reach any path segment under the claim — and
+  // one of these now MOVES Pi.
+  const action = body?.action === 'reject' ? 'reject'
+    : body?.action === 'send' ? 'send'
+    : body?.action === 'unpaid' ? 'unpaid'
+    : 'paid';
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 
   try {

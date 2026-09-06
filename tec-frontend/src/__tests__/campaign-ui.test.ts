@@ -108,6 +108,44 @@ describe('the wait is stated, not implied away', () => {
   });
 });
 
+describe('a wrong address can be corrected before the Pi is sent', () => {
+  const page  = read('app/hub/campaign/page.tsx');
+  const route = codeOf('app/api/bff/campaign/claim/address/route.ts');
+
+  it('offers the fix ONLY while the claim is still waiting', () => {
+    // Once the Pi has been sent, the address is where it went. Rewriting the
+    // record afterwards would make it describe a transfer that never happened
+    // — the service refuses it too, and a control that always fails is worse
+    // than no control.
+    expect(page).toMatch(/claim\.status === 'CLAIMED' && !editing/);
+    expect(page).toMatch(/Wrong address\? Change it before it is sent/);
+  });
+
+  it('says the seat is not at stake', () => {
+    // Somebody who thinks correcting a typo costs them their place will leave
+    // it wrong.
+    expect(page).toMatch(/You keep seat/);
+  });
+
+  it('names the mistake that actually happens', () => {
+    // Pasting an address copied out of a payment you RECEIVED — which is the
+    // sender's address, not yours.
+    expect(page).toMatch(/not one you copied from a payment you were sent/);
+  });
+
+  it('the route sends ONLY the address — never an owner', () => {
+    // A route that can name whose claim to edit is a route that can redirect
+    // somebody else's reward.
+    expect(route).toMatch(/JSON\.stringify\(\{ wallet_address: input\.wallet_address \}\)/);
+    expect(route).not.toMatch(/owner|username|pi_uid/);
+    expect(route).toContain('requireAuth: true');
+  });
+
+  it('carries the service’s own message on failure', () => {
+    expect(route).toMatch(/data\?\.message \?\? data\?\.error/);
+  });
+});
+
 describe('the payout queue is built for copying by hand', () => {
   const page = read('app/hub/admin/campaign/page.tsx');
 

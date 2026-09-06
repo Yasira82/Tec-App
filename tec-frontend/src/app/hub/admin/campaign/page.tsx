@@ -258,6 +258,15 @@ export default function AdminCampaignPage() {
   const [loading, setLoading] = useState(true);
   const [denied,  setDenied]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
+  // Whether this platform can actually send Pi at all.
+  //
+  // Setting the payout wallet up is the one part of this path done by hand, in
+  // a dashboard, from a value that cannot be read back. Without saying so here,
+  // the only way to learn it has a typo in it is to attempt a real payout and
+  // read the failure.
+  const [wallet, setWallet] = useState<{
+    configured: boolean; wallet: string | null; max_pi: number | null; problem: string | null;
+  } | null>(null);
 
   const load = useCallback(async (status: Status | 'ALL') => {
     setLoading(true); setError(null);
@@ -276,6 +285,16 @@ export default function AdminCampaignPage() {
   }, []);
 
   useEffect(() => { if (!authLoading) void load(filter); }, [authLoading, filter, load]);
+
+  useEffect(() => {
+    if (authLoading) return;
+    fetch('/api/admin/campaign/payout-wallet', { credentials: 'include' })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => setWallet(j?.data ?? null))
+      // Silent on purpose: this is a status line, not the page. A banner that
+      // failed to load must not become the thing that looks broken.
+      .catch(() => {});
+  }, [authLoading]);
 
   const owed = claims.filter((c) => c.status === 'CLAIMED')
     .reduce((n, c) => n + Number(c.amount_pi || 0), 0);
@@ -317,6 +336,46 @@ export default function AdminCampaignPage() {
               </button>
             ))}
           </div>
+
+          {/* The state of the payout wallet, before anything that spends it.
+              Green with the public key so it can be compared against the wallet
+              that was actually funded; amber with the service's own diagnosis
+              when something is wrong — "a passphrase with a mistyped word" is
+              a sentence somebody can act on, and it is the one they would
+              otherwise have had to provoke by attempting a real payout. */}
+          {wallet && (
+            <div dir="ltr" style={{
+              padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-3)',
+              borderRadius: 'var(--radius-md)', fontSize: 12,
+              background: wallet.configured ? 'rgba(34,197,94,0.07)' : 'rgba(251,180,74,0.07)',
+              border: `1px solid ${wallet.configured ? 'rgba(34,197,94,0.25)' : 'var(--tec-border-gold)'}`,
+              color: wallet.configured ? 'var(--tec-green)' : 'var(--tec-gold)',
+            }}>
+              {wallet.configured ? (
+                <>
+                  <strong>Payout wallet ready</strong>
+                  {wallet.max_pi !== null && <> · up to {wallet.max_pi} π per payout</>}
+                  <div style={{
+                    marginTop: 4, fontFamily: 'var(--font-mono)', fontSize: 11,
+                    color: 'var(--tec-text-3)', overflowWrap: 'anywhere',
+                  }}>
+                    {wallet.wallet}
+                  </div>
+                  <div style={{ marginTop: 4, fontSize: 11, color: 'var(--tec-text-3)' }}>
+                    Check this is the wallet you funded — it is where every payout comes from.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <strong>No payout wallet — “Send now” cannot send anything</strong>
+                  <div style={{ marginTop: 4, fontSize: 11.5, color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
+                    {wallet.problem
+                      ?? 'Set PI_A2U_WALLET_SEED on payment-service to the app wallet’s secret key or its 24-word passphrase, and put Pi in that wallet.'}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {filter === 'CLAIMED' && claims.length > 0 && (
             <div dir="ltr" style={{

@@ -37,6 +37,7 @@ export async function PATCH(req: NextRequest) {
   // one of these now MOVES Pi.
   const action = body?.action === 'reject' ? 'reject'
     : body?.action === 'send' ? 'send'
+    : body?.action === 'unpaid' ? 'unpaid'
     : 'paid';
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
 

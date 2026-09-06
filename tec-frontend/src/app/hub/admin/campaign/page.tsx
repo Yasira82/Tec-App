@@ -44,9 +44,11 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
   const [txId,   setTxId]   = useState('');
   const [busy,   setBusy]   = useState(false);
   const [copied, setCopied] = useState(false);
+  // Two taps, like Remove elsewhere: what this enables is paying twice.
+  const [armedUnpaid, setArmedUnpaid] = useState(false);
   const [error,  setError]  = useState<string | null>(null);
 
-  const act = async (action: 'paid' | 'reject' | 'send') => {
+  const act = async (action: 'paid' | 'reject' | 'send' | 'unpaid') => {
     // 'send' needs no hash: the chain gives one back. The field is for
     // RECORDING a transfer somebody made by hand, which is still allowed.
     if (action === 'paid' && !TX_HASH.test(txId.trim())) {
@@ -70,7 +72,9 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
             ? { id: claim.id, action: 'paid', tx_id: txId.trim() }
             : action === 'send'
               ? { id: claim.id, action: 'send' }
-              : { id: claim.id, action: 'reject', note: 'Rejected from the payout queue' },
+              : action === 'unpaid'
+                ? { id: claim.id, action: 'unpaid', note: 'Marked paid in error — no Pi was sent' }
+                : { id: claim.id, action: 'reject', note: 'Rejected from the payout queue' },
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -188,6 +192,45 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           }}>
             Reject
           </button>
+        </div>
+      )}
+
+      {/* Putting a wrongly-paid claim back in the queue.
+          The mistake this undoes actually happened: a claim was marked PAID
+          with a transaction id of `1`. Without this the only remedy is editing
+          the row by hand — Forbidden Behavior #1 and #10 — so the governed
+          path is what stops the rule being broken, not a loosening of it.
+
+          TWO taps, and the label changes to say what the second one does. It is
+          the most dangerous control on this screen, because what it enables is
+          paying twice. */}
+      {claim.status === 'PAID' && (
+        <div style={{ marginTop: 'var(--sp-3)' }}>
+          <button
+            onClick={() => {
+              if (!armedUnpaid) { setArmedUnpaid(true); return; }
+              setArmedUnpaid(false);
+              void act('unpaid');
+            }}
+            disabled={busy}
+            style={{
+              padding: armedUnpaid ? '8px 14px' : '4px 0', borderRadius: 'var(--radius-sm)',
+              background: armedUnpaid ? 'rgba(239,68,68,0.1)' : 'transparent',
+              border: armedUnpaid ? '1px solid rgba(239,68,68,0.4)' : 'none',
+              color: 'var(--tec-red)', fontWeight: 700, fontSize: 12,
+              cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, font: 'inherit',
+            }}
+          >
+            {armedUnpaid
+              ? 'Confirm — put it back in the queue'
+              : 'Not actually paid? Put it back in the queue'}
+          </button>
+          {armedUnpaid && (
+            <p style={{ margin: '6px 0 0', fontSize: 11, lineHeight: 1.5, color: 'var(--tec-text-3)' }}>
+              This does not claw anything back. If the Pi really did move, the record will
+              stop matching the chain — and the next payout will send it again.
+            </p>
+          )}
         </div>
       )}
 

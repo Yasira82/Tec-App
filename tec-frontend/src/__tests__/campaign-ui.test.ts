@@ -38,6 +38,7 @@ describe('the admin payout route forwards the user, not a service credential', (
     // path segment under the claim — and one of them now MOVES Pi.
     expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
     expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
+    expect(route).toMatch(/body\?\.action === 'unpaid' \? 'unpaid'/);
     expect(route).toMatch(/: 'paid';/);
   });
 });
@@ -176,6 +177,25 @@ describe('the payout queue is built for copying by hand', () => {
     expect(page).toMatch(/Send \$\{claim\.amount_pi\} π now/);
     expect(page).toMatch(/<strong>Send now<\/strong> transfers the Pi/);
     expect(page).toMatch(/<strong>Mark sent<\/strong> only records one you already sent/);
+  });
+
+  it('a wrongly-paid claim can be put back in the queue, in TWO taps', () => {
+    // The mistake this undoes actually happened: a claim marked PAID with a
+    // transaction id of `1`. Without it the only remedy is editing the row by
+    // hand — Forbidden Behavior #1 and #10 — so the governed path is what stops
+    // the rule being broken, not a loosening of it.
+    //
+    // Two taps because what it enables is paying twice, and the second label
+    // says what the tap will do.
+    expect(page).toMatch(/Not actually paid\? Put it back in the queue/);
+    expect(page).toMatch(/Confirm — put it back in the queue/);
+    expect(page).toContain('armedUnpaid');
+  });
+
+  it('warns that it claws nothing back', () => {
+    // If the Pi really did move, the record stops matching the chain — and the
+    // next payout sends it again.
+    expect(page).toMatch(/does not claw anything back/);
   });
 
   it('the send action is a CLOSED set, never the caller’s string', () => {

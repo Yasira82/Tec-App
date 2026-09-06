@@ -97,14 +97,17 @@ describe('the campaign page reads the shape each route actually returns', () => 
     });
   });
 
-  it('reaches the claim form once every mission is done', async () => {
-    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: ['connection', 'zone'], missing: [], eligible: true }));
+  it('reaches the claim step once every mission is done', async () => {
+    const posted = 'GAIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCF6M';
+    vi.stubGlobal('fetch', answer({
+      ...ME_BODY, done: ['connection', 'zone'], missing: [], eligible: true,
+      posted_address: posted,
+    }));
     render(<CampaignPage />);
-    // The wallet field — the whole point of the page, and unreachable while the
-    // envelope was misread.
-    await waitFor(() =>
-      expect(screen.getByLabelText(/Your Pi wallet address/i)).toBeInTheDocument(),
-    );
+    // The address is READ BACK, not typed — it came from their own message in
+    // the TEC group. Showing it is the safety of the whole flow: a payout
+    // destination nobody saw is one nobody can catch being wrong.
+    await waitFor(() => expect(screen.getByText(posted)).toBeInTheDocument());
     // Matched on a CONTIGUOUS fragment: "never" sits in its own <strong>, so a
     // matcher spanning it looks for one text node that does not exist.
     expect(screen.getByText(/ask for your passphrase/i)).toBeInTheDocument();
@@ -117,5 +120,72 @@ describe('the campaign page reads the shape each route actually returns', () => 
     render(<CampaignPage />);
     await waitFor(() => expect(screen.getByText(/Finish the list above/i)).toBeInTheDocument());
     expect(screen.queryByText('✅')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * Claiming without a button.
+ *
+ * The seat is taken the moment there is nothing left to decide — the missions
+ * are done and an address is on record. A confirm step there only exists to be
+ * forgotten, and it used to be the last thing between a pioneer and their Pi.
+ *
+ * Two properties, and the second is the one that costs money if it breaks.
+ */
+describe('the seat is taken by itself', () => {
+  const POSTED = 'GAIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCF6M';
+  const READY  = {
+    ...ME_BODY, done: ['connection', 'zone'], missing: [], eligible: true,
+    posted_address: POSTED,
+  };
+
+  const posts = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/campaign/claim')
+      && (c[1] as RequestInit | undefined)?.method === 'POST');
+
+  it('claims once every mission is done and an address is posted', async () => {
+    vi.stubGlobal('fetch', answer(READY));
+    render(<CampaignPage />);
+    await waitFor(() => expect(posts().length).toBe(1));
+    // And it sends NOTHING: the service derives the owner from the token and
+    // the address from the group message.
+    expect((posts()[0][1] as RequestInit).body).toBeUndefined();
+  });
+
+  it('claims ONCE, however many times the page re-renders', async () => {
+    // Two effects racing here would take two seats, and there is no undo for
+    // the second one that is cheap.
+    vi.stubGlobal('fetch', answer(READY));
+    const { rerender } = render(<CampaignPage />);
+    await waitFor(() => expect(posts().length).toBe(1));
+    rerender(<CampaignPage />);
+    rerender(<CampaignPage />);
+    await waitFor(() => expect(posts().length).toBe(1));
+  });
+
+  it('does NOT claim while a mission is still open', async () => {
+    vi.stubGlobal('fetch', answer({ ...READY, missing: ['connection'], eligible: false }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByText(/Finish the list above/i)).toBeInTheDocument());
+    expect(posts()).toHaveLength(0);
+  });
+
+  it('does NOT claim when no address was posted', async () => {
+    // Eligible, and nowhere to send it. Claiming here would take a seat that
+    // can never be paid.
+    vi.stubGlobal('fetch', answer({ ...READY, posted_address: null }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(posts()).toHaveLength(0);
+  });
+
+  it('does NOT claim again when they already hold a seat', async () => {
+    vi.stubGlobal('fetch', answer({
+      ...READY,
+      claim: { seat: 1, status: 'CLAIMED', wallet_address: POSTED, tx_id: null, paid_at: null },
+    }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByText(/Seat #1 is yours/i)).toBeInTheDocument());
+    expect(posts()).toHaveLength(0);
   });
 });

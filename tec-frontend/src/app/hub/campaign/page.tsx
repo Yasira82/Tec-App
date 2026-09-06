@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
@@ -172,6 +172,14 @@ export default function CampaignPage() {
   // the person, delivered from a page they cannot reach, for what is usually
   // just "I claimed with the wrong account" or "I was testing this". The one
   // who changed their mind should be the one who can act on it.
+  /**
+   * The claim fires by itself, and exactly once.
+   *
+   * A ref rather than state: this must not re-run when the render that follows
+   * the claim updates, and it must not wait for a render to take effect. Two
+   * effects racing here would take two seats.
+   */
+  const autoClaimed = useRef(false);
   const [confirmDrop, setConfirmDrop] = useState(false);
   const [dropBusy,    setDropBusy]    = useState(false);
   const [dropErr,     setDropErr]     = useState<string | null>(null);
@@ -202,6 +210,7 @@ export default function CampaignPage() {
   }, [isAuthenticated]);
 
   useEffect(() => { if (!authLoading) void load(); }, [authLoading, load]);
+
 
   /**
    * Re-read progress when the pioneer comes back to this tab.
@@ -295,6 +304,26 @@ export default function CampaignPage() {
    * has to come back, or the sentence is decoration.
    */
   const activeClaim = claim && claim.status !== 'REJECTED' ? claim : null;
+
+  /**
+   * Take the seat as soon as there is nothing left to decide.
+   *
+   * Every condition is required. `eligible` means the missions are done;
+   * `posted_address` means there is somewhere to send it; no active claim means
+   * this is not a second seat. It fires once per visit — a failed attempt is
+   * NOT retried automatically, because a retry loop against a claim endpoint is
+   * how one pioneer becomes a hundred requests. The Try again control is there
+   * for that, and a person is the one who taps it.
+   */
+  useEffect(() => {
+    if (autoClaimed.current) return;
+    if (!me?.eligible || !me.posted_address || activeClaim || sending) return;
+    autoClaimed.current = true;
+    void submit();
+    // `submit` is stable enough for this: it closes over `load`, which is a
+    // useCallback, and the guard above makes a second run impossible anyway.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [me, activeClaim, sending]);
   const isAdmin = (user as { role?: string } | null)?.role === 'admin';
 
   /**
@@ -610,27 +639,42 @@ export default function CampaignPage() {
                       </div>
                     </div>
 
-                    <button
-                      onClick={() => { void submit(); }}
-                      disabled={sending}
-                      style={{
-                        width: '100%', marginTop: 'var(--sp-3)',
-                        background: 'linear-gradient(135deg,var(--tec-gold),var(--tec-gold-dark))',
-                        color: 'var(--tec-on-gold)', border: 'none',
-                        borderRadius: 'var(--radius-md)', padding: '12px',
-                        fontSize: 'var(--text-sm)', fontWeight: 800,
-                        cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.6 : 1,
-                        font: 'inherit',
-                      }}
-                    >
-                      {sending ? 'Claiming…' : `Claim ${me?.reward_pi} π`}
-                    </button>
+                    {/* No button. The seat is taken the moment there is
+                        nothing left to decide: the missions are done and an
+                        address is on record. Asking somebody to confirm what
+                        they already did is a step that only exists to be
+                        forgotten — and this one used to be the last thing
+                        between a pioneer and their Pi. */}
+                    <div style={{
+                      marginTop: 'var(--sp-3)', textAlign: 'center',
+                      fontSize: 13, fontWeight: 700,
+                      color: error ? 'var(--tec-red)' : 'var(--tec-gold)',
+                    }}>
+                      {sending ? 'Taking your seat…' : error ? '' : `Claiming ${me?.reward_pi} π…`}
+                    </div>
 
                     {error && (
                       <div role="alert" style={{
                         marginTop: 8, color: 'var(--tec-red)', fontSize: 12.5, lineHeight: 1.6,
+                        textAlign: 'center',
                       }}>
                         {error}
+                        {/* The one control that survives, and only on failure.
+                            A flow with no button is fine while it works; with
+                            no way to retry after a dropped connection it would
+                            strand somebody who did everything asked of them. */}
+                        <button
+                          onClick={() => { void submit(); }}
+                          disabled={sending}
+                          style={{
+                            display: 'block', margin: '8px auto 0',
+                            background: 'none', border: 'none', padding: 0,
+                            color: 'var(--tec-gold)', fontSize: 12.5, fontWeight: 700,
+                            cursor: 'pointer', font: 'inherit',
+                          }}
+                        >
+                          Try again
+                        </button>
                       </div>
                     )}
                   </>

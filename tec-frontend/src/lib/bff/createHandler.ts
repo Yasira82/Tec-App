@@ -255,6 +255,36 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
         );
       }
 
+      /**
+       * A deliberate 4xx that did not come through `AppError`.
+       *
+       * Several routes proxy a service and re-throw its refusal as
+       * `Object.assign(new Error(message), { status })` — the obvious shape,
+       * and until now a silent one: it is not an `AppError`, so it fell to the
+       * branch below and the caller got **500 "Something went wrong"** while
+       * the real sentence went only to the server log. A pioneer told "this Pi
+       * wallet has already claimed" saw a crash instead, and the difference
+       * between those two is the difference between knowing what to do and
+       * believing the platform is broken.
+       *
+       * Only 4xx passes through. A 5xx from an upstream service is not a
+       * sentence for a person — it is our failure, and its text can carry
+       * internals — so it keeps the generic message below.
+       */
+      const status = (err as { status?: unknown })?.status;
+      if (typeof status === 'number' && status >= 400 && status < 500 && err instanceof Error) {
+        console.warn('[BFF] Upstream refusal', {
+          path:      req.nextUrl.pathname,
+          requestId: ctx.requestId,
+          status,
+          message:   err.message,
+        });
+        return respond(
+          { error: 'UPSTREAM_REFUSED', message: err.message },
+          { status, headers: { 'X-Request-Id': ctx.requestId } },
+        );
+      }
+
       // Unknown error
       console.error('[BFF] Unexpected error', {
         path:      req.nextUrl.pathname,

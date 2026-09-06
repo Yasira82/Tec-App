@@ -163,6 +163,15 @@ export default function CampaignPage() {
   const [newAddr, setNewAddr] = useState('');
   const [fixBusy, setFixBusy] = useState(false);
   const [fixErr,  setFixErr]  = useState<string | null>(null);
+  // Giving the seat back.
+  //
+  // The only way out of a claim used to be an admin REJECTING it — a verdict on
+  // the person, delivered from a page they cannot reach, for what is usually
+  // just "I claimed with the wrong account" or "I was testing this". The one
+  // who changed their mind should be the one who can act on it.
+  const [confirmDrop, setConfirmDrop] = useState(false);
+  const [dropBusy,    setDropBusy]    = useState(false);
+  const [dropErr,     setDropErr]     = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -224,6 +233,25 @@ export default function CampaignPage() {
       setFixErr((e as Error).message);
     } finally {
       setFixBusy(false);
+    }
+  };
+
+  const withdraw = async () => {
+    setDropBusy(true); setDropErr(null);
+    try {
+      const res = await fetch('/api/bff/campaign/claim', {
+        method: 'DELETE', credentials: 'include',
+      });
+      const data = await res.json().catch(() => ({}));
+      // The service refuses a PAID claim, and that sentence is the answer —
+      // "could not cancel" would hide the only reason that matters.
+      if (!res.ok) throw new Error(data?.message ?? data?.error ?? `Failed (${res.status})`);
+      setConfirmDrop(false);
+      await load();
+    } catch (e) {
+      setDropErr((e as Error).message);
+    } finally {
+      setDropBusy(false);
     }
   };
 
@@ -441,6 +469,65 @@ export default function CampaignPage() {
                   </p>
                   {fixErr && (
                     <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--tec-red)' }}>{fixErr}</p>
+                  )}
+                </div>
+              )}
+
+              {/* Give the seat back.
+                  Under the address control, and quieter than it: correcting a
+                  typo is the common case and should be the loud one. Asked
+                  before it happens rather than armed by a double tap — the
+                  question here is "do you mean to give up seat #1", which a
+                  second tap on the same word does not ask. */}
+              {claim.status === 'CLAIMED' && !editing && (
+                <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--tec-border)' }}>
+                  {!confirmDrop ? (
+                    <button
+                      onClick={() => { setConfirmDrop(true); setDropErr(null); }}
+                      style={{
+                        background: 'none', border: 'none', padding: 0,
+                        color: 'var(--tec-text-3)', fontSize: 12, fontWeight: 700,
+                        cursor: 'pointer', font: 'inherit',
+                      }}
+                    >
+                      I don’t want this seat — cancel my claim
+                    </button>
+                  ) : (
+                    <>
+                      <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: 'var(--tec-text-2)' }}>
+                        Seat #{claim.seat} goes back to the pool and your address is removed.
+                        You can claim again later while seats last — but you may not get this
+                        seat number.
+                      </p>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                        <button
+                          onClick={() => { void withdraw(); }} disabled={dropBusy}
+                          style={{
+                            padding: '8px 16px', borderRadius: 'var(--radius-sm)',
+                            background: 'transparent', border: '1px solid var(--tec-red)',
+                            color: 'var(--tec-red)', fontWeight: 800, fontSize: 12,
+                            font: 'inherit', cursor: dropBusy ? 'default' : 'pointer',
+                            opacity: dropBusy ? 0.6 : 1,
+                          }}
+                        >
+                          Yes, cancel it
+                        </button>
+                        <button
+                          onClick={() => { setConfirmDrop(false); setDropErr(null); }} disabled={dropBusy}
+                          style={{
+                            padding: '8px 14px', borderRadius: 'var(--radius-sm)',
+                            background: 'transparent', border: '1px solid var(--tec-border)',
+                            color: 'var(--tec-text-3)', fontWeight: 700, fontSize: 12,
+                            font: 'inherit', cursor: 'pointer',
+                          }}
+                        >
+                          Keep my seat
+                        </button>
+                      </div>
+                      {dropErr && (
+                        <p style={{ margin: '8px 0 0', fontSize: 12, color: 'var(--tec-red)' }}>{dropErr}</p>
+                      )}
+                    </>
                   )}
                 </div>
               )}

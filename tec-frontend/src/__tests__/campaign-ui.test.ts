@@ -206,6 +206,48 @@ describe('the payout queue is built for copying by hand', () => {
     expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
   });
 
+  it('says whether the payout wallet can actually send, before anything spends it', () => {
+    // Setting it up is the one part of this path done by hand, in a dashboard,
+    // from a value that cannot be read back. Without this line the only way to
+    // learn it has a typo is to attempt a real payout and read the failure.
+    expect(page).toMatch(/No payout wallet — “Send now” cannot send anything/);
+    // The PUBLIC key, so it can be compared against the wallet that was funded.
+    expect(page).toMatch(/Check this is the wallet you funded/);
+    // And the service's own diagnosis, not a generic "not configured".
+    expect(page).toMatch(/wallet\.problem/);
+  });
+
+  it('does not offer "Send now" when there is no wallet to send from', () => {
+    // A control the system cannot honour is worse than no control: it fails on
+    // the tap, and the failure looks like the platform being broken rather than
+    // a wallet not being set up.
+    expect(page).toMatch(/disabled=\{busy \|\| !canSend\}/);
+    expect(page).toMatch(/No payout wallet is configured on payment-service/);
+  });
+
+  it('makes the hand-sent path the primary one while that is true', () => {
+    // Sending by hand is not a fallback until an app wallet exists — it is the
+    // whole way this works, and a screen whose only prominent button is dead
+    // teaches people the page is broken.
+    expect(page).toMatch(/Send now<\/strong> needs an app wallet/);
+    expect(page).toMatch(/canSend\s*\n?\s*\? 'var\(--tec-fill-soft\)'/);
+  });
+
+  it('an unknown wallet status does not disable the working button', () => {
+    // A status line that failed to load must not take the payout button with
+    // it. The service refuses either way; this only decides which control leads.
+    expect(page).toMatch(/canSend=\{wallet\?\.configured !== false\}/);
+  });
+
+  it('the wallet route forwards the SESSION, not a service credential', () => {
+    // identity-service reads x-internal-key as a ServiceActor credential and
+    // skips the role check — and this answer reaches payment-service.
+    const route = codeOf('app/api/admin/campaign/payout-wallet/route.ts');
+    expect(route).not.toContain('x-internal-key');
+    expect(route).not.toContain('INTERNAL_SECRET');
+    expect(route).toMatch(/if \(!token\) return NextResponse\.json\(\s*\{ error: 'Unauthorized' \}/);
+  });
+
   it('hides itself from non-admins', () => {
     expect(page).toContain("?.role === 'admin'");
     expect(page).toContain('Access restricted');

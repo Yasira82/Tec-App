@@ -41,3 +41,34 @@ export const POST = createHandler({
     return data?.data ?? {};
   },
 });
+
+/**
+ * Give the seat back.
+ *
+ * No body, and deliberately no claim id: like every other route here, WHOSE
+ * claim this is comes from the verified token inside the service. An id in the
+ * payload would be an id somebody could change.
+ *
+ * The service refuses once the Pi has been sent — a paid claim is the record of
+ * where money went, and that is not the claimant's to erase.
+ */
+export const DELETE = createHandler({
+  requireAuth: true,
+  handler: async ({ ctx, req }) => {
+    const res = await fetch(`${GATEWAY}/api/identity/campaign/claim`, {
+      method: 'DELETE',
+      headers: {
+        Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
+        'x-request-id': ctx.requestId,
+      },
+      cache: 'no-store',
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw Object.assign(new Error(data?.message ?? data?.error ?? 'Could not cancel the claim'), {
+        status: res.status,
+      });
+    }
+    return data?.data ?? {};
+  },
+});

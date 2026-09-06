@@ -46,11 +46,14 @@ describe('the admin payout route forwards the user, not a service credential', (
 describe('the claim route does not decide who gets paid', () => {
   const route = codeOf('app/api/bff/campaign/claim/route.ts');
 
-  it('sends ONLY the address — never an owner', () => {
-    // The service derives the owner from the verified token. A route that
-    // decides who receives Pi is the last place to let the caller say.
-    expect(route).toMatch(/JSON\.stringify\(\{ wallet_address: input\.wallet_address \}\)/);
+  it('sends NOTHING — neither the owner nor the address', () => {
+    // The service derives the owner from the verified token and reads the
+    // address out of the pioneer's own message in the TEC group. A route that
+    // decides who receives Pi, and where, is the last place to let a caller say
+    // either — and a body that cannot carry it cannot be made to.
+    expect(route).not.toMatch(/wallet_address/);
     expect(route).not.toMatch(/owner|username|pi_uid/);
+    expect(route).not.toMatch(/body:/);
   });
 
   it('requires auth', () => {
@@ -381,9 +384,11 @@ describe('the Connection mission points at the TEC group', () => {
     expect(page).toMatch(/me\?\.connection_invite_url \|\| status\?\.connection_invite_url \|\| linkFor\(slug\)/);
   });
 
-  it('tells them what the link will do and what is still required', () => {
+  it('tells them what the link will do and what to post there', () => {
+    // The mission IS the address now: the group is where it is said, and the
+    // link is what puts them in the group.
     expect(page).toMatch(/puts you in the TEC group/);
-    expect(page).toMatch(/Opening the app is not enough/);
+    expect(page).toMatch(/post your Pi wallet address there/i);
   });
 });
 

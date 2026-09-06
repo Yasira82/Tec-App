@@ -13,7 +13,9 @@ import { useTranslation } from '@/lib/i18n';
 /**
  * The Pi reward campaign.
  *
- * Visit a short list of apps, use Connection, then say where to send the Pi.
+ * Visit a short list of apps, post your wallet address in the TEC group, and
+ * claim. The address is never typed here — it is read from that message, so a
+ * request cannot name where the Pi goes.
  * The transfer is made by a person — the platform has no way to pay Pi out —
  * so this screen's job is to be honest about that wait rather than imply an
  * instant payout that will not come.
@@ -26,6 +28,8 @@ interface Me {
   connection_invite_url?: string;
   done:        string[];
   missing:     string[];
+  /** The address read out of their own message in the TEC group, if any. */
+  posted_address: string | null;
   eligible:    boolean;
   reward_pi:   number;
   claim: null | {
@@ -130,7 +134,7 @@ function Mission({ slug, done, needsAction, locale, href, onOpen }: {
         {needsAction && !done && (
           <div style={{ fontSize: 11.5, color: 'var(--tec-gold)', marginTop: 2 }}>
             {slug === 'connection'
-              ? 'This link puts you in the TEC group — say hello there. Opening the app is not enough.'
+              ? 'This link puts you in the TEC group — post your Pi wallet address there. That is where we send the reward.'
               : 'Open a chat and send one message — opening the app is not enough here'}
           </div>
         )}
@@ -148,7 +152,6 @@ export default function CampaignPage() {
 
   const [status,  setStatus]  = useState<Status | null>(null);
   const [me,      setMe]      = useState<Me | null>(null);
-  const [address, setAddress] = useState('');
   const [sending, setSending] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -256,22 +259,21 @@ export default function CampaignPage() {
   };
 
   const submit = async () => {
-    // The button is never disabled on an empty field — a control that refuses in
-    // silence is the one form of validation a person cannot read.
-    if (!address.trim()) { setError('Enter your Pi wallet address.'); return; }
+    // No body, and nothing to validate here: the address comes from the
+    // pioneer's own message in the TEC group, read by the service. A payload
+    // that could name where real Pi is sent is the one thing this request must
+    // not carry.
     setSending(true); setError(null);
     try {
       const res  = await fetch('/api/bff/campaign/claim', {
         method: 'POST', credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ wallet_address: address.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        // The service knows exactly which way the address was wrong.
+        // The service's own sentence — it knows whether the address was missing,
+        // unreadable, or already spent.
         throw new Error(data?.error?.message || data?.message || data?.error || 'Could not claim');
       }
-      setAddress('');
       await load();
     } catch (e) {
       setError((e as Error).message);
@@ -577,29 +579,36 @@ export default function CampaignPage() {
                     }}>
                       <Icon name="shield" size={16} color="var(--tec-red)" />
                       <div style={{ fontSize: 12, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
-                        We will <strong>never</strong> ask for your passphrase or secret key — not here, not anywhere.
-                        Paste only your <strong>public address</strong>, the one that starts with <code>G</code>.
+                        We will <strong>never</strong> ask for your passphrase or secret key — not here,
+                        not in the group, not anywhere. Post only your <strong>public address</strong>,
+                        the one that starts with <code>G</code>.
                       </div>
                     </div>
 
-                    <input
-                      value={address}
-                      onChange={(e) => { setAddress(e.target.value); if (error) setError(null); }}
-                      placeholder="G…"
-                      dir="ltr"
-                      spellCheck={false}
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      aria-label="Your Pi wallet address"
-                      style={{
-                        width: '100%', boxSizing: 'border-box',
-                        background: 'var(--tec-fill-soft)',
-                        border: `1px solid ${error ? 'rgba(239,68,68,0.5)' : 'var(--tec-border)'}`,
+                    {/* The address, READ BACK — not typed.
+                        It comes from their own message in the TEC group, and
+                        showing it is the whole safety of the flow: a payout
+                        destination nobody ever saw is one nobody can catch
+                        being wrong. Monospaced and full width, because this is
+                        the string the Pi actually goes to. */}
+                    <div style={{ marginBottom: 'var(--sp-3)' }}>
+                      <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginBottom: 6 }}>
+                        We will send to the address you posted in the TEC group:
+                      </div>
+                      <code dir="ltr" style={{
+                        display: 'block', fontSize: 12, lineHeight: 1.6,
+                        fontFamily: 'var(--font-mono)', color: 'var(--tec-text-1)',
+                        background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border-gold)',
                         borderRadius: 'var(--radius-md)', padding: 'var(--sp-3) var(--sp-4)',
-                        color: 'var(--tec-text-1)', fontSize: 13,
-                        fontFamily: 'var(--font-mono)', outline: 'none',
-                      }}
-                    />
+                        overflowWrap: 'anywhere',
+                      }}>
+                        {me?.posted_address}
+                      </code>
+                      <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)', marginTop: 6, lineHeight: 1.6 }}>
+                        Not the right one? Post the correct address in the group — the
+                        newest one you send is the one we use.
+                      </div>
+                    </div>
 
                     <button
                       onClick={() => { void submit(); }}

@@ -97,14 +97,17 @@ describe('the campaign page reads the shape each route actually returns', () => 
     });
   });
 
-  it('reaches the claim form once every mission is done', async () => {
-    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: ['connection', 'zone'], missing: [], eligible: true }));
+  it('reaches the claim step once every mission is done', async () => {
+    const posted = 'GAIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCF6M';
+    vi.stubGlobal('fetch', answer({
+      ...ME_BODY, done: ['connection', 'zone'], missing: [], eligible: true,
+      posted_address: posted,
+    }));
     render(<CampaignPage />);
-    // The wallet field — the whole point of the page, and unreachable while the
-    // envelope was misread.
-    await waitFor(() =>
-      expect(screen.getByLabelText(/Your Pi wallet address/i)).toBeInTheDocument(),
-    );
+    // The address is READ BACK, not typed — it came from their own message in
+    // the TEC group. Showing it is the safety of the whole flow: a payout
+    // destination nobody saw is one nobody can catch being wrong.
+    await waitFor(() => expect(screen.getByText(posted)).toBeInTheDocument());
     // Matched on a CONTIGUOUS fragment: "never" sits in its own <strong>, so a
     // matcher spanning it looks for one text node that does not exist.
     expect(screen.getByText(/ask for your passphrase/i)).toBeInTheDocument();

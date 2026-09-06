@@ -33,10 +33,12 @@ describe('the admin payout route forwards the user, not a service credential', (
     expect(route).toMatch(/status: res\.status/);
   });
 
-  it('only ever sends the two actions it knows', () => {
+  it('only ever sends the actions it knows', () => {
     // An action taken from the body unchecked would let a caller reach any
-    // path segment under the claim.
-    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject' : 'paid'/);
+    // path segment under the claim — and one of them now MOVES Pi.
+    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
+    expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
+    expect(route).toMatch(/: 'paid';/);
   });
 });
 
@@ -166,10 +168,22 @@ describe('the payout queue is built for copying by hand', () => {
     expect(page).toMatch(/not a transaction hash/);
   });
 
-  it('says that nothing here sends Pi', () => {
-    // The platform holds no wallet. Somebody who assumes otherwise records a
-    // payment that never happened and sends the claimant looking for it.
-    expect(page).toMatch(/Send the Pi from your wallet first/);
+  it('offers a button that actually SENDS, and one that only records', () => {
+    // They sit next to each other and only one of them moves money. A person
+    // who mistakes the second for the first records a payment that never
+    // happened and tells the claimant to go and look for it — which is exactly
+    // what happened with `tx: 1`.
+    expect(page).toMatch(/Send \$\{claim\.amount_pi\} π now/);
+    expect(page).toMatch(/<strong>Send now<\/strong> transfers the Pi/);
+    expect(page).toMatch(/<strong>Mark sent<\/strong> only records one you already sent/);
+  });
+
+  it('the send action is a CLOSED set, never the caller’s string', () => {
+    // One of these moves Pi. An action taken from the body unchecked would let
+    // a request reach any path segment under the claim.
+    const route = codeOf('app/api/admin/campaign/claims/route.ts');
+    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
+    expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
   });
 
   it('hides itself from non-admins', () => {

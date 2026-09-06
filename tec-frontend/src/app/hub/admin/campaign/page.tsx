@@ -46,7 +46,9 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
   const [copied, setCopied] = useState(false);
   const [error,  setError]  = useState<string | null>(null);
 
-  const act = async (action: 'paid' | 'reject') => {
+  const act = async (action: 'paid' | 'reject' | 'send') => {
+    // 'send' needs no hash: the chain gives one back. The field is for
+    // RECORDING a transfer somebody made by hand, which is still allowed.
     if (action === 'paid' && !TX_HASH.test(txId.trim())) {
       // The service refuses this too — it is the authority, and this copy only
       // saves a round trip. `1` used to pass both, and a claim went out saying
@@ -66,7 +68,9 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
         body: JSON.stringify(
           action === 'paid'
             ? { id: claim.id, action: 'paid', tx_id: txId.trim() }
-            : { id: claim.id, action: 'reject', note: 'Rejected from the payout queue' },
+            : action === 'send'
+              ? { id: claim.id, action: 'send' }
+              : { id: claim.id, action: 'reject', note: 'Rejected from the payout queue' },
         ),
       });
       const data = await res.json().catch(() => ({}));
@@ -145,6 +149,17 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
               fontFamily: 'var(--font-mono)', outline: 'none',
             }}
           />
+          {/* The one button that MOVES Pi. First, and gold, because it is the
+              normal path now — "Mark sent" beside it is for a transfer made by
+              hand, which is still allowed and is no longer the only way. */}
+          <button onClick={() => { void act('send'); }} disabled={busy} style={{
+            padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
+            background: 'linear-gradient(135deg,var(--tec-gold),#E8962A)',
+            color: '#1a1200', fontWeight: 800, fontSize: 12,
+            cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, font: 'inherit',
+          }}>
+            {busy ? 'Sending…' : `Send ${claim.amount_pi} π now`}
+          </button>
           <button onClick={() => { void act('paid'); }} disabled={busy} style={{
             padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
             background: 'linear-gradient(135deg,var(--tec-green),#16A34A)',
@@ -153,15 +168,17 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           }}>
             Mark sent
           </button>
-          {/* Said once, plainly, above the button that looks like it pays.
-              Nothing here moves Pi — a person does, from their own wallet — and
-              somebody who assumes otherwise records a payment that never
-              happened and tells the claimant to go and look for it. */}
+          {/* Which button does what, said once. They sit next to each other and
+              only one of them moves money — a person who mistakes the second
+              for the first records a payment that never happened and tells the
+              claimant to go and look for it. */}
           <p style={{
             width: '100%', margin: '2px 0 0', fontSize: 11, lineHeight: 1.5,
             color: 'var(--tec-text-3)',
           }}>
-            Send the Pi from your wallet first — this only records it.
+            <strong>Send now</strong> transfers the Pi from the payout wallet and records the real
+            transaction. <strong>Mark sent</strong> only records one you already sent by hand — paste
+            its hash first.
           </p>
           <button onClick={() => { void act('reject'); }} disabled={busy} style={{
             padding: '8px 14px', borderRadius: 'var(--radius-sm)',

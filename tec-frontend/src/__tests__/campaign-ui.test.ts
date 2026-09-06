@@ -118,8 +118,20 @@ describe('the payout queue is built for copying by hand', () => {
     expect(page).toMatch(/navigator\.clipboard\.writeText\(claim\.wallet_address\)/);
   });
 
-  it('refuses "mark sent" without a transaction id, and says why', () => {
-    expect(page).toMatch(/a payment without one is not a record/);
+  it('refuses "mark sent" unless the id LOOKS like a transaction hash', () => {
+    // The rule used to be "not empty", and `1` passed it: a claim was marked
+    // PAID and the claimant was told "Sent — 1 π on its way, check your Pi
+    // wallet" while nothing had left any wallet. This field is the evidence
+    // that the transfer happened; one that takes any characters is not
+    // evidence, it is a checkbox with extra steps.
+    expect(page).toContain('/^[0-9a-fA-F]{64}$/');
+    expect(page).toMatch(/not a transaction hash/);
+  });
+
+  it('says that nothing here sends Pi', () => {
+    // The platform holds no wallet. Somebody who assumes otherwise records a
+    // payment that never happened and sends the claimant looking for it.
+    expect(page).toMatch(/Send the Pi from your wallet first/);
   });
 
   it('hides itself from non-admins', () => {

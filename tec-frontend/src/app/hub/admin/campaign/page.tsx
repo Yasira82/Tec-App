@@ -15,7 +15,16 @@ import { Icon }        from '@/components/ui/Icon';
  * The address is shown large and monospaced with a copy button, because it is
  * copied by hand into a wallet app and a mis-copied character sends real Pi to
  * a stranger with no way back.
+ *
+ * "Mark sent" RECORDS a transfer that has already happened. It does not make
+ * one — the platform holds no wallet and cannot move Pi. That is why the
+ * transaction hash is required and why its shape is checked: the claimant is
+ * told "Sent — π on its way, check your wallet" on the strength of this field,
+ * and a field that accepts anything makes that sentence a guess.
  */
+
+/** A Pi (Stellar) transaction hash: 32 bytes, written as 64 hex characters. */
+const TX_HASH = /^[0-9a-fA-F]{64}$/;
 
 type Status = 'CLAIMED' | 'PAID' | 'REJECTED';
 
@@ -38,10 +47,15 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
   const [error,  setError]  = useState<string | null>(null);
 
   const act = async (action: 'paid' | 'reject') => {
-    if (action === 'paid' && !txId.trim()) {
-      // The service refuses this too. Saying it here saves a round trip and
-      // explains WHY the field matters rather than just rejecting.
-      setError('Paste the transaction id — a payment without one is not a record.');
+    if (action === 'paid' && !TX_HASH.test(txId.trim())) {
+      // The service refuses this too — it is the authority, and this copy only
+      // saves a round trip. `1` used to pass both, and a claim went out saying
+      // "Sent — 1 π on its way" while nothing had left any wallet.
+      setError(
+        txId.trim()
+          ? 'That is not a transaction hash. Paste the 64-character hash from your wallet.'
+          : 'Send the Pi first, then paste the transaction hash from your wallet.',
+      );
       return;
     }
     setBusy(true); setError(null);
@@ -120,7 +134,7 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           <input
             value={txId}
             onChange={(e) => { setTxId(e.target.value); if (error) setError(null); }}
-            placeholder="Transaction id"
+            placeholder="Transaction hash (64 characters)"
             dir="ltr"
             spellCheck={false}
             aria-label={`Transaction id for seat ${claim.seat ?? ''}`}
@@ -139,6 +153,16 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           }}>
             Mark sent
           </button>
+          {/* Said once, plainly, above the button that looks like it pays.
+              Nothing here moves Pi — a person does, from their own wallet — and
+              somebody who assumes otherwise records a payment that never
+              happened and tells the claimant to go and look for it. */}
+          <p style={{
+            width: '100%', margin: '2px 0 0', fontSize: 11, lineHeight: 1.5,
+            color: 'var(--tec-text-3)',
+          }}>
+            Send the Pi from your wallet first — this only records it.
+          </p>
           <button onClick={() => { void act('reject'); }} disabled={busy} style={{
             padding: '8px 14px', borderRadius: 'var(--radius-sm)',
             background: 'transparent', border: '1px solid rgba(239,68,68,0.4)',

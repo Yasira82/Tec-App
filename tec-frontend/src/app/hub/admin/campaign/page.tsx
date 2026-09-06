@@ -40,7 +40,19 @@ interface Claim {
   created_at:     string;
 }
 
-function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
+function Row({ claim, onDone, canSend }: {
+  claim: Claim; onDone: () => void;
+  /**
+   * Whether payment-service actually has a payout wallet.
+   *
+   * A control the system cannot honour is worse than no control: it fails on
+   * the tap, and the failure looks like the platform being broken rather than
+   * a wallet not being set up. So when there is none, "Send now" is disabled
+   * and says why, and the hand-sent path becomes the primary one again — which
+   * it legitimately is until an app wallet exists.
+   */
+  canSend: boolean;
+}) {
   const [txId,   setTxId]   = useState('');
   const [busy,   setBusy]   = useState(false);
   const [copied, setCopied] = useState(false);
@@ -156,18 +168,32 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
           {/* The one button that MOVES Pi. First, and gold, because it is the
               normal path now — "Mark sent" beside it is for a transfer made by
               hand, which is still allowed and is no longer the only way. */}
-          <button onClick={() => { void act('send'); }} disabled={busy} style={{
-            padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
-            background: 'linear-gradient(135deg,var(--tec-gold),#E8962A)',
-            color: '#1a1200', fontWeight: 800, fontSize: 12,
-            cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, font: 'inherit',
-          }}>
+          <button
+            onClick={() => { void act('send'); }}
+            disabled={busy || !canSend}
+            title={canSend ? undefined : 'No payout wallet is configured on payment-service'}
+            style={{
+              padding: '8px 16px', borderRadius: 'var(--radius-sm)',
+              border: canSend ? 'none' : '1px solid var(--tec-border)',
+              background: canSend ? 'linear-gradient(135deg,var(--tec-gold),#E8962A)' : 'transparent',
+              color: canSend ? '#1a1200' : 'var(--tec-text-3)',
+              fontWeight: 800, fontSize: 12, font: 'inherit',
+              cursor: busy || !canSend ? 'default' : 'pointer',
+              opacity: busy ? 0.6 : 1,
+            }}>
             {busy ? 'Sending…' : `Send ${claim.amount_pi} π now`}
           </button>
+          {/* Green and solid whenever "Send now" cannot run. Sending by hand
+              is not a fallback here — it is the whole way this works until an
+              app wallet exists, and a screen whose only prominent button is
+              dead teaches people the page is broken. */}
           <button onClick={() => { void act('paid'); }} disabled={busy} style={{
             padding: '8px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
-            background: 'linear-gradient(135deg,var(--tec-green),#16A34A)',
-            color: '#05130a', fontWeight: 800, fontSize: 12,
+            background: canSend
+              ? 'var(--tec-fill-soft)'
+              : 'linear-gradient(135deg,var(--tec-green),#16A34A)',
+            color: canSend ? 'var(--tec-text-1)' : '#05130a',
+            fontWeight: 800, fontSize: 12,
             cursor: busy ? 'default' : 'pointer', opacity: busy ? 0.6 : 1, font: 'inherit',
           }}>
             Mark sent
@@ -180,9 +206,19 @@ function Row({ claim, onDone }: { claim: Claim; onDone: () => void }) {
             width: '100%', margin: '2px 0 0', fontSize: 11, lineHeight: 1.5,
             color: 'var(--tec-text-3)',
           }}>
-            <strong>Send now</strong> transfers the Pi from the payout wallet and records the real
-            transaction. <strong>Mark sent</strong> only records one you already sent by hand — paste
-            its hash first.
+            {canSend ? (
+              <>
+                <strong>Send now</strong> transfers the Pi from the payout wallet and records the
+                real transaction. <strong>Mark sent</strong> only records one you already sent by
+                hand — paste its hash first.
+              </>
+            ) : (
+              <>
+                Send the Pi from your own wallet to the address above, then paste the transaction
+                hash and <strong>Mark sent</strong>. <strong>Send now</strong> needs an app wallet
+                on payment-service, and there is none yet.
+              </>
+            )}
           </p>
           <button onClick={() => { void act('reject'); }} disabled={busy} style={{
             padding: '8px 14px', borderRadius: 'var(--radius-sm)',
@@ -400,7 +436,15 @@ export default function AdminCampaignPage() {
               {filter === 'CLAIMED' ? 'Nobody is waiting for a payout.' : 'Nothing here.'}
             </div>
           ) : (
-            claims.map((c) => <Row key={c.id} claim={c} onDone={() => void load(filter)} />)
+            claims.map((c) => (
+              <Row
+                key={c.id} claim={c} onDone={() => void load(filter)}
+                // Unknown status → treated as CAN send, so a status line that
+                // failed to load never disables the working button. The service
+                // refuses either way; this only decides which control leads.
+                canSend={wallet?.configured !== false}
+              />
+            ))
           )}
         </>
       )}

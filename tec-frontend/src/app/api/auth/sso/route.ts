@@ -21,6 +21,10 @@ const ALLOWED_TARGETS = [
   'https://tec-connection.vercel.app',
   'https://zone.tecosystem.app',
   'https://tec-zone.vercel.app',
+  // Zone's REAL Vercel host: the project name `tec-zone` was taken, so
+  // Vercel appended a suffix. Both are listed — the plain one may become
+  // valid later, and an allowlist entry that resolves to nothing is inert.
+  'https://tec-zone-mu.vercel.app',
   'https://nexus.tecosystem.app',
   'https://tec-nexus.vercel.app',
   'https://fundx.tecosystem.app',
@@ -67,7 +71,25 @@ export async function GET(req: NextRequest) {
 
   const targetBase = ALLOWED_TARGETS.find(t => target?.startsWith(t));
   if (!target || !targetBase) {
-    return NextResponse.json({ error: 'invalid_target' }, { status: 400 });
+    // Say WHAT was rejected. The bare `{"error":"invalid_target"}` sent the
+    // next person hunting: an app whose real Vercel hostname carries a suffix
+    // (`tec-zone-mu.vercel.app`, because `tec-zone` was taken) is not in the
+    // list, and the response gave no way to know that from the screen.
+    //
+    // The target is the caller's OWN origin — echoing it reveals nothing they
+    // did not send. The allowlist itself is NOT echoed: it is not a secret,
+    // but there is no reason to hand an attacker the map.
+    return NextResponse.json(
+      {
+        error: 'invalid_target',
+        target,
+        hint: 'This origin is not in the Hub SSO allowlist. Add the app\'s REAL '
+            + 'host (Vercel appends a suffix when the project name is taken) to '
+            + 'ALLOWED_TARGETS here and to the app\'s own ALLOWED_AUDIENCES. '
+            + 'Never widen this to *.vercel.app — anyone can deploy there.',
+      },
+      { status: 400 },
+    );
   }
 
   const secret    = process.env.SSO_SECRET;

@@ -9,6 +9,9 @@ const ALLOWED_TARGETS = [
   'https://assets.tecosystem.app',
   'https://assets.pi',
   'https://tec-commerce-app.vercel.app',
+  // Commerce's REAL Vercel project host — no `tec-` prefix. Project names are
+  // claimed first-come, so a host cannot be derived from an app's name.
+  'https://commerce-app.vercel.app',
   'https://commerce.tecosystem.app',
   'https://commerce.pi',
   'https://ecommerce.tecosystem.app',

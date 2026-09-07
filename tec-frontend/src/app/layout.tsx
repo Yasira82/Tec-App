@@ -113,7 +113,11 @@ export const metadata: Metadata = {
   },
 };
 
-const piSandbox     = process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false';
+// `=== 'true'`, matching every other app in the fleet. It read `!== 'false'`,
+// which defaults to TRUE: unset or misspelled, the Hub came up pointed at
+// Pi's Sandbox — the failure mode as a DEFAULT rather than as a mistake.
+// The host still has the final word (PiSdkLoader.resolveSandbox).
+const piSandbox     = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true';
 const sdkTimeoutEnv = process.env.NEXT_PUBLIC_PI_SDK_TIMEOUT
   ? parseInt(process.env.NEXT_PUBLIC_PI_SDK_TIMEOUT, 10)
   : 25000;

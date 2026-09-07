@@ -60,6 +60,9 @@ const ALLOWED_TARGETS = [
   'https://tec-vip.vercel.app',
   'https://nbf.tecosystem.app',
   'https://tec-nbf.vercel.app',
+  // NBF's REAL Vercel host — an arbitrary word Vercel appended because
+  // `tec-nbf` was taken. This is the one registered in the Pi Portal.
+  'https://nbf-ivory.vercel.app',
   'https://brookfield.tecosystem.app',
   'https://tec-brookfield.vercel.app',
 ];

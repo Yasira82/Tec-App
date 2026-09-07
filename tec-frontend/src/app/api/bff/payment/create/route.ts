@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import { networkMetadata } from '@/lib/pi-network';
 
 // ✅ Canonical payment-create contract (ADR-009) — IDENTICAL across all 4 apps.
 //    - Gateway path: ${GW}/api/payment/create  (gateway rewrites ^/api/payment → /payments)
@@ -66,7 +67,20 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const { amount, currency, payment_method, metadata, idempotency_key } = parsed.data;
+  // The Hub is the Mode-1 payment path for ALL 24 apps, and its metadata
+  // schema is `.passthrough()` — so this is the one route where a browser
+  // could name the network its own payment settles on.
+  //
+  // `metadata.testnet` is not decoration. payment-service's getPiApiKey
+  // selects PI_API_KEY_<SLUG>_TESTNET from it, and commerce refuses to grant
+  // PRO for it. Whoever sets it decides whether a payment is free.
+  //
+  // REMOVED, not overwritten. On a Mainnet host networkMetadata() returns an
+  // empty object, so spreading it over the caller's bag overwrites NOTHING and
+  // the claim survives intact. Stripped here, before the spread, so a later
+  // edit that reorders the object cannot hand the network back.
+  const { amount, currency, payment_method, metadata: clientMetadata, idempotency_key } = parsed.data;
+  const { testnet: _clientTestnet, ...metadata } = clientMetadata ?? {};
   const idempotencyKey = idempotency_key ?? randomUUID();
 
   try {
@@ -79,7 +93,13 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
         'Idempotency-Key': idempotencyKey,
       },
       // amount forwarded as a number — matches tec-payment-service contract.
-      body: JSON.stringify({ amount: Number(amount), currency, payment_method, metadata }),
+      // Derived from this route's OWN Host header, and present only when true —
+      // a Mainnet payment carries no such key, so its payload is byte-identical
+      // to what it has always been.
+      body: JSON.stringify({
+        amount: Number(amount), currency, payment_method,
+        metadata: { ...metadata, ...networkMetadata(req.headers.get('host')) },
+      }),
       cache: 'no-store',
     });
 

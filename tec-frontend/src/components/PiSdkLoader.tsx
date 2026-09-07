@@ -4,11 +4,44 @@ import { useEffect, useCallback } from 'react';
 
 interface Props { sandbox: boolean; timeout: number; onReady?: () => void; }
 
-export default function PiSdkLoader({ sandbox, timeout, onReady }: Props) {
+/**
+ * SANDBOX IS NOT THE TESTNET. Three separate axes, and conflating them cost
+ * this platform days:
+ *
+ *   the HOST     picks which Pi APP the browser is talking to
+ *   that app's   API KEY picks which NETWORK Pi settles on
+ *   `sandbox`    points the SDK at Pi's SANDBOX environment entirely
+ *
+ * The Hub's paired Testnet app is a normal app on its own host, NOT the
+ * sandbox. Initialising with sandbox:true there left the Pi bridge silent
+ * ("Messaging promise with id 1 timed out after 120000ms") — measured on the
+ * fleet, not theorised.
+ *
+ * `?pi_sandbox=1` is the way into the real sandbox, honoured ONLY on the
+ * Testnet host, so no query param can put a Mainnet payment into sandbox mode.
+ *
+ * The Mainnet arm returns the configured value untouched — but note the caller
+ * that produces it: the Hub read `NEXT_PUBLIC_PI_SANDBOX !== 'false'`, i.e. it
+ * defaulted to **true** where every other app in the fleet reads `=== 'true'`.
+ * Unset or misspelled, the Hub came up in sandbox. That polarity is corrected
+ * in layout.tsx; this function is where the host has the final word.
+ */
+const resolveSandbox = (configured: boolean): boolean => {
+  if (typeof window === 'undefined') return configured;
+  if (!/\.vercel\.app$/i.test(window.location.hostname)) return configured;
+  try {
+    return new URLSearchParams(window.location.search).get('pi_sandbox') === '1';
+  } catch {
+    return false;
+  }
+};
+
+export default function PiSdkLoader({ sandbox: configured, timeout, onReady }: Props) {
   const stableOnReady = useCallback(() => onReady?.(), [onReady]);
 
   useEffect(() => {
-    const appId = process.env.NEXT_PUBLIC_PI_APP_ID;
+    const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
+    const sandbox = resolveSandbox(configured);
 
     const callInit = (): boolean => {
       if (typeof window.Pi === 'undefined') return false;
@@ -52,7 +85,7 @@ export default function PiSdkLoader({ sandbox, timeout, onReady }: Props) {
       clearInterval(poll);
       window.removeEventListener('pageshow', onPageShow);
     };
-  }, [sandbox, timeout, stableOnReady]);
+  }, [configured, timeout, stableOnReady]);
 
   return null;
 }

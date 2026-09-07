@@ -51,6 +51,8 @@ const ALLOWED_TARGETS = [
   'https://tec-legend.vercel.app',
   'https://elite.tecosystem.app',
   'https://tec-elite.vercel.app',
+  // Elite's REAL Vercel host — second app found with a suffix (see Zone).
+  'https://tec-elite-bvzb.vercel.app',
   'https://vip.tecosystem.app',
   'https://tec-vip.vercel.app',
   'https://nbf.tecosystem.app',

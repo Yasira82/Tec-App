@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID }                from 'crypto';
 import { isE2eMode }                 from '@/lib/server/e2e-mode';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
+import { networkMetadata }           from '@/lib/pi-network';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -94,6 +95,39 @@ export async function POST(req: NextRequest) {
 
     const idempotencyKey = randomUUID();
 
+    /**
+     * Which Pi network this payment settles on.
+     *
+     * This is THE Hub payment route — `pi-payment.ts`, `useExternalPayment`
+     * (Mode 1, every other app's Hub modal), mint and checkout all post here.
+     * `/api/bff/payment/create` is the ADR-009-shaped sibling and no production
+     * code calls it, so a guard placed only there guards nothing.
+     *
+     * Derived from THIS route's own Host header: the Hub's Mainnet host and its
+     * paired Testnet host are one deployment, and `NEXT_PUBLIC_*` is inlined at
+     * build time, so an env var cannot tell them apart. Present only when true,
+     * so a Mainnet payment's payload is byte-identical to what it always was.
+     *
+     * A client-sent `testnet` is REMOVED, not overwritten. On the Mainnet host
+     * the derived object is EMPTY, so spreading it over the caller's bag
+     * overwrites nothing and the claim survives — and payment-service reads
+     * exactly this field to choose which Pi API key approves the payment
+     * (`piTargetOf`), while commerce reads it to decide whether to grant PRO.
+     * A caller that could set it could pay with free Test-Pi and have a
+     * consumer grant something real.
+     */
+    const { metadata: clientMetadata, ...restOfBody } = body as Record<string, unknown>;
+    const { testnet: _clientTestnet, ...callerMetadata } =
+      (clientMetadata ?? {}) as Record<string, unknown>;
+
+    // Built ONCE. The 401-refresh path below re-sends, and two literals is how
+    // a retry quietly stops carrying what the first attempt carried.
+    const upstreamBody = JSON.stringify({
+      ...restOfBody,
+      userId,
+      metadata: { ...callerMetadata, ...networkMetadata(req.headers.get('host')) },
+    });
+
     let res = await fetchWithTimeout(`${GATEWAY}/api/v1/payments/create`, {
       method:  'POST',
       headers: {
@@ -103,7 +137,7 @@ export async function POST(req: NextRequest) {
         'Idempotency-Key': idempotencyKey,
         'X-Request-ID':    requestId,
       },
-      body: JSON.stringify({ ...body, userId }),
+      body: upstreamBody,
     });
 
     // ✅ لو 401 — جرب refresh وحاول تاني
@@ -121,7 +155,7 @@ export async function POST(req: NextRequest) {
             'Idempotency-Key': idempotencyKey,
             'X-Request-ID':    requestId,
           },
-          body: JSON.stringify({ ...body, userId }),
+          body: upstreamBody,
         });
       } else {
         return NextResponse.json(

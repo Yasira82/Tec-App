@@ -1,3 +1,4 @@
+import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 import { getAccessToken, getStoredUser, waitForPiSDK } from './pi-auth';
 import { piSession } from '@/lib-client/pi/pi-session';
 import sdk           from '@/lib/sdk';
@@ -148,7 +149,10 @@ export const createU2APayment = async (
   }
 
   const sandbox = (window as { __PI_SANDBOX?: boolean }).__PI_SANDBOX === true;
-  const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
+  // Host-derived — see pi-app-id.ts. This line is why fixing only the SDK
+  // loader changed nothing: reInit() below runs two lines before
+  // createPayment and would re-point the SDK at the Mainnet app.
+  const appId   = resolvePiAppId();
 
   return new Promise((resolve, reject) => {
     if (!window.Pi) { reject(new Error('Pi SDK not available - Open in Pi Browser')); return; }
@@ -264,55 +268,6 @@ export const createU2APayment = async (
                 onDiagnostic?.('error', `Completion failed: ${msg}`);
                 clearPaymentTimer(); reject(new Error(msg));
               }
-            },
-
-            /**
-             * Pi calls THIS instead of opening the wallet when the user already
-             * has an unfinished payment on this app — and until now nothing in
-             * the entire fleet supplied it. A callback the SDK expects and does
-             * not find is not an error anyone sees: the flow simply stops at
-             * "Confirm in Pi Wallet…" and waits forever.
-             *
-             * That makes the first abandoned payment permanently poison every
-             * later one. It stayed invisible on Mainnet because a completed
-             * payment leaves nothing behind; a day of failed Testnet attempts
-             * left one incomplete payment after another, and from then on no
-             * new payment could start at all.
-             *
-             * `/api/payment/resolve-incomplete` already existed for exactly
-             * this — it had simply never been called from anywhere.
-             */
-            onIncompletePaymentFound: async (payment: { identifier?: string }) => {
-              const stuckId = payment?.identifier;
-              onDiagnostic?.('incomplete', `Incomplete payment found: ${stuckId ?? 'unknown'}`, { stuckId });
-              clearPaymentTimer();
-
-              if (!stuckId) {
-                reject(new Error('Pi reported an unfinished payment with no id. Please reopen the app.'));
-                return;
-              }
-
-              try {
-                const res = await fetch('/api/payment/resolve-incomplete', {
-                  method:      'POST',
-                  credentials: 'include',
-                  headers:     { 'Content-Type': 'application/json' },
-                  body:        JSON.stringify({ pi_payment_id: stuckId }),
-                });
-                if (!res.ok) throw new Error(`resolve-incomplete returned ${res.status}`);
-                onDiagnostic?.('incomplete', 'Previous payment resolved — asking the user to retry');
-              } catch (err) {
-                // Reported, never swallowed (C-96): a silent failure here is
-                // exactly the shape of the bug being fixed.
-                onDiagnostic?.('error',
-                  `Could not resolve the previous payment: ${err instanceof Error ? err.message : String(err)}`);
-              }
-
-              // Deliberately NOT auto-retried. The stuck payment is cleared
-              // server-side, but re-entering createPayment from inside its own
-              // callback is how a retry loop starts on a money path. The user
-              // taps once more, and this time the wallet opens.
-              reject(new Error('An earlier unfinished payment was cleared. Please tap pay again.'));
             },
 
             onCancel: () => {

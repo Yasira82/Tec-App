@@ -81,7 +81,9 @@ describe('the Pi app id comes from the host, not from the build', () => {
     // and Pi.authenticate() then never answers. The modal sat on
     // "Authenticating…" until timeout, with nothing logged, because nothing
     // failed. Measured on tec-app-frontend.vercel.app, not theorised.
-    expect(loader).toMatch(/isTestnetHost\(\) \? undefined : process\.env\.NEXT_PUBLIC_PI_APP_ID/);
+    // The rule now lives in pi-app-id.ts, shared by all four readers — see the
+    // "exactly one reader" block below for why that mattered.
+    expect(loader).toMatch(/resolvePiAppId\(\)/);
   });
 
   it('is read through the resolver, never straight from the env', () => {
@@ -124,41 +126,41 @@ describe('sandbox is not the testnet — and the Hub had it inverted', () => {
   });
 });
 
-describe('an unfinished payment must not poison every payment after it', () => {
-  const pay   = readFileSync(join(process.cwd(), 'src/lib-client/pi/pi-payment.ts'), 'utf8');
-  const types = readFileSync(join(process.cwd(), 'src/types/pi.types.ts'), 'utf8');
+describe('the Pi app id has exactly one reader', () => {
+  const SRC = join(process.cwd(), 'src');
+  const walk = (d: string): string[] =>
+    require('node:fs').readdirSync(d, { withFileTypes: true }).flatMap((e: { name: string; isDirectory(): boolean }) =>
+      e.isDirectory() ? walk(join(d, e.name)) : [join(d, e.name)]);
 
-  it('supplies the callback Pi calls instead of opening the wallet', () => {
-    // Without it the SDK has nowhere to report a stuck payment, so the flow
-    // stops at "Confirm in Pi Wallet…" and waits forever. Nothing errors,
-    // nothing logs — the first abandoned payment simply blocks all the rest.
-    expect(pay).toMatch(/onIncompletePaymentFound: async \(payment/);
+  const sources = () =>
+    walk(SRC).filter((f) => /\.tsx?$/.test(f) && !f.includes('__tests__'));
+
+  it('no file outside the resolver reads the raw env var', () => {
+    // It was read in FOUR places: the SDK loader, the session, the payment path
+    // and mint. Fixing only the loader fixed nothing that mattered, because
+    // pi-payment.ts calls reInit() with its own copy two lines before
+    // createPayment — re-pointing the SDK at the Mainnet app at the exact
+    // moment it matters. Four readers of one constant is four chances to
+    // disagree.
+    const offenders = sources().filter((f) => {
+      if (f.endsWith('pi-app-id.ts')) return false;
+      const body = readFileSync(f, 'utf8')
+        .split('\n')
+        .filter((l) => !l.trim().startsWith('*') && !l.trim().startsWith('//'))
+        .join('\n');
+      return body.includes('NEXT_PUBLIC_PI_APP_ID');
+    });
+    expect(offenders.map((f) => f.replace(`${process.cwd()}/`, ''))).toEqual([]);
   });
 
-  it('clears the stuck payment through the route that already existed', () => {
-    // `/api/payment/resolve-incomplete` was built for exactly this and had
-    // never been called from anywhere in the codebase.
-    expect(pay).toContain("'/api/payment/resolve-incomplete'");
+  it('the payment path re-inits with the resolved id, not a raw read', () => {
+    const pay = readFileSync(join(SRC, 'lib-client/pi/pi-payment.ts'), 'utf8');
+    expect(pay).toMatch(/const appId   = resolvePiAppId\(\);/);
+    expect(pay).toMatch(/piSession\.reInit\(sandbox, appId\)/);
   });
 
-  it('does not retry from inside its own callback', () => {
-    // Re-entering createPayment from within its callback is how a retry loop
-    // starts on a money path. The stuck payment is cleared; the user taps once
-    // more and the wallet opens.
-    const block = pay.slice(pay.indexOf('onIncompletePaymentFound'), pay.indexOf('onCancel:'));
-    expect(block).not.toContain('invoke(');
-    expect(block).toMatch(/Please tap pay again/);
-  });
-
-  it('reports a failure to resolve rather than swallowing it', () => {
-    // A silent catch here is the exact shape of the bug being fixed (C-96).
-    const block = pay.slice(pay.indexOf('onIncompletePaymentFound'), pay.indexOf('onCancel:'));
-    expect(block).toMatch(/onDiagnostic\?\.\('error'/);
-  });
-
-  it('the type allows the callback at all — its absence is why nobody added one', () => {
-    // TypeScript rejected the property, so adding the handler meant widening
-    // the contract first. That is why the gap survived across 26 repos.
-    expect(types).toMatch(/onIncompletePaymentFound\?: \(payment/);
+  it('resolves to nothing on the Testnet host, so the SDK reads the host', () => {
+    const mod = readFileSync(join(SRC, 'lib-client/pi/pi-app-id.ts'), 'utf8');
+    expect(mod).toMatch(/isPiTestnetHost\(\) \? undefined : process\.env\.NEXT_PUBLIC_PI_APP_ID/);
   });
 });

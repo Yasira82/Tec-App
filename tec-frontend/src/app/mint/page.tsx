@@ -1,4 +1,5 @@
 'use client';
+import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 
 import { Suspense, useEffect, useState, useRef, useCallback } from 'react';
 import { useSearchParams }                                      from 'next/navigation';
@@ -67,7 +68,7 @@ function MintPageInner() {
 
     PiRuntime.init(
       process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-      process.env.NEXT_PUBLIC_PI_APP_ID ?? undefined,
+      resolvePiAppId(),
     );
 
     try {

@@ -1,3 +1,4 @@
+import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 /**
  * PiSessionManager v4 Final — Pi Runtime Isolation Layer
  */
@@ -141,7 +142,7 @@ class PiSessionManager {
         // PaymentModal (`=== 'true'`). The old `!== 'false'` initialized in
         // SANDBOX whenever the env var was unset → authenticate then failed.
         const sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true';
-        const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
+        const appId   = resolvePiAppId();
         try {
           Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) });
           window.__TEC_PI_READY = true;

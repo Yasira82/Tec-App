@@ -123,3 +123,42 @@ describe('sandbox is not the testnet — and the Hub had it inverted', () => {
     expect(loader).toMatch(/if \(!isTestnetHost\(\)\) return configured;/);
   });
 });
+
+describe('an unfinished payment must not poison every payment after it', () => {
+  const pay   = readFileSync(join(process.cwd(), 'src/lib-client/pi/pi-payment.ts'), 'utf8');
+  const types = readFileSync(join(process.cwd(), 'src/types/pi.types.ts'), 'utf8');
+
+  it('supplies the callback Pi calls instead of opening the wallet', () => {
+    // Without it the SDK has nowhere to report a stuck payment, so the flow
+    // stops at "Confirm in Pi Wallet…" and waits forever. Nothing errors,
+    // nothing logs — the first abandoned payment simply blocks all the rest.
+    expect(pay).toMatch(/onIncompletePaymentFound: async \(payment/);
+  });
+
+  it('clears the stuck payment through the route that already existed', () => {
+    // `/api/payment/resolve-incomplete` was built for exactly this and had
+    // never been called from anywhere in the codebase.
+    expect(pay).toContain("'/api/payment/resolve-incomplete'");
+  });
+
+  it('does not retry from inside its own callback', () => {
+    // Re-entering createPayment from within its callback is how a retry loop
+    // starts on a money path. The stuck payment is cleared; the user taps once
+    // more and the wallet opens.
+    const block = pay.slice(pay.indexOf('onIncompletePaymentFound'), pay.indexOf('onCancel:'));
+    expect(block).not.toContain('invoke(');
+    expect(block).toMatch(/Please tap pay again/);
+  });
+
+  it('reports a failure to resolve rather than swallowing it', () => {
+    // A silent catch here is the exact shape of the bug being fixed (C-96).
+    const block = pay.slice(pay.indexOf('onIncompletePaymentFound'), pay.indexOf('onCancel:'));
+    expect(block).toMatch(/onDiagnostic\?\.\('error'/);
+  });
+
+  it('the type allows the callback at all — its absence is why nobody added one', () => {
+    // TypeScript rejected the property, so adding the handler meant widening
+    // the contract first. That is why the gap survived across 26 repos.
+    expect(types).toMatch(/onIncompletePaymentFound\?: \(payment/);
+  });
+});

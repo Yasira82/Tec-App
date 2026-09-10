@@ -40,6 +40,18 @@ export interface ExternalPayment {
   nexusStepIdx?: string;
 }
 
+/**
+ * Where the Pi SDK's own account of the payment goes when the only console
+ * available is a phone. Testnet host or `?debug=1` — never on Mainnet, where a
+ * buyer would see raw internals mid-payment.
+ */
+const traceVisible = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (/\.vercel\.app$/i.test(window.location.hostname)) return true;
+  try { return new URLSearchParams(window.location.search).get('debug') === '1'; }
+  catch { return false; }
+};
+
 export function PaymentModal({
   payment, onClose, onSuccess,
 }: {
@@ -51,6 +63,14 @@ export function PaymentModal({
   const p     = t.hub.payment;
   const [isReady, setIsReady] = useState(false);
   const [status,  setStatus]  = useState<'idle' | 'paying' | 'success' | 'error' | 'cancelled'>('idle');
+  // Every line the SDK reports, in order, with the seconds it arrived at — so a
+  // hang shows WHERE it stopped, not just that it stopped.
+  const [trace, setTrace] = useState<string[]>([]);
+  const traceStart = useRef<number>(0);
+  const pushTrace = useCallback((level: string, msg: string) => {
+    const t = traceStart.current || (traceStart.current = Date.now());
+    setTrace((prev) => [...prev, `${((Date.now() - t) / 1000).toFixed(1)}s ${level}: ${msg}`]);
+  }, []);
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
 
@@ -131,6 +151,16 @@ await new Promise(r => setTimeout(r, 1000));
         payment.memo,
         { source: payment.source, product_id: payment.productId, version: '1.0' },
         payment.internalId,
+        // The diagnostic channel has existed in pi-payment.ts all along and NO
+        // caller passed it — which is why three rounds of this failure were
+        // diagnosed from server logs that, by definition, cannot see the step
+        // that fails. `createPayment` is called and nothing comes back: no
+        // error, no callback, and payment-service logs "created" with no
+        // "approving" after it. The missing information was never on the
+        // server.
+        //
+        // Shown on screen only where a phone is the only console available.
+        pushTrace,
       );
 
       if (result.success && result.status === 'completed') {
@@ -184,6 +214,25 @@ await new Promise(r => setTimeout(r, 1000));
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>
           {payment.memo}
         </div>
+
+        {/* The SDK's own account of what happened, on the one surface a phone
+            can read. A hang shows WHERE it stopped: if the last line is
+            "Backend record created" then createPayment was called and answered
+            with nothing, and the fault is between the browser and Pi — not in
+            anything the server can see. */}
+        {traceVisible() && trace.length > 0 && (
+          <div style={{
+            textAlign: 'left', marginBottom: 20, padding: 10, borderRadius: 10,
+            background: '#00000040', border: '1px solid #ffffff14',
+            fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+            fontSize: 10, lineHeight: 1.7, color: '#7a7a8a',
+            maxHeight: 160, overflowY: 'auto', wordBreak: 'break-word',
+          }}>
+            {trace.map((line, i) => (
+              <div key={i} style={{ color: line.includes('error') ? '#ef4444' : undefined }}>{line}</div>
+            ))}
+          </div>
+        )}
 
         {/* ── Idle ── */}
         {status === 'idle' && (

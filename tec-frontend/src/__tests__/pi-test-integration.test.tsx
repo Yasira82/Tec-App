@@ -380,7 +380,15 @@ describe('PiTestClient', () => {
       fireEvent.click(screen.getByRole('button', { name: /Test Payment/ }));
     });
     await waitFor(() => {
-      expect(mockCreateU2A).toHaveBeenCalledWith(1, 'Test Payment from TEC Hub', { source: 'test' });
+      // Five args now: the 4th is the optional internalId (self-created here)
+      // and the 5th is the diagnostic callback. That callback is the point of
+      // this page — without it a hanging payment reports nothing at all, which
+      // is how three rounds of a browser-side failure got diagnosed from server
+      // logs that cannot see the browser.
+      expect(mockCreateU2A).toHaveBeenCalledWith(
+        1, 'Test Payment from TEC Hub', { source: 'test' },
+        undefined, expect.any(Function),
+      );
     });
   });
 

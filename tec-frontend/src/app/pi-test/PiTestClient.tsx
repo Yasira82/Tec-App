@@ -1,4 +1,5 @@
 'use client';
+import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 
 import { useState, useEffect, useCallback } from 'react';
 import { isPiBrowser, loginWithPi, getStoredUser, getAccessToken } from '@/lib-client/pi/pi-auth';
@@ -150,6 +151,40 @@ export function PiTestClient() {
     }
   }, [log]);
 
+  /**
+   * What the SDK actually is, right now, on this host — before any payment.
+   *
+   * A payment that hangs with no error tells you nothing about WHY. These four
+   * facts do: whether the bridge object exists at all, whether createPayment is
+   * callable, which host the SDK resolved its app from, and whether an earlier
+   * payment is still open (Pi refuses a new one while it is).
+   */
+  const handleProbeSdk = useCallback(async () => {
+    log('info', '🔎 Probing the Pi SDK…');
+    const Pi = (window as { Pi?: Record<string, unknown> }).Pi;
+    log(Pi ? 'success' : 'error', `window.Pi present: ${!!Pi}`);
+    if (!Pi) return;
+    log(typeof Pi.createPayment === 'function' ? 'success' : 'error',
+        `createPayment is callable: ${typeof Pi.createPayment}`);
+    log('info', `host: ${window.location.hostname}`);
+    log('info', `app id sent to Pi.init: ${resolvePiAppId() ?? '(none — SDK reads the host)'}`);
+    log('info', `sandbox flag: ${String((window as { __PI_SANDBOX?: boolean }).__PI_SANDBOX ?? false)}`);
+
+    // An unfinished payment is the one state that makes createPayment refuse
+    // silently. authenticate() is where Pi reports it.
+    try {
+      await window.Pi!.authenticate(['username', 'payments'], (payment: unknown) => {
+        const pid = (payment as { identifier?: string } | null)?.identifier;
+        log('warn', pid ? `⚠️ Unfinished payment still open: ${pid}` : 'no unfinished payment');
+      });
+      log('success', 'authenticate() returned — the payments scope was granted');
+    } catch (err) {
+      // If this throws, createPayment was never going to work: the scope is the
+      // precondition, not the payment.
+      log('error', `authenticate() failed: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }, [log]);
+
   const handleShowCookies = useCallback(() => {
     const cookies = document.cookie.split('; ').reduce((acc, c) => {
       const [k, ...rest] = c.split('=');
@@ -208,7 +243,14 @@ export function PiTestClient() {
     log('info', 'Creating payment (1π)…');
     setPayStatus('loading');
     try {
-      const result = await createU2APayment(1, 'Test Payment from TEC Hub', { source: 'test' });
+      // Every step the SDK reports, into the log panel above. This page exists
+      // to answer exactly this question and the channel was never connected —
+      // which is why three rounds of a browser-side hang were diagnosed from
+      // server logs that cannot see the browser.
+      const result = await createU2APayment(
+        1, 'Test Payment from TEC Hub', { source: 'test' }, undefined,
+        (level, msg) => log(level === 'error' ? 'error' : 'info', `  ↳ ${msg}`),
+      );
       if (result.success) {
         setPayStatus('done');
         log('success', `💰 Payment done: ${result.paymentId} | txid: ${result.txid}`);
@@ -257,6 +299,7 @@ export function PiTestClient() {
         {[
           { label: '🔐 Authenticate',        fn: handleAuth,             disabled: authStatus === 'loading' },
           { label: '💳 Test Payment (1π)',  fn: handlePayment,          disabled: payStatus === 'loading' },
+          { label: '🔎 Probe Pi SDK',        fn: handleProbeSdk,         disabled: false },
           { label: '📡 All Services',        fn: checkAllServices,       disabled: checkingAll },
           { label: '🫀 Consumer Liveness',   fn: checkStreams,           disabled: checkingStreams },
           { label: '🏥 BFF Health',          fn: handleCheckHealth,      disabled: false },

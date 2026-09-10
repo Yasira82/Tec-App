@@ -1,4 +1,5 @@
 'use client';
+import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 
 import { useEffect, useCallback } from 'react';
 
@@ -52,7 +53,7 @@ const isTestnetHost = (): boolean =>
  * a build-time constant answering a question only the request can answer.
  */
 const resolveAppId = (): string | undefined =>
-  isTestnetHost() ? undefined : process.env.NEXT_PUBLIC_PI_APP_ID;
+  resolvePiAppId();
 
 const resolveSandbox = (configured: boolean): boolean => {
   if (typeof window === 'undefined') return configured;

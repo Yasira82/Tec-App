@@ -71,6 +71,35 @@ describe('the create route owns the claim — no browser does', () => {
   });
 });
 
+describe('the Pi app id comes from the host, not from the build', () => {
+  const loader = readFileSync(join(process.cwd(), 'src/components/PiSdkLoader.tsx'), 'utf8');
+
+  it('is omitted on the paired Testnet host', () => {
+    // `NEXT_PUBLIC_PI_APP_ID` is ONE Vercel variable holding the MAINNET Hub's
+    // id, inlined at build time. On the Testnet host the browser is inside the
+    // Hub's Testnet Pi app, so that id names a different app than the host is —
+    // and Pi.authenticate() then never answers. The modal sat on
+    // "Authenticating…" until timeout, with nothing logged, because nothing
+    // failed. Measured on tec-app-frontend.vercel.app, not theorised.
+    expect(loader).toMatch(/isTestnetHost\(\) \? undefined : process\.env\.NEXT_PUBLIC_PI_APP_ID/);
+  });
+
+  it('is read through the resolver, never straight from the env', () => {
+    // The raw read must not creep back into the init path — that IS the bug.
+    expect(loader).toMatch(/const appId   = resolveAppId\(\);/);
+    const initLine = loader.split('\n').find((l) => l.includes('window.Pi.init(')) ?? '';
+    expect(initLine).not.toContain('process.env');
+  });
+
+  it('matches what every other app in the fleet does', () => {
+    // A grep of all 26 repos found `appId` passed to Pi.init in exactly one
+    // place: this file. Everywhere else the SDK resolves the app from the HOST
+    // — the only thing that differs between a Mainnet app and its Testnet twin,
+    // and the reason one build can serve both.
+    expect(loader).toContain('appId ? { appId } : {}');
+  });
+});
+
 describe('sandbox is not the testnet — and the Hub had it inverted', () => {
   const layout = readFileSync(join(process.cwd(), 'src/app/layout.tsx'), 'utf8');
   const loader = readFileSync(join(process.cwd(), 'src/components/PiSdkLoader.tsx'), 'utf8');
@@ -89,6 +118,8 @@ describe('sandbox is not the testnet — and the Hub had it inverted', () => {
     // no query param can put a Mainnet payment into sandbox mode.
     expect(loader).toMatch(/\.test\(window\.location\.hostname\)/);
     expect(loader).toMatch(/get\('pi_sandbox'\) === '1'/);
-    expect(loader).toMatch(/if \(!\/\\\.vercel\\\.app\$\/i\.test\(window\.location\.hostname\)\) return configured;/);
+    // The host test now lives in `isTestnetHost()` — shared with the app-id
+    // resolver, so the two cannot disagree about what a Testnet host is.
+    expect(loader).toMatch(/if \(!isTestnetHost\(\)\) return configured;/);
   });
 });

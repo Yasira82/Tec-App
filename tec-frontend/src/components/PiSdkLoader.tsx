@@ -26,9 +26,37 @@ interface Props { sandbox: boolean; timeout: number; onReady?: () => void; }
  * Unset or misspelled, the Hub came up in sandbox. That polarity is corrected
  * in layout.tsx; this function is where the host has the final word.
  */
+const isTestnetHost = (): boolean =>
+  typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location.hostname);
+
+/**
+ * The Pi app id to initialise with — or NOTHING, on the paired Testnet host.
+ *
+ * `NEXT_PUBLIC_PI_APP_ID` is one Vercel variable holding the **Mainnet** Hub's
+ * app id, and it is inlined at build time. On `tec-app-frontend.vercel.app` the
+ * browser is inside the Hub's **Testnet** Pi app, so passing that id tells the
+ * SDK a different app than the one the host actually is. `Pi.authenticate()`
+ * then never answers: the modal sits on "Authenticating…" until it times out,
+ * with nothing logged anywhere, because nothing failed.
+ *
+ * Omitting it is not a workaround — it is what **every other app in the fleet
+ * already does**. A grep of all 26 repos found `appId` passed in exactly one
+ * place: here. The SDK resolves the app from the HOST, which is the only thing
+ * that differs between a Mainnet app and its paired Testnet twin, and that is
+ * precisely why one build can serve both.
+ *
+ * The Mainnet host is untouched: it keeps passing the configured id, which is
+ * correct there and has always worked.
+ *
+ * Fifth instance of one bug: `APP_URL` · `sandbox` · `HUB_URL` · now `appId` —
+ * a build-time constant answering a question only the request can answer.
+ */
+const resolveAppId = (): string | undefined =>
+  isTestnetHost() ? undefined : process.env.NEXT_PUBLIC_PI_APP_ID;
+
 const resolveSandbox = (configured: boolean): boolean => {
   if (typeof window === 'undefined') return configured;
-  if (!/\.vercel\.app$/i.test(window.location.hostname)) return configured;
+  if (!isTestnetHost()) return configured;
   try {
     return new URLSearchParams(window.location.search).get('pi_sandbox') === '1';
   } catch {
@@ -40,7 +68,7 @@ export default function PiSdkLoader({ sandbox: configured, timeout, onReady }: P
   const stableOnReady = useCallback(() => onReady?.(), [onReady]);
 
   useEffect(() => {
-    const appId   = process.env.NEXT_PUBLIC_PI_APP_ID;
+    const appId   = resolveAppId();
     const sandbox = resolveSandbox(configured);
 
     const callInit = (): boolean => {

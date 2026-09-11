@@ -234,10 +234,15 @@ describe('PaymentModal — idle render', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('Pay button becomes enabled after tryAuth succeeds', async () => {
+  it('enables Pay as soon as the SDK is ready — WITHOUT authenticating', async () => {
+    // The contract changed deliberately. The modal used to authenticate on
+    // mount and hung there forever on the Testnet host: a WebView will not
+    // raise Pi's auth dialog for a call no user initiated, and it never says
+    // so. Every working path in the fleet (/pi-test, every app's buy handler)
+    // authenticates inside the tap, so this one does too.
     renderModal();
     await waitForReady();
-    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalled();
+    expect(mockPiSessionEnsurePaymentsReady).not.toHaveBeenCalled();
   });
 });
 
@@ -319,21 +324,26 @@ describe('PaymentModal — handlePay outcomes', () => {
     await waitFor(() => expect(screen.getByText('Payment already in progress')).toBeTruthy());
   });
 
-  it('shows "Pi SDK not ready" when gate fails inside handlePay', async () => {
+  it('surfaces the real auth error when the gate fails inside handlePay', async () => {
+    // The message carries `lastError`/`lastRawError` now. "Pi SDK not ready"
+    // was the same sentence for four different faults, and reading it cost
+    // several rounds of the wrong fix.
     renderModal();
     await waitForReady();
     mockPiSessionEnsurePaymentsReady.mockResolvedValue(false);
+    mockPiSessionLastError.value = 'AUTH_FAILED';
     await act(async () => {
       fireEvent.click(screen.getByText(/^Pay \d+π$/));
     });
     await waitFor(() =>
-      expect(screen.getByText('Pi SDK not ready. Please try again.')).toBeTruthy(),
+      expect(screen.getByText(/Pi auth \(AUTH_FAILED\)/)).toBeTruthy(),
     );
+    mockPiSessionLastError.value = null;
   });
 });
 
 describe('PaymentModal — Try Again', () => {
-  it('returns to idle and re-inits the session', async () => {
+  it('returns to idle with Pay live again, and authenticates NOTHING by itself', async () => {
     mockCreateU2APayment.mockResolvedValue({
       success: false, status: 'failed', message: 'first failure',
       amount: 5, memo: 'test',
@@ -344,16 +354,27 @@ describe('PaymentModal — Try Again', () => {
 
     mockPiSessionReset.mockClear();
     mockPiSessionReInit.mockClear();
+    mockPiSessionEnsurePaymentsReady.mockClear();
     fireEvent.click(screen.getByText('Try Again'));
 
+    // The session is cleared so the next tap re-authenticates from scratch...
     expect(mockPiSessionReset).toHaveBeenCalled();
-    expect(mockPiSessionReInit).toHaveBeenCalled();
-    // Back to idle — the disabled Authenticating button shows again
-    await waitFor(() =>
-      expect(screen.getAllByText('Authenticating...').length).toBeGreaterThan(0),
-    );
+    // ...but nothing re-inits the SDK and nothing authenticates on a timer.
+    // That timer fired 2s after the tap, with the user gesture long gone — and
+    // a WebView will not raise Pi's auth dialog for such a call. It waits
+    // silently, which is exactly how this modal used to die.
+    expect(mockPiSessionReInit).not.toHaveBeenCalled();
+
+    // Pay is live immediately — no "Authenticating…" limbo to sit in.
+    await waitFor(() => {
+      const btn = screen.getByText(/^Pay \d+π$/) as HTMLButtonElement;
+      expect(btn.disabled).toBe(false);
+    });
     expect(screen.queryByText('Payment Failed')).toBeNull();
-  });
+
+    await new Promise(r => setTimeout(r, 2500));
+    expect(mockPiSessionEnsurePaymentsReady).not.toHaveBeenCalled();
+  }, 10000);
 });
 
 describe('PaymentModal — waitForPiReady path', () => {
@@ -368,17 +389,22 @@ describe('PaymentModal — waitForPiReady path', () => {
   });
 });
 
-describe('PaymentModal — auth retry path', () => {
-  it('shows error state when both ensurePaymentsReady attempts fail', async () => {
+describe('PaymentModal — the mount effect never authenticates', () => {
+  it('does not authenticate, reset or reInit on mount, however long it waits', async () => {
+    // The old ladder was: wait, 1s, ensure, reset + reInit, 2.5s, ensure again.
+    // Two of those calls are a SECOND Pi.authenticate, which Pi Browser breaks
+    // on — the modal could manufacture the very collision the gate exists to
+    // prevent. None of it may run without a tap.
     mockPiSessionEnsurePaymentsReady.mockResolvedValue(false);
     mockPiSessionLastError.value = 'AUTH_FAILED';
     renderModal();
-    // tryAuth: 1000ms wait + first ensure(false) + reInit + 2500ms + second ensure(false)
-    await waitFor(
-      () => expect(screen.getByText('Payment Failed')).toBeTruthy(),
-      { timeout: 7000 },
-    );
-    expect(mockPiSessionReInit).toHaveBeenCalled();
+    await waitForReady();
+    await new Promise(r => setTimeout(r, 4000));
+
+    expect(mockPiSessionEnsurePaymentsReady).not.toHaveBeenCalled();
+    expect(mockPiSessionReInit).not.toHaveBeenCalled();
+    expect(mockPiSessionReset).not.toHaveBeenCalled();
+    expect(screen.queryByText('Payment Failed')).toBeNull();
     mockPiSessionLastError.value = null;
   }, 10000);
 });
@@ -950,9 +976,10 @@ describe('MintPage — mint-as-nft failure', () => {
 describe('PaymentModal — double-click guard and Try Again recovery timer', () => {
   it('second Pay click while first is in-flight releases the lock and returns', async () => {
     let resolveGate!: (v: boolean) => void;
+    // Only ONE gate call now — the mount effect no longer authenticates, so
+    // the first `ensurePaymentsReady` in this test IS the first tap's.
     mockPiSessionEnsurePaymentsReady
-      .mockResolvedValueOnce(true) // tryAuth in useEffect
-      .mockImplementationOnce(() => new Promise<boolean>(r => { resolveGate = r; })); // 1st handlePay
+      .mockImplementationOnce(() => new Promise<boolean>(r => { resolveGate = r; }));
 
     renderModal();
     await waitForReady();
@@ -989,35 +1016,44 @@ describe('PaymentModal — double-click guard and Try Again recovery timer', () 
   }, 10000);
 });
 
-describe('PaymentModal — tryAuth recovery and cancelled guards', () => {
-  it('recovers when first gate fails and the retry gate succeeds', async () => {
-    // tryAuth: 1000ms wait → ensure(false) → reset+reInit → 2500ms → ensure(true)
-    mockPiSessionEnsurePaymentsReady
-      .mockResolvedValueOnce(false)
-      .mockResolvedValueOnce(true);
+describe('PaymentModal — a failed tap can be retried', () => {
+  it('re-enables Pay after a failed auth, and authenticates again on the next tap', async () => {
+    // The old ladder retried by itself, on a timer, with a reset + reInit in
+    // between — a second Pi.authenticate nobody asked for. The retry is the
+    // user tapping again, which is the only kind of call a WebView will
+    // actually answer.
+    mockPiSessionEnsurePaymentsReady.mockResolvedValueOnce(false);
+    mockPiSessionLastError.value = 'AUTH_FAILED';
     renderModal();
+    await waitForReady();
+
+    await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+    await waitFor(() => expect(screen.getByText(/Pi auth \(AUTH_FAILED\)/)).toBeTruthy());
+    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalledTimes(1);
+
+    mockPiSessionLastError.value = null;
+    mockPiSessionEnsurePaymentsReady.mockResolvedValue(true);
+    mockCreateU2APayment.mockResolvedValue({
+      success: true, status: 'completed', txid: 'tx-2', paymentId: 'pay-2',
+      amount: 5, memo: 'test',
+    });
+    fireEvent.click(screen.getByText('Try Again'));
+
     await waitFor(
       () => {
         const btn = screen.getByText(/^Pay \d+π$/) as HTMLButtonElement;
         expect(btn.disabled).toBe(false);
       },
-      { timeout: 7000 },
+      { timeout: 4000 },
     );
-    expect(mockPiSessionReset).toHaveBeenCalled();
-    expect(mockPiSessionReInit).toHaveBeenCalled();
   }, 10000);
 
-  it('unmount during tryAuth stops further state updates (cancelled guard)', async () => {
-    let resolveGate!: (v: boolean) => void;
-    mockPiSessionEnsurePaymentsReady.mockImplementation(
-      () => new Promise<boolean>(r => { resolveGate = r; }),
-    );
+  it('unmount before the SDK is ready stops further state updates', async () => {
+    // The cancelled guard still matters — it now protects the SDK wait rather
+    // than an auth ladder.
     const { unmount } = renderModal();
-    // Wait until tryAuth passed the 1000ms sleep and is awaiting the gate
-    await waitFor(() => expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalled(), { timeout: 3000 });
     unmount();
-    await act(async () => { resolveGate(true); });
-    // Nothing to assert visually — the cancelled guard simply returns
-    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalledTimes(1);
+    await act(async () => { await new Promise(r => setTimeout(r, 50)); });
+    expect(mockPiSessionEnsurePaymentsReady).not.toHaveBeenCalled();
   }, 8000);
 });

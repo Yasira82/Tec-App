@@ -126,53 +126,49 @@ export function PaymentModal({
     // the SDK is healthy and the fault is somewhere in these ~30 lines. One
     // line of output cannot say where, and guessing from it has already cost
     // three wrong diagnoses.
-    const tryAuth = async () => {
-      // First line names the bundle. A screenshot of this modal now answers
-      // "is the browser running the code we think it is?" without a round trip
-      // — the question that cost the round this trace was added in.
+    // WAIT FOR THE SDK. DO NOT AUTHENTICATE HERE.
+    //
+    // This modal used to run a full auth ladder on mount — wait for init, 1s,
+    // ensurePaymentsReady, and on failure reset + reInit + 2.5s + retry — and
+    // it ended in `Pi auth (TIMEOUT): TIMEOUT` every time on the Testnet host.
+    //
+    // What finally separated the cases was not a log, it was a comparison:
+    //
+    //   /pi-test                 authenticates ON A TAP      → answers in 0.6s
+    //   every other TEC app      authenticates ON A TAP      → works in prod
+    //   this modal               authenticated ON MOUNT      → never answered
+    //
+    // The Hub was the only place in the fleet calling `Pi.authenticate` with no
+    // user gesture behind it. Pi Browser is a WebView, and a WebView will not
+    // raise an auth dialog for a call the user did not initiate — it does not
+    // reject, it simply never answers, which is exactly the shape of this
+    // failure: no error, no log, a spinner, then our own timer.
+    //
+    // So do what the working paths do. The button is live immediately and
+    // `handlePay` authenticates inside the tap — `createU2APayment` →
+    // `ensurePaymentsReady()` already does it there, so nothing else moves.
+    //
+    // This also removes the second authenticate the retry could start. The gate
+    // in pi-session stays: it is what keeps login and payment from overlapping
+    // at all, and the two problems are independent.
+    const waitForSdk = async () => {
       pushTrace('info', `build ${process.env.NEXT_PUBLIC_BUILD_SHA ?? '?'}`);
-      pushTrace('info', 'auth: waiting for Pi.init');
+      pushTrace('info', 'waiting for Pi.init');
       await waitForPiReady();
       if (cancelled) return;
-      pushTrace('info', `auth: SDK ready=${PiRuntime.isReady()}`);
 
-      await new Promise(r => setTimeout(r, 1000));
-      if (cancelled) return;
-
-      // Whether an auth was ALREADY running when we asked. If it was, this
-      // call does not start one — it awaits that one, and inherits its fate.
-      pushTrace('info', `auth: attempt 1 (inFlight=${piSession.isAuthInFlight})`);
-      const ok = await piSession.ensurePaymentsReady();
-      if (cancelled) return;
-      pushTrace(ok ? 'info' : 'error',
-        `auth: attempt 1 → ${ok ? 'ok' : `FAILED ${piSession.lastError} / ${piSession.lastRawError ?? '?'}`}`);
-      if (ok) { setIsReady(true); return; }
-
-      // ✅ reset + reInit + انتظار 2 ثانية قبل الـ retry
-      piSession.reset();
-      piSession.reInit(process.env.NEXT_PUBLIC_PI_SANDBOX === 'true');
-      pushTrace('info', 'auth: reset + reInit, retrying in 2.5s');
-
-      await new Promise(r => setTimeout(r, 2500));
-      if (cancelled) return;
-
-      pushTrace('info', `auth: attempt 2 (inFlight=${piSession.isAuthInFlight})`);
-      const ok2 = await piSession.ensurePaymentsReady();
-      if (cancelled) return;
-      pushTrace(ok2 ? 'info' : 'error',
-        `auth: attempt 2 → ${ok2 ? 'ok' : `FAILED ${piSession.lastError} / ${piSession.lastRawError ?? '?'}`}`);
-
-      if (ok2) {
-        setIsReady(true);
-      } else {
+      if (!PiRuntime.isAvailable()) {
+        pushTrace('error', 'Pi SDK not available — open in Pi Browser');
         setStatus('error');
-        setMessage(
-          `Pi auth (${piSession.lastError}): ${piSession.lastRawError ?? '?'}`,
-        );
+        setMessage(p.openInPiBrowser);
+        return;
       }
+
+      pushTrace('info', 'SDK ready — auth happens on tap');
+      setIsReady(true);
     };
 
-    tryAuth();
+    waitForSdk();
     return () => { cancelled = true; };
   }, []);
 
@@ -187,13 +183,20 @@ export function PaymentModal({
 
     haptic('medium');
     try {
+      // The authenticate now lives HERE, inside the tap — see the note in the
+      // mount effect. A WebView will not raise Pi's auth dialog for a call the
+      // user did not initiate, and it never says so.
+      pushTrace('info', 'tap: authenticating');
       const ready = await piSession.ensurePaymentsReady();
       if (!ready) {
+        pushTrace('error',
+          `tap: auth FAILED ${piSession.lastError} / ${piSession.lastRawError ?? '?'}`);
         setStatus('error');
-        setMessage(p.sdkNotReady);
+        setMessage(`Pi auth (${piSession.lastError}): ${piSession.lastRawError ?? '?'}`);
         hasStarted.current = false;
         return;
       }
+      pushTrace('info', 'tap: authenticated');
 
       setStatus('paying');
 
@@ -375,20 +378,17 @@ export function PaymentModal({
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>{p.failedTitle}</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
             <div style={{ display: 'flex', gap: 8 }}>
-              {/* ✅ Try Again: reInit + delay قبل الـ retry */}
+              {/* Try Again just returns to idle. It used to reset + reInit and
+                  then authenticate on a 2s timer — two seconds after the tap,
+                  so the user gesture was long gone and a WebView will not raise
+                  Pi's dialog for that. The retry is the next Pay tap. */}
               <button
                 onClick={() => {
                   setStatus('idle');
                   setMessage('');
                   hasStarted.current = false;
                   piSession.reset();
-                  piSession.reInit(process.env.NEXT_PUBLIC_PI_SANDBOX === 'true');
-                  setIsReady(false);
-                  setTimeout(() => {
-                    piSession.ensurePaymentsReady().then(ok => {
-                      if (ok) setIsReady(true);
-                    });
-                  }, 2000);
+                  setIsReady(true);
                 }}
                 style={{
                   padding: '12px 24px', borderRadius: 14,

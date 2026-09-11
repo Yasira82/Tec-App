@@ -8,8 +8,28 @@ if (process.env.VERCEL === '1' && process.env.NEXT_PUBLIC_PI_SANDBOX !== 'false'
 
 const path = require('path');
 
+/**
+ * The commit this CLIENT BUNDLE was built from.
+ *
+ * A whole debugging round was spent arguing about whether a fix had actually
+ * shipped. The modal showed no diagnostic panel at all, and "the code is on
+ * main" and "the browser is running that code" are different claims — a
+ * Vercel *Redeploy* rebuilds the deployment it was invoked on, and a squash
+ * merge can take only part of a branch (that one has bitten this platform
+ * before, tec-core-backend #226).
+ *
+ * `VERCEL_GIT_COMMIT_SHA` is a build-time server variable; putting it in `env`
+ * inlines it into the client bundle, so the page can state which commit it IS
+ * rather than which commit someone believes it is. Falls back to 'dev' locally.
+ */
+const BUILD_SHA = (process.env.VERCEL_GIT_COMMIT_SHA ?? 'dev').slice(0, 7);
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  env: {
+    NEXT_PUBLIC_BUILD_SHA: BUILD_SHA,
+  },
+
   eslint: {
     ignoreDuringBuilds: false,
   },

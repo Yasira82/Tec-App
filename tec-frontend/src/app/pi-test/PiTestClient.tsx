@@ -161,6 +161,12 @@ export function PiTestClient() {
    */
   const handleProbeSdk = useCallback(async () => {
     log('info', '🔎 Probing the Pi SDK…');
+    // Which commit this BUNDLE is. "The fix is on main" and "the browser is
+    // running it" are different claims, and a round was lost to assuming the
+    // second follows from the first. Compare it with /api/health's `buildSha`:
+    // they disagree → the browser holds a cached bundle; both behind main →
+    // the deploy is stale.
+    log('info', `client bundle: ${process.env.NEXT_PUBLIC_BUILD_SHA ?? '?'}`);
     const Pi = (window as { Pi?: Record<string, unknown> }).Pi;
     log(Pi ? 'success' : 'error', `window.Pi present: ${!!Pi}`);
     if (!Pi) return;

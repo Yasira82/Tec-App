@@ -386,10 +386,35 @@ describe('PiTestClient', () => {
       // is how three rounds of a browser-side failure got diagnosed from server
       // logs that cannot see the browser.
       expect(mockCreateU2A).toHaveBeenCalledWith(
-        1, 'Test Payment from TEC Hub', { source: 'test' },
+        1, 'Test Payment from TEC Hub', { source: 'hub' },
         undefined, expect.any(Function),
       );
     });
+  });
+
+  it('pays under the SAME source production does — never its own', async () => {
+    // `source` picks the Pi API key that approves the payment
+    // (payment-service `getPiApiKey`). It was `'test'`, which asks for
+    // `PI_API_KEY_TEST_TESTNET` — a variable that exists nowhere and that no
+    // real payment will ever use, so this page's approve failed 500 for a
+    // reason the production path does not have.
+    //
+    // Hub Mode-1 sets no `metadata.source` at all and the service reads an
+    // absent source as 'hub', so 'hub' is exactly the production key here.
+    // Asserted separately from the call-shape test above because THIS is the
+    // property that matters: a diagnostic must exercise the path it diagnoses.
+    render(<PiTestClient />);
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Authenticate/ }));
+    });
+    await waitFor(() => expect(mockLoginWithPi).toHaveBeenCalled());
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: /Test Payment/ }));
+    });
+    await waitFor(() => expect(mockCreateU2A).toHaveBeenCalled());
+    const metadata = mockCreateU2A.mock.calls[0][2] as { source?: string };
+    expect(metadata.source).toBe('hub');
+    expect(metadata.source).not.toBe('test');
   });
 
   it('successful payment logs paymentId and txid', async () => {

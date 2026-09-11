@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { isAllowedAppUrl }     from '@/domains/allowed-origins';
 import { piSession }           from '@/lib-client/pi/pi-session';
 import { tecSession }          from '@/lib-client/pi/tec-session';
 import { getStoredUser }       from '@/lib-client/pi/pi-auth';
@@ -17,6 +18,18 @@ export type PendingPayment = Omit<ExternalPayment, 'internalId'>;
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+};
+
+/**
+ * The URL to return to, or the Hub when the caller named one this Hub may not
+ * send a user to. Fails closed (P6): an unknown origin is not a reason to
+ * navigate somewhere unexpected, it is a reason to stay home.
+ */
+const safeReturnUrl = (raw: string | null): string => {
+  const home = `${window.location.origin}/hub`;
+  if (!raw) return home;
+  const decoded = decodeURIComponent(raw);
+  return isAllowedAppUrl(decoded) ? decoded : home;
 };
 
 /** Send the caller back to the originating app with an explicit failure reason. */
@@ -62,10 +75,19 @@ export function useExternalPayment({ isLoading, piReady, user, onError }: Args) 
       productId:    p.get('product_id') ?? '',
       nexusRunId:   p.get('nexus_run')  ?? '',
       nexusStepIdx: p.get('nexus_step') ?? '',
-      // No return_url (template apps like Nexus/Zone don't send one) → come
-      // back to the Hub, NOT Commerce. The old Commerce-URL default dumped
-      // every template-app Mode-1 payment onto Commerce after "Close".
-      returnUrl:    decodeURIComponent(p.get('return_url') ?? `${window.location.origin}/hub`),
+      // Where to send the user after Cancel or success. Two rules:
+      //
+      // 1. It must be ALLOWLISTED. This URL is navigated to, and on success it
+      //    carries `payment_id` and `txid` — so an unchecked `return_url` is an
+      //    open redirect that also leaks the payment's identifiers to whatever
+      //    origin the link named. The list is the SSO one (P1: one list).
+      // 2. Falling back lands on the HUB, not Commerce. The old Commerce
+      //    default dumped every template-app Mode-1 payment onto Commerce.
+      //
+      // An app that sends no return_url still lands on the Hub, which is what
+      // made "Cancel" feel wrong: the user never left the app in their mind.
+      // The fix is for the app to send one — not for the Hub to guess.
+      returnUrl:    safeReturnUrl(p.get('return_url')),
       source:       p.get('source') ?? 'hub',
     });
     window.history.replaceState({}, '', '/hub');

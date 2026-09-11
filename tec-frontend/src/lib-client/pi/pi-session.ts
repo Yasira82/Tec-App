@@ -252,6 +252,17 @@ class PiSessionManager {
     if (level === 'error') console.error('[PiSession]', payload);
   }
 
+  /**
+   * True when a Pi.authenticate is already running.
+   *
+   * A caller that sees this is NOT starting an authenticate — `ensureAuth`
+   * returns the in-flight promise and the caller inherits its outcome. That
+   * distinction is invisible from the outside and it is the difference between
+   * "our call hung" and "we waited on someone else's call that hung", which
+   * need opposite fixes.
+   */
+  get isAuthInFlight():   boolean            { return this.authPromise !== null; }
+
   get isAuthenticated():  boolean            { return this.authenticated; }
   get hasScope():         boolean            { return this.hasPaymentsScope; }
   get isPaymentLocked():  boolean            { return this.paymentInFlight; }

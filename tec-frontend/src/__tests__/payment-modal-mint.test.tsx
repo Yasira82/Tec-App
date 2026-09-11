@@ -415,16 +415,24 @@ describe('PaymentModal — waitForPiReady path', () => {
   });
 });
 
-describe('PaymentModal — a stalled warm-up is never inherited', () => {
-  it('a tap starts a FRESH authenticate when the warm-up is still running', async () => {
-    // This is the property the whole sequence was missing. If the tap simply
-    // awaited the warm-up's promise, a warm-up that is stuck would make the
-    // tap silently stick too — indistinguishable from the bug we started with,
-    // and the user's only feedback would be a button that does nothing.
-    let stall!: (v: boolean) => void;
+describe('PaymentModal — the tap joins the warm-up, it never restarts it', () => {
+  it('a tap during the warm-up makes NO second authenticate', async () => {
+    // The old contract here was the opposite, and a production trace proved it
+    // wrong:
+    //
+    //   0.0s SDK ready — warming the Pi session
+    //   1.2s tap: warm-up still running — starting a fresh authenticate
+    //   1.2s tap: authenticating        … and then nothing, for a minute
+    //
+    // Resetting abandons a HEALTHY handshake that Pi's bridge still holds, and
+    // issues a second one beside it — the concurrency Pi Browser answers
+    // neither of. The fear it was written for (inheriting a stalled warm-up)
+    // is handled where it belongs: _doAuth carries its own budget, settles,
+    // and the gate then runs the next attempt sequentially.
+    let settle!: (v: boolean) => void;
     mockPiSessionEnsurePaymentsReady
-      .mockImplementationOnce(() => new Promise<boolean>(r => { stall = r; }))  // warm-up
-      .mockResolvedValue(true);                                                 // the tap's
+      .mockImplementationOnce(() => new Promise<boolean>(r => { settle = r; }))  // warm-up
+      .mockResolvedValue(true);
 
     renderModal();
     await waitForReady();
@@ -433,14 +441,15 @@ describe('PaymentModal — a stalled warm-up is never inherited', () => {
 
     await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
 
-    // The stalled warm-up is dropped, not awaited...
-    expect(mockPiSessionReset).toHaveBeenCalled();
-    // ...and a second, fresh call was made from inside the gesture.
-    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalledTimes(2);
+    // The in-flight handshake is kept...
+    expect(mockPiSessionReset).not.toHaveBeenCalled();
+    // ...and the tap waits on it rather than starting a rival call. (The second
+    // ensurePaymentsReady call is the same gate returning the same promise —
+    // what must never happen is reset() dropping the first.)
+    await act(async () => { settle(true); });
     await waitFor(() => expect(mockCreateU2APayment).toHaveBeenCalled());
 
     mockPiSessionIsAuthInFlight.value = false;
-    stall(true);   // the abandoned warm-up settling late changes nothing
   }, 10000);
 
   it('an already-authenticated session skips the tap authenticate entirely', async () => {

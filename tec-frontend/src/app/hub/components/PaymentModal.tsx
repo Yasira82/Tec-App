@@ -223,21 +223,32 @@ export function PaymentModal({
       // Three outcomes, and only one of them costs the user any time:
       //
       //   already authenticated  → proceed now (login adopted, or warm-up won)
-      //   warm-up still running  → start a FRESH one inside this gesture, so a
-      //                            stalled warm-up can never be inherited
-      //   nothing yet            → same fresh call
+      //   warm-up still running  → JOIN it
+      //   nothing yet            → start one
       //
-      // The fresh call is deliberate. Reusing the warm-up's promise would mean
-      // a tap silently waiting on a call that may already be stuck, which is
-      // the failure this whole sequence has been chasing.
+      // Joining is not a preference, it is the rule. This used to reset() and
+      // start a fresh call "so a stalled warm-up can never be inherited" —
+      // written when a warm-up was suspected of being a dead call. It is not:
+      // it is a healthy handshake that began at 0.0s. Resetting ABANDONS it
+      // (Pi's bridge still holds it) and issues a SECOND one, which is the
+      // concurrency Pi Browser answers neither of — the exact failure this
+      // whole sequence has been chasing, caused by the code meant to avoid it.
+      //
+      // Read straight off a production trace:
+      //
+      //   0.0s SDK ready — warming the Pi session
+      //   1.2s tap: warm-up still running — starting a fresh authenticate
+      //   1.2s tap: authenticating            … and then nothing, for a minute
+      //
+      // A stalled warm-up cannot be inherited forever anyway: _doAuth carries
+      // its own budget and settles, and the gate then lets the next attempt
+      // run — sequentially, which is the only safe way to run two of these.
       if (piSession.isAuthenticated) {
         pushTrace('info', 'tap: session ready');
       } else {
-        if (piSession.isAuthInFlight) {
-          pushTrace('info', 'tap: warm-up still running — starting a fresh authenticate');
-          piSession.reset();
-        }
-        pushTrace('info', 'tap: authenticating');
+        pushTrace('info', piSession.isAuthInFlight
+          ? 'tap: joining the warm-up already in flight'
+          : 'tap: authenticating');
       }
       const ready = await piSession.ensurePaymentsReady();
       if (!ready) {

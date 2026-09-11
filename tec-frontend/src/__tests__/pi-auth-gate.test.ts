@@ -211,3 +211,47 @@ describe('a login is adopted, not repeated', () => {
     expect(mark).toBeLessThan(catchAt);     // and never in the failure one
   });
 });
+
+// ── The tap JOINS the warm-up; it never restarts it ─────────────────────────
+// Read straight off a production trace, with the modal still spinning:
+//
+//   0.0s SDK ready — warming the Pi session
+//   1.2s tap: warm-up still running — starting a fresh authenticate
+//   1.2s tap: authenticating          … and then nothing, for a minute
+//
+// The tap threw away a healthy 1.2-second-old handshake and issued a second
+// one. Pi's bridge still held the first, so that is two concurrent
+// Pi.authenticate calls — the exact failure the gate exists to prevent,
+// produced by the code written to avoid it (a stalled warm-up "can never be
+// inherited"). A stalled one cannot be inherited forever anyway: _doAuth
+// carries its own budget and settles, and the gate then runs the next attempt
+// SEQUENTIALLY, which is the only safe way to run two of these.
+describe('the payment tap does not restart an in-flight handshake', () => {
+  const read = (p: string) =>
+    require('node:fs').readFileSync(require('node:path').join(process.cwd(), p), 'utf8');
+
+  it('never calls piSession.reset() inside handlePay', () => {
+    // Scoped to the tap. The "Try Again" button DOES reset — it is clearing a
+    // session that already failed, with no call in flight, which is the
+    // opposite situation.
+    const modal: string = read('src/app/hub/components/PaymentModal.tsx');
+    const lines: string[] = modal.split('\n');
+    const start = lines.findIndex(l => l.includes('const handlePay'));
+    const end   = lines.findIndex((l, i) => i > start && l.startsWith('  }, ['));
+    expect(start).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(start);
+
+    const body = lines.slice(start, end).filter(l =>
+      !l.trim().startsWith('//') && !l.trim().startsWith('*'));
+    expect(body.some(l => /piSession\.reset\(\)/.test(l))).toBe(false);
+  });
+
+  it('still distinguishes the three cases in the trace', () => {
+    // Joining must stay VISIBLE: the next trace has to say which of the three
+    // happened, or the next reader is back to guessing.
+    const modal = read('src/app/hub/components/PaymentModal.tsx');
+    expect(modal).toContain('tap: session ready');
+    expect(modal).toContain('tap: joining the warm-up already in flight');
+    expect(modal).toContain('tap: authenticating');
+  });
+});

@@ -9,6 +9,7 @@ const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 const SELF_AUDIENCES = [
   'https://tec-app-frontend.vercel.app',
   'https://hub.tecosystem.app',
+  'https://hub-test.tecosystem.app',
 ];
 
 // Pi Browser doesn't reliably persist cookies set on XHR responses — but it

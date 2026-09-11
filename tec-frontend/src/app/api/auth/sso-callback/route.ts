@@ -4,6 +4,7 @@ import { jwtVerify }                 from 'jose';
 const ALLOWED_AUDIENCES = [
   'https://tec-app-frontend.vercel.app',
   'https://hub.tecosystem.app',
+  'https://hub-test.tecosystem.app',
 ];
 
 const usedJtis = new Map<string, number>();

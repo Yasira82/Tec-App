@@ -37,8 +37,17 @@
  * `vercel.app.attacker.com` — is not mistaken for one. The port is stripped
  * because `Host` carries it and the hostname is what identifies the app.
  */
-export const isTestnetHost = (host?: string | null): boolean =>
-  /\.vercel\.app$/i.test((host ?? '').split(':')[0]?.trim() ?? '');
+export const isTestnetHost = (host?: string | null): boolean => {
+  const hostname = (host ?? '').split(':')[0]?.trim() ?? '';
+  // Two Testnet pairings are live: the legacy `*.vercel.app` hosts, and the
+  // `-test.tecosystem.app` subdomains that give Testnet the same shape as
+  // Mainnet. Both are anchored to the END of the host, so a name that merely
+  // CONTAINS one — `vercel.app.attacker.com`, `x-test.tecosystem.app.evil.com`
+  // — is not mistaken for it. Missing a Testnet host here is the expensive
+  // direction: the payment would be approved with the MAINNET key.
+  return /\.vercel\.app$/i.test(hostname)
+      || /(^|\.)[a-z0-9-]+-test\.tecosystem\.app$/i.test(hostname);
+};
 
 /** The metadata a payment carries so every later step agrees which network it was on. */
 export const networkMetadata = (host?: string | null): { testnet?: true } =>

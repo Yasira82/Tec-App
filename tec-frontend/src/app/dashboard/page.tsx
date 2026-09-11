@@ -10,6 +10,7 @@ import { normalizePayment, formatTxDate, isKycVerified, type Payment } from '@/l
 import { DashboardShell, DashboardCard }               from '@/components/dashboard';
 import { HubAppsGrid }                                  from '@/components/hub';
 import { LIVE_DOMAINS, COMING_SOON }                   from '@/domains/_registry';
+import { routeForNetwork }                             from '@/domains/testnet-hosts';
 import { iconOf, accentOf }                            from '@/domains/_categories';
 import { Icon }                                        from '@/components/ui/Icon';
 
@@ -33,7 +34,9 @@ const LIVE_APPS = LIVE_DOMAINS.filter(d => d.status === 'live' && d.layer !== 'o
 // one open behavior). External (http) apps go through Hub SSO so they land WITH a
 // session; internal routes navigate directly — the fix for apps that "opened wrong".
 function toHubApp(d: (typeof LIVE_DOMAINS)[number]) {
-  const route = d.route ?? `/${d.slug}`;
+  // Same network rule as the Hub grid — this renders the identical launcher,
+  // so it must not be the one place that still crosses the networks.
+  const route = routeForNetwork(d.route ?? `/${d.slug}`, d.slug);
   const href  = route.startsWith('http')
     ? `/api/auth/sso?target=${encodeURIComponent(route)}`
     : route;

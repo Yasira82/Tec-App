@@ -164,8 +164,28 @@ export function PaymentModal({
         return;
       }
 
-      pushTrace('info', 'SDK ready — auth happens on tap');
       setIsReady(true);
+
+      // WARM THE SESSION while the user reads the modal.
+      //
+      // The first authenticate on a fresh page is slow — seconds, sometimes
+      // tens of them. Doing it only after the tap spends that time while the
+      // user is staring at a button they already pressed, which is what made
+      // them press it again.
+      //
+      // This does NOT gate the button: Pay is live from this line. It is a
+      // head start, not a precondition. If it finishes first the tap is
+      // instant; if it does not, `handlePay` starts a fresh one inside the
+      // gesture and never inherits a stalled warm-up.
+      if (piSession.isAuthenticated) {
+        pushTrace('info', 'SDK ready — session already authenticated');
+        return;
+      }
+      pushTrace('info', 'SDK ready — warming the Pi session');
+      piSession.ensurePaymentsReady().then(
+        ok => { if (!cancelled) pushTrace(ok ? 'info' : 'info', `warm-up ${ok ? 'ready' : 'did not settle — the tap will retry'}`); },
+        () => { if (!cancelled) pushTrace('info', 'warm-up did not settle — the tap will retry'); },
+      );
     };
 
     waitForSdk();
@@ -200,10 +220,25 @@ export function PaymentModal({
 
     haptic('medium');
     try {
-      // The authenticate now lives HERE, inside the tap — see the note in the
-      // mount effect. A WebView will not raise Pi's auth dialog for a call the
-      // user did not initiate, and it never says so.
-      pushTrace('info', 'tap: authenticating');
+      // Three outcomes, and only one of them costs the user any time:
+      //
+      //   already authenticated  → proceed now (login adopted, or warm-up won)
+      //   warm-up still running  → start a FRESH one inside this gesture, so a
+      //                            stalled warm-up can never be inherited
+      //   nothing yet            → same fresh call
+      //
+      // The fresh call is deliberate. Reusing the warm-up's promise would mean
+      // a tap silently waiting on a call that may already be stuck, which is
+      // the failure this whole sequence has been chasing.
+      if (piSession.isAuthenticated) {
+        pushTrace('info', 'tap: session ready');
+      } else {
+        if (piSession.isAuthInFlight) {
+          pushTrace('info', 'tap: warm-up still running — starting a fresh authenticate');
+          piSession.reset();
+        }
+        pushTrace('info', 'tap: authenticating');
+      }
       const ready = await piSession.ensurePaymentsReady();
       if (!ready) {
         pushTrace('error',

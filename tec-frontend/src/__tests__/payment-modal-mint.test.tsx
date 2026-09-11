@@ -20,6 +20,8 @@ const mockPiSessionReleasePaymentLock  = vi.hoisted(() => vi.fn());
 const mockPiSessionReset               = vi.hoisted(() => vi.fn());
 const mockPiSessionReInit              = vi.hoisted(() => vi.fn());
 const mockPiSessionLastError           = vi.hoisted(() => ({ value: null as string | null }));
+const mockPiSessionIsAuthenticated     = vi.hoisted(() => ({ value: false }));
+const mockPiSessionIsAuthInFlight      = vi.hoisted(() => ({ value: false }));
 
 const mockPiRuntimeIsAvailable = vi.hoisted(() => vi.fn());
 const mockPiRuntimeIsReady     = vi.hoisted(() => vi.fn());
@@ -37,8 +39,11 @@ const mockSearchParamsGet = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib-client/pi/pi-session', () => ({
   piSession: {
-    get lastError()    { return mockPiSessionLastError.value; },
-    get lastRawError() { return null; },
+    get lastError()      { return mockPiSessionLastError.value; },
+    get lastRawError()   { return null; },
+    get isAuthenticated() { return mockPiSessionIsAuthenticated.value; },
+    // The warm-up leaves a call in flight; the tap must notice and drop it.
+    get isAuthInFlight()  { return mockPiSessionIsAuthInFlight.value; },
     ensurePaymentsReady: (...args: unknown[]) => mockPiSessionEnsurePaymentsReady(...args),
     acquirePaymentLock:  (...args: unknown[]) => mockPiSessionAcquirePaymentLock(...args),
     releasePaymentLock:  (...args: unknown[]) => mockPiSessionReleasePaymentLock(...args),
@@ -234,15 +239,22 @@ describe('PaymentModal — idle render', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('enables Pay as soon as the SDK is ready — WITHOUT authenticating', async () => {
-    // The contract changed deliberately. The modal used to authenticate on
-    // mount and hung there forever on the Testnet host: a WebView will not
-    // raise Pi's auth dialog for a call no user initiated, and it never says
-    // so. Every working path in the fleet (/pi-test, every app's buy handler)
-    // authenticates inside the tap, so this one does too.
+  it('enables Pay immediately — the warm-up must never gate the button', async () => {
+    // The session IS warmed on mount, because the first authenticate on a
+    // fresh page is slow and doing it only after the tap spends that time
+    // while the user stares at a button they already pressed. But it is a head
+    // start, not a precondition: if warming ever gated the button we would be
+    // back to the "Authenticating…" limbo that started all of this.
+    let settleWarmUp!: (v: boolean) => void;
+    mockPiSessionEnsurePaymentsReady.mockImplementation(
+      () => new Promise<boolean>(r => { settleWarmUp = r; }),
+    );
+
     renderModal();
-    await waitForReady();
-    expect(mockPiSessionEnsurePaymentsReady).not.toHaveBeenCalled();
+    await waitForReady();                       // Pay is live while it hangs
+    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalled();
+
+    settleWarmUp(true);
   });
 });
 
@@ -403,22 +415,67 @@ describe('PaymentModal — waitForPiReady path', () => {
   });
 });
 
-describe('PaymentModal — the mount effect never authenticates', () => {
-  it('does not authenticate, reset or reInit on mount, however long it waits', async () => {
-    // The old ladder was: wait, 1s, ensure, reset + reInit, 2.5s, ensure again.
-    // Two of those calls are a SECOND Pi.authenticate, which Pi Browser breaks
-    // on — the modal could manufacture the very collision the gate exists to
-    // prevent. None of it may run without a tap.
+describe('PaymentModal — a stalled warm-up is never inherited', () => {
+  it('a tap starts a FRESH authenticate when the warm-up is still running', async () => {
+    // This is the property the whole sequence was missing. If the tap simply
+    // awaited the warm-up's promise, a warm-up that is stuck would make the
+    // tap silently stick too — indistinguishable from the bug we started with,
+    // and the user's only feedback would be a button that does nothing.
+    let stall!: (v: boolean) => void;
+    mockPiSessionEnsurePaymentsReady
+      .mockImplementationOnce(() => new Promise<boolean>(r => { stall = r; }))  // warm-up
+      .mockResolvedValue(true);                                                 // the tap's
+
+    renderModal();
+    await waitForReady();
+    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalledTimes(1);
+    mockPiSessionIsAuthInFlight.value = true;   // the warm-up is still running
+
+    await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+
+    // The stalled warm-up is dropped, not awaited...
+    expect(mockPiSessionReset).toHaveBeenCalled();
+    // ...and a second, fresh call was made from inside the gesture.
+    expect(mockPiSessionEnsurePaymentsReady).toHaveBeenCalledTimes(2);
+    await waitFor(() => expect(mockCreateU2APayment).toHaveBeenCalled());
+
+    mockPiSessionIsAuthInFlight.value = false;
+    stall(true);   // the abandoned warm-up settling late changes nothing
+  }, 10000);
+
+  it('an already-authenticated session skips the tap authenticate entirely', async () => {
+    // Login was adopted, or the warm-up won the race. Either way the tap must
+    // cost nothing: no reset, no second call.
+    mockPiSessionIsAuthenticated.value = true;
+    renderModal();
+    await waitForReady();
+    mockPiSessionEnsurePaymentsReady.mockClear();
+    mockPiSessionReset.mockClear();
+
+    await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+
+    expect(mockPiSessionReset).not.toHaveBeenCalled();
+    await waitFor(() => expect(mockCreateU2APayment).toHaveBeenCalled());
+    mockPiSessionIsAuthenticated.value = false;
+  }, 10000);
+});
+
+describe('PaymentModal — the mount effect warms, it never fails', () => {
+  it('a warm-up that fails leaves the modal idle and Pay live', async () => {
+    // The old ladder was: wait, 1s, ensure, reset + reInit, 2.5s, ensure again
+    // — and on the second failure it showed "Payment Failed" before the user
+    // had touched anything. A warm-up is an optimisation; it must never be
+    // able to fail the payment on the user's behalf.
     mockPiSessionEnsurePaymentsReady.mockResolvedValue(false);
     mockPiSessionLastError.value = 'AUTH_FAILED';
     renderModal();
     await waitForReady();
     await new Promise(r => setTimeout(r, 4000));
 
-    expect(mockPiSessionEnsurePaymentsReady).not.toHaveBeenCalled();
     expect(mockPiSessionReInit).not.toHaveBeenCalled();
-    expect(mockPiSessionReset).not.toHaveBeenCalled();
     expect(screen.queryByText('Payment Failed')).toBeNull();
+    const btn = screen.getByText(/^Pay \d+π$/) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
     mockPiSessionLastError.value = null;
   }, 10000);
 });
@@ -1036,10 +1093,12 @@ describe('PaymentModal — a failed tap can be retried', () => {
     // between — a second Pi.authenticate nobody asked for. The retry is the
     // user tapping again, which is the only kind of call a WebView will
     // actually answer.
-    mockPiSessionEnsurePaymentsReady.mockResolvedValueOnce(false);
+    mockPiSessionEnsurePaymentsReady.mockResolvedValue(false);
     mockPiSessionLastError.value = 'AUTH_FAILED';
     renderModal();
     await waitForReady();
+    // The warm-up already called it once; the tap is the call that matters.
+    mockPiSessionEnsurePaymentsReady.mockClear();
 
     await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
     await waitFor(() => expect(screen.getByText(/Pi auth \(AUTH_FAILED\)/)).toBeTruthy());

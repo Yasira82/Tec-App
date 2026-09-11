@@ -72,6 +72,34 @@ export const ALLOWED_APP_ORIGINS: readonly string[] = [
   'https://nbf-ivory.vercel.app',
   'https://brookfield.tecosystem.app',
   'https://tec-brookfield.vercel.app',
+  // ── The `-test` pairing ───────────────────────────────────────────────────
+  // Additive on purpose: the legacy `*.vercel.app` hosts stay listed and stay
+  // working, so nothing breaks the moment this merges. A host that is not yet
+  // registered simply resolves to nothing — an inert allowlist entry.
+  'https://hub-test.tecosystem.app',
+  'https://alert-test.tecosystem.app',
+  'https://analytics-test.tecosystem.app',
+  'https://assets-test.tecosystem.app',
+  'https://brookfield-test.tecosystem.app',
+  'https://commerce-test.tecosystem.app',
+  'https://connection-test.tecosystem.app',
+  'https://dx-test.tecosystem.app',
+  'https://ecommerce-test.tecosystem.app',
+  'https://elite-test.tecosystem.app',
+  'https://epic-test.tecosystem.app',
+  'https://estate-test.tecosystem.app',
+  'https://explorer-test.tecosystem.app',
+  'https://fundx-test.tecosystem.app',
+  'https://insure-test.tecosystem.app',
+  'https://legend-test.tecosystem.app',
+  'https://life-test.tecosystem.app',
+  'https://nbf-test.tecosystem.app',
+  'https://nexus-test.tecosystem.app',
+  'https://nx-test.tecosystem.app',
+  'https://system-test.tecosystem.app',
+  'https://titan-test.tecosystem.app',
+  'https://vip-test.tecosystem.app',
+  'https://zone-test.tecosystem.app',
 ];
 
 /**

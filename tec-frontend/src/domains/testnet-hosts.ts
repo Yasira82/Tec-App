@@ -60,9 +60,61 @@ export const TESTNET_ORIGINS: Readonly<Record<string, string>> = {
   zone:       'https://tec-zone.vercel.app',
 };
 
-/** `*.vercel.app` is the Hub's own paired Testnet host; a custom domain is Mainnet. */
-export const isHubTestnetHost = (host?: string | null): boolean =>
-  /\.vercel\.app$/i.test((host ?? '').split(':')[0]?.trim() ?? '');
+/**
+ * The `-test` pairing — the SAME slugs, on subdomains of the one domain.
+ *
+ * Unlike the legacy map above, these ARE derived from the slug, and that is the
+ * point: `vercel.app` project names are claimed first-come (`commerce-app`,
+ * `nbf-ivory`), so that map had to be read off each app's own allowlist. A
+ * subdomain we own has no such collision — `<slug>-test.tecosystem.app` is ours
+ * by construction, which is exactly why this pairing removes a whole class of
+ * "the host cannot be derived from the name" bugs.
+ */
+export const TESTNET_ORIGINS_PAIRED: Readonly<Record<string, string>> = {
+  alert:      'https://alert-test.tecosystem.app',
+  analytics:  'https://analytics-test.tecosystem.app',
+  assets:     'https://assets-test.tecosystem.app',
+  brookfield: 'https://brookfield-test.tecosystem.app',
+  commerce:   'https://commerce-test.tecosystem.app',
+  connection: 'https://connection-test.tecosystem.app',
+  dx:         'https://dx-test.tecosystem.app',
+  ecommerce:  'https://ecommerce-test.tecosystem.app',
+  elite:      'https://elite-test.tecosystem.app',
+  epic:       'https://epic-test.tecosystem.app',
+  estate:     'https://estate-test.tecosystem.app',
+  explorer:   'https://explorer-test.tecosystem.app',
+  fundx:      'https://fundx-test.tecosystem.app',
+  insure:     'https://insure-test.tecosystem.app',
+  legend:     'https://legend-test.tecosystem.app',
+  life:       'https://life-test.tecosystem.app',
+  nbf:        'https://nbf-test.tecosystem.app',
+  nexus:      'https://nexus-test.tecosystem.app',
+  nx:         'https://nx-test.tecosystem.app',
+  system:     'https://system-test.tecosystem.app',
+  titan:      'https://titan-test.tecosystem.app',
+  vip:        'https://vip-test.tecosystem.app',
+  zone:       'https://zone-test.tecosystem.app',
+};
+
+/** The Hub's own paired Testnet host in each pairing. */
+export const HUB_TESTNET_LEGACY = 'https://tec-app-frontend.vercel.app';
+export const HUB_TESTNET_PAIRED = 'https://hub-test.tecosystem.app';
+
+
+/** True on `hub-test.tecosystem.app` — the paired Hub, not the legacy one. */
+export const isPairedTestnetHost = (host?: string | null): boolean =>
+  /-test\.tecosystem\.app$/i.test((host ?? '').split(':')[0]?.trim() ?? '');
+
+/**
+ * Either Testnet Hub. Both pairings are live during the migration, and getting
+ * this wrong is not cosmetic: it decides which app hosts the grid links to, and
+ * a link into the WRONG network is how a Test-Pi visitor ends up holding a
+ * Mainnet payment no test wallet can ever pay.
+ */
+export const isHubTestnetHost = (host?: string | null): boolean => {
+  const hostname = (host ?? '').split(':')[0]?.trim() ?? '';
+  return /\.vercel\.app$/i.test(hostname) || isPairedTestnetHost(hostname);
+};
 
 /**
  * The route to open for an app, given which Hub the visitor is on.
@@ -80,12 +132,14 @@ export const routeForNetwork = (
   host?: string | null,
 ): string => {
   if (!route.startsWith('http')) return route;
-  const onTestnetHub = isHubTestnetHost(
-    host ?? (typeof window === 'undefined' ? null : window.location.hostname),
-  );
-  if (!onTestnetHub) return route;
+  const hostname = host ?? (typeof window === 'undefined' ? null : window.location.hostname);
+  if (!isHubTestnetHost(hostname)) return route;
 
-  const origin = TESTNET_ORIGINS[slug];
+  // Stay inside the pairing the visitor is already in. Mixing them is the same
+  // cross-network bug this file was written to close, one pairing later.
+  const origin = isPairedTestnetHost(hostname)
+    ? TESTNET_ORIGINS_PAIRED[slug]
+    : TESTNET_ORIGINS[slug];
   if (!origin) return route;
 
   try {

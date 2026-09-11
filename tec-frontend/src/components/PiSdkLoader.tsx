@@ -1,5 +1,6 @@
 'use client';
 import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
+import { isTestnetHost as isTestnetHostname } from '@/lib/pi-network';
 
 import { useEffect, useCallback } from 'react';
 
@@ -27,8 +28,12 @@ interface Props { sandbox: boolean; timeout: number; onReady?: () => void; }
  * Unset or misspelled, the Hub came up in sandbox. That polarity is corrected
  * in layout.tsx; this function is where the host has the final word.
  */
+// Imported, not re-written. This WAS a second copy of the same regex, and the
+// `-test` pairing is exactly the kind of change that lands in one copy and not
+// the other — on this path that means the Hub passes its Mainnet appId on a
+// Testnet host, and authenticate then never answers.
 const isTestnetHost = (): boolean =>
-  typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location.hostname);
+  typeof window !== 'undefined' && isTestnetHostname(window.location.hostname);
 
 /**
  * The Pi app id to initialise with — or NOTHING, on the paired Testnet host.

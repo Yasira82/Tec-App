@@ -118,11 +118,23 @@ describe('sandbox is not the testnet — and the Hub had it inverted', () => {
     // Measured, not assumed: with sandbox:true on `*.vercel.app` the Pi bridge
     // never answered its first message. The Mainnet arm never reads the URL, so
     // no query param can put a Mainnet payment into sandbox mode.
-    expect(loader).toMatch(/\.test\(window\.location\.hostname\)/);
+    expect(loader).toMatch(/isTestnetHostname\(window\.location\.hostname\)/);
     expect(loader).toMatch(/get\('pi_sandbox'\) === '1'/);
     // The host test now lives in `isTestnetHost()` — shared with the app-id
     // resolver, so the two cannot disagree about what a Testnet host is.
     expect(loader).toMatch(/if \(!isTestnetHost\(\)\) return configured;/);
+  });
+
+  it('keeps NO regex of its own — it imports the one detector', () => {
+    // It used to carry its own `/\.vercel\.app$/` copy. The `-test` pairing is
+    // exactly the change that lands in one copy and not the other, and on THIS
+    // path a miss means the Hub passes its Mainnet appId on a Testnet host —
+    // after which authenticate never answers and nothing is logged, because
+    // nothing failed.
+    expect(loader).toContain("from '@/lib/pi-network'");
+    const code = loader.split('\n').filter(l =>
+      !l.trim().startsWith('//') && !l.trim().startsWith('*'));
+    expect(code.some(l => /vercel\\?\.app/.test(l))).toBe(false);
   });
 });
 

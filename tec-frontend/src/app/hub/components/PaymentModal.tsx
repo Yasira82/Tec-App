@@ -45,6 +45,28 @@ export interface ExternalPayment {
  * available is a phone. Testnet host or `?debug=1` — never on Mainnet, where a
  * buyer would see raw internals mid-payment.
  */
+/**
+ * Which NETWORK this modal is about to pay on — shown as a chip, and only when
+ * it is the Testnet.
+ *
+ * A Mode-1 hop that started on a Testnet app can end up on the MAINNET Hub, and
+ * when it does nothing says so. The modal looks identical, the payment is
+ * created with no `testnet` marker, and it is approved with the Mainnet key —
+ * which a Test-Pi wallet can never pay. What the tester sees is
+ * "Pi auth (TIMEOUT)" and an unchanged screen.
+ *
+ * That is exactly what happened: the Vercel log shows `/hub` and
+ * `POST /api/payment/create` served by `hub.tecosystem.app` while the tester
+ * believed they were on `tec-app-frontend.vercel.app`, and payment-service
+ * recorded `source.testnet: false`. It also explains why the diagnostic trace
+ * never appeared — `traceVisible()` deliberately hides it off the Testnet host.
+ *
+ * Nothing new is shown to a real buyer: on Mainnet this renders nothing at all.
+ * The chip only ever means "this is NOT real Pi".
+ */
+const isTestnetModal = (): boolean =>
+  typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location.hostname);
+
 const traceVisible = (): boolean => {
   if (typeof window === 'undefined') return false;
   if (/\.vercel\.app$/i.test(window.location.hostname)) return true;
@@ -236,6 +258,13 @@ export function PaymentModal({
 
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
           {getSourceLabel(payment.source)}
+          {isTestnetModal() && (
+            <span style={{
+              marginLeft: 8, padding: '2px 6px', borderRadius: 6,
+              background: '#f59e0b22', border: '1px solid #f59e0b55',
+              color: '#f59e0b', fontSize: 9, letterSpacing: 1,
+            }}>TESTNET</span>
+          )}
         </div>
         <div style={{ fontSize: 48, fontWeight: 900, color: 'var(--tec-gold)', marginBottom: 4 }}>
           {payment.amount}π

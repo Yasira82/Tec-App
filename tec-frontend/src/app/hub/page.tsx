@@ -8,6 +8,7 @@ import { usePiSdkReady }                    from '@/lib-client/hooks/usePiSdkRea
 import { useRealtimeNotifications }         from '@/lib-client/hooks/useRealtimeNotifications';
 import { useExternalPayment }               from '@/lib-client/hooks/useExternalPayment';
 import { LIVE_DOMAINS }                     from '@/domains/_registry';
+import { routeForNetwork }                  from '@/domains/testnet-hosts';
 import { t as tr, type Locale }             from '@/domains/_types';
 import { ErrorBoundary }                    from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }            from './components/ToastContainer';
@@ -43,7 +44,12 @@ function HubPageInner() {
   const visibleLive = LIVE_DOMAINS
     .filter(d => d.layer !== 'os')
     .map(d => {
-      const route = d.route ?? `/${d.slug}`;
+      // On the TESTNET Hub, open the app's TESTNET host. Every route in the
+      // registry is a Mainnet domain, so this grid used to hand a Testnet
+      // visitor to the Mainnet app — and from there the app correctly resolved
+      // the Mainnet Hub, so the payment came back as a Mainnet payment that a
+      // Test-Pi wallet can never pay. See domains/testnet-hosts.ts.
+      const route = routeForNetwork(d.route ?? `/${d.slug}`, d.slug);
       const href  = route.startsWith('http')
         ? `/api/auth/sso?target=${encodeURIComponent(route)}`
         : route;

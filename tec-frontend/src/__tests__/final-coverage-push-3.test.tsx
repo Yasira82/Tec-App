@@ -40,6 +40,9 @@ vi.mock('@/lib-client/pi/pi-session', () => ({
     // Pass-through here: this suite tests loginWithPi's own behaviour, and the
     // gate has its own suite (pi-auth-gate.test.ts).
     withAuthGate:        vi.fn(<T,>(fn: () => Promise<T>) => fn()),
+    // login records its success here so the first Pay tap does not run a
+    // second, redundant Pi.authenticate. No-op in this suite.
+    markAuthenticated:   vi.fn(),
   },
   PiAuthError: class PiAuthError extends Error {},
 }));

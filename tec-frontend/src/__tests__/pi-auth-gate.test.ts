@@ -144,3 +144,70 @@ describe('both call sites go through the gate', () => {
     expect(offenders.map((f: string) => f.replace(`${process.cwd()}/`, ''))).toEqual([]);
   });
 });
+
+// ── One authenticate, not two ───────────────────────────────────────────────
+// `loginWithPi` authenticates with the SAME scopes and succeeds, but the
+// session manager knew nothing about it — so the first Pay tap ran a SECOND,
+// redundant Pi.authenticate. With the gate in place that call queues behind
+// login's, and the modal's budget (25s) is shorter than login's (45s), so the
+// modal could spend its whole budget waiting for a session it already had.
+//
+// Measured in production: `tap: authenticating` at 1.4s, `auth FAILED TIMEOUT`
+// at 24.5s — and the very next attempt succeeding instantly. "It works if you
+// try again in a minute" was exactly that: the retry found `authenticated`
+// already true and never called Pi at all.
+describe('a login is adopted, not repeated', () => {
+  beforeEach(() => { piSession.reset(); });
+
+  it('marks the session authenticated with the payments scope', () => {
+    expect(piSession.isAuthenticated).toBe(false);
+    piSession.markAuthenticated();
+    expect(piSession.isAuthenticated).toBe(true);
+    expect(piSession.hasScope).toBe(true);
+    expect(piSession.lastError).toBeNull();
+  });
+
+  it('lets ensureAuth return without calling Pi again', async () => {
+    // The whole point: after login, the first tap must not authenticate.
+    // `authenticate` is a throwing stub — reaching it fails this test loudly.
+    const w = window as unknown as Record<string, unknown>;
+    w.__TEC_PI_READY = true;
+    w.Pi = { authenticate: () => { throw new Error('must not authenticate again'); } };
+
+    piSession.markAuthenticated();
+    await expect(piSession.ensureAuth()).resolves.toBe(true);
+
+    delete w.Pi;
+    delete w.__TEC_PI_READY;
+  });
+
+  it('still re-authenticates if the SDK went away — adoption is not a bypass', async () => {
+    // The drift guard must keep working: a marked session with no live SDK is
+    // stale, not valid. Adoption records a real login; it does not grant one.
+    const w = window as unknown as Record<string, unknown>;
+    w.__TEC_PI_READY = true;
+    piSession.markAuthenticated();
+    delete w.Pi;                       // SDK gone
+    await expect(piSession.ensureAuth()).resolves.toBe(false);
+    expect(piSession.isAuthenticated).toBe(false);
+    delete w.__TEC_PI_READY;
+  });
+
+  it('reset() clears it — a logout must not leave a live session behind', async () => {
+    piSession.markAuthenticated();
+    piSession.reset();
+    expect(piSession.isAuthenticated).toBe(false);
+    expect(piSession.hasScope).toBe(false);
+  });
+
+  it('login calls it on success and ONLY on success', () => {
+    const auth = require('node:fs').readFileSync(
+      require('node:path').join(process.cwd(), 'src/lib-client/pi/pi-auth.ts'), 'utf8');
+    const lines: string[] = auth.split('\n');
+    const mark   = lines.findIndex(l => l.includes('piSession.markAuthenticated()'));
+    const thenAt = lines.findIndex(l => l.includes('.then(result => {'));
+    const catchAt = lines.findIndex(l => l.includes('.catch(err'));
+    expect(mark).toBeGreaterThan(thenAt);   // inside the success handler
+    expect(mark).toBeLessThan(catchAt);     // and never in the failure one
+  });
+});

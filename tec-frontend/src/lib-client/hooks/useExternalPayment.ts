@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { piSession }           from '@/lib-client/pi/pi-session';
 import { tecSession }          from '@/lib-client/pi/tec-session';
 import { getStoredUser }       from '@/lib-client/pi/pi-auth';
 import { sessionToken }        from '@/lib-client/pi/session-source';
@@ -70,14 +71,34 @@ export function useExternalPayment({ isLoading, piReady, user, onError }: Args) 
     window.history.replaceState({}, '', '/hub');
   }, []);
 
+  /* ── Step 1b: start the Pi handshake NOW, beside the rest ── */
+  useEffect(() => {
+    if (!(piReady && pending)) return;
+    // Everything below this used to be a straight line: wait for auth to
+    // settle → POST /payment/create → render the modal → and only THEN warm
+    // the Pi session. Four steps, none overlapping, before the handshake even
+    // began. That is the whole "I paid in the Hub, came back to the app, and
+    // the payment takes forever" report — the app bounces here (Mode 1), and
+    // on arrival nothing starts until everything before it has finished.
+    //
+    // The handshake needs none of it. It needs the SDK, which is ready. So it
+    // runs in parallel with the auth resolution and the create round-trip, and
+    // by the time the modal renders there is nothing left to wait for.
+    //
+    // Safe to start this early ONLY because of the gate: `withAuthGate`
+    // serializes this against login's silent re-auth (Pi Browser breaks on
+    // concurrent authenticate calls), and an adopted login makes it a no-op.
+    piSession.ensurePaymentsReady().catch(() => { /* the tap retries */ });
+  }, [piReady, pending]);
+
   /* ── Step 2: piReady + auth settled → create the record ── */
   useEffect(() => {
     if (!(piReady && pending && !external)) return;
-    // C-123 §7: wait for auth resolution to settle. This (a) serializes the
-    // silent re-auth's Pi.authenticate against the PaymentModal's — Pi Browser
-    // breaks on concurrent authenticate calls — and (b) makes the in-memory
+    // C-123 §7: wait for auth resolution to settle — it makes the in-memory
     // session available in cookie-refusing contexts, where the old cookie-only
-    // read left this flow stuck on "Preparing payment…" forever.
+    // read left this flow stuck on "Preparing payment…" forever. (Serializing
+    // the two Pi.authenticate calls is no longer this gate's job: withAuthGate
+    // does it directly, which is what frees step 1b to run early.)
     if (isLoading) return;
     let cancelled = false;
 

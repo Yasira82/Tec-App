@@ -247,8 +247,23 @@ export function PiTestClient() {
       // to answer exactly this question and the channel was never connected —
       // which is why three rounds of a browser-side hang were diagnosed from
       // server logs that cannot see the browser.
+      // `source: 'hub'`, NOT 'test'.
+      //
+      // `source` is not a label — payment-service reads it to pick which Pi API
+      // key approves the payment (`getPiApiKey`): source `test` asks for
+      // `PI_API_KEY_TEST_TESTNET`, source `hub` for `PI_API_KEY_HUB_TESTNET`.
+      // So this page was exercising a key that exists nowhere and that no real
+      // payment will ever use, and its approve failed 500 for a reason the
+      // production path does not have. A diagnostic that tests a DIFFERENT path
+      // from the one it is diagnosing sends you hunting the wrong bug — this one
+      // sent three rounds of it.
+      //
+      // Hub Mode-1 payments resolve to the same key: useExternalPayment sets no
+      // `metadata.source` at all, and `getPiApiKey` reads an absent source as
+      // 'hub'. So this button now needs exactly what production needs, and
+      // nothing extra.
       const result = await createU2APayment(
-        1, 'Test Payment from TEC Hub', { source: 'test' }, undefined,
+        1, 'Test Payment from TEC Hub', { source: 'hub' }, undefined,
         (level, msg) => log(level === 'error' ? 'error' : 'info', `  ↳ ${msg}`),
       );
       if (result.success) {

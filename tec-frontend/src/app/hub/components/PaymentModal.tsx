@@ -105,6 +105,10 @@ export function PaymentModal({
     // line of output cannot say where, and guessing from it has already cost
     // three wrong diagnoses.
     const tryAuth = async () => {
+      // First line names the bundle. A screenshot of this modal now answers
+      // "is the browser running the code we think it is?" without a round trip
+      // — the question that cost the round this trace was added in.
+      pushTrace('info', `build ${process.env.NEXT_PUBLIC_BUILD_SHA ?? '?'}`);
       pushTrace('info', 'auth: waiting for Pi.init');
       await waitForPiReady();
       if (cancelled) return;

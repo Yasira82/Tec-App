@@ -270,6 +270,40 @@ class PiSessionManager {
     }
   }
 
+  /**
+   * Record an authenticate this manager did not run — login's.
+   *
+   * ── Why ─────────────────────────────────────────────────────────────────
+   * `loginWithPi` authenticates with the SAME scopes (`username`, `payments`)
+   * and succeeds. This manager knew nothing about it, so the first Pay tap ran
+   * a SECOND, redundant `Pi.authenticate`. With the gate in place that call
+   * queues behind login's — and the modal's budget is 25s while login's is 45s,
+   * so the modal could spend its whole budget waiting for a session it already
+   * had. Measured: `tap: authenticating` at 1.4s, `auth FAILED TIMEOUT` at
+   * 24.5s, and the very next attempt succeeding instantly.
+   *
+   * "It works if you try again in a minute" was that, exactly: the retry found
+   * `authenticated` already true and returned without calling Pi at all. Two
+   * authenticates where one would do.
+   *
+   * Scope-safe: only a login that asked for `payments` may call this, which is
+   * the only login this app performs.
+   */
+  markAuthenticated(): void {
+    this.authenticated    = true;
+    this.hasPaymentsScope = true;
+    this.lastAuthAt       = Date.now();
+    this._lastError       = null;
+    this._lastRawError    = null;
+    if (typeof window !== 'undefined') {
+      window.__TEC_PI_AUTHENTICATED = true;
+      window.dispatchEvent(new CustomEvent('tec:pi:auth:success', {
+        detail: { version: this.authVersion, ts: Date.now(), via: 'login' },
+      }));
+    }
+    this._log('info', 'auth:adopted', 'session adopted from login');
+  }
+
   private _fail(error: PiAuthError): PiAuthResult {
     this.authenticated            = false;
     this.hasPaymentsScope         = false;

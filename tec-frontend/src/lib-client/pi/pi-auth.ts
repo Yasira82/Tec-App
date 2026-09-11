@@ -329,7 +329,17 @@ const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> 
       reject(new Error(isPiBrowser() ? ERRORS.AUTH_TIMEOUT : ERRORS.NOT_PI_BROWSER));
     }, effectiveTimeout);
     window.Pi.authenticate(['username', 'payments'], handleIncompletePayment)
-      .then(result => { clearTimeout(timer); resolve(result); })
+      .then(result => {
+        clearTimeout(timer);
+        // Tell the session manager this succeeded, so the first Pay tap does
+        // not run a SECOND authenticate for a session it already has. Same
+        // scopes, so nothing is widened. Without this the modal queued behind
+        // login on the gate and burned its own 25s budget waiting — and the
+        // retry a minute later "worked" only because `authenticated` was then
+        // already true.
+        piSession.markAuthenticated();
+        resolve(result);
+      })
       .catch(err   => { clearTimeout(timer); reject(err);     });
   }));
 };

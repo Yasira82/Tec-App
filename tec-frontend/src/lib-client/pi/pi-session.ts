@@ -74,6 +74,50 @@ class PiSessionManager {
     });
   }
 
+  /**
+   * The ONE gate every `Pi.authenticate` in this app goes through.
+   *
+   * ── Why this exists ─────────────────────────────────────────────────────
+   * Pi Browser breaks on CONCURRENT authenticate calls. That was already known
+   * and written down (see useExternalPayment, which delays the modal to avoid
+   * it) — but it was enforced nowhere, and the Hub has TWO independent callers:
+   *
+   *   pi-auth.ts  loginWithPi()        → its own Pi.authenticate, 45s budget
+   *   pi-session  _doAuth()            → the modal's, 25s budget
+   *
+   * Neither knew about the other. When they overlap, the loser never gets an
+   * answer — no error, no rejection, nothing — and simply dies on its own
+   * timeout. The modal reports `Pi auth (TIMEOUT): TIMEOUT`, which is true and
+   * says nothing about the cause.
+   *
+   * ── Why it only ever bit the Testnet host ───────────────────────────────
+   * On hub.tecosystem.app the visitor already holds a session, so
+   * `loginWithPi` does not run and the two never overlap. The paired Testnet
+   * host is a different origin with its own cookies, so login runs on arrival
+   * — exactly when a Mode-1 modal opens. Same code, opposite outcome, decided
+   * by whether a cookie happened to exist.
+   *
+   * The gate serializes: a second caller WAITS for the first instead of racing
+   * it. It never cancels and never fails a caller on the other's behalf — a
+   * rejected holder releases the gate and the next caller proceeds normally.
+   */
+  private authGate: Promise<unknown> | null = null;
+
+  async withAuthGate<T>(fn: () => Promise<T>): Promise<T> {
+    // A `while` and not an `if`: three callers can queue, and each must
+    // re-check that the gate is clear after the one it waited on released it.
+    while (this.authGate) {
+      try { await this.authGate; } catch { /* the holder's failure is its own */ }
+    }
+    const run = fn();
+    this.authGate = run;
+    try {
+      return await run;
+    } finally {
+      if (this.authGate === run) this.authGate = null;
+    }
+  }
+
   reInit(sandbox: boolean, appId?: string): void {
     if (typeof window === 'undefined' || !window.Pi) return;
     try { window.Pi.init({ version: '2.0', sandbox, ...(appId ? { appId } : {}) }); }
@@ -161,6 +205,10 @@ class PiSessionManager {
         await new Promise(r => setTimeout(r, 300));
       }
 
+      // Through the gate — see `withAuthGate`. The wait happens BEFORE the call,
+      // so the 25s budget below still measures only Pi's own response time and
+      // never the queue ahead of it.
+      await this.withAuthGate(async () => {
       const result = Pi.authenticate(
         ['username', 'payments'],
         async (payment: unknown) => {
@@ -185,6 +233,7 @@ class PiSessionManager {
       if (result && typeof (result as Promise<unknown>).then === 'function') {
         await withTimeout(result as Promise<unknown>, RESOLVE_TIMEOUT_MS);
       }
+      });
 
       if (currentVersion !== this.authVersion) {
         this._log('warn', 'auth:stale', `${currentVersion} !== ${this.authVersion}`);

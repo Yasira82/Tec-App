@@ -35,6 +35,11 @@ vi.mock('@/lib-client/pi/pi-session', () => ({
     reset:               vi.fn(),
     reInit:              vi.fn(),
     lastError:           null,
+    // Every Pi.authenticate in the app now goes through this gate — login's
+    // included — because Pi Browser breaks on concurrent authenticate calls.
+    // Pass-through here: this suite tests loginWithPi's own behaviour, and the
+    // gate has its own suite (pi-auth-gate.test.ts).
+    withAuthGate:        vi.fn(<T,>(fn: () => Promise<T>) => fn()),
   },
   PiAuthError: class PiAuthError extends Error {},
 }));

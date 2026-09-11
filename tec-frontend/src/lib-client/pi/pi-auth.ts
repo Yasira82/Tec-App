@@ -1,6 +1,7 @@
 import { PiAuthResult, TecAuthResponse, PiPaymentData, PiPaymentCallbacks } from '@/types/pi.types';
 import sdk from '@/lib/sdk';
 import { tecSession } from '@/lib-client/pi/tec-session';
+import { piSession }  from '@/lib-client/pi/pi-session';
 
 declare global {
   interface Window {
@@ -302,17 +303,35 @@ const getAuthTimeout = (): number => {
   return !isNaN(envTimeout) && envTimeout > 0 ? envTimeout : 45000;
 };
 
+/**
+ * Login's Pi.authenticate — through the SAME gate as the payment modal's.
+ *
+ * This was the second, independent authenticate in the app. Pi Browser breaks
+ * on concurrent authenticate calls, and nothing connected these two: login
+ * waits 45s, the modal waits 25s, and neither knew the other existed. When
+ * they overlapped the modal's call was simply never answered and died on its
+ * own timeout as `Pi auth (TIMEOUT): TIMEOUT`.
+ *
+ * It only ever showed on the paired Testnet host, and for a reason that has
+ * nothing to do with payments: hub.tecosystem.app already holds a session, so
+ * login does not run there. The Testnet host is a different origin with its
+ * own cookies, so login runs on arrival — exactly when a Mode-1 modal opens.
+ *
+ * The gate serializes rather than cancels: whichever call arrives second waits
+ * for the first and then runs normally. The timeout below still measures only
+ * this call, because the wait happens before it starts.
+ */
 const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> => {
   const effectiveTimeout = timeout ?? getAuthTimeout();
   await waitForPiSDK();
-  return new Promise((resolve, reject) => {
+  return piSession.withAuthGate(() => new Promise<PiAuthResult>((resolve, reject) => {
     const timer = setTimeout(() => {
       reject(new Error(isPiBrowser() ? ERRORS.AUTH_TIMEOUT : ERRORS.NOT_PI_BROWSER));
     }, effectiveTimeout);
     window.Pi.authenticate(['username', 'payments'], handleIncompletePayment)
       .then(result => { clearTimeout(timer); resolve(result); })
       .catch(err   => { clearTimeout(timer); reject(err);     });
-  });
+  }));
 };
 
 // ── Login with Pi ─────────────────────────────────────────

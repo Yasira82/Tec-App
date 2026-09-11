@@ -89,27 +89,52 @@ export function PaymentModal({
   useEffect(() => {
     let cancelled = false;
 
+    // The auth phase had NO trace — it printed one line, `Pi auth (TIMEOUT):
+    // TIMEOUT`, which cannot tell apart four different failures:
+    //
+    //   · waitForPiReady never resolved (its own 12s fallback fired)
+    //   · attempt 1's Pi.authenticate hung (the 25s budget in pi-session)
+    //   · attempt 1 failed for some other reason and the RETRY hung
+    //   · a second Pi.authenticate ran concurrently with one already in
+    //     flight — Pi Browser breaks on that, and this component's
+    //     reset()+retry is a way to cause it
+    //
+    // Measured against it: `/pi-test` calls `window.Pi.authenticate` DIRECTLY
+    // and answers in 0.6s on this same host, with no unfinished payment. So
+    // the SDK is healthy and the fault is somewhere in these ~30 lines. One
+    // line of output cannot say where, and guessing from it has already cost
+    // three wrong diagnoses.
     const tryAuth = async () => {
-      // ✅ انتظر Pi.init() يخلص قبل ما نبدأ
+      pushTrace('info', 'auth: waiting for Pi.init');
       await waitForPiReady();
       if (cancelled) return;
+      pushTrace('info', `auth: SDK ready=${PiRuntime.isReady()}`);
 
-await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1000));
       if (cancelled) return;
 
+      // Whether an auth was ALREADY running when we asked. If it was, this
+      // call does not start one — it awaits that one, and inherits its fate.
+      pushTrace('info', `auth: attempt 1 (inFlight=${piSession.isAuthInFlight})`);
       const ok = await piSession.ensurePaymentsReady();
       if (cancelled) return;
+      pushTrace(ok ? 'info' : 'error',
+        `auth: attempt 1 → ${ok ? 'ok' : `FAILED ${piSession.lastError} / ${piSession.lastRawError ?? '?'}`}`);
       if (ok) { setIsReady(true); return; }
 
       // ✅ reset + reInit + انتظار 2 ثانية قبل الـ retry
       piSession.reset();
       piSession.reInit(process.env.NEXT_PUBLIC_PI_SANDBOX === 'true');
+      pushTrace('info', 'auth: reset + reInit, retrying in 2.5s');
 
       await new Promise(r => setTimeout(r, 2500));
       if (cancelled) return;
 
+      pushTrace('info', `auth: attempt 2 (inFlight=${piSession.isAuthInFlight})`);
       const ok2 = await piSession.ensurePaymentsReady();
       if (cancelled) return;
+      pushTrace(ok2 ? 'info' : 'error',
+        `auth: attempt 2 → ${ok2 ? 'ok' : `FAILED ${piSession.lastError} / ${piSession.lastRawError ?? '?'}`}`);
 
       if (ok2) {
         setIsReady(true);

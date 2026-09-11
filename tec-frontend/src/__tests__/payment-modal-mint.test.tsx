@@ -314,14 +314,28 @@ describe('PaymentModal — handlePay outcomes', () => {
     await waitFor(() => expect(screen.getByText('Open in Pi Browser')).toBeTruthy());
   });
 
-  it('shows "Payment already in progress" when lock not acquired', async () => {
+  it('a second tap while a payment is running is a NO-OP, not a failure', async () => {
+    // The lock being held means a payment is ALREADY RUNNING — usually Pi's
+    // dialog is opening and the user, seeing nothing yet, tapped again.
+    // Showing "Payment Failed" there tells them their payment died while it is
+    // still in flight, and replaces the live modal with an error the first
+    // attempt can no longer clear. Observed exactly that way: a real Test-Pi
+    // payment completed in Pi's wallet while this screen read
+    // "Payment Failed — Payment already in progress".
     renderModal();
     await waitForReady();
     mockPiSessionAcquirePaymentLock.mockResolvedValue(false);
     await act(async () => {
       fireEvent.click(screen.getByText(/^Pay \d+π$/));
     });
-    await waitFor(() => expect(screen.getByText('Payment already in progress')).toBeTruthy());
+
+    expect(screen.queryByText('Payment Failed')).toBeNull();
+    expect(screen.queryByText('Payment already in progress')).toBeNull();
+    // Still idle, still tappable — nothing was destroyed.
+    const btn = screen.getByText(/^Pay \d+π$/) as HTMLButtonElement;
+    expect(btn.disabled).toBe(false);
+    // And the payment path was never entered a second time.
+    expect(mockCreateU2APayment).not.toHaveBeenCalled();
   });
 
   it('surfaces the real auth error when the gate fails inside handlePay', async () => {

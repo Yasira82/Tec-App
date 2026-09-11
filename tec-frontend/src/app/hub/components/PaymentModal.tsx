@@ -175,8 +175,25 @@ export function PaymentModal({
   const handlePay = useCallback(async () => {
     if (!PiRuntime.isAvailable()) { setStatus('error'); setMessage(p.openInPiBrowser); return; }
 
+    // A SECOND TAP IS NOT A FAILED PAYMENT.
+    //
+    // The lock being held means a payment from this page is ALREADY RUNNING —
+    // usually Pi's own dialog is opening and the user, seeing nothing yet,
+    // tapped again. Turning that into a terminal "Payment Failed" screen tells
+    // the user their payment died while it is still in flight, and it replaces
+    // the live modal with an error the first attempt can no longer clear.
+    //
+    // Observed exactly that way: a real Test-Pi payment completed in Pi's
+    // wallet while this screen read "Payment Failed — Payment already in
+    // progress". The lie is the bug; the lock was doing its job.
+    //
+    // So a second tap is a no-op. The trace still records it, because "the
+    // user tapped twice" is worth knowing when reading one of these later.
     const locked = await piSession.acquirePaymentLock();
-    if (!locked) { setStatus('error'); setMessage(p.alreadyInProgress); return; }
+    if (!locked) {
+      pushTrace('info', 'tap ignored — a payment is already running');
+      return;
+    }
 
     if (hasStarted.current) { piSession.releasePaymentLock(); return; }
     hasStarted.current = true;

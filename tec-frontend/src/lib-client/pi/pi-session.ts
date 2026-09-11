@@ -3,7 +3,29 @@ import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
  * PiSessionManager v4 Final — Pi Runtime Isolation Layer
  */
 
-const RESOLVE_TIMEOUT_MS   = 25000;
+/**
+ * How long to wait for `Pi.authenticate` before calling it dead.
+ *
+ * It was 25s, and that was the bug — not a symptom of one.
+ *
+ * Measured: the first authenticate on a freshly loaded page is SLOW. A trace
+ * from production shows `tap: authenticating` at 0.8s and the call still
+ * running at 14s with no error, and the payment eventually succeeding. Our
+ * timer was killing a call that was going to work.
+ *
+ * Pi's own bridge timeout is 120 SECONDS — the KB records the exact message
+ * ("Messaging promise with id 1 timed out after 120000ms"). A 25s budget sits
+ * far inside that, so a slow-but-healthy handshake became a hard failure,
+ * which showed the user a red screen, which made them tap again, which queued
+ * another authenticate behind the first. The sixth attempt "worked" because by
+ * then the first handshake had finally completed. We were the reason it took
+ * six attempts.
+ *
+ * 90s is still below Pi's own ceiling — so a genuinely dead bridge is still
+ * reported by us, with our own message, rather than hanging for two minutes —
+ * but it is long enough that a slow success stays a success.
+ */
+const RESOLVE_TIMEOUT_MS   = 90000;
 const MAX_SESSION_AGE_MS   = 5 * 60 * 1000;
 const PAYMENT_LOCK_TIMEOUT = 20000;
 

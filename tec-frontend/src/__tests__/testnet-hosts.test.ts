@@ -12,7 +12,7 @@
 // to find the right apps.
 import { describe, it, expect } from 'vitest';
 import {
-  TESTNET_ORIGINS, isHubTestnetHost, routeForNetwork,
+  TESTNET_ORIGINS, TESTNET_ORIGINS_PAIRED, isHubTestnetHost, routeForNetwork,
 } from '@/domains/testnet-hosts';
 import { LIVE_DOMAINS } from '@/domains/_registry';
 
@@ -110,5 +110,41 @@ describe('both launchers use the rule', () => {
       expect(src).toContain('routeForNetwork(');
       expect(src).not.toMatch(/const route\s*=\s*d\.route \?\? `\/\$\{d\.slug\}`;/);
     }
+  });
+});
+
+// ── A host is read off the deployment, or it is not known ──────────────────
+// These values were first built by taking the FIRST `*.vercel.app` entry in
+// each app's own ALLOWED_AUDIENCES. That reads like the app is the authority —
+// but an allowlist answers "may this host sign in?", not "is this host ours?".
+//
+// Zone lists BOTH `tec-zone.vercel.app` (the name it wanted, which Vercel had
+// already given to a stranger) and `tec-zone-mu.vercel.app` (its deployment).
+// First-entry picked the stranger, and the Zone tile on the Testnet Hub opened
+// someone else's shop, which then 404'd. The tile was not broken — it was
+// pointing off the platform.
+describe('the recorded deployment hosts', () => {
+  it('uses the suffixed host Vercel actually assigned, never the name we wanted', () => {
+    // Recorded in audits/PI_TESTNET_GATE_FINDINGS_2026-09-06.md §8.
+    expect(TESTNET_ORIGINS.zone).toBe('https://tec-zone-mu.vercel.app');
+    expect(TESTNET_ORIGINS.elite).toBe('https://tec-elite-bvzb.vercel.app');
+    // Commerce settles the argument that there is no rule to infer: no `tec-`
+    // prefix at all.
+    expect(TESTNET_ORIGINS.commerce).toBe('https://commerce-app.vercel.app');
+  });
+
+  it('never names a host we know belongs to someone else', () => {
+    const strangers = ['https://tec-zone.vercel.app', 'https://tec-elite.vercel.app'];
+    for (const s of strangers) {
+      expect(Object.values(TESTNET_ORIGINS)).not.toContain(s);
+    }
+  });
+
+  it('has a paired entry for every legacy slug, and no extra', () => {
+    // A slug present in one map and missing from the other silently falls back
+    // to the Mainnet route on one pairing only — which reads as "this tile is
+    // fine" right up until it takes a Test-Pi visitor to a Mainnet payment.
+    expect(Object.keys(TESTNET_ORIGINS_PAIRED).sort())
+      .toEqual(Object.keys(TESTNET_ORIGINS).sort());
   });
 });

@@ -24,12 +24,26 @@
  * to find the right apps.
  *
  * ── Where these values come from ────────────────────────────────────────────
- * NOT invented, and not derived from a name. Each is the FIRST `*.vercel.app`
- * entry in that app's own `ALLOWED_AUDIENCES` — the app is the authority on its
- * own hosts, and that list is what its SSO landing will actually accept. The
- * rule is one rule with no special cases, which matters because Vercel project
- * names are claimed first-come and three of these are NOT `tec-<slug>`:
- * `commerce-app`, `nbf-ivory`, `tec-analytics-app`, `tec-assets-app`.
+ * NOT invented, and not derived from a name. Vercel project names are claimed
+ * first-come, so a host cannot be inferred: `commerce-app` has no `tec-` prefix
+ * at all, and `tec-zone-mu` / `tec-elite-bvzb` carry suffixes Vercel picked.
+ *
+ * ── The rule these values were FIRST built on, and why it was wrong ─────────
+ * They were taken mechanically as the FIRST `*.vercel.app` entry in each app's
+ * own `ALLOWED_AUDIENCES`. That reads like the app is the authority — but an
+ * allowlist answers "may this host sign in?", NOT "is this host ours?". Zone
+ * lists BOTH `tec-zone.vercel.app` (the name it wanted, which Vercel had
+ * already given to a stranger) and `tec-zone-mu.vercel.app` (the deployment).
+ * First-entry picked the stranger.
+ *
+ * Live result: the Zone tile on the Testnet Hub opened someone else's shop —
+ * a pink storefront, coincidentally also called "Tec Zone" — which then 404'd,
+ * because of course it has no `/app`. The tile looked broken; it was worse
+ * than broken, it was pointing off the platform.
+ *
+ * Each value here is now the host RECORDED FROM THE DEPLOYMENT in
+ * `audits/PI_TESTNET_GATE_FINDINGS_2026-09-06.md` §8. A host is read off the
+ * deployment or it is not known — an allowlist is not a deployment.
  *
  * Anything missing here simply keeps its Mainnet route — the Hub never invents
  * a host (that is how a tile becomes a 404).
@@ -43,7 +57,7 @@ export const TESTNET_ORIGINS: Readonly<Record<string, string>> = {
   connection: 'https://tec-connection.vercel.app',
   dx:         'https://tec-dx.vercel.app',
   ecommerce:  'https://tec-ecommerce.vercel.app',
-  elite:      'https://tec-elite.vercel.app',
+  elite:      'https://tec-elite-bvzb.vercel.app',
   epic:       'https://tec-epic.vercel.app',
   estate:     'https://tec-estate.vercel.app',
   explorer:   'https://tec-explorer.vercel.app',
@@ -57,7 +71,7 @@ export const TESTNET_ORIGINS: Readonly<Record<string, string>> = {
   system:     'https://tec-system.vercel.app',
   titan:      'https://tec-titan.vercel.app',
   vip:        'https://tec-vip.vercel.app',
-  zone:       'https://tec-zone.vercel.app',
+  zone:       'https://tec-zone-mu.vercel.app',
 };
 
 /**

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { isE2eMode } from '@/lib/server/e2e-mode';
 import { fetchWithTimeout } from '@/lib/server/fetch-with-timeout';
+import { isTestnetHost } from '@/lib/pi-network';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -31,6 +32,24 @@ export async function GET(req: NextRequest) {
   if (endpoint === 'status') {
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    // A Testnet host activates NOTHING: commerce refuses to grant PRO from a
+    // payment marked `testnet` (Test-Pi never buys anything real). So this host
+    // must not DISPLAY an entitlement either — otherwise the owner's real
+    // Mainnet subscription shows through on the test network and the screen
+    // says "You're on Pro" about a plan nothing here can grant, renew or expire.
+    //
+    // Read from THIS ROUTE'S OWN Host header, server-side. Never from the
+    // client, and never from a build constant: one build serves both hosts,
+    // which is the whole reason this class of bug keeps recurring.
+    //
+    // Display-only. Commerce remains the authority — it refuses the activation;
+    // this route only declines to show what the other network owns.
+    if (isTestnetHost(req.headers.get('host'))) {
+      return NextResponse.json(
+        { success: true, data: { plan: 'FREE', status: 'ACTIVE', renewsAt: null, testnet: true } },
+        { status: 200 },
+      );
     }
     if (isE2eMode()) {
       return NextResponse.json(

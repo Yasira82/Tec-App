@@ -124,11 +124,37 @@ describe('POST /api/auth/refresh', () => {
     expect(res.status).toBe(200);
   });
 
-  it('returns 500 on network error', async () => {
+  it('returns 502 and NAMES the hop when the gateway cannot be reached', async () => {
+    // Was 500. A 500 says "this route broke"; the route did not break — the
+    // gateway did not answer, which is a 502, and the caller now gets told
+    // which hop died instead of a bare "Internal Server Error".
+    //
+    // The change that matters more is not visible in the status: this branch
+    // is only REACHABLE because the fetch is now bounded. Unbounded, a gateway
+    // that stalls (rather than refusing) never rejects at all — the invocation
+    // is killed by the platform and this handler never runs.
     vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(new Error('ECONNREFUSED'));
     const { POST } = await import('@/app/api/auth/refresh/route');
     const res = await POST(req({ method: 'POST', cookies: { tec_refresh_token: 'old-tok' } }));
-    expect(res.status).toBe(500);
+    expect(res.status).toBe(502);
+    const body = await res.json();
+    expect(body.error).toBe('gateway_unreachable');
+    expect(body.reason).toContain('ECONNREFUSED');
+  });
+
+  it('reports a TIMEOUT the same way — the stall is the case that mattered', async () => {
+    // `AbortSignal.timeout` rejects with a TimeoutError. This is the shape the
+    // production failure actually had: the gateway's own logs showed
+    // `socket hang up` / `ECONNRESET` against the services it proxies, and a
+    // stalled hop is what held the login handoff open until it was killed.
+    const timeout = Object.assign(new Error('The operation was aborted due to timeout'), {
+      name: 'TimeoutError',
+    });
+    vi.spyOn(globalThis, 'fetch').mockRejectedValueOnce(timeout);
+    const { POST } = await import('@/app/api/auth/refresh/route');
+    const res = await POST(req({ method: 'POST', cookies: { tec_refresh_token: 'old-tok' } }));
+    expect(res.status).toBe(502);
+    expect((await res.json()).reason).toContain('TimeoutError');
   });
 });
 

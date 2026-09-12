@@ -2,6 +2,16 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify }        from 'jose';
 import { ALLOWED_APP_ORIGINS as ALLOWED_TARGETS } from '@/domains/allowed-origins';
 
+/**
+ * How long the handoff waits on its own refresh hop.
+ *
+ * Deliberately below the refresh route's gateway budget: whoever gives up
+ * first decides what the user sees, and this route is the one that can still
+ * complete the handoff without a refresh. A stale token produces a login
+ * screen; a hung handoff produces a blank 500 nobody can read.
+ */
+const REFRESH_TIMEOUT_MS = 6_000;
+
 
 export async function GET(req: NextRequest) {
   const accessToken = req.cookies.get('tec_access_token')?.value;
@@ -54,19 +64,39 @@ export async function GET(req: NextRequest) {
       const encoded = new TextEncoder().encode(jwtSecret);
       await jwtVerify(accessToken, encoded, { algorithms: ['HS256'] });
     } catch {
-      const csrfToken  = req.cookies.get('tec_csrf')?.value ?? '';
-      const refreshRes = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
-        method:  'POST',
-        headers: {
-          Cookie:         req.headers.get('cookie') ?? '',
-          'x-csrf-token': csrfToken,
-          'Content-Type': 'application/json',
-        },
-      });
-      if (refreshRes.ok) {
-        const refreshData = await refreshRes.json();
-        validToken     = refreshData.token ?? accessToken;
-        rotatedCookies = refreshRes.headers?.getSetCookie?.() ?? [];
+      const csrfToken = req.cookies.get('tec_csrf')?.value ?? '';
+      // BOUNDED. This is a chain — sso → refresh → gateway → auth-service —
+      // and until now not one hop in it had a timeout. A stall anywhere down
+      // that chain did not surface as an error: it held THIS invocation open
+      // until the platform killed it, and a killed function never reaches the
+      // catch below. That is what a blank "500 Internal Server Error" with no
+      // body is, on the one route every app in the fleet enters through.
+      //
+      // Shorter than the refresh route's own budget so this hop gives up
+      // first and we control what the user sees, rather than the platform.
+      try {
+        const refreshRes = await fetch(`${req.nextUrl.origin}/api/auth/refresh`, {
+          method:  'POST',
+          headers: {
+            Cookie:         req.headers.get('cookie') ?? '',
+            'x-csrf-token': csrfToken,
+            'Content-Type': 'application/json',
+          },
+          signal: AbortSignal.timeout(REFRESH_TIMEOUT_MS),
+        });
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          validToken     = refreshData.token ?? accessToken;
+          rotatedCookies = refreshRes.headers?.getSetCookie?.() ?? [];
+        }
+      } catch (err) {
+        // Carry on with the un-refreshed token — exactly what the old code did
+        // when the refresh returned !ok. The app it lands on re-checks the
+        // session and bounces to login if it is stale, which is a screen the
+        // user can act on. A hung handoff is not.
+        console.warn('[sso] refresh failed — continuing with the existing token', {
+          reason: err instanceof Error ? `${err.name}: ${err.message}` : String(err),
+        });
       }
     }
 

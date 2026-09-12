@@ -15,10 +15,15 @@ export const ALLOWED_APP_ORIGINS: readonly string[] = [
   'https://tec-assets.vercel.app',
   'https://assets.tecosystem.app',
   'https://assets.pi',
+  // Commerce's REAL host, confirmed against the Vercel project's Domains page.
+  //
+  // REMOVED from this list: `https://commerce-app.vercel.app`. That host is on
+  // SOMEBODY ELSE'S Vercel account — the comment here used to claim it was
+  // "Commerce's REAL host, no `tec-` prefix", which was an inference nobody had
+  // checked. Listing it meant this Hub would hand that stranger's origin a
+  // signed SSO token carrying the user's access token. An allowlist entry is
+  // not a hint; every line here is permission to hand over a session.
   'https://tec-commerce-app.vercel.app',
-  // Commerce's REAL Vercel project host — no `tec-` prefix. Project names are
-  // claimed first-come, so a host cannot be derived from an app's name.
-  'https://commerce-app.vercel.app',
   'https://commerce.tecosystem.app',
   'https://commerce.pi',
   'https://ecommerce.tecosystem.app',

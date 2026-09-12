@@ -25,8 +25,20 @@
  *
  * ── Where these values come from ────────────────────────────────────────────
  * NOT invented, and not derived from a name. Vercel project names are claimed
- * first-come, so a host cannot be inferred: `commerce-app` has no `tec-` prefix
- * at all, and `tec-zone-mu` / `tec-elite-bvzb` carry suffixes Vercel picked.
+ * first-come, so a host cannot be inferred: `tec-zone-mu` / `tec-elite-bvzb`
+ * carry suffixes Vercel picked.
+ *
+ * This paragraph used to cite `commerce-app` (no `tec-` prefix) as the proof
+ * that a host cannot be inferred. That value was itself inferred, and it was
+ * wrong — the Commerce project's Domains list reads
+ * `tec-commerce-app.vercel.app`. A comment asserting "not invented" next to an
+ * invented value is worse than no comment: it is the thing a reader checks
+ * INSTEAD of checking the source, and it survived three rounds of debugging
+ * intact because it sounded like it had already been verified.
+ *
+ * The only source for a value in this file is the Vercel project's own
+ * **Domains** page. Not the app's ALLOWED_AUDIENCES, not the project name, and
+ * not this comment.
  *
  * ── The rule these values were FIRST built on, and why it was wrong ─────────
  * They were taken mechanically as the FIRST `*.vercel.app` entry in each app's
@@ -53,7 +65,11 @@ export const TESTNET_ORIGINS: Readonly<Record<string, string>> = {
   analytics:  'https://tec-analytics-app.vercel.app',
   assets:     'https://tec-assets-app.vercel.app',
   brookfield: 'https://tec-brookfield.vercel.app',
-  commerce:   'https://commerce-app.vercel.app',
+  // Read off the Vercel project's own Domains list, not assumed. This entry
+  // said `commerce-app.vercel.app` — a host on somebody else's account. The
+  // grid handed every Testnet visitor to a stranger's deployment, which is
+  // why it answered 500 for every function while its favicon loaded fine.
+  commerce:   'https://tec-commerce-app.vercel.app',
   connection: 'https://tec-connection.vercel.app',
   dx:         'https://tec-dx.vercel.app',
   ecommerce:  'https://tec-ecommerce.vercel.app',

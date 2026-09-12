@@ -151,14 +151,20 @@ export function useAiChat({ storeKey, open, t }: {
         signal: controller.signal,
         body: JSON.stringify({
           messages: [...priorTurns, { role: 'user', content: text }],
+          // The context is passed as the OPAQUE TOKEN the BFF signed, not as the
+          // fields themselves. This used to spread `...ctx` into the body, which
+          // made the browser the carrier of every platform claim about the user
+          // — KYC, goals, activity — and therefore able to rewrite them. The
+          // chat route now reads claims only from this token and ignores any
+          // such field in the body. See lib/ai/context-token.ts.
+          contextToken: (ctx as { contextToken?: string } | null)?.contextToken,
           userContext: {
-            // The user's explicit choice wins; 'auto' falls back to the page language, so
-            // the reply matches the UI they are reading.
+            // Preferences only. The user's explicit choice wins; 'auto' falls back
+            // to the page language, so the reply matches the UI they are reading.
             locale: settings.replyLocale !== 'auto'
               ? settings.replyLocale
               : (typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'ar'),
             replyLength: settings.replyLength,
-            ...(ctx ?? {}),
           },
         }),
       });

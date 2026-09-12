@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 import { checkRateLimit }    from '@/lib/ai/rate-limit';
+import { verifyContext }     from '@/lib/ai/context-token';
 
 export const runtime = 'edge';
 
@@ -444,8 +445,42 @@ export async function POST(req: NextRequest) {
         ? [{ role: 'user' as const, content: body.message }]
         : [];
 
-    const userContext: { username?: string; balance?: number; locale?: string } | undefined
-      = body.userContext;
+    // ── The trust boundary ────────────────────────────────────────────────
+    //
+    // This used to be `body.userContext` — taken whole, unvalidated, and passed
+    // straight into the system prompt. Every platform CLAIM about the user (KYC
+    // status, their Life goals, their Analytics activity) was resolved by a BFF
+    // from the gateway, handed to the browser, and posted back here. Editing one
+    // fetch body was enough to tell the assistant you were KYC-verified.
+    //
+    // Nothing executes on these — the AI guides, it never acts (C-104 §4) — so
+    // no money moves. It answers the user from premises the platform never
+    // asserted, in the platform's voice. That is the damage, and it is enough.
+    //
+    // Now: claims come ONLY from a token this server signed for THIS `sub`
+    // (lib/ai/context-token.ts). Preferences — the reply language and length the
+    // user picked in the assistant's own settings menu — stay client-supplied,
+    // because they assert nothing about the user and are theirs to choose.
+    //
+    // The split is *claims vs preferences*, not *server vs client*. Stated that
+    // way, the next field added lands on the correct side on its own.
+    const raw = (body.userContext ?? {}) as Record<string, unknown>;
+    const claims = await verifyContext(body.contextToken, userId, process.env.JWT_SECRET);
+
+    // Each preference is narrowed against a CLOSED set. An unrecognised value is
+    // dropped rather than passed through, so the body cannot introduce a field
+    // the prompt would render — the same reason the claims above are verified.
+    const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined =>
+      typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
+
+    const userContext: UserContext = {
+      locale:      oneOf(raw.locale,      ['en', 'ar'] as const),
+      replyLength: oneOf(raw.replyLength, ['short', 'detailed'] as const),
+      // Claims — verified, or absent. There is deliberately no fallback to the
+      // body: failing closed here means a less personal answer, and falling open
+      // means the prompt states things nobody checked (P6).
+      ...(claims ?? {}),
+    };
 
     if (!messages.length) {
       return NextResponse.json(

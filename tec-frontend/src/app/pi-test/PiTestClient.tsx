@@ -1,5 +1,6 @@
 'use client';
 import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
+import { piScopes }        from '@/lib-client/pi/scopes';
 
 import { useState, useEffect, useCallback } from 'react';
 import { isPiBrowser, loginWithPi, getStoredUser, getAccessToken } from '@/lib-client/pi/pi-auth';
@@ -179,7 +180,7 @@ export function PiTestClient() {
     // An unfinished payment is the one state that makes createPayment refuse
     // silently. authenticate() is where Pi reports it.
     try {
-      await window.Pi!.authenticate(['username', 'payments'], (payment: unknown) => {
+      await window.Pi!.authenticate(piScopes(), (payment: unknown) => {
         const pid = (payment as { identifier?: string } | null)?.identifier;
         log('warn', pid ? `⚠️ Unfinished payment still open: ${pid}` : 'no unfinished payment');
       });
@@ -223,7 +224,7 @@ export function PiTestClient() {
     log('info', 'Checking for pending payments...');
     try {
       if (!isPiBrowser() || !PiRuntime.isAvailable()) throw new Error('Not inside Pi Browser');
-      await window.Pi!.authenticate(['username', 'payments'], async (payment: unknown) => {
+      await window.Pi!.authenticate(piScopes(), async (payment: unknown) => {
         const p   = payment as Record<string, unknown> | null;
         const pid = p?.identifier as string | undefined;
         if (!pid) { log('info', 'No pending payment ✅'); return; }

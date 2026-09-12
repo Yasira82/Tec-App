@@ -2,6 +2,7 @@ import { PiAuthResult, TecAuthResponse, PiPaymentData, PiPaymentCallbacks } from
 import sdk from '@/lib/sdk';
 import { tecSession } from '@/lib-client/pi/tec-session';
 import { piSession }  from '@/lib-client/pi/pi-session';
+import { piScopes }  from '@/lib-client/pi/scopes';
 
 declare global {
   interface Window {
@@ -328,15 +329,16 @@ const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> 
     const timer = setTimeout(() => {
       reject(new Error(isPiBrowser() ? ERRORS.AUTH_TIMEOUT : ERRORS.NOT_PI_BROWSER));
     }, effectiveTimeout);
-    window.Pi.authenticate(['username', 'payments'], handleIncompletePayment)
+    window.Pi.authenticate(piScopes(), handleIncompletePayment)
       .then(result => {
         clearTimeout(timer);
         // Tell the session manager this succeeded, so the first Pay tap does
         // not run a SECOND authenticate for a session it already has. Same
-        // scopes, so nothing is widened. Without this the modal queued behind
-        // login on the gate and burned its own 25s budget waiting — and the
-        // retry a minute later "worked" only because `authenticated` was then
-        // already true.
+        // scopes, so nothing is widened — and "same" is now a shared constant
+        // rather than two lists that happen to match today. Without this the
+        // modal queued behind login on the gate and burned its own 25s budget
+        // waiting — and the retry a minute later "worked" only because
+        // `authenticated` was then already true.
         piSession.markAuthenticated();
         resolve(result);
       })

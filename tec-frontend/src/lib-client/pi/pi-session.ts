@@ -1,4 +1,5 @@
 import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
+import { piScopes }        from '@/lib-client/pi/scopes';
 /**
  * PiSessionManager v4 Final — Pi Runtime Isolation Layer
  */
@@ -232,7 +233,7 @@ class PiSessionManager {
       // never the queue ahead of it.
       await this.withAuthGate(async () => {
       const result = Pi.authenticate(
-        ['username', 'payments'],
+        piScopes(),
         async (payment: unknown) => {
           const p = payment as { identifier?: string } | null;
           if (!p?.identifier) return;

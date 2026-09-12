@@ -61,18 +61,23 @@ describe('routeForNetwork', () => {
 
 describe('the map agrees with what each app declares about itself', () => {
   // Not a style check. Vercel project names are claimed first-come, so a host
-  // cannot be derived from an app's name — four of these are NOT `tec-<slug>`.
-  // Every value here was read from that app's own ALLOWED_AUDIENCES, which is
-  // the list its SSO landing will actually accept; a value that drifts from it
-  // sends the visitor somewhere the app itself will reject.
+  // cannot be derived from an app's name — three of these are NOT `tec-<slug>`.
+  //
+  // The sentence that used to live here — "every value was read from that app's
+  // own ALLOWED_AUDIENCES" — named the WRONG authority, and the commerce entry
+  // below is what it cost. An allowlist answers "may this host sign in?", never
+  // "is this host ours?", and it happily lists a name we wanted but do not own.
+  //
+  // The authority is the Vercel project's **Domains** page, and nothing else.
+  // Commerce's reads `tec-commerce-app.vercel.app`; the prefix-less spelling
+  // this test used to assert belongs to a stranger's account.
   const ODD_ONES: Record<string, string> = {
-    commerce:  'https://commerce-app.vercel.app',
     nbf:       'https://nbf-ivory.vercel.app',
     analytics: 'https://tec-analytics-app.vercel.app',
     assets:    'https://tec-assets-app.vercel.app',
   };
 
-  it('keeps the four hosts that are NOT tec-<slug>', () => {
+  it('keeps the hosts that are NOT tec-<slug>', () => {
     for (const [slug, origin] of Object.entries(ODD_ONES)) {
       expect(TESTNET_ORIGINS[slug]).toBe(origin);
     }
@@ -128,13 +133,21 @@ describe('the recorded deployment hosts', () => {
     // Recorded in audits/PI_TESTNET_GATE_FINDINGS_2026-09-06.md §8.
     expect(TESTNET_ORIGINS.zone).toBe('https://tec-zone-mu.vercel.app');
     expect(TESTNET_ORIGINS.elite).toBe('https://tec-elite-bvzb.vercel.app');
-    // Commerce settles the argument that there is no rule to infer: no `tec-`
-    // prefix at all.
-    expect(TESTNET_ORIGINS.commerce).toBe('https://commerce-app.vercel.app');
+    // Commerce used to be cited HERE as the proof that no rule can be inferred
+    // — "no `tec-` prefix at all". That claim was itself an inference, and the
+    // Commerce project's Domains page says `tec-commerce-app.vercel.app`. The
+    // example offered as evidence against guessing was a guess.
+    expect(TESTNET_ORIGINS.commerce).toBe('https://tec-commerce-app.vercel.app');
   });
 
   it('never names a host we know belongs to someone else', () => {
-    const strangers = ['https://tec-zone.vercel.app', 'https://tec-elite.vercel.app'];
+    const strangers = [
+      'https://tec-zone.vercel.app',
+      'https://tec-elite.vercel.app',
+      // Third one found, and the costliest: it was a live Testnet target AND
+      // an SSO allowlist entry, so the Hub would hand it a signed session.
+      'https://commerce-app.vercel.app',
+    ];
     for (const s of strangers) {
       expect(Object.values(TESTNET_ORIGINS)).not.toContain(s);
     }

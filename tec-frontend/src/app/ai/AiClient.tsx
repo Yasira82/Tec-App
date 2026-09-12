@@ -162,12 +162,18 @@ export default function AiClient() {
           messages: [...messages, userMessage]
             .filter(m => m.id !== 'welcome')
             .map(m => ({ role: m.role, content: m.content })),
+          // The signed context, opaque. This used to spread `...aiCtx` (KYC,
+          // goals, activity) and a client-read `username` into the body, all of
+          // which the chat route dropped into the system prompt unverified.
+          // Claims now travel only inside this token, minted by the BFF for this
+          // session; the route ignores any such field in the body.
+          // See lib/ai/context-token.ts.
+          contextToken: (aiCtx as { contextToken?: string } | null)?.contextToken,
           userContext: {
-            username: user?.piUsername,
-            // The user's explicit choice wins; 'auto' follows the UI locale.
+            // Preferences only. The user's explicit choice wins; 'auto' follows
+            // the UI locale.
             locale: settings.replyLocale !== 'auto' ? settings.replyLocale : locale,
             replyLength: settings.replyLength,
-            ...(aiCtx ?? {}),
           },
         }),
       });

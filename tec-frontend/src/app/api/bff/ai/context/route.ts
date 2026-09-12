@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { signContext }   from '@/lib/ai/context-token';
 
 /**
  * TEC AI — personalization context (C-104 reasoning input · C-121 pipeline).
@@ -46,10 +47,23 @@ const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : Array.isArray
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
 
 export interface AiContext {
+  /** Pi username, from the `tec_user` session cookie — never from the client. */
+  username?:   string;
   kycVerified: boolean;
   goals:       { title: string; done: boolean }[];
   focus?:      string;
   activity?:   { logins?: number; payments?: number; volume?: string };
+  /**
+   * The same context, SIGNED for this caller — the only form `/api/ai/chat`
+   * will accept (see lib/ai/context-token.ts).
+   *
+   * The plain fields above stay in the response because the UI reads them; the
+   * chat route ignores them entirely. It used to trust them, which meant every
+   * platform claim about the user travelled through the browser and could be
+   * rewritten there. Null when signing is unavailable — the assistant then
+   * answers without personalization rather than on unverified input (P6).
+   */
+  contextToken?: string;
 }
 
 export const GET = createHandler<Record<string, never>, AiContext>({
@@ -58,8 +72,37 @@ export const GET = createHandler<Record<string, never>, AiContext>({
     const gateway = process.env.API_GATEWAY_URL ?? '';
     const token   = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const out: AiContext = { kycVerified: ctx.kycVerified, goals: [] };
-    if (!gateway || !token) return out; // fail-soft: base context only
+    // Signed on the way out, at EVERY return — including the fail-soft one below.
+    // `kycVerified` alone is still a platform claim, so the degraded path needs
+    // the signature just as much as the full one.
+    const sealed = async (c: AiContext): Promise<AiContext> => ({
+      ...c,
+      contextToken: (await signContext(
+        {
+          username:    c.username,
+          kycVerified: c.kycVerified,
+          goals:       c.goals,
+          focus:       c.focus,
+          activity:    c.activity,
+        },
+        ctx.userId,
+        process.env.JWT_SECRET,
+      )) ?? undefined,
+    });
+
+    // Identity from the session cookie, server-side — the platform's standard
+    // source (CLAUDE.md: identity ALWAYS from `tec_user`, never the body). Kept
+    // defensive: a malformed cookie means no username, never a 500.
+    let username: string | undefined;
+    try {
+      const rawUser = req.cookies.get('tec_user')?.value;
+      const parsed  = rawUser ? JSON.parse(decodeURIComponent(rawUser)) : null;
+      username = str((parsed as { piUsername?: unknown; username?: unknown })?.piUsername)
+              ?? str((parsed as { username?: unknown })?.username);
+    } catch { /* no username — the assistant greets generically */ }
+
+    const out: AiContext = { username, kycVerified: ctx.kycVerified, goals: [] };
+    if (!gateway || !token) return sealed(out); // fail-soft: base context only
 
     const [goalsRaw, prefsRaw, overviewRaw] = await Promise.all([
       getJson(`${gateway}/api/identity/life/goals`,       token, ctx.requestId),
@@ -95,6 +138,6 @@ export const GET = createHandler<Record<string, never>, AiContext>({
       out.activity = activity;
     }
 
-    return out;
+    return sealed(out);
   },
 });

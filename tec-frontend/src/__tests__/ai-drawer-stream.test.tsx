@@ -47,7 +47,9 @@ function stubFetch(chat: (n: number) => Response | Promise<Response>) {
   const chatCalls: RequestInit[] = [];
   const mock = vi.fn(async (url: string, init?: RequestInit) => {
     if (String(url).includes('/ai/context')) {
-      return { ok: true, json: async () => ({ username: 'yas55eR82' }) } as unknown as Response;
+      // The BFF now returns the context SIGNED. The plain fields stay for the UI;
+      // the chat route reads claims only from the token (lib/ai/context-token.ts).
+      return { ok: true, json: async () => ({ username: 'yas55eR82', contextToken: 'signed.ctx.token' }) } as unknown as Response;
     }
     chatCalls.push(init ?? {});
     return chat(n++);
@@ -145,7 +147,19 @@ describe('AIDrawer streaming', () => {
     await ask();
     await waitFor(() => expect(chatCalls).toHaveLength(1));
     const sent = JSON.parse(chatCalls[0].body as string);
-    expect(sent.userContext.username).toBe('yas55eR82');
+    // Was: `expect(sent.userContext.username).toBe('yas55eR82')`.
+    //
+    // Forwarding the context FIELDS made the browser the carrier of every
+    // platform claim about the user, and therefore able to rewrite them. The
+    // drawer now forwards the opaque token and nothing else; the route verifies
+    // it against the session it authenticated itself.
+    //
+    // (The username was never real here either: this test mocked a BFF field the
+    // BFF did not return, so the greeting was personalized in the test and
+    // generic in production. It is a signed claim now, sourced from `tec_user`.)
+    expect(sent.contextToken).toBe('signed.ctx.token');
+    expect(sent.userContext.username).toBeUndefined();
+    expect(sent.userContext.kycVerified).toBeUndefined();
     expect(sent.userContext.locale).toBeTruthy();
   });
 

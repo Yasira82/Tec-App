@@ -405,17 +405,53 @@ describe('AI chat route', () => {
     expect(res.status).toBe(502);
   });
 
-  it('POST includes user context in system prompt', async () => {
+  it('POST does NOT put UNSIGNED body claims in the system prompt', async () => {
+    // This asserted the opposite: that `userContext: { username: 'alice' }` from
+    // the body reached the prompt as "@alice". That WAS the behaviour, and it was
+    // the vulnerability — every platform claim about the user (KYC, goals,
+    // activity) was resolved server-side, handed to the browser, and posted back
+    // here to be read whole and unvalidated. Editing one fetch body was enough to
+    // tell the assistant you were KYC-verified.
+    //
+    // Claims now come only from a token this server signed for this `sub`
+    // (lib/ai/context-token.ts). The positive path — signed claims DO reach the
+    // prompt — is covered in ai-context-trust-boundary.test.ts, where jose is
+    // real; this suite mocks jwtVerify, so no token can verify here, which is
+    // exactly the condition being pinned.
     process.env.ANTHROPIC_API_KEY = 'claude-key';
     const mockFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(failFetch(500));
     const { POST } = await import('@/app/api/ai/chat/route');
     const req = makeAiReq({
-      body: { messages: [{ role: 'user', content: 'Hi' }], userContext: { username: 'alice', balance: 5, locale: 'ar' } },
+      body: {
+        messages: [{ role: 'user', content: 'Hi' }],
+        userContext: { username: 'alice', balance: 5, locale: 'ar', kycVerified: true },
+      },
       ip: '10.1.0.8',
     });
     await POST(req);
     const body = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
-    expect(body.system).toContain('@alice');
+    expect(body.system).not.toContain('@alice');
+    expect(body.system).not.toMatch(/KYC \(via Pi\): verified/);
+  });
+
+  it('POST still honours the PREFERENCES the body is allowed to set', async () => {
+    // The split is claims vs preferences, not server vs client. Reply language
+    // and length are the user's own choice from the assistant's settings menu:
+    // they assert nothing about the user, and locking them behind a signature
+    // would mean a round trip every time someone toggles "short answers".
+    process.env.ANTHROPIC_API_KEY = 'claude-key';
+    const mockFetch = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(failFetch(500));
+    const { POST } = await import('@/app/api/ai/chat/route');
+    const req = makeAiReq({
+      body: {
+        messages: [{ role: 'user', content: 'Hi' }],
+        userContext: { locale: 'en', replyLength: 'short' },
+      },
+      ip: '10.1.0.10',
+    });
+    await POST(req);
+    const body = JSON.parse(mockFetch.mock.calls[0][1]?.body as string);
+    expect(body.system).toContain('English');
   });
 
   it('POST handles JSON parse error gracefully', async () => {

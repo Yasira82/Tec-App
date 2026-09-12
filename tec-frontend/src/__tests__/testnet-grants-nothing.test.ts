@@ -22,8 +22,22 @@ const call = (host: string) =>
   }));
 
 describe('the Testnet host reports FREE', () => {
-  beforeEach(() => { vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('must not ask commerce'); })); });
-  afterEach(() => { vi.unstubAllGlobals(); });
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('must not ask commerce'); }));
+    // PIN THE ENVIRONMENT THIS TEST RUNS IN.
+    //
+    // `isE2eMode()` is true whenever `CI === 'true'` — which GitHub Actions
+    // always sets — and in that mode the route answers a deterministic stub for
+    // EVERY host. So this suite passed locally and failed in CI, for a reason
+    // that had nothing to do with the rule under test.
+    //
+    // A test that inherits an ambient env var is not testing the branch it
+    // claims to. Pin it, and cover the E2E branch explicitly below.
+    vi.stubEnv('CI', 'false');
+    vi.stubEnv('E2E_MODE', '');
+    vi.stubEnv('NEXT_PUBLIC_E2E_MODE', '');
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
   it('answers FREE without asking commerce at all', async () => {
     // The fetch stub throws: reaching the gateway from a Testnet host fails
@@ -59,6 +73,28 @@ describe('the Testnet host reports FREE', () => {
 
   it('leaves the Mainnet host alone — it still asks commerce', async () => {
     await reachedCommerce('hub.tecosystem.app');
+  });
+});
+
+describe('E2E mode', () => {
+  beforeEach(() => {
+    vi.stubGlobal('fetch', vi.fn(async () => { throw new Error('must not ask commerce'); }));
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('E2E_ALLOW_NETWORK', '');
+  });
+  afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+
+  it('still never reaches the network, on either network', async () => {
+    // E2E mode exists so no route makes an external call. The Testnet gate does
+    // not either, so the two cannot conflict — and neither may answer by
+    // calling commerce. Pinned rather than assumed, because the assumption is
+    // exactly what broke CI.
+    for (const host of ['hub.tecosystem.app', 'tec-app-frontend.vercel.app']) {
+      const res = await call(host);
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(String(body.data.plan).toUpperCase()).toBe('FREE');
+    }
   });
 });
 

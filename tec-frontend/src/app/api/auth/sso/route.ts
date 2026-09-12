@@ -95,7 +95,25 @@ export async function GET(req: NextRequest) {
     const res = NextResponse.redirect(callbackUrl.toString());
     for (const c of rotatedCookies) res.headers.append('Set-Cookie', c);
     return res;
-  } catch {
-    return NextResponse.json({ error: 'sso_failed' }, { status: 500 });
+  } catch (err) {
+    // SAY WHY. This handoff is the only way into every app in the fleet, and
+    // this catch used to swallow the reason entirely: a tile that "does
+    // nothing" and a bare `sso_failed`, with the same response for a malformed
+    // user cookie, an unsignable token and a bad target URL.
+    //
+    // Commerce showed exactly that — 500 from the Hub, while the very same app
+    // opened fine when typed directly — and there was nothing to read from a
+    // phone. A failure in a path with no alternative must name itself.
+    //
+    // `reason` is safe to return: it never contains the token (jose errors do
+    // not echo it) and the only user data it can carry is a fragment of the
+    // caller's OWN cookie, shown back to the caller. The server log carries the
+    // full error for anyone who can read it.
+    const reason = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    console.error('[sso] handoff failed', { target, reason });
+    return NextResponse.json(
+      { error: 'sso_failed', target, reason: reason.slice(0, 200) },
+      { status: 500 },
+    );
   }
 }

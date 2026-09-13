@@ -38,6 +38,12 @@ interface Me {
     wallet_address: string;
     tx_id:          string | null;
     paid_at:        string | null;
+    /**
+     * Why a claimed seat has not been paid — and only ever something the
+     * person can act on. The service sends null for everything else, so a
+     * failure that is ours never appears here as if it were theirs.
+     */
+    payout_blocked?: string | null;
   };
 }
 
@@ -411,14 +417,36 @@ export default function CampaignPage() {
               }}>
                 {claim.status === 'PAID'     ? `Sent — ${me?.reward_pi} π on its way`
                  : claim.status === 'REJECTED' ? 'This claim was not approved'
+                 : claim.payout_blocked        ? `Seat #${claim.seat} is yours — one thing left`
                  : `Seat #${claim.seat} is yours`}
               </div>
+
+              {/* The seat is theirs and the payout cannot go out until they do
+                  something. Saying "be patient" here would be false: the wait
+                  has no end unless they act. Shown ABOVE the reassurance, and
+                  in a colour that is not the calm one. */}
+              {claim.status === 'CLAIMED' && claim.payout_blocked && (
+                <div style={{
+                  marginTop: 10, padding: 'var(--sp-3)',
+                  background: 'rgba(251,180,74,0.10)',
+                  border: '1px solid var(--tec-border-gold)',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: 12, lineHeight: 1.7, color: 'var(--tec-text-2)',
+                }}>
+                  {claim.payout_blocked}
+                </div>
+              )}
               {/* Said plainly. A person sends this by hand, and a screen that
                   implies an instant payout turns a normal wait into a
                   suspicion that they have been cheated. */}
               <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginTop: 6, lineHeight: 1.6 }}>
                 {claim.status === 'CLAIMED'
-                  ? 'A person sends the Pi by hand, so this is not instant. You will see the transaction id here when it is done.'
+                  // Not repeated once the block above has said the wait has a
+                  // cause. Two messages about the same wait, one of them
+                  // reassuring, reads as though the first can be ignored.
+                  ? (claim.payout_blocked
+                      ? 'Your seat is held. The transaction id appears here once the Pi is sent.'
+                      : 'A person sends the Pi by hand, so this is not instant. You will see the transaction id here when it is done.')
                   : claim.status === 'PAID'
                     ? 'Check your Pi wallet.'
                     // Says what to DO. "Contact us" alone, on a screen with no

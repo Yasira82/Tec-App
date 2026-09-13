@@ -3,6 +3,7 @@ import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 import { checkRateLimit }    from '@/lib/ai/rate-limit';
 import { verifyContext }     from '@/lib/ai/context-token';
+import { observeIntent }     from '@/lib/ai/intent-observation';
 
 export const runtime = 'edge';
 
@@ -414,6 +415,72 @@ function createUnifiedStream(provider: string) {
   });
 }
 
+/**
+ * IIC 3.3 — record what the user asked, as a structured intent object, and do NOTHING
+ * with it. No routing changes, no prompt changes, no execution. It exists so the closed
+ * objective set in IIC 4.3 can be designed from asks people actually made.
+ *
+ * ── Three decisions ─────────────────────────────────────────────────────────────
+ *
+ * 1. **Every user turn, not only the ones the model routes.** The plan said "on every
+ *    recommendation", and the recommendation is only knowable after the reply has
+ *    streamed. But filtering to marker-bearing replies would sample only the objectives
+ *    the current system prompt already knows how to route — precisely the wrong sample
+ *    for discovering which ones are MISSING. The ask is the intent; the reply is the
+ *    platform's answer to it.
+ *
+ * 2. **Fire-and-forget, and it may never complete.** This must not add a millisecond to
+ *    the answer, and a research instrument that can fail a chat is a bad trade at any
+ *    price. It is issued before the stream opens, so it has the whole life of the
+ *    response to land; if it does not, one observation is lost and nobody notices. Every
+ *    failure path is swallowed on purpose — that is the one place in this codebase where
+ *    a silent catch is correct, because the alternative is a broken assistant.
+ *
+ * 3. **Server-side, from the message this route holds.** A client-fed intent is a claim,
+ *    not evidence — the lesson Life's intent store already settled. The owner comes from
+ *    the caller's own token at the sink, never from anything in this body.
+ */
+function recordIntentObservation(
+  req: NextRequest,
+  messages: Message[],
+  locale: string | undefined,
+): void {
+  const gateway = process.env.API_GATEWAY_URL;
+  const secret  = process.env.INTERNAL_SECRET;
+  if (!gateway || !secret) return;
+
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  if (!lastUser?.content) return;
+
+  const bearer = req.headers.get('authorization')
+    ?? (req.cookies?.get?.('tec_access_token')?.value
+      ? `Bearer ${req.cookies.get('tec_access_token')!.value}`
+      : null);
+  if (!bearer) return;   // no user scope → an unattributable row the research cannot use
+
+  void (async () => {
+    try {
+      const observation = await observeIntent(lastUser.content, {
+        // Narrowed, not cast: the sink refuses anything but en/ar, and an observation
+        // dropped for a locale it did not need is one this instrument threw away.
+        ...(locale === 'en' || locale === 'ar' ? { locale } : {}),
+      });
+      if (!observation) return;
+      await fetch(`${gateway.replace(/\/$/, '')}/api/analytics/ai/intent-observation`, {
+        method:  'POST',
+        headers: {
+          'Content-Type':   'application/json',
+          'authorization':  bearer,
+          'x-internal-key': secret,
+        },
+        body: JSON.stringify(observation),
+      });
+    } catch {
+      // Deliberate. See decision 2 above.
+    }
+  })();
+}
+
 // ── Main POST Handler ─────────────────────────────────────
 export async function POST(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
@@ -488,6 +555,10 @@ export async function POST(req: NextRequest) {
         { status: 400, headers: corsHeaders },
       );
     }
+
+    // IIC 3.3 — observe, and do nothing with it. Never awaited: the answer does not
+    // wait on an instrument.
+    recordIntentObservation(req, messages, userContext.locale);
 
     const systemPrompt = buildSystemPrompt(userContext);
     const claudeKey    = process.env.ANTHROPIC_API_KEY;

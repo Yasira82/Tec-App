@@ -45,11 +45,18 @@ async function mintSelfSsoToken(
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { accessToken } = body;
+    const { accessToken, scopes } = body;
 
     if (!accessToken) {
       return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
     }
+
+    // Forwarded, not validated here. It authorizes nothing — auth records it
+    // only to decide whether this person still needs to sign in again before
+    // they can be paid (Pi cannot widen a consent already given). Absent stays
+    // absent: an older cached bundle sends nothing, and auth must not read
+    // that as "the old scopes", only as "unknown".
+    const forwardedScopes = Array.isArray(scopes) ? scopes.filter((s) => typeof s === 'string') : undefined;
 
     let backendRes: Response;
     try {
@@ -58,7 +65,7 @@ export async function POST(req: NextRequest) {
         {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ accessToken }),
+          body:    JSON.stringify({ accessToken, ...(forwardedScopes ? { scopes: forwardedScopes } : {}) }),
         },
         25000,
       );

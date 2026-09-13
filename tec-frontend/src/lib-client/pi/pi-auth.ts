@@ -360,7 +360,13 @@ export const loginWithPi = async (): Promise<TecAuthResponse> => {
     method:      'POST',
     credentials: 'include',
     headers:     { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
-    body:        JSON.stringify({ accessToken: piAuth.accessToken }),
+    // The scopes THIS sign-in asked Pi for, so the platform can stop guessing
+    // who still needs to re-consent. Pi cannot widen a consent already given,
+    // so an account that signed in before `wallet_address` was requested must
+    // sign in once more before it can be paid — and nothing recorded which
+    // accounts those were. It authorizes nothing: auth stores it only to
+    // decide whether to remind this person.
+    body:        JSON.stringify({ accessToken: piAuth.accessToken, scopes: piScopes() }),
   });
 
   if (!res.ok) {

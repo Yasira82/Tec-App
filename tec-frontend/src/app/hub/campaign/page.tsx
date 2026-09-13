@@ -152,12 +152,25 @@ function Mission({ slug, done, needsAction, locale, href, onOpen }: {
 
 export default function CampaignPage() {
   const router = useRouter();
-  const { user, isAuthenticated, isLoading: authLoading } = usePiAuth();
+  const { user, isAuthenticated, isLoading: authLoading, logout } = usePiAuth();
   const { dir } = useTranslation();
   const locale: 'en' | 'ar' = dir === 'rtl' ? 'ar' : 'en';
 
   const [status,  setStatus]  = useState<Status | null>(null);
   const [me,      setMe]      = useState<Me | null>(null);
+  /**
+   * Does this account still need to sign in again before it can be paid?
+   *
+   * Pi resolves a uid to a wallet only for an app the person granted
+   * `wallet_address`, and Pi cannot widen a consent already given. Everyone who
+   * signed in before 2026-09-13 must sign in once more — and this page is where
+   * the reward is promised, so it is where the one thing they can do belongs.
+   *
+   * Starts false so nothing flashes while it loads. The route fails open for
+   * the same reason: a banner that appears because a service blipped is a
+   * banner people learn to dismiss without reading.
+   */
+  const [needsReconsent, setNeedsReconsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -209,6 +222,12 @@ export default function CampaignPage() {
         // `apps` is the marker of a real payload — an error body has none, and
         // must not be mistaken for "this pioneer has done nothing" (P6).
         setMe(Array.isArray(m?.apps) ? (m as Me) : null);
+
+        // Asked alongside, never blocking: a person must still see their
+        // progress if this one answer does not arrive.
+        const c = await fetch('/api/bff/payout-consent', { credentials: 'include' })
+          .then((r) => r.json()).catch(() => ({}));
+        setNeedsReconsent(c?.needsReconsent === true);
       }
     } finally {
       setLoading(false);
@@ -404,6 +423,44 @@ export default function CampaignPage() {
         </div>
       ) : (
         <>
+          {/* ── Sign in again, or the reward cannot reach you ──
+              Shown BEFORE the claim block on purpose: this is the one thing
+              the person can do, and it is useful before they claim as well as
+              after. It is not dismissible — dismissing it would not change the
+              fact, and the banner disappears by itself the moment they act. */}
+          {isAuthenticated && needsReconsent && (
+            <div style={{
+              background: 'rgba(251,180,74,0.10)',
+              border: '1px solid var(--tec-border-gold)',
+              borderRadius: 'var(--radius-md)',
+              padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)',
+            }}>
+              <div style={{ fontWeight: 800, fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>
+                One step before Pi can reach you
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--tec-text-2)', marginTop: 6, lineHeight: 1.7 }}>
+                Sign out and sign in again. Pi now asks your permission to reveal
+                where your wallet is — without it we cannot send you anything, and
+                a permission cannot be added to a sign-in you already gave.
+                Your progress and your seat are kept.
+              </div>
+              <button
+                // The same sign-out Profile uses. Landing on `/` is what puts
+                // them back at the Pi sign-in — which is the whole point: the
+                // NEXT authenticate is the one that asks for the new scope.
+                onClick={() => { logout(); router.push('/'); }}
+                style={{
+                  marginTop: 12, width: '100%', padding: '10px 12px',
+                  background: 'var(--tec-gold)', color: '#0B1020',
+                  border: 'none', borderRadius: 'var(--radius-sm)',
+                  fontWeight: 800, fontSize: 13, cursor: 'pointer', font: 'inherit',
+                }}
+              >
+                Sign out and back in
+              </button>
+            </div>
+          )}
+
           {/* ── Where the claim stands ─────────────────────── */}
           {claim && (
             <div style={{

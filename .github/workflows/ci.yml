@@ -26,9 +26,15 @@ permissions:
 # Cancel a superseded run when a NEWER commit is pushed to the same PR/branch —
 # the standard idiom. Keyed on the ref (not the commit SHA), so it never makes
 # the push and pull_request events of the SAME commit cancel each other.
+#
+# `main` is EXCLUDED from cancellation. This file previously read
+# `cancel-in-progress: true`, which also cancelled runs on `main` — and a run
+# there is the post-merge record (and the status a deploy gate reads), the one
+# signal worth paying for. The fleet carried two spellings of this rule; this
+# is now the single one, taken from `tec-knowledge-base` knowledge-ci.yml (P2).
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   pipeline:

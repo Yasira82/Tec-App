@@ -5,6 +5,7 @@ import { piSession }        from '@/lib-client/pi/pi-session';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { PiRuntime }        from '@/lib-client/pi/PiRuntime';
 import { useTranslation, fill } from '@/lib/i18n';
+import { sourceLabel, isTestnetPaymentHost } from '@/lib-client/payment/shown';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -13,19 +14,10 @@ const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   }
 };
 
-const getSourceLabel = (source: string) => {
-  switch (source) {
-    case 'commerce':   return 'TEC Commerce';
-    case 'ecommerce':  return 'TEC Ecommerce';
-    case 'assets':     return 'TEC Assets';
-    case 'analytics':  return 'TEC Analytics';
-    case 'life':       return 'TEC Life';
-    case 'connection': return 'TEC Connection';
-    case 'zone':       return 'TEC Zone';
-    case 'nexus':      return 'TEC Nexus';
-    default:           return 'TEC Ecosystem';
-  }
-};
+// The label this modal titles the payment with now comes from lib-client/payment/shown,
+// because the SAME string has to reach the proof's `shown` field (IIC 4.5 §7). A second
+// switch here would agree with it today and settle nothing on the day it stopped.
+const getSourceLabel = sourceLabel;
 
 export interface ExternalPayment {
   amount:        number;
@@ -64,8 +56,7 @@ export interface ExternalPayment {
  * Nothing new is shown to a real buyer: on Mainnet this renders nothing at all.
  * The chip only ever means "this is NOT real Pi".
  */
-const isTestnetModal = (): boolean =>
-  typeof window !== 'undefined' && /\.vercel\.app$/i.test(window.location.hostname);
+const isTestnetModal = isTestnetPaymentHost;
 
 const traceVisible = (): boolean => {
   if (typeof window === 'undefined') return false;

@@ -7,6 +7,7 @@ import { tecSession }          from '@/lib-client/pi/tec-session';
 import { getStoredUser }       from '@/lib-client/pi/pi-auth';
 import { sessionToken }        from '@/lib-client/pi/session-source';
 import type { ExternalPayment } from '@/app/hub/components/PaymentModal';
+import { shownParts, shownText, sourceLabel, isTestnetPaymentHost } from '@/lib-client/payment/shown';
 
 /**
  * A Mode-1 payment as it arrives on the URL, before the record exists — the
@@ -154,6 +155,24 @@ export function useExternalPayment({ isLoading, piReady, user, onError }: Args) 
               ...(pending.nexusRunId
                 ? { nexusRunId: pending.nexusRunId, nexusStepIdx: Number(pending.nexusStepIdx) }
                 : {}),
+              // IIC 4.5 §7 — what the human is about to look at, recorded WITH the
+              // payment rather than reconstructed from it afterwards.
+              //
+              // `shownParts` is the same composition the modal renders from, so this
+              // string and the screen cannot drift apart: changing one means editing
+              // lib-client/payment/shown, which changes both.
+              //
+              // It rides in the payment's own metadata for the same reason the Nexus
+              // link does — that metadata is what reaches `payment.completed.v1`, so
+              // the record arrives bound to the payment it describes instead of as a
+              // separate claim about it. The proof (intent.proof.ts) is where it is
+              // signed; here it is only captured.
+              shown: shownText(shownParts({
+                label:   sourceLabel(pending.source),
+                amount:  pending.amount,
+                memo:    pending.memo,
+                testnet: isTestnetPaymentHost(),
+              })),
             },
           }),
         });

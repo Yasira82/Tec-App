@@ -290,7 +290,13 @@ export const en = {
       dropYes:      'Yes, cancel it',
       dropNo:       'Keep my seat',
       missionsIntro:'Visit these apps, then claim {reward} π. Free — there is no payment at any step.',
-      missionConnection: 'This link puts you in the TEC group — post your Pi wallet address there. That is where we send the reward.',
+      // "That is where we send the reward" came out: it was never literally
+      // true (Pi resolves the wallet from the account), and with a second route
+      // to the address it had stopped being true in the ordinary sense either.
+      // The group is still what this asks for — it is the one mission that
+      // leaves something behind for the next pioneer — so it is still the
+      // quickest way, and it is now the quickest way for a reason that holds.
+      missionConnection: 'This link puts you in the TEC group — say hello, and post your Pi wallet address there. Then the claim fills itself in and there is nothing left to type.',
       missionChat:  'Open a chat and send one message — opening the app is not enough here',
       finishFirst:  'Finish the list above to claim.',
       neverAsk1:    'We will',

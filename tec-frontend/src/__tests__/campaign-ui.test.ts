@@ -78,39 +78,69 @@ describe('an unreadable campaign is CLOSED, never open', () => {
 });
 
 describe('the claim form is not shaped like a phishing page', () => {
+  /**
+   * These assertions used to read the component, because the copy lived in it.
+   * It now lives in the locale files — so they read those, and they read BOTH.
+   *
+   * That is not bookkeeping. An anti-phishing warning that exists in English and
+   * not in Arabic is the exact gap this page had: the Hub card advertised the
+   * campaign in Arabic and the page answered entirely in English. A guarantee
+   * that only one audience receives is not a guarantee.
+   */
   const page = read('app/hub/campaign/page.tsx');
+  const en   = read('lib/i18n/en.ts');
+  const ar   = read('lib/i18n/ar.ts');
 
-  it('says we will NEVER ask for a passphrase, before the field', () => {
+  it('says we will NEVER ask for a passphrase, before it asks for an address', () => {
     // "Send us your wallet address" is a shape people are phished with. The
-    // only defence is to say, before they type, what we will never ask for.
-    const warning = page.indexOf('never');
-    const input   = page.indexOf('<input');
+    // only defence is to say, before they post one, what we will never ask for.
+    //
+    // The anchor used to be `<input` — and that was vacuous twice over. The
+    // address is never typed on this page (it is read back from the group), so
+    // the only `<input` is the correction field far below; and the search term
+    // was the bare word "never", which matched a source comment on line 17 and
+    // passed no matter where the warning sat. Made honest, it failed: the
+    // warning was down beside the claim, while the Connection mission ABOVE it
+    // is the thing that says "post your Pi wallet address there". The warning
+    // moved above the missions. That is the order this test exists to hold.
+    const warning = page.indexOf('c.neverAsk1');
+    const asksForAddress = page.indexOf('c.missionConnection');
     expect(warning).toBeGreaterThan(-1);
-    expect(warning).toBeLessThan(input);
-    expect(page).toMatch(/passphrase or secret key/);
+    expect(asksForAddress).toBeGreaterThan(-1);
+    expect(warning).toBeLessThan(asksForAddress);
+    expect(en).toMatch(/passphrase or secret key/);
+    // Arabic: the passphrase and the secret key, named.
+    expect(ar).toMatch(/العبارة السرية/);
+    expect(ar).toMatch(/المفتاح الخاص/);
   });
 
-  it('asks for the PUBLIC address by name', () => {
-    expect(page).toMatch(/public address/);
-    expect(page).toMatch(/starts with/);
+  it('asks for the PUBLIC address by name, in both languages', () => {
+    expect(en).toMatch(/public address/);
+    expect(en).toMatch(/starts with/);
+    expect(ar).toMatch(/العام/);
+    expect(ar).toMatch(/بيبدأ بحرف/);
   });
 
-  it('never mentions a payment to qualify', () => {
-    expect(page).toMatch(/there is no payment at any step/);
+  it('never mentions a payment to qualify, in either language', () => {
+    expect(en).toMatch(/there is no payment at any step/);
+    expect(ar).toMatch(/مفيش أي دفع في أي خطوة/);
   });
 });
 
 describe('the wait is stated, not implied away', () => {
-  const page = read('app/hub/campaign/page.tsx');
+  const en = read('lib/i18n/en.ts');
+  const ar = read('lib/i18n/ar.ts');
 
   it('tells a claimant a person sends it by hand', () => {
     // A screen implying an instant payout turns a normal wait into a suspicion
     // that they have been cheated.
-    expect(page).toMatch(/A person sends the Pi by hand, so this is not instant/);
+    expect(en).toMatch(/A person sends the Pi by hand, so this is not instant/);
+    expect(ar).toMatch(/بيبعت الـ Pi بإيده/);
   });
 
   it('promises the transaction id as the proof', () => {
-    expect(page).toMatch(/transaction id here when it is done/);
+    expect(en).toMatch(/transaction id here when it is done/);
+    expect(ar).toMatch(/رقم العملية/);
   });
 });
 
@@ -123,20 +153,23 @@ describe('a wrong address can be corrected before the Pi is sent', () => {
     // record afterwards would make it describe a transfer that never happened
     // — the service refuses it too, and a control that always fails is worse
     // than no control.
+    // Structure stays asserted against the component; the sentence against the copy.
     expect(page).toMatch(/claim\.status === 'CLAIMED' && !editing/);
-    expect(page).toMatch(/Wrong address\? Change it before it is sent/);
+    expect(read('lib/i18n/en.ts')).toMatch(/Wrong address\? Change it before it is sent/);
   });
 
   it('says the seat is not at stake', () => {
     // Somebody who thinks correcting a typo costs them their place will leave
     // it wrong.
-    expect(page).toMatch(/You keep seat/);
+    expect(read('lib/i18n/en.ts')).toMatch(/You keep seat/);
+    expect(read('lib/i18n/ar.ts')).toMatch(/هيفضل بتاعك/);
   });
 
   it('names the mistake that actually happens', () => {
     // Pasting an address copied out of a payment you RECEIVED — which is the
     // sender's address, not yours.
-    expect(page).toMatch(/not one you copied from a payment you were sent/);
+    expect(read('lib/i18n/en.ts')).toMatch(/not one you copied from a payment you were sent/);
+    expect(read('lib/i18n/ar.ts')).toMatch(/نسخته من دفعة اتبعتت لك/);
   });
 
   it('the route sends ONLY the address — never an owner', () => {
@@ -384,11 +417,17 @@ describe('the Connection mission points at the TEC group', () => {
     expect(page).toMatch(/me\?\.connection_invite_url \|\| status\?\.connection_invite_url \|\| linkFor\(slug\)/);
   });
 
-  it('tells them what the link will do and what to post there', () => {
+  it('hands the mission its hint, and the hint says what to post — in both languages', () => {
     // The mission IS the address now: the group is where it is said, and the
-    // link is what puts them in the group.
-    expect(page).toMatch(/puts you in the TEC group/);
-    expect(page).toMatch(/post your Pi wallet address there/i);
+    // link is what puts them in the group. The wiring is asserted against the
+    // component, the sentence against the copy — and against BOTH locales,
+    // because a pioneer reading the Arabic page must be told where to post it
+    // just as plainly as one reading the English.
+    expect(page).toMatch(/hintConnection=\{c\.missionConnection\}/);
+    expect(read('lib/i18n/en.ts')).toMatch(/puts you in the TEC group/);
+    expect(read('lib/i18n/en.ts')).toMatch(/post your Pi wallet address there/i);
+    expect(read('lib/i18n/ar.ts')).toMatch(/جروب TEC/);
+    expect(read('lib/i18n/ar.ts')).toMatch(/عنوان محفظة/);
   });
 });
 
@@ -442,9 +481,13 @@ describe('a rejected pioneer is offered another go', () => {
     expect(page).toMatch(/!activeClaim && status\?\.open && \(/);
   });
 
-  it('tells them what to DO, not just who to contact', () => {
+  it('tells them what to DO, not just who to contact — in both languages', () => {
     // "Contact us" alone, on a screen with no way forward, reads as a polite no.
-    expect(page).toMatch(/try again below/i);
+    // A rejected pioneer reading Arabic is the one most likely to read it that
+    // way, so the second chance is asserted there too.
+    expect(page).toMatch(/c\.rejectedBody/);
+    expect(read('lib/i18n/en.ts')).toMatch(/try again below/i);
+    expect(read('lib/i18n/ar.ts')).toMatch(/تحاول تاني/);
   });
 });
 

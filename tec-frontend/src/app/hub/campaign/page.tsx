@@ -8,7 +8,7 @@ import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
 import { getSource }   from '@/lib-client/campaign';
 import { rememberReturn } from '@/lib-client/return-to';
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, fill } from '@/lib/i18n';
 
 /**
  * The Pi reward campaign.
@@ -110,10 +110,11 @@ const recordOpen = (slug: string) => {
   } catch { /* ignore */ }
 };
 
-function Mission({ slug, done, needsAction, locale, href, onOpen }: {
+function Mission({ slug, done, needsAction, locale, href, onOpen, hintConnection, hintChat }: {
   slug: string; done: boolean; needsAction: boolean; locale: 'en' | 'ar';
   href: string;
   onOpen: (slug: string) => void;
+  hintConnection: string; hintChat: string;
 }) {
   return (
     <a
@@ -139,9 +140,7 @@ function Mission({ slug, done, needsAction, locale, href, onOpen }: {
             way to make a screen feel broken. */}
         {needsAction && !done && (
           <div style={{ fontSize: 11.5, color: 'var(--tec-gold)', marginTop: 2 }}>
-            {slug === 'connection'
-              ? 'This link puts you in the TEC group — post your Pi wallet address there. That is where we send the reward.'
-              : 'Open a chat and send one message — opening the app is not enough here'}
+            {slug === 'connection' ? hintConnection : hintChat}
           </div>
         )}
       </div>
@@ -153,7 +152,8 @@ function Mission({ slug, done, needsAction, locale, href, onOpen }: {
 export default function CampaignPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, logout } = usePiAuth();
-  const { dir } = useTranslation();
+  const { t, dir } = useTranslation();
+  const c = t.hub.campaignPage;
   const locale: 'en' | 'ar' = dir === 'rtl' ? 'ar' : 'en';
 
   const [status,  setStatus]  = useState<Status | null>(null);
@@ -263,7 +263,7 @@ export default function CampaignPage() {
       const data = await res.json().catch(() => ({}));
       // The service knows WHICH way an address was wrong, and its sentence is
       // the only line a person can act on. A generic failure hides it.
-      if (!res.ok) throw new Error(data?.message ?? data?.error ?? `Failed (${res.status})`);
+      if (!res.ok) throw new Error(data?.message ?? data?.error ?? fill(c.failed, { status: res.status }));
       setEditing(false); setNewAddr('');
       await load();
     } catch (e) {
@@ -282,7 +282,7 @@ export default function CampaignPage() {
       const data = await res.json().catch(() => ({}));
       // The service refuses a PAID claim, and that sentence is the answer —
       // "could not cancel" would hide the only reason that matters.
-      if (!res.ok) throw new Error(data?.message ?? data?.error ?? `Failed (${res.status})`);
+      if (!res.ok) throw new Error(data?.message ?? data?.error ?? fill(c.failed, { status: res.status }));
       setConfirmDrop(false);
       await load();
     } catch (e) {
@@ -306,7 +306,7 @@ export default function CampaignPage() {
       if (!res.ok) {
         // The service's own sentence — it knows whether the address was missing,
         // unreadable, or already spent.
-        throw new Error(data?.error?.message || data?.message || data?.error || 'Could not claim');
+        throw new Error(data?.error?.message || data?.message || data?.error || c.couldNotClaim);
       }
       await load();
     } catch (e) {
@@ -370,8 +370,26 @@ export default function CampaignPage() {
 
   return (
     <HubSubShell
-      title="Pi Reward Campaign"
-      subtitle={status ? `${status.reward_pi} π · ${status.remaining} of ${status.seats} seats left` : 'Loading…'}
+      title={c.title}
+      /**
+       * Only when there are real numbers to show.
+       *
+       * `status` alone is not that test. When the gateway cannot be reached the
+       * BFF fails closed with `{ data: { open: false } }` — correct, and truthy,
+       * so this template ran over three fields that were not there and the header
+       * read "undefined π · undefined of undefined seats left" above a body that
+       * said "No campaign is running". The page contradicted itself in the one
+       * place a visitor looks first.
+       */
+      subtitle={
+        status && typeof status.reward_pi === 'number' && typeof status.seats === 'number'
+          ? fill(c.seatsLeft, {
+              reward:    status.reward_pi,
+              remaining: status.remaining,
+              seats:     status.seats,
+            })
+          : undefined
+      }
       loading={authLoading || loading}
     >
       {/* The payout queue, for the one person who can act on it.
@@ -394,10 +412,10 @@ export default function CampaignPage() {
           <span style={{ fontSize: 18 }}>π</span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>
-              Campaign payouts
+              {c.adminTitle}
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)' }}>
-              Who has claimed, and where to send the Pi
+              {c.adminSub}
             </div>
           </div>
           <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
@@ -411,15 +429,42 @@ export default function CampaignPage() {
       {!status?.open && !claim ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>
-            No campaign is running
+            {c.closedTitle}
           </div>
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>
-            Check back — the next round will appear here.
+            {c.closedSub}
           </div>
         </div>
       ) : !isAuthenticated ? (
-        <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)', fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>
-          Sign in with Pi to take part.
+        /**
+         * A sentence is not an invitation.
+         *
+         * `/hub` is not in PROTECTED_ROUTES, so this page is publicly reachable —
+         * and a signed-out visitor met "Sign in with Pi to take part." as plain
+         * text, with nothing to tap. On the one screen whose entire job is to turn
+         * a visitor into a pioneer, that is a wall with no door.
+         *
+         * `rememberReturn` first: signing in bounces through the Hub, and without
+         * it they land on the home page with no idea what they were doing. The
+         * campaign is the reason they signed in; it should be where they come back.
+         */
+        <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-4)' }}>
+            {c.signedOut}
+          </div>
+          <button
+            onClick={() => {
+              try { rememberReturn('/hub/campaign'); } catch { /* ignore */ }
+              router.push('/');
+            }}
+            style={{
+              padding: '12px 24px', borderRadius: 'var(--radius-sm)', border: 'none',
+              background: 'var(--tec-gold)', color: '#0B1020',
+              fontWeight: 800, fontSize: 13, cursor: 'pointer', font: 'inherit',
+            }}
+          >
+            {c.signIn}
+          </button>
         </div>
       ) : (
         <>
@@ -436,13 +481,10 @@ export default function CampaignPage() {
               padding: 'var(--sp-4)', marginBottom: 'var(--sp-4)',
             }}>
               <div style={{ fontWeight: 800, fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>
-                One step before Pi can reach you
+                {c.reconsentTitle}
               </div>
               <div style={{ fontSize: 12, color: 'var(--tec-text-2)', marginTop: 6, lineHeight: 1.7 }}>
-                Sign out and sign in again. Pi now asks your permission to reveal
-                where your wallet is — without it we cannot send you anything, and
-                a permission cannot be added to a sign-in you already gave.
-                Your progress and your seat are kept.
+                {c.reconsentBody}
               </div>
               <button
                 // The same sign-out Profile uses. Landing on `/` is what puts
@@ -456,7 +498,7 @@ export default function CampaignPage() {
                   fontWeight: 800, fontSize: 13, cursor: 'pointer', font: 'inherit',
                 }}
               >
-                Sign out and back in
+                {c.reconsentCta}
               </button>
             </div>
           )}
@@ -472,10 +514,10 @@ export default function CampaignPage() {
                 fontWeight: 800, fontSize: 'var(--text-sm)',
                 color: claim.status === 'PAID' ? 'var(--tec-green)' : 'var(--tec-gold)',
               }}>
-                {claim.status === 'PAID'     ? `Sent — ${me?.reward_pi} π on its way`
-                 : claim.status === 'REJECTED' ? 'This claim was not approved'
-                 : claim.payout_blocked        ? `Seat #${claim.seat} is yours — one thing left`
-                 : `Seat #${claim.seat} is yours`}
+                {claim.status === 'PAID'     ? fill(c.paidTitle, { reward: me?.reward_pi ?? '' })
+                 : claim.status === 'REJECTED' ? c.rejectedTitle
+                 : claim.payout_blocked        ? fill(c.seatBlocked, { seat: claim.seat ?? '' })
+                 : fill(c.seatYours, { seat: claim.seat ?? '' })}
               </div>
 
               {/* The seat is theirs and the payout cannot go out until they do
@@ -501,14 +543,12 @@ export default function CampaignPage() {
                   // Not repeated once the block above has said the wait has a
                   // cause. Two messages about the same wait, one of them
                   // reassuring, reads as though the first can be ignored.
-                  ? (claim.payout_blocked
-                      ? 'Your seat is held. The transaction id appears here once the Pi is sent.'
-                      : 'A person sends the Pi by hand, so this is not instant. You will see the transaction id here when it is done.')
+                  ? (claim.payout_blocked ? c.waitBlocked : c.waitNormal)
                   : claim.status === 'PAID'
-                    ? 'Check your Pi wallet.'
+                    ? c.paidBody
                     // Says what to DO. "Contact us" alone, on a screen with no
                     // way forward, reads as a polite no.
-                    : 'You can try again below — check the address carefully first. Contact us through the feedback form if you think this was a mistake.'}
+                    : c.rejectedBody}
               </div>
               <div dir="ltr" style={{
                 marginTop: 8, fontSize: 11, fontFamily: 'var(--font-mono)',
@@ -531,7 +571,7 @@ export default function CampaignPage() {
                     cursor: 'pointer', font: 'inherit',
                   }}
                 >
-                  Wrong address? Change it before it is sent
+                  {c.changeAddr}
                 </button>
               )}
 
@@ -544,7 +584,7 @@ export default function CampaignPage() {
                     spellCheck={false}
                     autoCapitalize="none"
                     autoCorrect="off"
-                    aria-label="Your Pi wallet address"
+                    aria-label={c.addrLabel}
                     style={{
                       width: '100%', boxSizing: 'border-box',
                       background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
@@ -563,7 +603,7 @@ export default function CampaignPage() {
                         cursor: fixBusy ? 'default' : 'pointer', opacity: fixBusy ? 0.6 : 1,
                       }}
                     >
-                      Save address
+                      {c.save}
                     </button>
                     <button
                       onClick={() => { setEditing(false); setFixErr(null); }} disabled={fixBusy}
@@ -574,14 +614,13 @@ export default function CampaignPage() {
                         font: 'inherit', cursor: 'pointer',
                       }}
                     >
-                      Cancel
+                      {c.cancel}
                     </button>
                   </div>
                   {/* Your seat is not at stake. Somebody who thinks correcting
                       a typo costs them their place will leave it wrong. */}
                   <p style={{ margin: '8px 0 0', fontSize: 11, lineHeight: 1.5, color: 'var(--tec-text-3)' }}>
-                    You keep seat #{claim.seat}. Make sure this is the address YOUR wallet
-                    receives on — not one you copied from a payment you were sent.
+                    {fill(c.keepSeat, { seat: claim.seat ?? '' })}
                   </p>
                   {fixErr && (
                     <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--tec-red)' }}>{fixErr}</p>
@@ -606,14 +645,12 @@ export default function CampaignPage() {
                         cursor: 'pointer', font: 'inherit',
                       }}
                     >
-                      I don’t want this seat — cancel my claim
+                      {c.dropCta}
                     </button>
                   ) : (
                     <>
                       <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: 'var(--tec-text-2)' }}>
-                        Seat #{claim.seat} goes back to the pool and your address is removed.
-                        You can claim again later while seats last — but you may not get this
-                        seat number.
+                        {fill(c.dropConfirm, { seat: claim.seat ?? '' })}
                       </p>
                       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
                         <button
@@ -626,7 +663,7 @@ export default function CampaignPage() {
                             opacity: dropBusy ? 0.6 : 1,
                           }}
                         >
-                          Yes, cancel it
+                          {c.dropYes}
                         </button>
                         <button
                           onClick={() => { setConfirmDrop(false); setDropErr(null); }} disabled={dropBusy}
@@ -637,7 +674,7 @@ export default function CampaignPage() {
                             font: 'inherit', cursor: 'pointer',
                           }}
                         >
-                          Keep my seat
+                          {c.dropNo}
                         </button>
                       </div>
                       {dropErr && (
@@ -657,8 +694,30 @@ export default function CampaignPage() {
               reads as being refused personally. */}
           {!activeClaim && status?.open && (
             <>
+              {/* The loudest thing on the screen, and deliberately so — and it
+                  sits ABOVE the missions, not down beside the claim.
+                  "Send us your wallet address" is a shape people are phished
+                  with, and the Connection mission is where this screen asks for
+                  one: it says "post your Pi wallet address there". A warning
+                  that arrives after that instruction arrives after the moment
+                  it exists to protect. So it is read first, by everyone the
+                  round is open to — not only by whoever already finished the
+                  list. */}
+              <div style={{
+                display: 'flex', gap: 10, alignItems: 'flex-start',
+                background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)',
+                borderRadius: 'var(--radius-md)', padding: 'var(--sp-3) var(--sp-4)',
+                marginBottom: 'var(--sp-3)',
+              }}>
+                <Icon name="shield" size={16} color="var(--tec-red)" />
+                <div style={{ fontSize: 12, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
+                  {c.neverAsk1} <strong>{c.neverAsk2}</strong> {c.neverAsk3}{' '}
+                  <strong>{c.neverAsk4}</strong>{c.neverAsk5} <code>G</code>.
+                </div>
+              </div>
+
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-3)', lineHeight: 1.6 }}>
-                Visit these apps, then claim {me?.reward_pi ?? status?.reward_pi} π. Free — there is no payment at any step.
+                {fill(c.missionsIntro, { reward: me?.reward_pi ?? status?.reward_pi ?? '' })}
               </div>
 
               {(me?.apps ?? status?.apps ?? []).map((slug) => (
@@ -670,6 +729,8 @@ export default function CampaignPage() {
                   locale={locale}
                   href={hrefFor(slug)}
                   onOpen={recordOpen}
+                  hintConnection={c.missionConnection}
+                  hintChat={c.missionChat}
                 />
               ))}
 
@@ -677,28 +738,10 @@ export default function CampaignPage() {
               <div style={{ marginTop: 'var(--sp-5)' }}>
                 {!me?.eligible ? (
                   <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)', textAlign: 'center' }}>
-                    Finish the list above to claim.
+                    {c.finishFirst}
                   </div>
                 ) : (
                   <>
-                    {/* The loudest thing on the screen, and deliberately so.
-                        "Send us your wallet address" is a shape people are
-                        phished with; the only defence is to say, before they
-                        type, exactly what we will never ask for. */}
-                    <div style={{
-                      display: 'flex', gap: 10, alignItems: 'flex-start',
-                      background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.25)',
-                      borderRadius: 'var(--radius-md)', padding: 'var(--sp-3) var(--sp-4)',
-                      marginBottom: 'var(--sp-3)',
-                    }}>
-                      <Icon name="shield" size={16} color="var(--tec-red)" />
-                      <div style={{ fontSize: 12, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
-                        We will <strong>never</strong> ask for your passphrase or secret key — not here,
-                        not in the group, not anywhere. Post only your <strong>public address</strong>,
-                        the one that starts with <code>G</code>.
-                      </div>
-                    </div>
-
                     {/* The address, READ BACK — not typed.
                         It comes from their own message in the TEC group, and
                         showing it is the whole safety of the flow: a payout
@@ -707,7 +750,7 @@ export default function CampaignPage() {
                         the string the Pi actually goes to. */}
                     <div style={{ marginBottom: 'var(--sp-3)' }}>
                       <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginBottom: 6 }}>
-                        We will send to the address you posted in the TEC group:
+                        {c.willSendTo}
                       </div>
                       <code dir="ltr" style={{
                         display: 'block', fontSize: 12, lineHeight: 1.6,
@@ -719,8 +762,7 @@ export default function CampaignPage() {
                         {me?.posted_address}
                       </code>
                       <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)', marginTop: 6, lineHeight: 1.6 }}>
-                        Not the right one? Post the correct address in the group — the
-                        newest one you send is the one we use.
+                        {c.notRightOne}
                       </div>
                     </div>
 
@@ -735,7 +777,7 @@ export default function CampaignPage() {
                       fontSize: 13, fontWeight: 700,
                       color: error ? 'var(--tec-red)' : 'var(--tec-gold)',
                     }}>
-                      {sending ? 'Taking your seat…' : error ? '' : `Claiming ${me?.reward_pi} π…`}
+                      {sending ? c.taking : error ? '' : fill(c.claiming, { reward: me?.reward_pi ?? '' })}
                     </div>
 
                     {error && (
@@ -758,7 +800,7 @@ export default function CampaignPage() {
                             cursor: 'pointer', font: 'inherit',
                           }}
                         >
-                          Try again
+                          {c.tryAgain}
                         </button>
                       </div>
                     )}

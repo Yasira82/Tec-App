@@ -316,6 +316,60 @@ describe('PaymentModal — handlePay outcomes', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  describe('IIC 4.5 — the approval, and what was on screen', () => {
+    /**
+     * The proof identity-service assembles is REFUSED for a payment step with no
+     * approval, so this POST is the only thing standing between a governed run and an
+     * unprovable one. These tests pin the three things that can go wrong in it.
+     */
+    const approvalCall = () => (global.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+      .find((c) => String(c[0]).includes('/api/bff/intent/approval'));
+
+    it('records the approval, with the text the modal actually displayed', async () => {
+      renderModal({ nexusRunId: 'run-7', nexusStepIdx: '1', amount: 250, memo: 'Order #12' });
+      await waitForReady();
+      await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+
+      const call = approvalCall();
+      expect(call).toBeTruthy();
+      const body = JSON.parse(String(call![1].body));
+      expect(body).toMatchObject({ runId: 'run-7', step: 1 });
+
+      // Not "a sentence about the payment" — THE sentence. Every field the buyer read
+      // is in it, because the string and the screen come from one object.
+      expect(body.shown).toBe('TEC Commerce — 250π — Order #12');
+      expect(screen.getByText('250π')).toBeTruthy();
+      expect(screen.getByText('Order #12')).toBeTruthy();
+      expect(screen.getByText('TEC Commerce')).toBeTruthy();
+    });
+
+    it('does not record anything for an ordinary payment that cites no run', async () => {
+      renderModal();
+      await waitForReady();
+      await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+      expect(approvalCall()).toBeUndefined();
+    });
+
+    it('does NOT block the payment when the approval cannot be recorded', async () => {
+      // §6 property 3 — this layer may only ever NARROW what a human authorized.
+      // Refusing a payment because an evidence row failed to write would be the intent
+      // layer ADDING a restriction, and would turn a recording problem into a
+      // customer-facing one. The consequence is not hidden: with no approval,
+      // identity-service declines to emit a proof at all.
+      (global.fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+        async (url: string) => String(url).includes('/api/bff/intent/approval')
+          ? { ok: false, status: 500, json: async () => ({}) }
+          : { ok: true, json: async () => ({ data: { id: 'pay-int-1' } }) },
+      );
+
+      renderModal({ nexusRunId: 'run-7', nexusStepIdx: '1' });
+      await waitForReady();
+      await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+
+      expect(mockCreateU2APayment).toHaveBeenCalled();
+    });
+  });
+
   it('shows "Open in Pi Browser" when Pi unavailable at pay time', async () => {
     renderModal();
     await waitForReady();

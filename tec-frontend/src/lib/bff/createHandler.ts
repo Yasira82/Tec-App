@@ -36,6 +36,17 @@ export class NotFoundError extends AppError {
 
 export interface BFFContext {
   userId:      string;
+  /**
+   * The Pi username, from the VERIFIED token — never from the `tec_user` cookie.
+   *
+   * Some services key their own-scope rows on the Pi username rather than the auth
+   * user id (Nexus runs and Intent approvals, for two), so a route that talks to them
+   * needs it server-side. Taking it from the cookie would work and would be wrong: the
+   * cookie is a convenience copy, while this claim was signed by the auth service and
+   * checked three lines above. `null` when the token carries no such claim — a route
+   * that needs it must then refuse, not guess (P6).
+   */
+  piUsername:  string | null;
   kycVerified: boolean;
   requestId:   string;
 }
@@ -59,8 +70,13 @@ async function contextFromToken(token: string, req: NextRequest): Promise<BFFCon
     const userId = payload.sub;
     if (!userId) throw new UnauthorizedError();
 
+    const claimedUsername = (payload as Record<string, unknown>).pi_username;
+
     return {
       userId,
+      piUsername:  typeof claimedUsername === 'string' && claimedUsername.trim()
+        ? claimedUsername
+        : null,
       kycVerified: (payload as Record<string, unknown>).kycVerified === true,
       requestId:   req.headers.get('x-request-id') ?? crypto.randomUUID(),
     };
@@ -171,7 +187,7 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
 ) {
   return async (req: NextRequest): Promise<Response> => {
     const startMs = Date.now();
-    let ctx: BFFContext = { userId: 'anonymous', kycVerified: false, requestId: crypto.randomUUID() };
+    let ctx: BFFContext = { userId: 'anonymous', piUsername: null, kycVerified: false, requestId: crypto.randomUUID() };
 
     // Set when the access token expired and the gateway gave us a new pair;
     // every response path below must carry these cookies back to the browser.

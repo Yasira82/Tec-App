@@ -21,7 +21,7 @@ export const GET = createHandler({
       },
     );
 
-    if (!res.ok) throw new Error(`Gateway ${res.status}`);
+    if (!res.ok) throw Object.assign(new Error(`Gateway ${res.status}`), { status: res.status });
     const data = await res.json().catch(() => ({}));
     const unreadCount = data?.data?.unreadCount ?? data?.unreadCount ?? 0;
     return { success: true, data: { unreadCount } };

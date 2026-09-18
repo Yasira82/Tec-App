@@ -176,6 +176,62 @@ describe('createHandler — AppError propagation', () => {
   });
 });
 
+// ── Upstream status pass-through ─────────────────────────────
+/**
+ * The bug these pin: a notification-service whose INTERNAL_SECRET had drifted
+ * from the gateway's answered 403, and this handler reported 500 — the same code
+ * a gateway that cannot reach the service at all produces. Two unrelated causes,
+ * one number on the screen.
+ */
+describe('createHandler — upstream status reaches the caller', () => {
+  it('passes a 4xx through WITH its message — it is a sentence for a person', async () => {
+    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1' } } as any);
+    const handler = createHandler({
+      handler: async () => {
+        throw Object.assign(new Error('Gateway 403'), { status: 403 });
+      },
+    });
+    const res  = await handler(makeReq({ token: 'tok' }));
+    expect(res.status).toBe(403);
+    const body = await res.json();
+    expect(body.error).toBe('UPSTREAM_REFUSED');
+    expect(body.message).toBe('Gateway 403');
+  });
+
+  /**
+   * A 5xx keeps the generic 500 — deliberately, and NOT changed here.
+   * `createHandler.errors.test.ts` pins that an upstream 5xx's text can name
+   * hosts, drivers and stack frames, so it must never reach a caller. Passing
+   * its STATUS through while keeping the text generic was written and then
+   * backed out: it would have overridden a decision another test was guarding,
+   * to win a distinction the 403 below already provides.
+   */
+  it('still reports an unreachable upstream as a plain 500', async () => {
+    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1' } } as any);
+    const handler = createHandler({
+      handler: async () => {
+        throw Object.assign(new Error('connect ECONNREFUSED 10.0.0.4:5006'), { status: 502 });
+      },
+    });
+    const res  = await handler(makeReq({ token: 'tok' }));
+    expect(res.status).toBe(500);
+    const body = await res.json();
+    expect(JSON.stringify(body)).not.toContain('ECONNREFUSED');
+  });
+
+  it('tells a REFUSAL apart from an unreachable upstream — the whole point', async () => {
+    mockJwtVerify.mockResolvedValue({ payload: { sub: 'u1' } } as any);
+    const mk = (status: number) => createHandler({
+      handler: async () => { throw Object.assign(new Error(`Gateway ${status}`), { status }); },
+    });
+    const refused     = await mk(403)(makeReq({ token: 'tok' }));  // key mismatch → 403
+    const unreachable = await mk(502)(makeReq({ token: 'tok' }));  // cannot connect → 500
+    expect(refused.status).toBe(403);
+    expect(unreachable.status).toBe(500);
+    expect(refused.status).not.toBe(unreachable.status);
+  });
+});
+
 // ── Unknown error ────────────────────────────────────────────
 describe('createHandler — unknown error', () => {
   it('returns 500 on unexpected throw', async () => {

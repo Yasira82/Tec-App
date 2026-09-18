@@ -15,7 +15,7 @@ export const GET = createHandler({
       headers: { Authorization: `Bearer ${token}`, 'x-request-id': ctx.requestId },
       cache:   'no-store',
     });
-    if (!res.ok) throw new Error(`Gateway ${res.status}`);
+    if (!res.ok) throw Object.assign(new Error(`Gateway ${res.status}`), { status: res.status });
     return res.json();
   },
 });

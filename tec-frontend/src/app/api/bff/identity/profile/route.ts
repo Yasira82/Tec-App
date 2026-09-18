@@ -19,7 +19,7 @@ export const GET = createHandler({
       },
     );
 
-    if (!res.ok) throw new Error(`Gateway ${res.status}`);
+    if (!res.ok) throw Object.assign(new Error(`Gateway ${res.status}`), { status: res.status });
     return res.json();
   },
 });
@@ -47,7 +47,7 @@ export const PATCH = createHandler({
       },
     );
 
-    if (!res.ok) throw new Error(`Gateway ${res.status}`);
+    if (!res.ok) throw Object.assign(new Error(`Gateway ${res.status}`), { status: res.status });
     return res.json();
   },
 });

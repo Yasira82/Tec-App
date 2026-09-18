@@ -59,7 +59,7 @@ export const isTestnetPaymentHost = (): boolean =>
 export interface ShownParts {
   /** The app this payment is for, as the modal titles it — e.g. "TEC Nexus". */
   label:  string;
-  /** The headline figure, formatted exactly as rendered — e.g. "250 π". */
+  /** The headline figure, formatted exactly as rendered — e.g. "250π". */
   amount: string;
   /** The payment's own description. */
   memo:   string;
@@ -81,7 +81,12 @@ export function shownParts(p: {
 }): ShownParts {
   return {
     label:  p.label,
-    amount: `${p.amount} π`,
+    // No space before π, because that is what the modal paints. The record follows
+    // the screen and never the other way round: this string exists to be compared
+    // against somebody's memory of what they saw, and "changed the UI so the receipt
+    // would match" is the wrong direction to resolve a disagreement on a live payment
+    // surface.
+    amount: `${p.amount}π`,
     memo:   p.memo,
     ...(p.testnet ? { network: 'TESTNET' as const } : {}),
   };

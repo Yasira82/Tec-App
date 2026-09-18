@@ -1,28 +1,46 @@
+import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 
 /**
  * Take a campaign seat.
  *
- * There is no payload at all, and that is the design. Neither the owner NOR the
- * payout address is sent: the service derives the owner from the verified token
- * and reads the address out of the pioneer's own message in the TEC group.
+ * ── The owner is still never sent ──────────────────────────────────────────
+ * It comes from the verified token inside the service. A route that decides who
+ * gets paid is the last place to let a caller say who that is (P6), and there is
+ * no field here that could.
  *
- * A route that decides who gets paid, and where, is the last place to let a
- * caller say either (P6). Removing the field removes the question — and it also
- * removed the step people abandoned, which was typing 56 characters copied from
- * a wallet app into a browser on a phone.
+ * ── The address may be, and this is the part that changed ──────────────────
+ * It used to be forbidden too, on the grounds that the address was where the Pi
+ * went. **It is not any more.** A2U pays a Pi UID and Pi resolves the wallet
+ * itself — the recipient comes back FROM Pi, and nothing a caller sends reaches
+ * the transfer. So this field cannot redirect a single π; it is the campaign's
+ * one-wallet-one-reward key, which a unique constraint in the service enforces.
+ *
+ * It is a FALLBACK. The service prefers the address posted in the TEC group and
+ * reads this one only when there is none — which is the case this exists for:
+ * somebody who used the chat exactly as the mission asked and did not paste 56
+ * characters into it used to hit a dead end with nothing to do about it.
+ *
+ * Optional, so a claim from the group route still sends no payload at all.
  */
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 export const POST = createHandler({
   requireAuth: true,
-  handler: async ({ ctx, req }) => {
+  schema: z.object({ wallet_address: z.string().trim().min(1).max(120).optional() }).optional(),
+  handler: async ({ input, ctx, req }) => {
+    const typed = input?.wallet_address;
     const res = await fetch(`${GATEWAY}/api/identity/campaign/claim`, {
       method: 'POST',
       headers: {
         Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
         'x-request-id': ctx.requestId,
+        ...(typed ? { 'Content-Type': 'application/json' } : {}),
       },
+      // The address is NOT validated here. The service applies the same checksum
+      // to both routes, and a second opinion in the BFF is a second place for
+      // the rule to drift — see the fleet-wide Pro-detection incident.
+      ...(typed ? { body: JSON.stringify({ wallet_address: typed }) } : {}),
       cache: 'no-store',
     });
     const data = await res.json().catch(() => ({}));

@@ -249,6 +249,74 @@ export const en = {
       campaignCta:   'CLAIM',
       piNetwork: 'Pi Network',
     },
+    /**
+     * The campaign PAGE. Separate from `carousel.campaign*`, which is the card
+     * that advertises it on the Hub home.
+     *
+     * Those card strings have been translated all along — so an Arabic pioneer
+     * read "حملة مكافآت Pi" on the Hub, tapped it, and landed on a screen that
+     * was English from the title down. With `dir` applied and nothing else, the
+     * LAYOUT flipped to RTL while the words did not, which is worse than either
+     * on its own. This is the acquisition surface; it is the last page that
+     * should change language at the door.
+     */
+    campaignPage: {
+      title:        'Pi Reward Campaign',
+      seatsLeft:    '{reward} π · {remaining} of {seats} seats left',
+      closedTitle:  'No campaign is running',
+      closedSub:    'Check back — the next round will appear here.',
+      signedOut:    'Sign in with Pi to take part.',
+      signIn:       'Sign in with Pi',
+      adminTitle:   'Campaign payouts',
+      adminSub:     'Who has claimed, and where to send the Pi',
+      reconsentTitle: 'One step before Pi can reach you',
+      reconsentBody:  'Sign out and sign in again. Pi now asks your permission to reveal where your wallet is — without it we cannot send you anything, and a permission cannot be added to a sign-in you already gave. Your progress and your seat are kept.',
+      reconsentCta:   'Sign out and back in',
+      paidTitle:    'Sent — {reward} π on its way',
+      rejectedTitle:'This claim was not approved',
+      seatBlocked:  'Seat #{seat} is yours — one thing left',
+      seatYours:    'Seat #{seat} is yours',
+      waitBlocked:  'Your seat is held. The transaction id appears here once the Pi is sent.',
+      waitNormal:   'A person sends the Pi by hand, so this is not instant. You will see the transaction id here when it is done.',
+      paidBody:     'Check your Pi wallet.',
+      rejectedBody: 'You can try again below — check the address carefully first. Contact us through the feedback form if you think this was a mistake.',
+      changeAddr:   'Wrong address? Change it before it is sent',
+      addrLabel:    'Your Pi wallet address',
+      save:         'Save address',
+      cancel:       'Cancel',
+      keepSeat:     'You keep seat #{seat}. Make sure this is the address YOUR wallet receives on — not one you copied from a payment you were sent.',
+      dropCta:      'I don’t want this seat — cancel my claim',
+      dropConfirm:  'Seat #{seat} goes back to the pool and your address is removed. You can claim again later while seats last — but you may not get this seat number.',
+      dropYes:      'Yes, cancel it',
+      dropNo:       'Keep my seat',
+      missionsIntro:'Visit these apps, then claim {reward} π. Free — there is no payment at any step.',
+      // "That is where we send the reward" came out: it was never literally
+      // true (Pi resolves the wallet from the account), and with a second route
+      // to the address it had stopped being true in the ordinary sense either.
+      // The group is still what this asks for — it is the one mission that
+      // leaves something behind for the next pioneer — so it is still the
+      // quickest way, and it is now the quickest way for a reason that holds.
+      missionConnection: 'This link puts you in the TEC group — say hello, and post your Pi wallet address there. Then the claim fills itself in and there is nothing left to type.',
+      missionChat:  'Open a chat and send one message — opening the app is not enough here',
+      finishFirst:  'Finish the list above to claim.',
+      neverAsk1:    'We will',
+      neverAsk2:    'never',
+      neverAsk3:    'ask for your passphrase or secret key — not here, not in the group, not anywhere. Post only your',
+      neverAsk4:    'public address',
+      neverAsk5:    ', the one that starts with',
+      willSendTo:   'We will send to the address you posted in the TEC group:',
+      notRightOne:  'Not the right one? Post the correct address in the group — the newest one you send is the one we use.',
+      // The fallback route. It says WHY we are asking, because "give us your
+      // wallet address" with no reason is the shape of every Pi scam.
+      typeAddrIntro: 'One last thing: your Pi wallet address. It is how we know one person is claiming once — each wallet can claim a single reward. Only the public address, the one that starts with G.',
+      claimWithAddr: 'Claim {reward} π',
+      orPostInstead: 'You can also post it in the TEC group instead, and we will read it from there.',
+      taking:       'Taking your seat…',
+      claiming:     'Claiming {reward} π…',
+      couldNotClaim: 'Could not claim',
+      failed:        'Failed ({status})',
+      tryAgain:     'Try again',
+    },
     apps: {
       other: 'More',
       title: 'Apps', edit: 'Edit', done: 'Done', live: 'LIVE',

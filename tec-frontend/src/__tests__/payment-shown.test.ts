@@ -11,7 +11,7 @@ import { shownParts, shownText } from '@/lib-client/payment/shown';
 describe('shownParts', () => {
   it('formats the amount exactly as the modal renders it', () => {
     expect(shownParts({ label: 'TEC Nexus', amount: 250, memo: 'Order #12', testnet: false }))
-      .toEqual({ label: 'TEC Nexus', amount: '250 π', memo: 'Order #12' });
+      .toEqual({ label: 'TEC Nexus', amount: '250π', memo: 'Order #12' });
   });
 
   /**
@@ -32,7 +32,7 @@ describe('shownText', () => {
     const text = shownText(shownParts({
       label: 'TEC Nexus', amount: 250, memo: 'Order #12', testnet: false,
     }));
-    expect(text).toBe('TEC Nexus — 250 π — Order #12');
+    expect(text).toBe('TEC Nexus — 250π — Order #12');
   });
 
   it('leads with the network when it is Test-Pi, where it cannot be missed', () => {
@@ -44,7 +44,7 @@ describe('shownText', () => {
 
   it('survives an empty memo without leaving a dangling separator', () => {
     expect(shownText(shownParts({ label: 'TEC Hub', amount: 5, memo: '', testnet: false })))
-      .toBe('TEC Hub — 5 π');
+      .toBe('TEC Hub — 5π');
   });
 
   /**
@@ -54,6 +54,6 @@ describe('shownText', () => {
    */
   it.each([0.01, 1, 10.5, 250, 1000])('keeps %s π verbatim', (amount) => {
     const text = shownText(shownParts({ label: 'X', amount, memo: 'm', testnet: false }));
-    expect(text).toContain(`${amount} π`);
+    expect(text).toContain(`${amount}π`);
   });
 });

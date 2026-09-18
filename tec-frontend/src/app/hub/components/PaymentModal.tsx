@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { piSession }        from '@/lib-client/pi/pi-session';
 import { createU2APayment } from '@/lib-client/pi/pi-payment';
 import { PiRuntime }        from '@/lib-client/pi/PiRuntime';
 import { useTranslation, fill } from '@/lib/i18n';
-import { sourceLabel, isTestnetPaymentHost } from '@/lib-client/payment/shown';
+import { sourceLabel, isTestnetPaymentHost, shownParts, shownText } from '@/lib-client/payment/shown';
 
 const haptic = (type: 'light' | 'medium' | 'heavy' = 'light') => {
   if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
@@ -86,6 +86,20 @@ export function PaymentModal({
   }, []);
   const [message, setMessage] = useState('');
   const hasStarted = useRef(false);
+
+  /**
+   * The three things the buyer reads — as ONE object, used for the screen below and
+   * for the `shown` field of a Nexus approval. IIC §7: a proof that records what was
+   * approved but not what the person was looking at cannot settle the only dispute
+   * that ever arises, and a `shown` composed separately from the render is the
+   * platform's belief about its own screen rather than the screen.
+   */
+  const shown = useMemo(() => shownParts({
+    label:   getSourceLabel(payment.source),
+    amount:  payment.amount,
+    memo:    payment.memo,
+    testnet: isTestnetModal(),
+  }), [payment.source, payment.amount, payment.memo]);
 
   // ✅ انتظر Pi SDK يكون جاهز فعلاً قبل Pi.authenticate
   const waitForPiReady = (): Promise<void> => {
@@ -252,6 +266,39 @@ export function PaymentModal({
       }
       pushTrace('info', 'tap: authenticated');
 
+      // ── IIC 4.5 — record the approval, with what was on screen ────────────────
+      //
+      // Here, not after the payment: this is the instant the person agreed, and the
+      // sentence they agreed to is `shown`, the object the three lines above were
+      // rendered from.
+      //
+      // It does NOT block the payment when it fails. The intent layer's own rule is
+      // that it may only ever NARROW what a human authorized (§6 property 3); refusing
+      // to take a payment because an evidence row could not be written would be this
+      // layer ADDING a restriction, and it would turn a recording problem into a
+      // customer-facing one. The consequence of the failure is not hidden either —
+      // identity-service will decline to emit a proof for a payment step with no
+      // approval, so the gap shows up as a missing proof rather than as a signed
+      // artefact with the evidence quietly absent.
+      if (payment.nexusRunId) {
+        try {
+          const res = await fetch('/api/bff/intent/approval', {
+            method:      'POST',
+            headers:     { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+              runId: payment.nexusRunId,
+              step:  Number(payment.nexusStepIdx ?? 0),
+              shown: shownText(shown),
+            }),
+          });
+          if (!res.ok) pushTrace('error', `approval not recorded (${res.status}) — this run will have no proof`);
+          else         pushTrace('info', 'approval recorded');
+        } catch (err) {
+          pushTrace('error', `approval not recorded (${(err as Error).message}) — this run will have no proof`);
+        }
+      }
+
       setStatus('paying');
 
       const result = await createU2APayment(
@@ -291,7 +338,11 @@ export function PaymentModal({
     } finally {
       piSession.releasePaymentLock();
     }
-  }, [payment, onSuccess, p]);
+    // `shown` is in here because it is the string this tap RECORDS. A stale closure
+    // over it would post a sentence the screen is no longer showing — the one failure
+    // an evidence field cannot survive, and the reason it is memoised above rather
+    // than rebuilt each render.
+  }, [payment, onSuccess, p, shown, pushTrace]);
 
   return (
     <div style={{
@@ -313,21 +364,27 @@ export function PaymentModal({
           fontSize: 28, margin: '0 auto 20px', fontWeight: 900, color: 'var(--tec-on-gold)',
         }}>T</div>
 
+        {/* The three things the buyer reads, rendered FROM the object that is
+            recorded as `shown` (IIC §7). shown.ts was written to be the single
+            composition and nothing outside its own test had ever called it — so
+            the modal built the same strings a second time, which is precisely
+            the drift it exists to prevent. Change what is read here and the
+            proof changes with it, because there is one object. */}
         <div style={{ fontSize: 11, color: '#4a4a5a', letterSpacing: 2, textTransform: 'uppercase', marginBottom: 8 }}>
-          {getSourceLabel(payment.source)}
-          {isTestnetModal() && (
+          {shown.label}
+          {shown.network && (
             <span style={{
               marginLeft: 8, padding: '2px 6px', borderRadius: 6,
               background: '#f59e0b22', border: '1px solid #f59e0b55',
               color: '#f59e0b', fontSize: 9, letterSpacing: 1,
-            }}>TESTNET</span>
+            }}>{shown.network}</span>
           )}
         </div>
         <div style={{ fontSize: 48, fontWeight: 900, color: 'var(--tec-gold)', marginBottom: 4 }}>
-          {payment.amount}π
+          {shown.amount}
         </div>
         <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 32 }}>
-          {payment.memo}
+          {shown.memo}
         </div>
 
         {/* The SDK's own account of what happened, on the one surface a phone

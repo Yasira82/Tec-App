@@ -185,6 +185,16 @@ export default function CampaignPage() {
   const [newAddr, setNewAddr] = useState('');
   const [fixBusy, setFixBusy] = useState(false);
   const [fixErr,  setFixErr]  = useState<string | null>(null);
+  // The address, typed — the fallback route.
+  //
+  // Shown ONLY to somebody who finished the missions and has no address posted
+  // in the group. For everybody else there is still nothing to type: their
+  // address is read back to them and the seat is taken on its own.
+  //
+  // It came back because the group was a dead end. Using the chat and not
+  // pasting 56 characters into it is not a failure to complete a mission, but
+  // this screen treated it as one and offered nothing to do about it.
+  const [claimAddr, setClaimAddr] = useState('');
   // Giving the seat back.
   //
   // The only way out of a claim used to be an admin REJECTING it — a verdict on
@@ -292,15 +302,23 @@ export default function CampaignPage() {
     }
   };
 
-  const submit = async () => {
-    // No body, and nothing to validate here: the address comes from the
-    // pioneer's own message in the TEC group, read by the service. A payload
-    // that could name where real Pi is sent is the one thing this request must
-    // not carry.
+  const submit = async (typedAddress?: string) => {
+    // The owner is never sent — the service takes it from the verified token.
+    //
+    // The ADDRESS may be, and only when the group has none: the service prefers
+    // what was posted there and reads this only as a fallback. It cannot
+    // redirect the Pi (A2U pays a uid and Pi resolves the wallet), and it is not
+    // validated here — the service applies one checksum to both routes, and a
+    // second opinion on this page is a second place for the rule to drift.
+    const typed = (typedAddress ?? '').trim();
     setSending(true); setError(null);
     try {
       const res  = await fetch('/api/bff/campaign/claim', {
         method: 'POST', credentials: 'include',
+        ...(typed ? {
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ wallet_address: typed }),
+        } : {}),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -740,14 +758,67 @@ export default function CampaignPage() {
                   <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)', textAlign: 'center' }}>
                     {c.finishFirst}
                   </div>
+                ) : !me?.posted_address ? (
+                  <>
+                    {/* Nothing in the group — so ask, here, once.
+                        This is the ONLY screen that asks for an address, and it
+                        is reached only by somebody who finished every mission
+                        and did not post one. The warning above the missions has
+                        already said what we will never ask for. */}
+                    <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.7, marginBottom: 'var(--sp-3)' }}>
+                      {c.typeAddrIntro}
+                    </div>
+                    <input
+                      value={claimAddr}
+                      onChange={(e) => { setClaimAddr(e.target.value); if (error) setError(null); }}
+                      dir="ltr"
+                      spellCheck={false}
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      placeholder="G…"
+                      aria-label={c.addrLabel}
+                      style={{
+                        width: '100%', boxSizing: 'border-box',
+                        background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+                        borderRadius: 'var(--radius-sm)', padding: '12px 14px',
+                        color: 'var(--tec-text-1)', fontSize: 12,
+                        fontFamily: 'var(--font-mono)', outline: 'none',
+                      }}
+                    />
+                    <button
+                      onClick={() => { void submit(claimAddr); }}
+                      disabled={sending || claimAddr.trim().length === 0}
+                      style={{
+                        width: '100%', marginTop: 'var(--sp-3)',
+                        padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
+                        background: 'var(--tec-gold)', color: '#1A1205',
+                        fontSize: 14, fontWeight: 800,
+                        opacity: sending || claimAddr.trim().length === 0 ? 0.5 : 1,
+                        cursor: sending ? 'default' : 'pointer', font: 'inherit',
+                      }}
+                    >
+                      {sending ? c.taking : fill(c.claimWithAddr, { reward: me?.reward_pi ?? '' })}
+                    </button>
+                    <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)', marginTop: 8, lineHeight: 1.6 }}>
+                      {c.orPostInstead}
+                    </div>
+
+                    {error && (
+                      <div role="alert" style={{
+                        marginTop: 10, color: 'var(--tec-red)', fontSize: 12.5, lineHeight: 1.6,
+                      }}>
+                        {error}
+                      </div>
+                    )}
+                  </>
                 ) : (
                   <>
                     {/* The address, READ BACK — not typed.
                         It comes from their own message in the TEC group, and
-                        showing it is the whole safety of the flow: a payout
-                        destination nobody ever saw is one nobody can catch
-                        being wrong. Monospaced and full width, because this is
-                        the string the Pi actually goes to. */}
+                        showing it is the whole safety of the flow: an address
+                        nobody ever saw is one nobody can catch being wrong.
+                        Monospaced and full width, because this is the string
+                        the campaign holds for them. */}
                     <div style={{ marginBottom: 'var(--sp-3)' }}>
                       <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginBottom: 6 }}>
                         {c.willSendTo}

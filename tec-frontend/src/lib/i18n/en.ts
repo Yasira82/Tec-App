@@ -300,6 +300,11 @@ export const en = {
       neverAsk5:    ', the one that starts with',
       willSendTo:   'We will send to the address you posted in the TEC group:',
       notRightOne:  'Not the right one? Post the correct address in the group — the newest one you send is the one we use.',
+      // The fallback route. It says WHY we are asking, because "give us your
+      // wallet address" with no reason is the shape of every Pi scam.
+      typeAddrIntro: 'One last thing: your Pi wallet address. It is how we know one person is claiming once — each wallet can claim a single reward. Only the public address, the one that starts with G.',
+      claimWithAddr: 'Claim {reward} π',
+      orPostInstead: 'You can also post it in the TEC group instead, and we will read it from there.',
       taking:       'Taking your seat…',
       claiming:     'Claiming {reward} π…',
       couldNotClaim: 'Could not claim',

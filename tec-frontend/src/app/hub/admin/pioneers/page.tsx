@@ -63,6 +63,30 @@ interface Coverage {
   apps:               AppRow[];
 }
 
+/**
+ * What came back from re-asking commerce for the Founding gifts.
+ *
+ * `granted` is the figure worth reading and the reason the whole thing exists:
+ * the service asks COMMERCE rather than consulting a flag of its own, so a
+ * non-zero `granted` is not bookkeeping — it is the number of pioneers who had
+ * earned six months of PRO and never received it.
+ *
+ * `already` is the healthy case and will be nearly everything. The two must
+ * stay distinguishable: "97 delivered" and "97 already there, 3 recovered"
+ * read identically, and only the second says an outage cost somebody something.
+ */
+interface Regrant {
+  checked:       number;
+  granted:       number;
+  already:       number;
+  failed:        number;
+  /** Resolved by asking auth for the id, because the quest predates `user_id`. */
+  by_lookup:     number;
+  /** Named, never silently skipped — a recovery that hides what it could not
+   *  recover is not a recovery. */
+  unresolvable:  string[];
+}
+
 function Bar({ value, of }: { value: number; of: number }) {
   const pct = Math.min(100, Math.round((value / of) * 100));
   const done = value >= of;
@@ -157,6 +181,42 @@ export default function AdminPioneersPage() {
   const [denied,  setDenied]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
 
+  const [regranting,   setRegranting]   = useState(false);
+  const [regrant,      setRegrant]      = useState<Regrant | null>(null);
+  const [regrantError, setRegrantError] = useState<string | null>(null);
+
+  /**
+   * No confirmation step, deliberately — and the reason is the same one that
+   * kept a confirmation phrase on `/reset`: the question is what happens when
+   * somebody runs it by accident. Here, nothing. Commerce dedupes by the note,
+   * so a second run returns ALREADY_GRANTED for every pioneer and changes no
+   * subscription. A dialog guarding a no-op only teaches people to dismiss
+   * dialogs.
+   */
+  const runRegrant = useCallback(async () => {
+    setRegranting(true); setRegrantError(null); setRegrant(null);
+    try {
+      // `/api/admin` is in middleware's CSRF_PROTECTED list. A same-origin POST
+      // would also pass on the Origin branch, but leaning on that would make
+      // this the one state-changing call in the Hub that carries no token —
+      // and the branch it relies on is the fallback, not the rule.
+      const csrf = document.cookie.split('; ')
+        .find((r) => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
+      const res  = await fetch('/api/admin/pioneers/regrant', {
+        method:      'POST',
+        credentials: 'include',
+        headers:     csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {},
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error ?? `Failed (${res.status})`);
+      setRegrant((json?.data ?? null) as Regrant | null);
+    } catch (e) {
+      setRegrantError((e as Error).message);
+    } finally {
+      setRegranting(false);
+    }
+  }, []);
+
   const load = useCallback(async () => {
     setLoading(true); setError(null);
     try {
@@ -244,6 +304,96 @@ export default function AdminPioneersPage() {
           </div>
 
           {data.apps.map((row) => <Row key={row.app} row={row} />)}
+
+          {/* ── Founding gift recovery ───────────────────────────────────────
+              Below the rows on purpose. It is a repair, run rarely, and it
+              WRITES — putting it above the data would make the first thing
+              your thumb reaches on a phone the one control here that changes
+              somebody's subscription. */}
+          <div style={{
+            marginTop: 'var(--sp-6)', padding: 'var(--sp-4)',
+            background: 'var(--tec-surface)', border: '1px solid var(--tec-border)',
+            borderRadius: 'var(--radius-md)',
+          }}>
+            <div style={{
+              fontSize: 'var(--text-sm)', fontWeight: 700,
+              color: 'var(--tec-text-1)', marginBottom: 4,
+            }}>
+              Founding gifts
+            </div>
+            <div style={{
+              fontSize: 11.5, color: 'var(--tec-text-3)',
+              lineHeight: 1.6, marginBottom: 'var(--sp-3)',
+            }}>
+              Re-asks commerce for the 6-month PRO owed to every Founding Pioneer.
+              A gift that already landed is left alone, so this is safe to run at
+              any time — and anything it reports as <b>recovered</b> is a gift that
+              had been lost.
+            </div>
+
+            <button
+              onClick={() => void runRegrant()}
+              disabled={regranting}
+              style={{
+                width: '100%', padding: 'var(--sp-3)', borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--tec-border)', background: 'var(--tec-fill-soft)',
+                color: 'var(--tec-text-1)', fontSize: 'var(--text-sm)', fontWeight: 700,
+                cursor: regranting ? 'default' : 'pointer', opacity: regranting ? 0.6 : 1,
+              }}
+            >
+              {regranting ? 'Checking every pioneer…' : 'Re-send Founding gifts'}
+            </button>
+
+            {regrantError && (
+              <div style={{
+                marginTop: 'var(--sp-3)', display: 'flex', alignItems: 'center', gap: 8,
+                fontSize: 'var(--text-sm)', color: 'var(--tec-red)',
+              }}>
+                <Icon name="alert" size={16} color="var(--tec-red)" /> {regrantError}
+              </div>
+            )}
+
+            {regrant && (
+              <div style={{ marginTop: 'var(--sp-3)' }}>
+                {/* `granted` leads, and says whether anything was actually
+                    wrong. Zero recovered is the GOOD answer, and it has to read
+                    as one rather than as an empty result. */}
+                <div dir="ltr" style={{
+                  fontSize: 'var(--text-sm)', fontWeight: 700,
+                  color: regrant.granted > 0 ? 'var(--tec-gold)' : 'var(--tec-green)',
+                }}>
+                  {regrant.granted > 0
+                    ? `${regrant.granted} recovered`
+                    : 'Nothing was missing'}
+                </div>
+
+                <div dir="ltr" style={{
+                  marginTop: 4, fontSize: 11.5, color: 'var(--tec-text-3)', lineHeight: 1.7,
+                }}>
+                  {regrant.checked} checked · {regrant.already} already held
+                  {regrant.failed  > 0 && <> · <b style={{ color: 'var(--tec-red)' }}>{regrant.failed} failed</b></>}
+                  {/* An id inferred from a username is a fair risk for a gift
+                      and not the same fact as a recorded one, so it is counted
+                      apart rather than folded into the total. */}
+                  {regrant.by_lookup > 0 && <> · {regrant.by_lookup} by username lookup</>}
+                </div>
+
+                {regrant.unresolvable.length > 0 && (
+                  <div style={{
+                    marginTop: 'var(--sp-2)', padding: 'var(--sp-2) var(--sp-3)',
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)',
+                    borderRadius: 'var(--radius-sm)', fontSize: 11.5, color: 'var(--tec-text-2)',
+                    lineHeight: 1.7,
+                  }}>
+                    No account could be resolved for{' '}
+                    <b dir="ltr">{regrant.unresolvable.join(', ')}</b> — they hold a
+                    Founding number and still have no gift. Named rather than
+                    skipped, because they are the ones that need a human.
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </>
       ) : null}
     </HubSubShell>

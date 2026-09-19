@@ -55,6 +55,16 @@ interface Status {
   remaining: number;
   apps:      string[];
   open:      boolean;
+  /**
+   * WHY it is closed. Null while open.
+   *
+   * `open: false` carried two opposite facts — the round is not configured, and
+   * every seat is taken — and this page told the same story about both. So the
+   * 101st pioneer, arriving at the moment the campaign had SUCCEEDED, read
+   * "No campaign is running" and reasonably concluded they had been sent
+   * somewhere fake.
+   */
+  closed_reason?: 'not_configured' | 'full' | null;
 }
 
 const linkFor = (slug: string) => getDomain(slug)?.route ?? `https://${slug}.tecosystem.app`;
@@ -149,6 +159,60 @@ function Mission({ slug, done, needsAction, locale, href, onOpen, hintConnection
   );
 }
 
+/**
+ * Hand the campaign to somebody else.
+ *
+ * The Connection mission is the campaign's only distribution channel — it puts
+ * a pioneer in a group where the next one might see them. This is the other
+ * half, and the cheaper half: the person already on the page is the one most
+ * likely to know somebody who would want the π.
+ *
+ * `navigator.share` when the browser has it (Pi Browser does — it is a sheet
+ * with WhatsApp and Telegram in it, which is where these conversations happen),
+ * and the clipboard when it does not. A button that silently does nothing on
+ * one of the two is a button that teaches people not to press it.
+ *
+ * An `AbortError` is the person changing their mind, not a failure, so it is
+ * swallowed without the "copied" confirmation a real copy earns.
+ */
+function ShareCampaign({ label, copied: copiedLabel, text }: {
+  label: string; copied: string; text: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const share = async () => {
+    // The live URL, read from the browser rather than hardcoded, so a preview
+    // deployment shares itself and not production.
+    const url = typeof window === 'undefined' ? '' : window.location.href;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Cancelled, or no clipboard permission. Nothing to report either way —
+      // and nothing to claim, which is why `copied` is not set here.
+    }
+  };
+
+  return (
+    <button
+      onClick={() => { void share(); }}
+      style={{
+        background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+        borderRadius: 10, padding: '7px 12px', color: 'var(--tec-text-1)',
+        fontSize: 12, fontWeight: 700, cursor: 'pointer', font: 'inherit',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      {copied ? copiedLabel : label}
+    </button>
+  );
+}
+
 export default function CampaignPage() {
   const router = useRouter();
   const { user, isAuthenticated, isLoading: authLoading, logout } = usePiAuth();
@@ -173,7 +237,22 @@ export default function CampaignPage() {
   const [needsReconsent, setNeedsReconsent] = useState(false);
   const [sending, setSending] = useState(false);
   const [error,   setError]   = useState<string | null>(null);
+  /**
+   * First load only.
+   *
+   * Every mission opens a NEW TAB, so returning to this page is not an edge
+   * case — it is the loop the page is built around, twenty-four times per
+   * pioneer. `load()` used to raise this on every call, and the focus listener
+   * calls `load()` on every return, so each one replaced the mission list with
+   * grey blocks and rebuilt it.
+   *
+   * The refetch is right; the server is the only authority here and nothing is
+   * ticked optimistically. What was wrong is that a REFRESH was presented as a
+   * FIRST LOAD. Nobody reports this, because a flashing skeleton reads as "the
+   * page is slow" rather than "the page is wrong".
+   */
   const [loading, setLoading] = useState(true);
+  const firstLoad = useRef(true);
   // Correcting the address on a claim that has not been paid yet.
   //
   // A wallet address is 56 characters that mean nothing to a human, pasted from
@@ -214,7 +293,9 @@ export default function CampaignPage() {
   const [dropErr,     setDropErr]     = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    setLoading(true);
+    // Only the very first call darkens the screen. Later ones update the
+    // numbers underneath whatever the pioneer is already looking at.
+    if (firstLoad.current) setLoading(true);
     try {
       // TWO different envelopes, and reading one as the other is what broke this
       // page. `status` is a plain route that passes the SERVICE body straight
@@ -240,6 +321,7 @@ export default function CampaignPage() {
         setNeedsReconsent(c?.needsReconsent === true);
       }
     } finally {
+      firstLoad.current = false;
       setLoading(false);
     }
   }, [isAuthenticated]);
@@ -409,6 +491,12 @@ export default function CampaignPage() {
           : undefined
       }
       loading={authLoading || loading}
+      /* Only while there is something to share. Handing somebody a link to a
+         closed campaign sends them to the screen below — and the whole value of
+         a share is that it arrives from someone they trust. */
+      actions={status?.open
+        ? <ShareCampaign label={c.share} copied={c.shareCopied} text={c.shareText} />
+        : undefined}
     >
       {/* The payout queue, for the one person who can act on it.
           Reachable from Profile as well, but a link there is a detour when you
@@ -446,11 +534,17 @@ export default function CampaignPage() {
           with nothing in its place. Any claim, in any state, keeps its detail. */}
       {!status?.open && !claim ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
+          {/* "Full" and "not configured" are opposite outcomes, and this screen
+              used to say the same thing about both — so the round's most
+              successful moment read as proof it was never real. Unknown falls
+              back to the neutral sentence rather than guessing. */}
           <div style={{ fontSize: 'var(--text-lg)', fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 6 }}>
-            {c.closedTitle}
+            {status?.closed_reason === 'full' ? c.fullTitle : c.closedTitle}
           </div>
-          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>
-            {c.closedSub}
+          <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', lineHeight: 1.7 }}>
+            {status?.closed_reason === 'full'
+              ? fill(c.fullSub, { seats: status?.seats ?? '' })
+              : c.closedSub}
           </div>
         </div>
       ) : !isAuthenticated ? (

@@ -11,6 +11,21 @@ interface Props {
   actions?:  ReactNode;
   loading?:  boolean;
   children:  ReactNode;
+  /**
+   * Where the back arrow goes. Defaults to `/hub`.
+   *
+   * It was hardcoded to `/hub`, which is right for a page reached FROM the Hub
+   * and wrong for anything nested: `/hub/campaign` → `/hub/admin/campaign` →
+   * back took you past the page you came from and out to the Hub, so returning
+   * meant navigating in again.
+   *
+   * A path rather than `router.back()`, deliberately. `back()` is history, and
+   * history is not the page hierarchy: arriving here from a shared link, or
+   * after an SSO bounce, it walks somewhere the person did not come from — off
+   * the app entirely, in a browser with no tabs. A declared parent is the same
+   * every time, which is the property a back arrow is for.
+   */
+  backTo?:   string;
 }
 
 const BADGE_COLORS = {
@@ -32,7 +47,7 @@ function Skeleton() {
   );
 }
 
-export function HubSubShell({ title, subtitle, badge, actions, loading, children }: Props) {
+export function HubSubShell({ title, subtitle, badge, actions, loading, children, backTo = '/hub' }: Props) {
   const router     = useRouter();
   const { dir }    = useTranslation();
   const badgeStyle = badge ? BADGE_COLORS[badge.color ?? 'gold'] : null;
@@ -58,7 +73,7 @@ export function HubSubShell({ title, subtitle, badge, actions, loading, children
         touchAction: 'pan-y',
       }}>
         <button
-          onClick={() => router.push('/hub')}
+          onClick={() => router.push(backTo)}
           style={{
             background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
             borderRadius: 10, padding: '7px 12px', color: 'var(--tec-text-1)',

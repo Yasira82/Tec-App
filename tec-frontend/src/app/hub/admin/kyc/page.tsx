@@ -148,7 +148,13 @@ export default function AdminKycReviewPage() {
   const remove = (userId: string) => setItems(prev => prev.filter(k => k.user_id !== userId));
 
   return (
-    <HubSubShell title="KYC Review" subtitle="Admin — identity verification queue" loading={authLoading || loading}>
+    <HubSubShell
+      title="KYC Review"
+      subtitle="Admin — identity verification queue"
+      loading={authLoading || loading}
+      // Reached from Profile's admin row — see the pioneers page.
+      backTo="/hub/profile"
+    >
       {(denied || (!authLoading && !isAdmin)) ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
           <div style={{ width: 60, height: 60, borderRadius: 16, margin: '0 auto var(--sp-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>

@@ -36,10 +36,20 @@ describe('the admin payout route forwards the user, not a service credential', (
   it('only ever sends the actions it knows', () => {
     // An action taken from the body unchecked would let a caller reach any
     // path segment under the claim — and one of them now MOVES Pi.
-    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
-    expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
-    expect(route).toMatch(/body\?\.action === 'unpaid' \? 'unpaid'/);
-    expect(route).toMatch(/: 'paid';/);
+    expect(route).toMatch(/const ACTIONS = \['paid', 'reject', 'send', 'unpaid'\] as const/);
+    expect(route).toMatch(/ACTIONS\.find\(\(a\) => a === body\?\.action\)/);
+  });
+
+  it('REFUSES an action it does not know, instead of assuming `paid`', () => {
+    // The set was always closed; the fallback was not. Anything unrecognised
+    // used to land on the action that RECORDS A PAYMENT. Not exploitable —
+    // markPaid still demands a chain-confirmed hash no other seat holds — but
+    // P6 says doubt denies, and doubt was choosing the most consequential verb
+    // in the set.
+    expect(route).toMatch(/if \(!action\)/);
+    expect(route).toMatch(/status: 400/);
+    // And no ternary can quietly reintroduce the old default.
+    expect(route).not.toMatch(/: 'paid';/);
   });
 });
 
@@ -185,6 +195,185 @@ describe('an address can be typed when the group has none', () => {
   });
 });
 
+describe('the payout queue shows WHY the reward is owed', () => {
+  /**
+   * The service already refuses an unqualified claim, so this is not the check
+   * — it is the EVIDENCE of one, on the screen where somebody decides to move
+   * real Pi. "The service verified it" and "I can see what it verified" stop
+   * being the same sentence somewhere around the fiftieth claim.
+   */
+  const admin = codeOf('app/hub/admin/campaign/page.tsx');
+
+  it('renders the frozen record, not a live recount', () => {
+    // The whole reason the column exists. `CAMPAIGN_APPS` is an env var that
+    // changes between rounds — recomputing here would show a pioneer who met
+    // every requirement of their own round as "7 of 24" the day the list grows.
+    expect(admin).toMatch(/claim\.qualified/);
+    expect(admin).toMatch(/q\.done\.length\} \/ \{q\.required\.length/);
+    // No second opinion about which apps count. That answer is on the row.
+    expect(admin).not.toMatch(/CAMPAIGN_APPS/);
+  });
+
+  it('says so plainly when there is no record, instead of showing zero', () => {
+    // "0 of 0" on an older claim reads as "did nothing" — a sentence about a
+    // person that the data does not support.
+    expect(admin).toMatch(/Claimed before missions were recorded/);
+  });
+
+  it('names the list the claim was measured against', () => {
+    expect(admin).toMatch(/apps this round asked for, not today/);
+  });
+
+  it('dates the evidence', () => {
+    // A tick with no date could mean anything.
+    expect(admin).toMatch(/shortDate/);
+  });
+});
+
+describe('the back arrow goes back one step, not to the Hub', () => {
+  const shell = codeOf('components/hub/HubSubShell.tsx');
+
+  it('takes a declared parent rather than guessing from history', () => {
+    // `router.back()` is history, and history is not the page hierarchy:
+    // arriving from a shared link or after an SSO bounce it walks off the app
+    // entirely, in a browser with no tabs.
+    expect(shell).toMatch(/backTo = '\/hub'/);
+    expect(shell).toMatch(/router\.push\(backTo\)/);
+    expect(shell).not.toMatch(/router\.back\(\)/);
+  });
+
+  it('the nested admin pages declare theirs', () => {
+    // campaign → admin → diagnose. Each arrow now lands on the page you came
+    // from instead of skipping past it to /hub.
+    expect(codeOf('app/hub/admin/campaign/page.tsx')).toMatch(/backTo="\/hub\/campaign"/);
+    expect(codeOf('app/hub/admin/campaign/diagnose/page.tsx')).toMatch(/backTo="\/hub\/admin\/campaign"/);
+  });
+});
+
+describe('the campaign can be handed to somebody else', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('uses the share sheet when there is one, and the clipboard when there is not', () => {
+    // A button that silently does nothing on one of the two is a button that
+    // teaches people not to press it.
+    expect(page).toMatch(/navigator\.share/);
+    expect(page).toMatch(/navigator\.clipboard\.writeText/);
+  });
+
+  it('shares the live URL rather than a hardcoded one', () => {
+    // So a preview deployment shares itself and not production.
+    expect(page).toMatch(/window\.location\.href/);
+  });
+
+  it('promises no number that will have gone stale by the time it is read', () => {
+    // The text is pasted into a chat and read hours later. A seat count in it
+    // is a claim about the present tense that the message cannot keep.
+    const en = read('lib/i18n/en.ts');
+    const ar = read('lib/i18n/ar.ts');
+    expect(en).toMatch(/shareText:/);
+    expect(ar).toMatch(/shareText:/);
+    const shareLine = /shareText:\s*'([^']*)'/;
+    expect(shareLine.exec(en)?.[1] ?? '').not.toMatch(/\d/);
+    expect(shareLine.exec(ar)?.[1] ?? '').not.toMatch(/\d/);
+  });
+});
+
+describe('a full campaign is not the same as no campaign', () => {
+  /**
+   * `open: false` carried two opposite facts — the round is not configured, and
+   * every seat is taken — and the page told the same story about both. So at the
+   * exact moment the campaign SUCCEEDED, the 101st arrival read "No campaign is
+   * running" and reasonably concluded they had been sent somewhere fake, on the
+   * one screen whose whole job is converting a stranger.
+   */
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('picks the sentence from the reason the service gave', () => {
+    expect(page).toMatch(/status\?\.closed_reason === 'full' \? c\.fullTitle : c\.closedTitle/);
+  });
+
+  it('falls back to the neutral sentence when the reason is unknown', () => {
+    // An older service, or an unreachable one, must not produce a confident
+    // wrong answer about why the door is shut.
+    expect(page).toMatch(/closed_reason\?: 'not_configured' \| 'full' \| null/);
+  });
+
+  it('reads as an achievement, not a refusal — in both languages', () => {
+    const en = read('lib/i18n/en.ts');
+    const ar = read('lib/i18n/ar.ts');
+    expect(en).toMatch(/Every seat is taken/);
+    expect(en).toMatch(/next one will be announced/i);
+    expect(ar).toMatch(/كل المقاعد اتحجزت/);
+    expect(ar).toMatch(/الجولة الجاية هتتعلن/);
+  });
+
+  it('does not offer Share on a door that is shut', () => {
+    // The whole value of a share is that it arrives from somebody trusted.
+    expect(page).toMatch(/actions=\{status\?\.open/);
+  });
+});
+
+describe('a refresh is not a first load', () => {
+  /**
+   * Every mission opens a NEW TAB, so returning is the loop the page is built
+   * around — 24 times per pioneer. Each return used to replace the mission list
+   * with grey blocks and rebuild it. Nobody reports this, because a flashing
+   * skeleton reads as "slow" rather than "wrong".
+   */
+  it('only the first load darkens the pioneer page', () => {
+    const page = codeOf('app/hub/campaign/page.tsx');
+    expect(page).toMatch(/if \(firstLoad\.current\) setLoading\(true\)/);
+    expect(page).toMatch(/firstLoad\.current = false/);
+  });
+
+  it('and the payout queue keeps your place after an action', () => {
+    // Recording one payout used to rebuild the whole list — the worst moment to
+    // lose your place in a list you are working down.
+    const admin = codeOf('app/hub/admin/campaign/page.tsx');
+    expect(admin).toMatch(/if \(firstLoad\.current\) setLoading\(true\)/);
+  });
+});
+
+describe('the payout queue at a hundred rows', () => {
+  const admin = codeOf('app/hub/admin/campaign/page.tsx');
+
+  it('finds a claim by the three things somebody arrives holding', () => {
+    // A pioneer asking "where is my Pi" gives you a username. A transfer you
+    // are checking gives you an address. A note gives you a seat.
+    expect(admin).toMatch(/c\.owner\.toLowerCase\(\)\.includes\(needle\)/);
+    expect(admin).toMatch(/c\.wallet_address\.toLowerCase\(\)\.includes\(needle\)/);
+    expect(admin).toMatch(/String\(c\.seat \?\? ''\)\.includes\(needle\)/);
+  });
+
+  it('keeps the TOTAL on the whole queue, not on the search result', () => {
+    // A number that shrinks as you type will be read as the amount owed, and
+    // reported as one.
+    expect(admin).toMatch(/\{claims\.length\} waiting · \{owed\} π to send/);
+    expect(admin).toMatch(/showing \{shown\.length\}/);
+  });
+
+  it('tells "no match" apart from "nobody is waiting"', () => {
+    // An admin who read the second while the first was true would conclude the
+    // queue had emptied.
+    expect(admin).toMatch(/No claim matches/);
+  });
+
+  it('exports exactly what is listed — filter and search included', () => {
+    // A file that silently contained more than the list above it is a quiet lie.
+    expect(admin).toMatch(/shown\.map\(\(c\) => \[/);
+  });
+
+  it('quotes every CSV cell and doubles internal quotes', () => {
+    // A username is user-supplied text. One bare comma shifts every later
+    // column under the wrong header.
+    expect(admin).toMatch(/replace\(\/"\/g, '""'\)/);
+  });
+
+  it('writes a BOM, or Excel mangles any non-ASCII username', () => {
+    expect(admin).toMatch(/\\uFEFF/);
+  });
+});
+
 describe('the wait is stated, not implied away', () => {
   const en = read('lib/i18n/en.ts');
   const ar = read('lib/i18n/ar.ts');
@@ -296,8 +485,9 @@ describe('the payout queue is built for copying by hand', () => {
     // One of these moves Pi. An action taken from the body unchecked would let
     // a request reach any path segment under the claim.
     const route = codeOf('app/api/admin/campaign/claims/route.ts');
-    expect(route).toMatch(/body\?\.action === 'reject' \? 'reject'/);
-    expect(route).toMatch(/body\?\.action === 'send' \? 'send'/);
+    expect(route).toMatch(/const ACTIONS = \[/);
+    expect(route).toMatch(/'send'/);
+    expect(route).toMatch(/if \(!action\)/);
   });
 
   it('says whether the payout wallet can actually send, before anything spends it', () => {

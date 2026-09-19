@@ -28,7 +28,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     lead: 'Everything a new Pi user asks before joining TEC — answered honestly.',
     qa: (total) => [
       { q: 'What is TEC?', a: `A full economy built on Pi — ${total} apps sharing one identity and one wallet, with real Pi payments. Not a single app: a whole ecosystem (commerce, assets, reputation, business, and more).` },
-      { q: 'What is a Founding Pioneer?', a: `The first 100 Pioneers to complete the Quest — opening every live app while logged in — earn a permanent Founding Pioneer badge in their TEC reputation. It is earned, never bought, and it is yours forever.` },
+      { q: 'What is a Founding Pioneer?', a: `The first 100 Pioneers to complete the Quest — opening every live app while logged in — earn a permanent Founding Pioneer badge in their TEC reputation. It is earned, never bought, and it is yours forever. Each one also receives 6 months of TEC PRO across the ecosystem — a 6-month period, which then ends; there is no auto-renewal and nothing to cancel.` },
       { q: 'Why do I log in with Pi?', a: 'One sign-in carries across all TEC apps (single sign-on). You authenticate with Pi itself — TEC never sees your Pi password or wallet keys. Your identity is simply your Pi username.' },
       { q: 'Is it safe? What data do you store?', a: 'Your session lives in secure HttpOnly cookies — never in localStorage, never exposed to scripts. TEC does not store your Pi wallet keys or your Pi-Network KYC. We keep only what an app needs to work, and every app states what it does.' },
       { q: 'Do I have to pay anything?', a: 'No. The Founding badge is earned by completing the Quest — opening every live app — with no payment required. Some apps offer optional Pi purchases later, and those always happen with your explicit approval.' },
@@ -53,7 +53,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     lead: 'كل اللي أي مستخدم Pi جديد بيسأله قبل ما ينضم لـ TEC — بإجابات صادقة.',
     qa: (total) => [
       { q: 'إيه هي TEC؟', a: `اقتصاد كامل مبني على Pi — ${total} تطبيق بيشاركوا هوية واحدة ومحفظة واحدة، بمدفوعات Pi حقيقية. مش تطبيق واحد: منظومة كاملة (تجارة، أصول، سمعة، أعمال، وأكتر).` },
-      { q: 'مين هو الـ Founding Pioneer؟', a: 'أول 100 Pioneer يكمّلوا الـ Quest — يفتحوا كل التطبيقات الشغّالة وهما مسجّلين دخول — بياخدوا شارة Founding Pioneer دائمة في سمعتهم داخل TEC. بتتكسب، متتشريش، وليك للأبد.' },
+      { q: 'مين هو الـ Founding Pioneer؟', a: 'أول 100 Pioneer يكمّلوا الـ Quest — يفتحوا كل التطبيقات الشغّالة وهما مسجّلين دخول — بياخدوا شارة Founding Pioneer دائمة في سمعتهم داخل TEC. بتتكسب، متتشريش، وليك للأبد. وكل واحد فيهم بياخد كمان ٦ شهور TEC PRO في المنظومة كلها — مدة ٦ شهور وبعدها تنتهي؛ مفيش تجديد تلقائي ولا حاجة تلغيها.' },
       { q: 'ليه أسجّل دخول بـ Pi؟', a: 'تسجيل دخول واحد بيمشي معاك في كل تطبيقات TEC (دخول موحّد). إنت بتتحقق من Pi نفسه — TEC عمرها ما بتشوف باسورد Pi أو مفاتيح محفظتك. هويتك ببساطة هي اسم مستخدم Pi بتاعك.' },
       { q: 'هل آمن؟ وإيه اللي بتخزّنوه؟', a: 'جلستك بتعيش في كوكيز HttpOnly آمنة — مش في localStorage، ومش متاحة لأي سكربت. TEC مبتخزّنش مفاتيح محفظة Pi ولا KYC بتاع Pi Network. بنحتفظ بس باللي التطبيق محتاجه عشان يشتغل، وكل تطبيق بيوضّح بيعمل إيه.' },
       { q: 'هل لازم أدفع؟', a: 'لأ. شارة Founding بتتكسب بإكمال الـ Quest — فتح كل التطبيقات الشغّالة — من غير أي دفع. بعض التطبيقات بتوفّر مشتريات Pi اختيارية بعدين، وديماً بتحصل بموافقتك الصريحة.' },

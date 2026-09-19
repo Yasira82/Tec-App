@@ -78,19 +78,75 @@ describe('PioneersClient — derived counts', () => {
     expect(container.textContent).toContain(`${TOTAL} live`);
   });
 
-  it('shows the derived total in the completion banner when all apps are opened', async () => {
-    // Pre-seed every live slug as visited — an authenticated visitor then sees the
-    // "opened all N" banner, and N must equal the derived total, not a literal 24.
-    localStorage.setItem(
-      'tec_pioneer_quest',
-      JSON.stringify(LIVE_DOMAINS.map((d) => d.slug)),
-    );
+  it('shows the derived total in the completion banner when the SERVER says so', async () => {
+    // N must equal the derived total, not a literal 24 — and the banner must come
+    // from `completed_at`, the server's own verdict.
+    global.fetch = mockFetch(
+      { opened_apps: LIVE_DOMAINS.map((d) => d.slug), completed_at: '2026-09-19T00:00:00Z' },
+      null,
+    ) as unknown as typeof fetch;
     let container!: HTMLElement;
     await act(async () => { ({ container } = render(<PioneersClient />)); });
     await waitFor(() => {
       expect(container.textContent).toContain(`you opened all ${TOTAL}`);
     });
     expect(container.textContent).toContain('100%');
+  });
+
+  it('does NOT promise the badge when only local storage says the quest is done', async () => {
+    // The defect this pins: a failed `/open` POST leaves its tick in localStorage,
+    // the server merge is a union that only adds, and the ✓ is what stops the
+    // person tapping again — so the local count can sit permanently ahead of the
+    // truth. The bar may run ahead; the promise may not.
+    localStorage.setItem(
+      'tec_pioneer_quest',
+      JSON.stringify(LIVE_DOMAINS.map((d) => d.slug)),
+    );
+    // Server has nothing: no quest row at all.
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('100%');
+    });
+    expect(container.textContent).not.toContain('you opened all');
+    expect(container.textContent).not.toContain('You qualify');
+  });
+
+  it('re-sends a tick the server never received', async () => {
+    // The set difference between local and server IS the list to re-send. Without
+    // it a tick lost to a backend blip stays local forever and the quest silently
+    // never completes.
+    const slugs = LIVE_DOMAINS.map((d) => d.slug);
+    localStorage.setItem('tec_pioneer_quest', JSON.stringify(slugs));
+    const fetchMock = mockFetch({ opened_apps: slugs.slice(0, -1) }, null);
+    global.fetch = fetchMock as unknown as typeof fetch;
+    await act(async () => { render(<PioneersClient />); });
+    await waitFor(() => {
+      const opens = fetchMock.mock.calls
+        .map((c) => String(c[0]))
+        .filter((u) => u.includes('/pioneer/open'));
+      expect(opens).toHaveLength(1);
+    });
+  });
+
+  it('takes the Quest target from the server, not from what is live', async () => {
+    // A frozen campaign roster of 20 against 24 live apps: the page must ask for
+    // the campaign's 20 and still list all 24.
+    global.fetch = mockFetch(null, {
+      founding_claimed: 0, founding_remaining: 100,
+      total_pioneers: 0, completed: 0, quest_target: 20,
+    }) as unknown as typeof fetch;
+    localStorage.setItem(
+      'tec_pioneer_quest',
+      JSON.stringify(LIVE_DOMAINS.slice(0, 20).map((d) => d.slug)),
+    );
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('20 of 20 explored');
+    });
+    // The grid still lists every live app.
+    expect(container.textContent).toContain(`Explore the ${TOTAL} apps`);
   });
 
   it('renders one anchor per live app', async () => {
@@ -183,6 +239,39 @@ describe('PioneersClient — Founding counter', () => {
     expect(joinedCell?.textContent).toBe('0');
   });
 
+  it('shows the counter to ANY visitor once the cohort is real', async () => {
+    // The behaviour the floor exists for. At 73 of 100 claimed, a visitor used
+    // to see nothing at all — the strongest sentence the page has, structurally
+    // unable to be said.
+    mockUsePiAuth.mockReturnValue(anon);
+    delete process.env.NEXT_PUBLIC_PIONEER_ADMINS;
+    global.fetch = mockFetch(null, {
+      founding_claimed: 73, founding_remaining: 27,
+      total_pioneers: 140, completed: 73,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('73 of 100 Founding spots claimed');
+    });
+  });
+
+  it('still hides an EMPTY counter from a visitor — an early zero argues against the page', async () => {
+    mockUsePiAuth.mockReturnValue(anon);
+    delete process.env.NEXT_PUBLIC_PIONEER_ADMINS;
+    global.fetch = mockFetch(null, {
+      founding_claimed: 0, founding_remaining: 100,
+      total_pioneers: 0, completed: 0,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('Founding 100');
+    });
+    expect(container.textContent).not.toContain('Founding spots claimed');
+    expect(container.textContent).not.toContain('Pioneers joined');
+  });
+
   it('hides the live counter from a non-owner visitor (owner-only)', async () => {
     // A logged-in user who is NOT in NEXT_PUBLIC_PIONEER_ADMINS must not see the
     // aggregate counter — cold campaign traffic never sees the early zeros.
@@ -199,7 +288,14 @@ describe('PioneersClient — Founding counter', () => {
 
   it('merges server-side opened apps and shows the Founding number badge', async () => {
     global.fetch = mockFetch(
-      { opened_apps: LIVE_DOMAINS.map((d) => d.slug), founding_number: 7, kyc_verified: true },
+      {
+        opened_apps: LIVE_DOMAINS.map((d) => d.slug),
+        founding_number: 7,
+        // A quest that earned a number is a completed quest — the server says so
+        // with `completed_at`, and that is what the banner reads.
+        completed_at: '2026-09-19T00:00:00Z',
+        kyc_verified: true,
+      },
       null,
     ) as unknown as typeof fetch;
     let container!: HTMLElement;

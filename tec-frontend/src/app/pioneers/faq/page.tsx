@@ -22,7 +22,7 @@ const FAQ_LD = {
   '@type': 'FAQPage',
   mainEntity: [
     ['What is TEC?', `A full economy built on Pi — ${LIVE_DOMAINS.length} apps sharing one identity and one wallet, with real Pi payments.`],
-    ['What is a Founding Pioneer?', 'The first 100 Pioneers to complete the Quest earn a permanent Founding Pioneer badge in their TEC reputation. It is earned, never bought.'],
+    ['What is a Founding Pioneer?', 'The first 100 Pioneers to complete the Quest earn a permanent Founding Pioneer badge in their TEC reputation, plus 6 months of TEC PRO across the ecosystem. It is earned, never bought.'],
     ['Do I have to pay anything?', 'No. The Founding badge is earned by completing the Quest — opening every live app — with no payment required.'],
     ['Do I need KYC?', 'Pi Network handles KYC itself for wallet, payments and domain claims. You do not complete a separate TEC KYC to be a Pioneer.'],
     ['Is it safe? What data do you store?', 'Your session lives in secure HttpOnly cookies, never in localStorage. TEC does not store your Pi wallet keys or Pi-Network KYC.'],

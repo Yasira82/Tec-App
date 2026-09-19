@@ -116,6 +116,7 @@ export default function CampaignDiagnosePage() {
       title="Campaign diagnostics"
       subtitle="Admin — what the server actually answers"
       loading={authLoading}
+      backTo="/hub/admin/campaign"
     >
       <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>
         <button

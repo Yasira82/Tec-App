@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter }  from 'next/navigation';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
@@ -39,6 +39,91 @@ interface Claim {
   tx_id:          string | null;
   note:           string | null;
   created_at:     string;
+  /**
+   * Why this reward is owed, frozen by the service when the seat was taken.
+   *
+   * Null on any claim made before the column existed — and the card says so
+   * rather than rendering "0 of 0", which would read as "did nothing".
+   */
+  qualified:      { at: string; required: string[]; done: { app: string; at: string | null }[] } | null;
+}
+
+/** `2026-09-19T03:25:44Z` → `19 Sep`. A tick with no date could mean anything. */
+const shortDate = (iso: string | null): string => {
+  if (!iso) return '';
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime())
+    ? ''
+    : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+};
+
+/**
+ * What this pioneer actually did, before anybody sends them real Pi.
+ *
+ * The service already refuses an unqualified claim — this cannot be the check,
+ * and is not pretending to be. It is the EVIDENCE of a check that already
+ * happened, on the screen where somebody decides to move money, because "the
+ * service verified it" and "I can see what it verified" stop being the same
+ * sentence somewhere around the fiftieth claim.
+ *
+ * Collapsed by default: the count is the answer nearly every time, and a
+ * payout queue that makes you scroll past 24 app names per row is a queue
+ * people stop reading.
+ */
+function Qualification({ q }: { q: Claim['qualified'] }) {
+  const [open, setOpen] = useState(false);
+
+  if (!q) {
+    // No invented evidence. A claim from before this was recorded gets a
+    // sentence saying exactly that, which is worth more than a reassuring
+    // number nothing stands behind.
+    return (
+      <div style={{ marginTop: 'var(--sp-3)', fontSize: 11.5, color: 'var(--tec-text-3)' }}>
+        Claimed before missions were recorded — no detail on file.
+      </div>
+    );
+  }
+
+  const complete = q.done.length >= q.required.length;
+
+  return (
+    <div style={{ marginTop: 'var(--sp-3)' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'none', border: 'none', padding: 0,
+          color: complete ? 'var(--tec-green)' : 'var(--tec-text-3)',
+          fontSize: 12, fontWeight: 700, cursor: 'pointer', font: 'inherit',
+        }}
+      >
+        <span>{complete ? '✓' : '•'}</span>
+        <span dir="ltr">{q.done.length} / {q.required.length} missions</span>
+        <span style={{ color: 'var(--tec-text-3)', fontWeight: 600 }}>· {shortDate(q.at)}</span>
+        <span style={{ color: 'var(--tec-text-3)' }}>{open ? '▴' : '▾'}</span>
+      </button>
+
+      {open && (
+        <div style={{ marginTop: 8, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {q.done.map(({ app, at }) => (
+            <span key={app} dir="ltr" style={{
+              fontSize: 11, color: 'var(--tec-text-2)',
+              background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+              borderRadius: 'var(--radius-sm)', padding: '4px 8px',
+            }}>
+              {app}{at ? ` · ${shortDate(at)}` : ''}
+            </span>
+          ))}
+          {/* The list this claim was measured against, said plainly. It is NOT
+              today's CAMPAIGN_APPS, and it must not be read as such: a later
+              round asking for more cannot make this reward less earned. */}
+          <span style={{ width: '100%', fontSize: 11, color: 'var(--tec-text-3)', marginTop: 4, lineHeight: 1.6 }}>
+            Measured against the {q.required.length} apps this round asked for, not today&rsquo;s list.
+          </span>
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Row({ claim, onDone, canSend }: {
@@ -149,6 +234,8 @@ function Row({ claim, onDone, canSend }: {
           {copied ? '✓' : 'Copy'}
         </button>
       </div>
+
+      <Qualification q={claim.qualified} />
 
       {claim.status === 'CLAIMED' && (
         <div style={{ display: 'flex', gap: 8, marginTop: 'var(--sp-3)', flexWrap: 'wrap' }}>
@@ -293,7 +380,18 @@ export default function AdminCampaignPage() {
 
   const [claims,  setClaims]  = useState<Claim[]>([]);
   const [filter,  setFilter]  = useState<Status | 'ALL'>('CLAIMED');
+  // Finding ONE claim in a hundred.
+  //
+  // Client-side, over what is already loaded, because the whole round is 100
+  // rows and a round trip per keystroke would be a worse answer to a smaller
+  // problem. If a round ever outgrows one page this moves to the service —
+  // which is a different change, and it will be obvious when it is needed.
+  const [q, setQ] = useState('');
+  // First load only — see the note on the pioneer page. Recording one payout
+  // used to replace the whole queue with grey blocks and rebuild it, which is
+  // the worst moment to lose your place in a list you are working down.
   const [loading, setLoading] = useState(true);
+  const firstLoad = useRef(true);
   const [denied,  setDenied]  = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   // Whether this platform can actually send Pi at all.
@@ -307,7 +405,8 @@ export default function AdminCampaignPage() {
   } | null>(null);
 
   const load = useCallback(async (status: Status | 'ALL') => {
-    setLoading(true); setError(null);
+    if (firstLoad.current) setLoading(true);
+    setError(null);
     try {
       const qs  = status === 'ALL' ? '' : `?status=${status}`;
       const res = await fetch(`/api/admin/campaign/claims${qs}`, { credentials: 'include' });
@@ -318,6 +417,7 @@ export default function AdminCampaignPage() {
     } catch (e) {
       setError((e as Error).message);
     } finally {
+      firstLoad.current = false;
       setLoading(false);
     }
   }, []);
@@ -337,11 +437,66 @@ export default function AdminCampaignPage() {
   const owed = claims.filter((c) => c.status === 'CLAIMED')
     .reduce((n, c) => n + Number(c.amount_pi || 0), 0);
 
+  /**
+   * Seat, username or address — the three things somebody arrives holding.
+   *
+   * A pioneer asking "where is my Pi" gives you a username. A transfer you are
+   * checking gives you an address. A note you wrote gives you a seat. All three
+   * are matched, case-insensitively, because none of them is typed carefully on
+   * a phone.
+   */
+  const needle  = q.trim().toLowerCase();
+  const shown   = needle
+    ? claims.filter((c) =>
+        c.owner.toLowerCase().includes(needle)
+        || c.wallet_address.toLowerCase().includes(needle)
+        || String(c.seat ?? '').includes(needle))
+    : claims;
+
+  /**
+   * The queue as a file.
+   *
+   * Reconciliation is already done — every `tx_id` was verified against the
+   * chain when it was written, so this is not proving anything. It is for the
+   * work AROUND the payouts: a total to report, a list to check against a
+   * wallet's own history, a record that outlives a browser tab.
+   *
+   * Built from what is on screen, so an export matches what was exported: the
+   * filter and the search both apply, and a file that silently contained more
+   * than the list above it would be a quiet lie.
+   *
+   * Every field is quoted and internal quotes are doubled — a username is
+   * user-supplied text, and a bare comma in one would shift every later column
+   * into the wrong header.
+   */
+  const exportCsv = () => {
+    const cell = (v: unknown) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const rows = [
+      ['seat', 'owner', 'status', 'amount_pi', 'wallet_address', 'tx_id', 'claimed_at', 'note'],
+      ...shown.map((c) => [
+        c.seat ?? '', c.owner, c.status, c.amount_pi,
+        c.wallet_address, c.tx_id ?? '', c.created_at, c.note ?? '',
+      ]),
+    ].map((r) => r.map(cell).join(',')).join('\r\n');
+
+    try {
+      // BOM: Excel reads a CSV without one as the system codepage, which turns
+      // any non-ASCII username into mojibake.
+      const url = URL.createObjectURL(new Blob(['\uFEFF' + rows], { type: 'text/csv;charset=utf-8' }));
+      const a   = document.createElement('a');
+      a.href = url;
+      a.download = `campaign-${filter.toLowerCase()}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch { /* a blocked download is not worth an error banner */ }
+  };
+
   return (
     <HubSubShell
       title="Campaign payouts"
       subtitle="Admin — who is waiting for Pi"
       loading={authLoading || loading}
+      backTo="/hub/campaign"
     >
       {(denied || (!authLoading && !isAdmin)) ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>
@@ -430,6 +585,39 @@ export default function AdminCampaignPage() {
             </div>
           )}
 
+          {claims.length > 0 && (
+            <div style={{ display: 'flex', gap: 8, marginBottom: 'var(--sp-3)', flexWrap: 'wrap' }}>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Seat, username or address"
+                dir="ltr"
+                spellCheck={false}
+                autoCapitalize="none"
+                autoCorrect="off"
+                aria-label="Find a claim"
+                style={{
+                  flex: 1, minWidth: 180, boxSizing: 'border-box',
+                  background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+                  borderRadius: 'var(--radius-sm)', padding: '9px 12px',
+                  color: 'var(--tec-text-1)', fontSize: 12, outline: 'none', font: 'inherit',
+                }}
+              />
+              <button
+                onClick={exportCsv}
+                title="Download what is listed below"
+                style={{
+                  flexShrink: 0, padding: '9px 14px', borderRadius: 'var(--radius-sm)',
+                  background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)',
+                  color: 'var(--tec-text-2)', fontSize: 12, fontWeight: 700,
+                  cursor: 'pointer', font: 'inherit',
+                }}
+              >
+                Export CSV
+              </button>
+            </div>
+          )}
+
           {filter === 'CLAIMED' && claims.length > 0 && (
             <div dir="ltr" style={{
               padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-3)',
@@ -437,6 +625,12 @@ export default function AdminCampaignPage() {
               borderRadius: 'var(--radius-md)', fontSize: 12.5, color: 'var(--tec-text-2)',
             }}>
               {claims.length} waiting · {owed} π to send
+              {/* The total is always the WHOLE queue, never the search result.
+                  A number that shrinks as you type is a number that will be
+                  read as the amount owed, and reported as one. */}
+              {needle && shown.length !== claims.length && (
+                <span style={{ color: 'var(--tec-text-3)' }}> · showing {shown.length}</span>
+              )}
             </div>
           )}
 
@@ -448,12 +642,17 @@ export default function AdminCampaignPage() {
             }}>
               <Icon name="alert" size={16} color="var(--tec-red)" /> {error}
             </div>
-          ) : claims.length === 0 && !loading ? (
+          ) : shown.length === 0 && !loading ? (
             <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)', color: 'var(--tec-text-3)', fontSize: 'var(--text-sm)' }}>
-              {filter === 'CLAIMED' ? 'Nobody is waiting for a payout.' : 'Nothing here.'}
+              {/* "No match" and "nobody is waiting" are different facts, and an
+                  admin who read the second while the first was true would
+                  conclude the queue had emptied. */}
+              {needle
+                ? `No claim matches “${q.trim()}” in ${filter === 'ALL' ? 'any status' : filter}.`
+                : filter === 'CLAIMED' ? 'Nobody is waiting for a payout.' : 'Nothing here.'}
             </div>
           ) : (
-            claims.map((c) => (
+            shown.map((c) => (
               <Row
                 key={c.id} claim={c} onDone={() => void load(filter)}
                 // Unknown status → treated as CAN send, so a status line that

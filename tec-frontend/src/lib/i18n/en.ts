@@ -265,6 +265,10 @@ export const en = {
       seatsLeft:    '{reward} π · {remaining} of {seats} seats left',
       closedTitle:  'No campaign is running',
       closedSub:    'Check back — the next round will appear here.',
+      // FULL is the opposite outcome to NOT CONFIGURED, and this screen used to
+      // say the same thing about both. Reads as an achievement, not a refusal.
+      fullTitle:    'Every seat is taken',
+      fullSub:      'All {seats} pioneers claimed this round. The next one will be announced here — and on the TEC group.',
       signedOut:    'Sign in with Pi to take part.',
       signIn:       'Sign in with Pi',
       adminTitle:   'Campaign payouts',
@@ -308,6 +312,11 @@ export const en = {
       notRightOne:  'Not the right one? Post the correct address in the group — the newest one you send is the one we use.',
       // The fallback route. It says WHY we are asking, because "give us your
       // wallet address" with no reason is the shape of every Pi scam.
+      share:        'Share',
+      shareCopied:  'Copied',
+      // No promise about seats or amount: this text is pasted into a chat and
+      // read hours later, by which time a number in it may be a lie.
+      shareText:    'Visit the TEC apps and claim free Pi — while seats last.',
       typeAddrIntro: 'One last thing: your Pi wallet address. It is how we know one person is claiming once — each wallet can claim a single reward. Only the public address, the one that starts with G.',
       claimWithAddr: 'Claim {reward} π',
       orPostInstead: 'You can also post it in the TEC group instead, and we will read it from there.',

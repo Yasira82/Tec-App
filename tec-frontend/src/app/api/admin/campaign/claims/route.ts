@@ -35,11 +35,23 @@ export async function PATCH(req: NextRequest) {
   // A CLOSED set, never the caller's string: an action taken from the body
   // unchecked would let a request reach any path segment under the claim — and
   // one of these now MOVES Pi.
-  const action = body?.action === 'reject' ? 'reject'
-    : body?.action === 'send' ? 'send'
-    : body?.action === 'unpaid' ? 'unpaid'
-    : 'paid';
+  //
+  // The set was right; the FALLBACK was not. Anything unrecognised used to land
+  // on `paid` — the action that records a payment. Not exploitable, because
+  // `markPaid` still demands a 64-hex hash the chain confirms and no other seat
+  // holds, so the defence downstream held. The defect was the default: P6 says
+  // doubt DENIES, and here doubt chose the most consequential verb in the set.
+  // A typo, a malformed body, or a future caller sending `Paid` is now refused
+  // instead of being interpreted generously.
+  const ACTIONS = ['paid', 'reject', 'send', 'unpaid'] as const;
+  const action  = ACTIONS.find((a) => a === body?.action);
   if (!id) return NextResponse.json({ error: 'id is required' }, { status: 400 });
+  if (!action) {
+    return NextResponse.json(
+      { error: `action must be one of: ${ACTIONS.join(', ')}` },
+      { status: 400 },
+    );
+  }
 
   try {
     const res = await fetch(`${GATEWAY}/api/identity/campaign/claims/${encodeURIComponent(id)}/${action}`, {

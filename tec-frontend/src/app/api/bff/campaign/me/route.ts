@@ -15,7 +15,17 @@ export const GET = createHandler({
       cache: 'no-store',
     });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw Object.assign(new Error('Could not load your campaign progress'), { status: res.status });
+    if (!res.ok) {
+      // The service's own sentence, not a generic one. tec-app #239 removed this
+      // exact shape from ten routes after two unrelated causes arrived as one
+      // number and cost four rounds of diagnosis; the status survived here, the
+      // reason did not. Nothing displays it today — which is precisely why it
+      // was easy to lose.
+      throw Object.assign(
+        new Error(data?.message ?? data?.error ?? 'Could not load your campaign progress'),
+        { status: res.status },
+      );
+    }
     return data?.data ?? {};
   },
 });

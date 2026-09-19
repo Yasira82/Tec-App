@@ -48,8 +48,6 @@ interface AppRow {
   arrived?:     number;
   /** Taps this app never confirmed — the measurement error, made visible. */
   unconfirmed?: number;
-  /** TEC's own KYC. Reported for context; it no longer decides anything. */
-  verified:     number;
   openers:      number;
   threshold:    number;
   still_needed: number;
@@ -58,7 +56,6 @@ interface AppRow {
 interface Coverage {
   threshold:          number;
   total_pioneers:     number;
-  verified_pioneers:  number;
   apps_claimed?:      number;
   apps_short:         number;
   total_still_needed: number;
@@ -146,10 +143,6 @@ function Row({ row }: { row: AppRow }) {
         {!claimed && typeof row.unconfirmed === 'number' && row.unconfirmed > 0 && (
           <span dir="ltr">{row.unconfirmed} unconfirmed</span>
         )}
-
-        {/* TEC's own KYC, kept in view and demoted. If it ever moves that is
-            real information; it simply no longer decides how much work is left. */}
-        <span dir="ltr" style={{ opacity: 0.75 }}>{row.verified} TEC-verified</span>
       </div>
     </div>
   );

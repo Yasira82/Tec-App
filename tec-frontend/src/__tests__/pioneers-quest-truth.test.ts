@@ -83,19 +83,22 @@ describe('F4 — the arrival numbers reach the screen that aims the campaign', (
     expect(coverage).toMatch(/\{arrived\} \/ \{row\.threshold\}/);
   });
 
-  it('demotes verified to context rather than dropping it', () => {
-    // ── A correction to this file's own earlier assertion ──────────────────
-    // It used to pin `verified` AS the headline, on the reasoning that swapping
-    // the number would re-point the campaign mid-round. That reasoning was
-    // sound and the premise under it was false: `verified` reads TEC's own
-    // document-KYC, a flow almost nobody completes, so it sat at 0 beside
-    // eleven working pioneers and every total built on it was frozen at its
-    // maximum. Re-pointing an instrument that cannot move is not a risk, it is
-    // the repair.
+  it('shows no TEC-KYC figure at all', () => {
+    // ── Two corrections to this file's own earlier assertions ──────────────
+    // First it pinned `verified` AS the headline, reasoning that swapping the
+    // number would "re-point the campaign mid-round". Then it pinned `verified`
+    // as demoted context.
     //
-    // `verified` stays on screen. If it ever moves that is real information; it
-    // simply no longer decides how much work is left.
-    expect(coverage).toMatch(/TEC-verified/);
+    // Both kept a column the platform never asks anyone to fill. `verified`
+    // reads TEC's OWN document-KYC at /hub/kyc; Pi checks its own records and
+    // does not share them. So it sat at 0 beside eleven working pioneers —
+    // three of them Pi-KYC-verified people — and a reader seeing that zero
+    // draws exactly the wrong conclusion.
+    //
+    // A register nobody is asked to fill is not a measurement. Showing one only
+    // invites somebody to mistake it for one.
+    expect(coverage).not.toMatch(/TEC-verified/);
+    expect(coverage).not.toMatch(/row\.verified/);
   });
 
   it('marks a domain Pi has already accepted instead of asking for more', () => {

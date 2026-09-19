@@ -36,6 +36,64 @@ function linkFor(slug: string, route: string | null): string {
   return `https://${slug}.tecosystem.app`;
 }
 
+/**
+ * A cross-domain app link, opened so the app gets its OWN Pi session.
+ *
+ * ── The observation this is built on ────────────────────────────────────────
+ *
+ * The same Pi payment, run two ways, produced two different verdicts in the Pi
+ * Developer Portal:
+ *
+ *     paid from the Hub modal   →  π moved · Portal checklist step FAILED
+ *     paid inside the app       →  π moved · Portal checklist step PASSED
+ *
+ * The money moved both times. Pi only COUNTED the second. Which says Pi does not
+ * credit "a transaction happened for this app" — it credits "this app ran the Pi
+ * SDK on its own domain and did the transaction itself". Paid from the Hub, the
+ * app Pi sees is the HUB.
+ *
+ * The `.pi` claim threshold — 5 unique KYC'd pioneers engaging with the app — is
+ * the same kind of counter, so it almost certainly has the same blind spot.
+ *
+ * ── Why a plain link could never feed it ────────────────────────────────────
+ *
+ * Every app's layout skips the Pi SDK when it detects a Hub entry, and does not
+ * merely leave it un-init'd — `pi-sdk.js` is NOT LOADED (ADR-007: touching Pi in
+ * a Hub-owned session poisons it and breaks the Hub's own PaymentModal). The
+ * detector is `document.referrer` plus a `__tec_hub_entry` sessionStorage flag.
+ *
+ * A plain `<a>` from this page sets that referrer. So every Quest tap landed in
+ * an app that deliberately never spoke to Pi — the Hub's counter recorded an
+ * arrival, and Pi recorded nothing. Eight pioneers across twenty-three apps,
+ * invisible to the only register that decides the domains.
+ *
+ * ── What this does, and what it does not promise ────────────────────────────
+ *
+ *   target="_blank"  a new tab, so this page survives the trip — the Quest can
+ *                    be worked down in one sitting instead of once per
+ *                    round-trip through a sign-in redirect.
+ *                    It also gives the app a FRESH sessionStorage, so a
+ *                    `__tec_hub_entry` flag left by an earlier SSO hop in
+ *                    another tab cannot follow it in.
+ *   rel="noreferrer" removes the referrer, so the app sees a standalone visit
+ *                    and loads the SDK.
+ *   rel="noopener"   the opened tab gets no handle on this one. Standard with
+ *                    `_blank`, and not optional on a page that lists outbound
+ *                    links.
+ *
+ * This removes the DETECTOR. Whether Pi Browser then actually gives the app its
+ * own Pi app context is Pi Browser's decision, not ours — so this is the app
+ * being given its chance to register, not a guarantee that it did. The way to
+ * know is to measure it: the arrival report can carry whether the SDK really
+ * initialised, and the coverage screen can show that number beside `arrived`.
+ * Until then, read the Portal checklist, not this code.
+ */
+const APP_LINK_PROPS = { target: '_blank', rel: 'noopener noreferrer' } as const;
+
+/** Same-origin Hub routes (`/hub`) keep normal navigation: there is no Pi
+ *  session to protect and no referrer worth stripping — it is this app. */
+const isExternal = (href: string) => href.startsWith('http');
+
 type Copy = {
   eyebrow: string; founding: string; h1: string; lead: string;
   heroTrust: string; heroCta: string; heroRecognition: string;
@@ -101,7 +159,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
       { n: '3', title: 'Try one action', body: 'Do one thing in each app — browse, create, or a small Pi payment. That is your Pioneer footprint.' },
     ],
     appsTitle: (total) => `Explore the ${total} apps · all live`,
-    appsLead: 'Explore the TEC ecosystem at your own pace — tap any app to open it in Pi Browser. Each one you explore ticks your Quest.',
+    appsLead: 'Explore the TEC ecosystem at your own pace — tap any app and it opens in a new tab, so this page stays here and you can keep going. Each one you explore ticks your Quest.',
     appsSignedOut: '⚠️ You are not signed in — these open normally, but nothing is counted toward your Quest. Sign in with Pi first so the apps you open are kept.',
     opened: 'Explored',
     badgeTitle: '★ The Founding Pioneer badge',
@@ -144,7 +202,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
       { n: '3', title: 'جرّب إجراء واحد', body: 'اعمل حاجة واحدة في كل تطبيق — تتصفّح، تنشئ، أو دفعة Pi صغيرة. دي بصمتك كـ Pioneer.' },
     ],
     appsTitle: (total) => `استكشف الـ ${total} تطبيق · كلهم شغّالين`,
-    appsLead: 'استكشف منظومة TEC على راحتك — اضغط أي تطبيق تفتحه في متصفح Pi. كل واحد تستكشفه بيتشطّب في مهمّتك.',
+    appsLead: 'استكشف منظومة TEC على راحتك — اضغط أي تطبيق يفتح في تبويب جديد، فالصفحة دي تفضل مكانها وتقدر تكمّل. كل واحد تستكشفه بيتشطّب في مهمّتك.',
     appsSignedOut: '⚠️ إنت مش مسجّل دخول — التطبيقات هتفتح عادي، بس مفيش حاجة هتتحسب في مهمّتك. سجّل دخول بـ Pi الأول علشان اللي تفتحه يتحفظ.',
     opened: 'مُستكشَف',
     badgeTitle: '★ شارة Founding Pioneer',
@@ -614,11 +672,15 @@ export default function PioneersClient() {
           <div style={{ display: 'grid', gap: 10 }}>
             {LIVE_DOMAINS.map((d) => {
               const isDone = eligible && visited.includes(d.slug);
+              const href   = linkFor(d.slug, d.route);
               return (
                 <a
                   key={d.slug}
                   data-app={d.slug}
-                  href={linkFor(d.slug, d.route)}
+                  href={href}
+                  {...(isExternal(href) ? APP_LINK_PROPS : {})}
+                  // The tick now lands while the page is still on screen. With a
+                  // same-tab jump this POST raced the navigation away from it.
                   onClick={() => markVisited(d.slug)}
                   style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', borderColor: isDone ? `${C.green}55` : `${C.gold}22` }}
                 >

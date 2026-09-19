@@ -239,6 +239,39 @@ describe('PioneersClient — Founding counter', () => {
     expect(joinedCell?.textContent).toBe('0');
   });
 
+  it('shows the counter to ANY visitor once the cohort is real', async () => {
+    // The behaviour the floor exists for. At 73 of 100 claimed, a visitor used
+    // to see nothing at all — the strongest sentence the page has, structurally
+    // unable to be said.
+    mockUsePiAuth.mockReturnValue(anon);
+    delete process.env.NEXT_PUBLIC_PIONEER_ADMINS;
+    global.fetch = mockFetch(null, {
+      founding_claimed: 73, founding_remaining: 27,
+      total_pioneers: 140, completed: 73,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('73 of 100 Founding spots claimed');
+    });
+  });
+
+  it('still hides an EMPTY counter from a visitor — an early zero argues against the page', async () => {
+    mockUsePiAuth.mockReturnValue(anon);
+    delete process.env.NEXT_PUBLIC_PIONEER_ADMINS;
+    global.fetch = mockFetch(null, {
+      founding_claimed: 0, founding_remaining: 100,
+      total_pioneers: 0, completed: 0,
+    }) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => {
+      expect(container.textContent).toContain('Founding 100');
+    });
+    expect(container.textContent).not.toContain('Founding spots claimed');
+    expect(container.textContent).not.toContain('Pioneers joined');
+  });
+
   it('hides the live counter from a non-owner visitor (owner-only)', async () => {
     // A logged-in user who is NOT in NEXT_PUBLIC_PIONEER_ADMINS must not see the
     // aggregate counter — cold campaign traffic never sees the early zeros.

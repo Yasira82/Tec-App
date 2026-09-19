@@ -47,6 +47,10 @@ type Copy = {
   questDoneBanner: (total: number) => string;
   stepsTitle: string; steps: { n: string; title: string; body: string }[];
   appsTitle: (total: number) => string; appsLead: string; opened: string;
+  /** Said where the tapping happens, not only in the gate card above it. */
+  appsSignedOut: string;
+  /** Where a Founding Pioneer actually sees the PRO the page promised them. */
+  seePro: string;
   badgeTitle: string; badgeBody: string;
   foundingLive: (claimed: number, remaining: number) => string;
   youAreFounding: (n: number) => string;
@@ -98,11 +102,13 @@ const COPY: Record<'en' | 'ar', Copy> = {
     ],
     appsTitle: (total) => `Explore the ${total} apps · all live`,
     appsLead: 'Explore the TEC ecosystem at your own pace — tap any app to open it in Pi Browser. Each one you explore ticks your Quest.',
+    appsSignedOut: '⚠️ You are not signed in — these open normally, but nothing is counted toward your Quest. Sign in with Pi first so the apps you open are kept.',
     opened: 'Explored',
     badgeTitle: '★ The Founding Pioneer badge',
     badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Every Founding Pioneer also receives 6 months of TEC PRO across the ecosystem — a 6-month period, not a permanent plan — and early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
+    seePro: 'See your 6 months of PRO ›',
     openToAll: (total) => `Open all ${total} apps to complete the Quest — free, and no payment at any point. Any Pi account qualifies: no documents, and no TEC verification step. Whether your Pi account is verified is Pi's business, not ours — we never ask, and we cannot see it.`,
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
     share: 'Share',
@@ -139,11 +145,13 @@ const COPY: Record<'en' | 'ar', Copy> = {
     ],
     appsTitle: (total) => `استكشف الـ ${total} تطبيق · كلهم شغّالين`,
     appsLead: 'استكشف منظومة TEC على راحتك — اضغط أي تطبيق تفتحه في متصفح Pi. كل واحد تستكشفه بيتشطّب في مهمّتك.',
+    appsSignedOut: '⚠️ إنت مش مسجّل دخول — التطبيقات هتفتح عادي، بس مفيش حاجة هتتحسب في مهمّتك. سجّل دخول بـ Pi الأول علشان اللي تفتحه يتحفظ.',
     opened: 'مُستكشَف',
     badgeTitle: '★ شارة Founding Pioneer',
     badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. وكل Founding Pioneer بياخد كمان ٦ شهور TEC PRO في المنظومة كلها — مدة ٦ شهور، مش اشتراك دائم — ووصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
+    seePro: 'شوف الـ ٦ شهور PRO بتاعتك ›',
     openToAll: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest — مجانًا، ومن غير أي دفع في أي خطوة. أي حساب Pi مؤهّل: من غير مستندات، ومن غير أي خطوة توثيق في TEC. توثيق حسابك في Pi ده شأن Pi وحدها — إحنا مش بنطلبه ومش بنقدر نشوفه.`,
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
     share: 'شارك',
@@ -226,6 +234,26 @@ export default function PioneersClient() {
 
   /** What the server has actually recorded — the basis for re-sending a lost tick. */
   const [serverOpened, setServerOpened] = useState<string[] | null>(null);
+
+  /**
+   * When the real counter becomes public.
+   *
+   * It was gated on `isPioneerAdmin` with no other path, so at 73 of 100 claimed
+   * a visitor still saw nothing. On a page whose whole proposition is "only the
+   * first 100", the number of places left is the strongest thing it can say —
+   * and it was structurally unable to ever say it.
+   *
+   * The original intent was right: a cold visitor must not be shown "0 joined",
+   * because an empty counter argues against the page it sits on. But "never"
+   * is not the same rule as "not yet". A floor keeps the intent and lets the
+   * signal switch itself on the moment it is worth having.
+   *
+   * Ten, because that is roughly where a count stops reading as an experiment.
+   * A constant rather than a NEXT_PUBLIC_ env: that is inlined at build time, so
+   * it could not be changed without a redeploy anyway, and a constant says so
+   * honestly instead of implying a dial nobody can turn.
+   */
+  const PUBLIC_COUNTER_MIN = 10;
 
   /**
    * Take a quest row from the server and believe it.
@@ -408,6 +436,10 @@ export default function PioneersClient() {
    */
   const complete = done >= total;
 
+  // The owner always sees it; everyone else once the cohort is real.
+  const showCounters = !!serverStats
+    && (isPioneerAdmin || serverStats.claimed >= PUBLIC_COUNTER_MIN);
+
   const page: React.CSSProperties = {
     minHeight: '100vh', background: C.bg, color: C.text, direction: dir,
     padding: '28px 20px 56px',
@@ -489,7 +521,7 @@ export default function PioneersClient() {
           {/* Live counters — REAL aggregates from the pioneer stats endpoint (the
               authoritative source of pioneer counts). Rendered only when the server
               responds; every value is real (shows 0 honestly, never a fake number). */}
-          {serverStats && isPioneerAdmin && (
+          {showCounters && (
             <div style={{ marginTop: 18, border: `1px solid ${C.gold}22`, borderRadius: 14, background: C.surface, overflow: 'hidden' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 14px', borderBottom: `1px solid ${C.gold}18` }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: C.green, boxShadow: `0 0 0 3px ${C.green}22`, display: 'inline-block' }} />
@@ -570,6 +602,19 @@ export default function PioneersClient() {
           </div>
           <p style={{ fontSize: 13, color: C.subtext, margin: '6px 0 14px', lineHeight: 1.6 }}>{t.appsLead}</p>
 
+          {/* The gate card above says this too, but it is a long way from the
+              thing being tapped. Somebody can work through a dozen apps before
+              discovering none of it was kept. */}
+          {!eligible && !authLoading && (
+            <p style={{
+              fontSize: 12.5, color: C.gold, lineHeight: 1.6, margin: '0 0 14px',
+              background: `${C.gold}12`, border: `1px solid ${C.gold}44`,
+              borderRadius: 12, padding: '10px 12px', fontWeight: 600,
+            }}>
+              {t.appsSignedOut}
+            </p>
+          )}
+
           <div style={{ display: 'grid', gap: 10 }}>
             {LIVE_DOMAINS.map((d) => {
               const isDone = eligible && visited.includes(d.slug);
@@ -601,7 +646,21 @@ export default function PioneersClient() {
           <div style={{ fontSize: 15, fontWeight: 800, color: C.gold }}>{t.badgeTitle}</div>
           <p style={{ fontSize: 13, color: C.text, margin: '8px 0 0', lineHeight: 1.7 }}>{t.badgeBody}</p>
           {foundingNumber != null && (
-            <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
+            <>
+              <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
+              {/* The page now promises 6 months of PRO. Somebody who has just
+                  earned it should not have to go looking for where it lives. */}
+              <Link
+                href="/hub/subscription"
+                style={{
+                  display: 'inline-block', marginTop: 10, fontSize: 13, fontWeight: 800,
+                  color: C.gold, textDecoration: 'none',
+                  borderBottom: `1px solid ${C.gold}55`, paddingBottom: 1,
+                }}
+              >
+                {t.seePro}
+              </Link>
+            </>
           )}
           {/* Shown to EVERYONE, not gated on `kyc_verified`.
               That flag is TEC's own KYC register; Pi's requirement is about Pi's,
@@ -613,7 +672,7 @@ export default function PioneersClient() {
             <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>✅ {t.openToAll(total)}</div>
           )}
           <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>
-            {serverStats && isPioneerAdmin ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}
+            {showCounters && serverStats ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}
           </div>
         </section>
 

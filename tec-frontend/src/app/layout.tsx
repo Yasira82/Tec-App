@@ -1,3 +1,4 @@
+import { SITE_URL } from '@/lib/site-url';
 import './globals.css';
 // The token layer belongs at the root, not per-section. It was imported by
 // /hub and /dashboard only, so a SHARED component styled with `var(--tec-*)`
@@ -39,7 +40,7 @@ const dmSans = localFont({
   display:  'swap',
 });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || 'https://tec-app-frontend.vercel.app';
+const APP_URL = SITE_URL;
 
 export const viewport: Viewport = {
   width:            'device-width',

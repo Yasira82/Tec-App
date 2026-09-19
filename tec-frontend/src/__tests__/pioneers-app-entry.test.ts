@@ -48,8 +48,29 @@ describe('an app link hands the app its own Pi session', () => {
     expect(code).toContain('noopener');
   });
 
-  it('applies them to the app cards', () => {
-    expect(code).toMatch(/\{\.\.\.\(isExternal\(href\) \? APP_LINK_PROPS : \{\}\)\}/);
+  it('applies them to the app cards, and only the external ones', () => {
+    // `ext` is computed once now that the href is also marked with `q=1` — the
+    // same question must decide both, or a Hub route could get one and not the
+    // other.
+    expect(code).toMatch(/const ext\s+= isExternal\(raw\);/);
+    expect(code).toMatch(/\{\.\.\.\(ext \? APP_LINK_PROPS : \{\}\)\}/);
+  });
+});
+
+describe('the link tells the app there is a Quest to go back to', () => {
+  it('marks external app links with q=1', () => {
+    // Pi Browser has NO TABS, so `_blank` is inert there and this page does not
+    // stay open behind the visit. Back walks the SSO chain and surfaces at the
+    // Hub's own landing page — so the way back has to be a forward navigation
+    // the app renders, and the app only knows to render it from this marker.
+    expect(code).toMatch(/u\.searchParams\.set\('q', '1'\)/);
+    expect(code).toMatch(/const href\s+= ext \? withQuestMark\(raw\) : raw;/);
+  });
+
+  it('sets a fixed value rather than echoing one', () => {
+    // The app matches `q === '1'`. Nothing from this page is rendered by the
+    // app, and nothing should be able to become so later.
+    expect(code).not.toMatch(/searchParams\.set\('q',\s*[a-zA-Z]/);
   });
 });
 

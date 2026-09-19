@@ -239,10 +239,15 @@ describe('PioneersClient — Founding counter', () => {
     expect(joinedCell?.textContent).toBe('0');
   });
 
-  it('shows the counter to ANY visitor once the cohort is real', async () => {
-    // The behaviour the floor exists for. At 73 of 100 claimed, a visitor used
-    // to see nothing at all — the strongest sentence the page has, structurally
-    // unable to be said.
+  it('hides the counter from a visitor even when the cohort is large', async () => {
+    // ── A reversal of the assertion this test used to make ──────────────────
+    // It pinned the counter OPENING to the public above a floor of 10 claimed,
+    // on the argument that scarcity converts. The argument was fine; the
+    // numbers are not scarcity. At 6 of 100 — several of them the owner's own
+    // test accounts — a cold visitor reads the counter as an empty room.
+    //
+    // So it is owner-only with no threshold and no path to opening. 73 is used
+    // here precisely because the old rule would have shown it.
     mockUsePiAuth.mockReturnValue(anon);
     delete process.env.NEXT_PUBLIC_PIONEER_ADMINS;
     global.fetch = mockFetch(null, {
@@ -252,8 +257,10 @@ describe('PioneersClient — Founding counter', () => {
     let container!: HTMLElement;
     await act(async () => { ({ container } = render(<PioneersClient />)); });
     await waitFor(() => {
-      expect(container.textContent).toContain('73 of 100 Founding spots claimed');
+      expect(container.textContent).toContain('Founding 100');
     });
+    expect(container.textContent).not.toContain('Founding spots claimed');
+    expect(container.textContent).not.toContain('Pioneers joined');
   });
 
   it('still hides an EMPTY counter from a visitor — an early zero argues against the page', async () => {

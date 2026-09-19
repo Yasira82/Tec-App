@@ -37,6 +37,38 @@ function linkFor(slug: string, route: string | null): string {
 }
 
 /**
+ * Mark a Quest link so the app can offer a way back here.
+ *
+ * ── Why the app has to carry the way back ──────────────────────────────────
+ *
+ * Pi Browser HAS NO TABS. Its top-right control opens an "About Current URL"
+ * panel with a recently-visited list — so `target="_blank"` is inert there and
+ * this page does not stay open behind the visit. That leaves the single history
+ * stack, and the first visit to any app pushes the whole SSO chain onto it:
+ * pressing back from the app surfaces at the HUB'S OWN LANDING PAGE, a "Sign in
+ * with Pi" screen for a session the pioneer already has. Observed on a phone,
+ * not theorised.
+ *
+ * A forward navigation to a known URL is the only return that behaves the same
+ * in every browser. The app renders it — and renders it ONLY for a visitor who
+ * came from here, because these are real apps with real users and a permanent
+ * campaign bar would be wrong for all of them.
+ *
+ * `q=1` and nothing else: the value is matched, never echoed, so this cannot
+ * become a way to put text on somebody else's screen.
+ */
+function withQuestMark(href: string): string {
+  try {
+    const u = new URL(href);
+    u.searchParams.set('q', '1');
+    return u.toString();
+  } catch {
+    // Not absolute — a same-origin Hub route, which needs no marker anyway.
+    return href;
+  }
+}
+
+/**
  * A cross-domain app link, opened so the app gets its OWN Pi session.
  *
  * ── The observation this is built on ────────────────────────────────────────
@@ -672,13 +704,15 @@ export default function PioneersClient() {
           <div style={{ display: 'grid', gap: 10 }}>
             {LIVE_DOMAINS.map((d) => {
               const isDone = eligible && visited.includes(d.slug);
-              const href   = linkFor(d.slug, d.route);
+              const raw    = linkFor(d.slug, d.route);
+              const ext    = isExternal(raw);
+              const href   = ext ? withQuestMark(raw) : raw;
               return (
                 <a
                   key={d.slug}
                   data-app={d.slug}
                   href={href}
-                  {...(isExternal(href) ? APP_LINK_PROPS : {})}
+                  {...(ext ? APP_LINK_PROPS : {})}
                   // The tick now lands while the page is still on screen. With a
                   // same-tab jump this POST raced the navigation away from it.
                   onClick={() => markVisited(d.slug)}

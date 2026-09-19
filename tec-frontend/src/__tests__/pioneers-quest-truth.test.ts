@@ -79,14 +79,33 @@ describe('F4 — the arrival numbers reach the screen that aims the campaign', (
     expect(coverage).toMatch(/unconfirmed\?:\s*number/);
   });
 
-  it('renders arrived', () => {
-    expect(coverage).toMatch(/\{row\.arrived\} arrived/);
+  it('makes arrived the headline', () => {
+    expect(coverage).toMatch(/\{arrived\} \/ \{row\.threshold\}/);
   });
 
-  it('keeps verified as the headline rather than replacing it', () => {
-    // Swapping the number outright would re-point the campaign mid-round
-    // without saying so. Both are shown so the gap between them is legible.
-    expect(coverage).toMatch(/\{row\.verified\} \/ \{row\.threshold\}/);
+  it('shows no TEC-KYC figure at all', () => {
+    // ── Two corrections to this file's own earlier assertions ──────────────
+    // First it pinned `verified` AS the headline, reasoning that swapping the
+    // number would "re-point the campaign mid-round". Then it pinned `verified`
+    // as demoted context.
+    //
+    // Both kept a column the platform never asks anyone to fill. `verified`
+    // reads TEC's OWN document-KYC at /hub/kyc; Pi checks its own records and
+    // does not share them. So it sat at 0 beside eleven working pioneers —
+    // three of them Pi-KYC-verified people — and a reader seeing that zero
+    // draws exactly the wrong conclusion.
+    //
+    // A register nobody is asked to fill is not a measurement. Showing one only
+    // invites somebody to mistake it for one.
+    expect(coverage).not.toMatch(/TEC-verified/);
+    expect(coverage).not.toMatch(/row\.verified/);
+  });
+
+  it('marks a domain Pi has already accepted instead of asking for more', () => {
+    // `tec.pi` is in. It read "needs 5 more", overstating the job by one app
+    // and five pioneers on every headline.
+    expect(coverage).toMatch(/✓ claimed/);
+    expect(coverage).toMatch(/already accepted by Pi/);
   });
 });
 

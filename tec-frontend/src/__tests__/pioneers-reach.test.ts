@@ -52,20 +52,22 @@ describe('G2 — one origin, and it is the Hub', () => {
   });
 });
 
-describe('G3 — the scarcity counter can reach the public', () => {
-  it('is not gated on the owner alone', () => {
-    // It was `serverStats && isPioneerAdmin` with no other path, so at 73 of 100
-    // claimed a visitor still saw nothing — on a page whose whole proposition is
-    // "only the first 100".
-    expect(page).not.toMatch(/serverStats && isPioneerAdmin/);
-    expect(page).toMatch(/const showCounters/);
-  });
-
-  it('opens on a floor, so an empty counter is still hidden', () => {
-    // The original intent was right and is kept: a cold visitor must not be
-    // shown "0 joined". "Never" is just not the same rule as "not yet".
-    expect(page).toMatch(/PUBLIC_COUNTER_MIN = 10/);
-    expect(page).toMatch(/isPioneerAdmin \|\| serverStats\.claimed >= PUBLIC_COUNTER_MIN/);
+describe('G3 — the live counters are the owner\'s, and nobody else\'s', () => {
+  it('has no public path at all', () => {
+    // ── A reversal of this file's own earlier assertion ────────────────────
+    // It pinned a floor of 10 claimed, above which the counters opened to
+    // everyone, on the argument that scarcity is the strongest thing a
+    // capped-cohort page can say.
+    //
+    // The argument was fine. The numbers are not scarcity: the cohort stands at
+    // 6 of 100, several of them the owner's own test accounts. A cold visitor
+    // reads "6 claimed, 11 joined" as an empty room, not a closing door — and a
+    // counter that argues against the page it sits on is worse than none.
+    //
+    // The page still carries the scarcity claim in words ("only the first 100
+    // qualify"), which does not need a number beside it to be true.
+    expect(page).not.toMatch(/PUBLIC_COUNTER_MIN/);
+    expect(page).toMatch(/const showCounters = !!serverStats && isPioneerAdmin;/);
   });
 });
 

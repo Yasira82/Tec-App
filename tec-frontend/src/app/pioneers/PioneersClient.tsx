@@ -235,25 +235,6 @@ export default function PioneersClient() {
   /** What the server has actually recorded — the basis for re-sending a lost tick. */
   const [serverOpened, setServerOpened] = useState<string[] | null>(null);
 
-  /**
-   * When the real counter becomes public.
-   *
-   * It was gated on `isPioneerAdmin` with no other path, so at 73 of 100 claimed
-   * a visitor still saw nothing. On a page whose whole proposition is "only the
-   * first 100", the number of places left is the strongest thing it can say —
-   * and it was structurally unable to ever say it.
-   *
-   * The original intent was right: a cold visitor must not be shown "0 joined",
-   * because an empty counter argues against the page it sits on. But "never"
-   * is not the same rule as "not yet". A floor keeps the intent and lets the
-   * signal switch itself on the moment it is worth having.
-   *
-   * Ten, because that is roughly where a count stops reading as an experiment.
-   * A constant rather than a NEXT_PUBLIC_ env: that is inlined at build time, so
-   * it could not be changed without a redeploy anyway, and a constant says so
-   * honestly instead of implying a dial nobody can turn.
-   */
-  const PUBLIC_COUNTER_MIN = 10;
 
   /**
    * Take a quest row from the server and believe it.
@@ -436,9 +417,24 @@ export default function PioneersClient() {
    */
   const complete = done >= total;
 
-  // The owner always sees it; everyone else once the cohort is real.
-  const showCounters = !!serverStats
-    && (isPioneerAdmin || serverStats.claimed >= PUBLIC_COUNTER_MIN);
+  /**
+   * The live counters are for the OWNER, and nobody else. Ever.
+   *
+   * This briefly opened to the public above a floor of 10 claimed, on the
+   * argument that scarcity is the strongest thing a capped-cohort page can say.
+   * The argument was fine; the numbers are not scarcity. The cohort stands at 6
+   * of 100 — and several of those are the owner's own test accounts — so a cold
+   * visitor reads "6 claimed, 11 joined" as an empty room, not a closing door.
+   *
+   * A counter that argues against the page it sits on is worse than no counter,
+   * and the page already carries the scarcity claim in words: "only the first
+   * 100 qualify". That sentence does not need a number beside it to be true.
+   *
+   * Owner-gated, with no threshold and no path to opening. If that is ever
+   * wanted again it should be a decision taken against the figures of the day,
+   * not a rule that fires on its own.
+   */
+  const showCounters = !!serverStats && isPioneerAdmin;
 
   const page: React.CSSProperties = {
     minHeight: '100vh', background: C.bg, color: C.text, direction: dir,

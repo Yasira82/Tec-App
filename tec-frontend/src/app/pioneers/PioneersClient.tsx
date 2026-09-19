@@ -50,7 +50,23 @@ type Copy = {
   badgeTitle: string; badgeBody: string;
   foundingLive: (claimed: number, remaining: number) => string;
   youAreFounding: (n: number) => string;
-  kycNeeded: (total: number) => string;
+  /**
+   * What the Quest actually asks of you — which is nothing beyond a Pi account.
+   *
+   * This was `kycNeeded`, and it told every reader that a Pi-KYC-verified
+   * account was "one condition". The code has never checked that: `recordOpen`
+   * grants the Founding number to any signed-in Pi account, and the service
+   * says so in as many words — `kyc_verified` is RECORDED, NOT ENFORCED.
+   *
+   * The FAQ, meanwhile, said KYC was Pi's business and not a requirement here.
+   * So one question a cautious Pi user will certainly ask had three different
+   * answers, and the loudest one was the one the system did not follow.
+   *
+   * Verification still matters — it is what Pi counts toward a `.pi` domain
+   * claim — but that is a fact about the domains, not a condition on the badge,
+   * and the two must not be worded as if they were the same rule.
+   */
+  openToAll: (total: number) => string;
   footer: string;
   share: string; shareCopied: string; shareText: (total: number) => string; faq: string;
   statPioneers: string; statCompleted: string; statFounding: string; liveLabel: string;
@@ -62,9 +78,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
     founding: '★ Founding 100',
     h1: 'TEC is live on Pi Mainnet',
     lead: '24 connected apps · One Pi identity · Real Pi utility.',
-    heroTrust: '⏱️ A few minutes · Free · No payment, ever · Needs a Pi-verified account · from Pi Browser',
+    heroTrust: '⏱️ A few minutes · Free · No payment, ever · No documents, no KYC · from Pi Browser',
     heroCta: '🚀 Start the Pioneer Quest',
-    heroRecognition: 'Complete the Quest to earn Founding Pioneer recognition. ⭐ Only the first 100 qualify.',
+    heroRecognition: 'Complete the Quest to earn Founding Pioneer recognition — plus 6 months of TEC PRO. ⭐ Only the first 100 qualify.',
     callout: 'For the full Pioneer experience, open TEC in Pi Browser and sign in with Pi.',
     questTitle: 'Your Pioneer Quest',
     questSub: (d, t) => `${d} of ${t} explored`,
@@ -84,10 +100,10 @@ const COPY: Record<'en' | 'ar', Copy> = {
     appsLead: 'Explore the TEC ecosystem at your own pace — tap any app to open it in Pi Browser. Each one you explore ticks your Quest.',
     opened: 'Explored',
     badgeTitle: '★ The Founding Pioneer badge',
-    badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Founding Pioneers get early access to new apps and features first.',
+    badgeBody: 'A permanent recognition in your TEC reputation (Legend / VIP) — reserved for the first 100 Pioneers to complete the Quest. It cannot be bought, only earned. Every Founding Pioneer also receives 6 months of TEC PRO across the ecosystem — a 6-month period, not a permanent plan — and early access to new apps and features first.',
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
-    kycNeeded: (total) => `Open all ${total} apps to complete the Quest — free, and no payment at any point. One condition: your Pi account must be KYC-verified by Pi Network, because only verified Pioneers count. We never ask you for documents and cannot see your Pi status — that is Pi's to decide.`,
+    openToAll: (total) => `Open all ${total} apps to complete the Quest — free, and no payment at any point. Any Pi account qualifies: no documents, and no TEC verification step. Whether your Pi account is verified is Pi's business, not ours — we never ask, and we cannot see it.`,
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
     share: 'Share',
     shareCopied: 'Link copied ✓',
@@ -103,9 +119,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
     founding: '★ نادي الـ 100 المؤسّس',
     h1: 'TEC شغّال على Pi Mainnet',
     lead: '24 تطبيق مترابط · هوية Pi واحدة · استخدام حقيقي داخل المنظومة.',
-    heroTrust: '⏱️ كام دقيقة · مجانًا · من غير أي دفع · يتطلب حساب Pi موثّق · من متصفح Pi',
+    heroTrust: '⏱️ كام دقيقة · مجانًا · من غير أي دفع · من غير مستندات ولا KYC · من متصفح Pi',
     heroCta: '🚀 ابدأ Pioneer Quest',
-    heroRecognition: 'كمّل الـ Quest علشان تحصل على تقدير Founding Pioneer. ⭐ أول 100 فقط مؤهلين.',
+    heroRecognition: 'كمّل الـ Quest علشان تحصل على تقدير Founding Pioneer — وكمان ٦ شهور TEC PRO. ⭐ أول 100 فقط مؤهلين.',
     callout: 'لأفضل تجربة Pioneer، افتح TEC من متصفح Pi وسجّل دخول بحساب Pi.',
     questTitle: 'مهمّتك كـ Pioneer',
     questSub: (d, t) => `استكشفت ${d} من ${t}`,
@@ -125,10 +141,10 @@ const COPY: Record<'en' | 'ar', Copy> = {
     appsLead: 'استكشف منظومة TEC على راحتك — اضغط أي تطبيق تفتحه في متصفح Pi. كل واحد تستكشفه بيتشطّب في مهمّتك.',
     opened: 'مُستكشَف',
     badgeTitle: '★ شارة Founding Pioneer',
-    badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. المؤسّسون بياخدوا وصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
+    badgeBody: 'تقدير دائم في سمعتك داخل TEC (Legend / VIP) — محجوزة لأول 100 Pioneer يكمّلوا الـ Quest. متتشريش، بس تتكسب. وكل Founding Pioneer بياخد كمان ٦ شهور TEC PRO في المنظومة كلها — مدة ٦ شهور، مش اشتراك دائم — ووصول مبكر للتطبيقات والمزايا الجديدة قبل الكل.',
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
-    kycNeeded: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest — مجانًا، ومن غير أي دفع في أي خطوة. شرط واحد: حسابك في Pi لازم يكون موثّق (KYC) من Pi Network، لأن الموثّقين بس هم اللي بيتحسبوا. إحنا مش بنطلب منك أي مستندات ومش بنقدر نشوف حالة توثيقك — دي حاجة Pi وحدها.`,
+    openToAll: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest — مجانًا، ومن غير أي دفع في أي خطوة. أي حساب Pi مؤهّل: من غير مستندات، ومن غير أي خطوة توثيق في TEC. توثيق حسابك في Pi ده شأن Pi وحدها — إحنا مش بنطلبه ومش بنقدر نشوفه.`,
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
     share: 'شارك',
     shareCopied: 'اتنسخ اللينك ✓',
@@ -144,7 +160,8 @@ const COPY: Record<'en' | 'ar', Copy> = {
 export default function PioneersClient() {
   const { locale, dir } = useTranslation();
   const t = COPY[locale];
-  const total = LIVE_DOMAINS.length;
+  /** How many apps are live right now — what the grid below lists. */
+  const liveCount = LIVE_DOMAINS.length;
 
   // The ✓ marks + Quest progress track engagement, so they gate on LOGIN — not on a
   // KYC flag (TEC does not store Pi-Network KYC status; its internal doc-KYC is a
@@ -173,6 +190,68 @@ export default function PioneersClient() {
   const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number; pioneers: number; completed: number } | null>(null);
   const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
   const [shared, setShared] = useState(false);
+
+  /**
+   * How many apps the CAMPAIGN asks for — which is not the same number as how
+   * many are live, and must not be derived from it.
+   *
+   * `LIVE_DOMAINS` is a runtime filter on `status === 'live'`. The service's
+   * `QUEST_TARGET` is a frozen roster, deliberately, and its comment gives the
+   * reason: "a campaign's terms must not move under the people running it".
+   * That reasoning was applied on one side only, so the drift it protects
+   * against landed here instead — take one app off `live` for an hour and this
+   * page reads 23/23, 100%, and congratulates somebody the server will never
+   * give a number to.
+   *
+   * `getStats()` publishes `quest_target` in the very response this page
+   * already fetches. Reading it is the whole fix. The live count remains the
+   * fallback for a first paint or an unreachable backend, and the grid keeps
+   * listing every live app — a 25th that ships mid-round is a bonus, not a
+   * newly-imposed requirement.
+   */
+  const [questTarget, setQuestTarget] = useState<number | null>(null);
+
+  /**
+   * Completion as the SERVER sees it — the only thing allowed to promise a badge.
+   *
+   * The progress bar may run on local state; it is the visitor's own hint and
+   * being instant is the point. The banner is a different kind of sentence: it
+   * tells somebody they have earned a capped, permanent recognition. A failed
+   * `/open` POST leaves its tick in localStorage, the server merge is a union
+   * that only ever adds, and the ✓ is exactly what stops the person tapping
+   * again — so a local count can sit permanently one ahead of the truth, and
+   * the loudest line on the page would be congratulating nobody.
+   */
+  const [serverCompleted, setServerCompleted] = useState(false);
+
+  /** What the server has actually recorded — the basis for re-sending a lost tick. */
+  const [serverOpened, setServerOpened] = useState<string[] | null>(null);
+
+  /**
+   * Take a quest row from the server and believe it.
+   *
+   * One function, because there are two places server truth arrives — the `/me`
+   * read on load, and the `/open` write's own response — and they must not
+   * disagree about what to do with it. Using the write's response is what lets
+   * the badge appear on the tap that earns it rather than after a reload.
+   *
+   * `opened_apps` still merges as a union: the server is authoritative about
+   * what it HAS, not about what this browser is still trying to send. What the
+   * union used to hide is handled separately, by re-sending the difference.
+   */
+  const applyQuest = useCallback((q: {
+    opened_apps?: unknown; founding_number?: unknown; completed_at?: unknown;
+  }) => {
+    if (Array.isArray(q.opened_apps)) {
+      const apps = q.opened_apps.filter((x): x is string => typeof x === 'string');
+      setServerOpened(apps);
+      setVisited((prev) => Array.from(new Set([...prev, ...apps])));
+    }
+    if (typeof q.founding_number === 'number') setFoundingNumber(q.founding_number);
+    // `completed_at` is the server's own verdict. Absent means not complete —
+    // never "unknown, assume yes" (P6).
+    setServerCompleted(q.completed_at != null);
+  }, []);
 
   // Share the campaign — native share sheet where available (mobile / Pi Browser),
   // clipboard copy as the fallback. The link itself is the marketing asset.
@@ -211,6 +290,11 @@ export default function PioneersClient() {
       try {
         const r = await fetch('/api/bff/pioneer/stats', { credentials: 'include' });
         const s = (await r.json().catch(() => null))?.data?.stats;
+        // The campaign's own target, from the campaign. Public, because the page
+        // that states the terms is public.
+        if (alive && typeof s?.quest_target === 'number' && s.quest_target > 0) {
+          setQuestTarget(s.quest_target);
+        }
         if (alive && s && typeof s.founding_claimed === 'number') {
           // Real, server-computed aggregates (the pioneer module owns pioneer state,
           // so it is the authoritative source of these counts — no fabricated numbers).
@@ -225,35 +309,27 @@ export default function PioneersClient() {
       try {
         const r = await fetch('/api/bff/pioneer/me', { credentials: 'include' });
         const q = (await r.json().catch(() => null))?.data?.quest;
-        if (alive && q) {
-          if (Array.isArray(q.opened_apps)) {
-            setVisited((prev) => Array.from(new Set([...prev, ...q.opened_apps])));
-          }
-          if (typeof q.founding_number === 'number') setFoundingNumber(q.founding_number);
-          // Logged-in but not KYC-verified (and no number yet) → nudge to verify.
-        }
+        if (alive && q) applyQuest(q);
       } catch { /* not logged in / backend down — local-only */ }
     })();
     return () => { alive = false; };
-  }, []);
+  }, [applyQuest]);
 
-  const markVisited = useCallback((slug: string) => {
-    // Non-verified visitors browse freely but never accrue progress or a ✓ mark.
-    if (!eligible) return;
-    setVisited((prev) => {
-      if (prev.includes(slug)) return prev;
-      const next = [...prev, slug];
-      try { localStorage.setItem(QUEST_KEY, JSON.stringify(next)); } catch { /* ignore */ }
-      return next;
-    });
-    // Best-effort server record (only succeeds when logged in) — the authoritative
-    // source of the Founding counter + badge. Silent on failure; local still shows.
+  /**
+   * Tell the server this app was opened, and believe what it answers.
+   *
+   * Best-effort, and silent on failure — nobody asked for this request and it
+   * must never interrupt a visit. What it is NOT any more is fire-and-forget:
+   * the route returns the updated quest, so the response carries the Founding
+   * number on the tap that earns it instead of on the next reload.
+   */
+  const sendOpen = useCallback(async (slug: string): Promise<void> => {
     try {
       const csrf = typeof document !== 'undefined'
         ? (document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '')
         : '';
       const source = getSource();
-      void fetch('/api/bff/pioneer/open', {
+      const res = await fetch('/api/bff/pioneer/open', {
         method:      'POST',
         credentials: 'include',
         // keepalive: the app link navigates away in the same tab (its own domain),
@@ -264,14 +340,72 @@ export default function PioneersClient() {
         keepalive:   true,
         headers:     { 'Content-Type': 'application/json', ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}) },
         body:        JSON.stringify({ app: slug, ...(source ? { source } : {}) }),
-      }).catch(() => {});
-    } catch { /* ignore */ }
-  }, [eligible]);
+      });
+      if (!res.ok) return;
+      const q = (await res.json().catch(() => null))?.data?.quest;
+      if (q) applyQuest(q);
+    } catch { /* offline, navigated away, blocked — the retry on next load covers it */ }
+  }, [applyQuest]);
 
-  // Progress (and the ✓ marks) only count for a verified pioneer.
+  const markVisited = useCallback((slug: string) => {
+    // Non-verified visitors browse freely but never accrue progress or a ✓ mark.
+    if (!eligible) return;
+    setVisited((prev) => {
+      if (prev.includes(slug)) return prev;
+      const next = [...prev, slug];
+      try { localStorage.setItem(QUEST_KEY, JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+    void sendOpen(slug);
+  }, [eligible, sendOpen]);
+
+  /**
+   * Re-send the ticks the server never received.
+   *
+   * The ✓ is what stops somebody tapping an app a second time, so before this
+   * the only retry path for a lost `/open` was one the interface actively
+   * discouraged. A tick written during a backend blip stayed local forever, the
+   * union merge could not remove it, and the quest silently never completed.
+   *
+   * Runs once, after `/me` has said what the server holds. The set difference
+   * IS the list of what to re-send, and the writes are idempotent — the service
+   * upserts distinct apps — so a redundant one costs nothing.
+   */
+  useEffect(() => {
+    if (!eligible || serverOpened === null) return;
+    const have    = new Set(serverOpened);
+    const missing = visited.filter((s) => !have.has(s));
+    if (missing.length === 0) return;
+    let alive = true;
+    (async () => {
+      for (const slug of missing) {
+        if (!alive) return;
+        await sendOpen(slug);
+      }
+    })();
+    return () => { alive = false; };
+    // `visited` is deliberately not a dependency: this reconciles against what
+    // the server reported, and re-running on every new tap would re-send the
+    // one just sent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eligible, serverOpened, sendOpen]);
+
+  // Progress (and the ✓ marks) only count for a signed-in pioneer.
   const effectiveVisited = eligible ? visited : [];
   const done = effectiveVisited.length;
-  const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+  // The campaign's target, from the campaign — see `questTarget`. The live count
+  // is the fallback until the server answers.
+  const total = questTarget ?? liveCount;
+  const pct = total > 0 ? Math.min(100, Math.round((done / total) * 100)) : 0;
+  /**
+   * The bar may run ahead; the promise may not.
+   *
+   * `complete` drives only the progress tier label. The banner — the sentence
+   * that tells somebody they have earned one of a hundred permanent places —
+   * reads `serverCompleted`, which comes from `completed_at` on the server's
+   * own row. When the two disagree it is because a write was lost, and the
+   * reconcile above is already re-sending it.
+   */
   const complete = done >= total;
 
   const page: React.CSSProperties = {
@@ -395,7 +529,7 @@ export default function PioneersClient() {
               <span style={{ fontSize: 13, color: C.subtext }}>{t.questSub(done, total)}</span>
               <span style={{ fontSize: 18, fontWeight: 900, color: C.gold, fontVariantNumeric: 'tabular-nums' }}>{pct}%</span>
             </div>
-            {complete && (
+            {serverCompleted && (
               <p style={{ fontSize: 13, color: C.green, margin: '12px 0 0', fontWeight: 700, lineHeight: 1.5 }}>{t.questDoneBanner(total)}</p>
             )}
           </section>
@@ -431,8 +565,8 @@ export default function PioneersClient() {
         {/* Apps grid — every LIVE domain; tapping ticks the Quest */}
         <section style={{ marginTop: 34 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{t.appsTitle(total)}</h2>
-            <span style={{ fontSize: 11, color: C.green, border: `1px solid ${C.green}55`, borderRadius: 999, padding: '2px 10px', fontWeight: 700 }}>{total} live</span>
+            <h2 style={{ fontSize: 18, fontWeight: 800, margin: 0 }}>{t.appsTitle(liveCount)}</h2>
+            <span style={{ fontSize: 11, color: C.green, border: `1px solid ${C.green}55`, borderRadius: 999, padding: '2px 10px', fontWeight: 700 }}>{liveCount} live</span>
           </div>
           <p style={{ fontSize: 13, color: C.subtext, margin: '6px 0 14px', lineHeight: 1.6 }}>{t.appsLead}</p>
 
@@ -476,7 +610,7 @@ export default function PioneersClient() {
               condition entirely from someone who had not logged in yet, which is
               exactly when a person decides whether the Quest is worth starting. */}
           {foundingNumber == null && (
-            <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>🔐 {t.kycNeeded(total)}</div>
+            <div style={{ fontSize: 12.5, color: C.gold, marginTop: 10, fontWeight: 700, lineHeight: 1.5 }}>✅ {t.openToAll(total)}</div>
           )}
           <div style={{ fontSize: 11, color: C.subtext, marginTop: 10, fontWeight: 700, letterSpacing: 0.3 }}>
             {serverStats && isPioneerAdmin ? t.foundingLive(serverStats.claimed, serverStats.remaining) : `${t.founding} · ${FOUNDING_CAP}`}

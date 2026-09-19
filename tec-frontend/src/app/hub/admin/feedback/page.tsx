@@ -178,6 +178,8 @@ export default function AdminFeedbackPage() {
       title="Feedback"
       subtitle="Admin — what people are telling us"
       loading={authLoading || loading}
+      // Reached from Profile's admin row — see the pioneers page.
+      backTo="/hub/profile"
     >
       {(denied || (!authLoading && !isAdmin)) ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>

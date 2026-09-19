@@ -23,6 +23,23 @@ import { Icon }        from '@/components/ui/Icon';
 interface AppRow {
   app:          string;
   verified:     number;
+  /**
+   * The same count, from arrivals the APP confirmed rather than taps the Hub
+   * recorded — and the reason this screen can be trusted to aim the campaign.
+   *
+   * `/pioneer/open` fires when a mission link is TAPPED, and the tap and the
+   * arrival are two independent events: the record succeeds whether or not the
+   * app ever loaded. Pi counts engagement AT THE APP. So `verified` and Pi's
+   * number measure different things, and the gap between these two columns is
+   * exactly how much of the reported engagement is a tap nobody can prove
+   * landed.
+   *
+   * The service has returned both since the arrival endpoint shipped; this
+   * screen declared neither, so the fix had nowhere to show. Expect 0 until the
+   * fleet deploys the reporter — an honest 0 that says so.
+   */
+  arrived?:     number;
+  unconfirmed?: number;
   openers:      number;
   threshold:    number;
   still_needed: number;
@@ -88,11 +105,25 @@ function Row({ row }: { row: AppRow }) {
 
       <Bar value={row.verified} of={row.threshold} />
 
-      {!done && (
-        <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--tec-text-3)' }}>
-          needs {row.still_needed} more verified
-        </div>
-      )}
+      <div style={{
+        marginTop: 6, display: 'flex', alignItems: 'baseline',
+        gap: 10, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--tec-text-3)',
+      }}>
+        {!done && <span>needs {row.still_needed} more verified</span>}
+
+        {/* Arrivals the app itself confirmed. Shown BESIDE the verified count,
+            never instead of it: replacing the number outright would re-point
+            the campaign mid-round without saying so. A wide gap here means the
+            taps are landing somewhere Pi is not counting. */}
+        {typeof row.arrived === 'number' && (
+          <span dir="ltr" style={{ color: row.arrived > 0 ? 'var(--tec-green)' : 'var(--tec-text-3)' }}>
+            {row.arrived} arrived
+            {typeof row.unconfirmed === 'number' && row.unconfirmed > 0
+              ? ` · ${row.unconfirmed} unconfirmed`
+              : ''}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
@@ -128,6 +159,9 @@ export default function AdminPioneersPage() {
       title="Pioneer coverage"
       subtitle="Admin — progress toward Pi's .pi claim threshold"
       loading={authLoading || loading}
+      // Reached from Profile's admin row. Defaulting to /hub walked past the
+      // page you came from, so getting back meant navigating in again.
+      backTo="/hub/profile"
     >
       {(denied || (!authLoading && !isAdmin)) ? (
         <div style={{ textAlign: 'center', padding: 'var(--sp-10) var(--sp-6)' }}>

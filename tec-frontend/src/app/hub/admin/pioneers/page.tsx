@@ -22,24 +22,34 @@ import { Icon }        from '@/components/ui/Icon';
 
 interface AppRow {
   app:          string;
-  verified:     number;
   /**
-   * The same count, from arrivals the APP confirmed rather than taps the Hub
-   * recorded — and the reason this screen can be trusted to aim the campaign.
+   * Pi has already ACCEPTED this domain — `tec.pi` today.
    *
-   * `/pioneer/open` fires when a mission link is TAPPED, and the tap and the
-   * arrival are two independent events: the record succeeds whether or not the
-   * app ever loaded. Pi counts engagement AT THE APP. So `verified` and Pi's
-   * number measure different things, and the gap between these two columns is
-   * exactly how much of the reported engagement is a tap nobody can prove
-   * landed.
+   * It kept appearing as "needs 5 more", which overstated the job by one app
+   * and five pioneers on every headline. A dashboard that inflates the work
+   * left is not being careful; it is wrong in the direction that teaches you to
+   * stop reading it.
+   */
+  claimed?:     boolean;
+  /**
+   * Confirmed BY THE APP — now the headline, and the only number here that can
+   * move.
    *
-   * The service has returned both since the arrival endpoint shipped; this
-   * screen declared neither, so the fix had nowhere to show. Expect 0 until the
-   * fleet deploys the reporter — an honest 0 that says so.
+   * `verified` used to be it, and could not work: it reads TEC's own
+   * document-KYC register, a separate flow almost nobody completes, while Pi
+   * checks its own records which this platform cannot read. So it sat at 0
+   * while eleven pioneers worked through the apps, and every figure derived
+   * from it was frozen at maximum.
+   *
+   * `arrived` is not Pi's number either — it is a SUPERSET of it. That gives
+   * the one direction worth having: below the threshold is reliable, at or
+   * above it is not a confirmation from Pi.
    */
   arrived?:     number;
+  /** Taps this app never confirmed — the measurement error, made visible. */
   unconfirmed?: number;
+  /** TEC's own KYC. Reported for context; it no longer decides anything. */
+  verified:     number;
   openers:      number;
   threshold:    number;
   still_needed: number;
@@ -49,6 +59,7 @@ interface Coverage {
   threshold:          number;
   total_pioneers:     number;
   verified_pioneers:  number;
+  apps_claimed?:      number;
   apps_short:         number;
   total_still_needed: number;
   note:               string;
@@ -73,12 +84,19 @@ function Bar({ value, of }: { value: number; of: number }) {
 }
 
 function Row({ row }: { row: AppRow }) {
-  const done = row.still_needed === 0;
+  const arrived = row.arrived ?? 0;
+  const done    = row.still_needed === 0;
+  const claimed = row.claimed === true;
+
   return (
     <div style={{
       background: 'var(--tec-surface)', border: '1px solid var(--tec-border)',
       borderRadius: 'var(--radius-md)', padding: 'var(--sp-3) var(--sp-4)',
       marginBottom: 'var(--sp-2)',
+      // A claimed domain is still listed — it is a live app and its numbers are
+      // still worth seeing — but it stops competing for attention with the rows
+      // that are actually asking for something.
+      opacity: claimed ? 0.55 : 1,
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span dir="ltr" style={{
@@ -88,41 +106,50 @@ function Row({ row }: { row: AppRow }) {
           {row.app}.pi
         </span>
 
-        {/* The verified count is the number Pi's rule is about. The opener
-            count sits behind it in muted text: a wide gap says the traffic is
-            there and the verification is not, which is a different problem
-            from having no traffic at all. */}
-        <span dir="ltr" style={{
-          fontSize: 'var(--text-sm)', fontWeight: 800,
-          color: done ? 'var(--tec-green)' : 'var(--tec-gold)',
-        }}>
-          {row.verified} / {row.threshold}
-        </span>
-        <span dir="ltr" style={{ fontSize: 11, color: 'var(--tec-text-3)', minWidth: 62, textAlign: 'end' }}>
-          {row.openers} opened
-        </span>
+        {claimed ? (
+          <span style={{
+            fontSize: 11, fontWeight: 800, color: 'var(--tec-green)',
+            border: '1px solid rgba(34,197,94,0.35)', borderRadius: 999,
+            padding: '2px 9px', whiteSpace: 'nowrap',
+          }}>
+            ✓ claimed
+          </span>
+        ) : (
+          <>
+            {/* `arrived` is the headline now. See the AppRow doc for why the
+                verified count could not be. */}
+            <span dir="ltr" style={{
+              fontSize: 'var(--text-sm)', fontWeight: 800,
+              color: done ? 'var(--tec-green)' : 'var(--tec-gold)',
+            }}>
+              {arrived} / {row.threshold}
+            </span>
+            <span dir="ltr" style={{ fontSize: 11, color: 'var(--tec-text-3)', minWidth: 62, textAlign: 'end' }}>
+              {row.openers} opened
+            </span>
+          </>
+        )}
       </div>
 
-      <Bar value={row.verified} of={row.threshold} />
+      {!claimed && <Bar value={arrived} of={row.threshold} />}
 
       <div style={{
         marginTop: 6, display: 'flex', alignItems: 'baseline',
         gap: 10, flexWrap: 'wrap', fontSize: 11.5, color: 'var(--tec-text-3)',
       }}>
-        {!done && <span>needs {row.still_needed} more verified</span>}
+        {claimed && <span>already accepted by Pi — nothing outstanding</span>}
+        {!claimed && !done && <span>needs {row.still_needed} more arrivals</span>}
 
-        {/* Arrivals the app itself confirmed. Shown BESIDE the verified count,
-            never instead of it: replacing the number outright would re-point
-            the campaign mid-round without saying so. A wide gap here means the
-            taps are landing somewhere Pi is not counting. */}
-        {typeof row.arrived === 'number' && (
-          <span dir="ltr" style={{ color: row.arrived > 0 ? 'var(--tec-green)' : 'var(--tec-text-3)' }}>
-            {row.arrived} arrived
-            {typeof row.unconfirmed === 'number' && row.unconfirmed > 0
-              ? ` · ${row.unconfirmed} unconfirmed`
-              : ''}
-          </span>
+        {/* The gap between taps and confirmed arrivals: engagement the Hub
+            recorded that nothing can prove landed. Reads as every opener until
+            the fleet deploys the reporter, which is honest. */}
+        {!claimed && typeof row.unconfirmed === 'number' && row.unconfirmed > 0 && (
+          <span dir="ltr">{row.unconfirmed} unconfirmed</span>
         )}
+
+        {/* TEC's own KYC, kept in view and demoted. If it ever moves that is
+            real information; it simply no longer decides how much work is left. */}
+        <span dir="ltr" style={{ opacity: 0.75 }}>{row.verified} TEC-verified</span>
       </div>
     </div>
   );
@@ -196,7 +223,10 @@ export default function AdminPioneersPage() {
             {[
               { label: 'Apps short',   value: data.apps_short,         tone: 'var(--tec-gold)' },
               { label: 'Still needed', value: data.total_still_needed, tone: 'var(--tec-red)'  },
-              { label: 'Verified',     value: data.verified_pioneers,  tone: 'var(--tec-green)' },
+              // Was "Verified" — TEC's own KYC, which sat at 0 beside eleven
+              // active pioneers and told you nothing about the campaign. The
+              // domains already accepted are the number that means progress.
+              { label: 'Claimed',      value: data.apps_claimed ?? 0,  tone: 'var(--tec-green)' },
             ].map((s) => (
               <div key={s.label} style={{
                 background: 'var(--tec-surface)', border: '1px solid var(--tec-border)',

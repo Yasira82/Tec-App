@@ -57,13 +57,14 @@ describe('the page', () => {
     expect(page).toMatch(/res\.status === 401 \|\| res\.status === 403/);
   });
 
-  it('shows the VERIFIED count as the headline, openers as context', () => {
-    // The KYC word in Pi's rule is the whole rule; an opened link from a
-    // non-verified account moves Pi's number not at all.
-    const verifiedAt = page.indexOf('row.verified');
-    const openersAt  = page.indexOf('row.openers');
-    expect(verifiedAt).toBeGreaterThan(-1);
-    expect(openersAt).toBeGreaterThan(verifiedAt);
+  it('shows the ARRIVED count as the headline, openers as context', () => {
+    // Was `verified`. That number reads TEC's own document-KYC — a register Pi
+    // does not consult and almost nobody completes — so it could never move,
+    // and neither could any total derived from it. `arrived` is confirmed by
+    // the app itself: a superset of what Pi counts, and the closest thing to it
+    // this platform can actually measure.
+    expect(page).toMatch(/\{arrived\} \/ \{row\.threshold\}/);
+    expect(page).toMatch(/\{row\.openers\} opened/);
   });
 
   it('renders the service’s caveat WITH the numbers', () => {

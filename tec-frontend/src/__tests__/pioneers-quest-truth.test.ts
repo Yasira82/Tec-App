@@ -79,14 +79,30 @@ describe('F4 — the arrival numbers reach the screen that aims the campaign', (
     expect(coverage).toMatch(/unconfirmed\?:\s*number/);
   });
 
-  it('renders arrived', () => {
-    expect(coverage).toMatch(/\{row\.arrived\} arrived/);
+  it('makes arrived the headline', () => {
+    expect(coverage).toMatch(/\{arrived\} \/ \{row\.threshold\}/);
   });
 
-  it('keeps verified as the headline rather than replacing it', () => {
-    // Swapping the number outright would re-point the campaign mid-round
-    // without saying so. Both are shown so the gap between them is legible.
-    expect(coverage).toMatch(/\{row\.verified\} \/ \{row\.threshold\}/);
+  it('demotes verified to context rather than dropping it', () => {
+    // ── A correction to this file's own earlier assertion ──────────────────
+    // It used to pin `verified` AS the headline, on the reasoning that swapping
+    // the number would re-point the campaign mid-round. That reasoning was
+    // sound and the premise under it was false: `verified` reads TEC's own
+    // document-KYC, a flow almost nobody completes, so it sat at 0 beside
+    // eleven working pioneers and every total built on it was frozen at its
+    // maximum. Re-pointing an instrument that cannot move is not a risk, it is
+    // the repair.
+    //
+    // `verified` stays on screen. If it ever moves that is real information; it
+    // simply no longer decides how much work is left.
+    expect(coverage).toMatch(/TEC-verified/);
+  });
+
+  it('marks a domain Pi has already accepted instead of asking for more', () => {
+    // `tec.pi` is in. It read "needs 5 more", overstating the job by one app
+    // and five pioneers on every headline.
+    expect(coverage).toMatch(/✓ claimed/);
+    expect(coverage).toMatch(/already accepted by Pi/);
   });
 });
 

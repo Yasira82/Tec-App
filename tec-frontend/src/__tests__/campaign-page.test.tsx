@@ -93,7 +93,15 @@ describe('the campaign page reads the shape each route actually returns', () => 
     const { container } = render(<CampaignPage />);
     await waitFor(() => {
       const hrefs = [...container.querySelectorAll('a')].map((a) => a.getAttribute('href'));
-      expect(hrefs).toContain('https://connection.tecosystem.app/app?invite=abc');
+      // `&q=2` is the return marker: it tells Connection this visitor came from
+      // the campaign, so the app can render a way back to /hub/campaign. Pi
+      // Browser has no tabs and the back button walks the app's SSO chain, so
+      // without it a pioneer who taps this mission has no route home.
+      //
+      // Pinned WITH the invite param, in this order, because both matter: the
+      // invite is what makes it one tap, and the marker is what makes it
+      // survivable.
+      expect(hrefs).toContain('https://connection.tecosystem.app/app?invite=abc&q=2');
     });
   });
 

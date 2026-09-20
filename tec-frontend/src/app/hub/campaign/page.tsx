@@ -70,6 +70,54 @@ interface Status {
 const linkFor = (slug: string) => getDomain(slug)?.route ?? `https://${slug}.tecosystem.app`;
 
 /**
+ * Tell the app this visitor came from the CAMPAIGN, so it can offer a way back
+ * to this page rather than to the Founding Quest.
+ *
+ * ── Why the app has to carry the way back ──────────────────────────────────
+ *
+ * Pi Browser has NO TABS, so the `target="_blank"` below is inert there and
+ * this page does not stay open behind the mission. That leaves one history
+ * stack, and a first visit to any app pushes its whole SSO chain onto it:
+ * pressing back surfaces at the Hub's own landing, a "Sign in with Pi" screen
+ * for a session the pioneer already has. `rememberReturn` below solves the
+ * SSO-bounce half; this solves the "I am standing in the app and want to go
+ * back" half, which nothing did.
+ *
+ * `2` is an index into a closed table in each app (`1` is the Founding Quest).
+ * A path in the URL would have been shorter and would have let a stranger
+ * choose what an app renders as its way home — on the one screen a pioneer
+ * trusts to tell them where to go next. It is matched, never echoed.
+ *
+ * ── Why the host is checked ────────────────────────────────────────────────
+ *
+ * Every mission today lands on `*.tecosystem.app` — including the Connection
+ * invite, which is `connection.tecosystem.app/app?invite=…` and gets the mark
+ * like any other. (A first draft of this comment called that invite a foreign
+ * chat URL and used it to justify the guard. It is not, and a render test
+ * asserting the exact href said so.)
+ *
+ * The guard stays anyway, on the narrower claim that is actually true: this
+ * function takes whatever `hrefFor` returns, one branch of which is a value
+ * that arrives from the SERVICE (`connection_invite_url`). Annotating a URL we
+ * do not own puts our campaign plumbing on somebody else's page, for a reader
+ * that would never look at it. Cheap to hold, and the day a mission points off
+ * our domains it is already right.
+ */
+const CAMPAIGN_RETURN_MARK = '2';
+
+function withReturnMark(href: string): string {
+  try {
+    const u = new URL(href);
+    if (!/(^|\.)tecosystem\.app$/i.test(u.hostname)) return href;
+    u.searchParams.set('q', CAMPAIGN_RETURN_MARK);
+    return u.toString();
+  } catch {
+    // Not an absolute URL — nothing here can safely be annotated.
+    return href;
+  }
+}
+
+/**
  * The registry's name is localized (`{ en, ar }`), so it cannot be rendered as
  * it stands — React refuses an object as a child, which is what the type error
  * was telling us. Read the caller's language, and fall back to the slug rather
@@ -839,7 +887,7 @@ export default function CampaignPage() {
                   done={me?.done.includes(slug) ?? false}
                   needsAction={me?.action_apps.includes(slug) ?? false}
                   locale={locale}
-                  href={hrefFor(slug)}
+                  href={withReturnMark(hrefFor(slug))}
                   onOpen={recordOpen}
                   hintConnection={c.missionConnection}
                   hintChat={c.missionChat}

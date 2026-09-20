@@ -656,7 +656,10 @@ describe('the Connection mission points at the TEC group', () => {
     // a one-tap mission into a search.
     expect(page).toMatch(/slug !== 'connection'\) return linkFor\(slug\)/);
     expect(page).toContain('connection_invite_url');
-    expect(page).toMatch(/href=\{hrefFor\(slug\)\}/);
+    // `hrefFor` still decides WHERE every mission goes. It is now wrapped by
+    // `withReturnMark`, which annotates our own domains and leaves this invite
+    // — a Pi chat URL we do not own — exactly as it is.
+    expect(page).toMatch(/href=\{withReturnMark\(hrefFor\(slug\)\)\}/);
   });
 
   it('falls back to the app when no invite is configured', () => {
@@ -754,5 +757,47 @@ describe('a claim keeps its record when the round ends', () => {
     // would invite a claim the service refuses — and being refused twice reads
     // as being refused personally.
     expect(page).toMatch(/!activeClaim && status\?\.open && \(/);
+  });
+});
+
+describe('a mission sends the pioneer somewhere they can come back from', () => {
+  const page = codeOf('app/hub/campaign/page.tsx');
+
+  it('marks app links so the app can offer a way back to THIS page', () => {
+    // Pi Browser has NO TABS, so the `target="_blank"` here is inert there and
+    // this page does not stay open behind the mission. Back then walks the
+    // app's SSO chain and surfaces at the Hub's own landing — a "Sign in with
+    // Pi" screen for a session the pioneer already has.
+    //
+    // `rememberReturn` already handled the SSO-BOUNCE half. This is the other
+    // half: standing inside the app, wanting to get back, with nothing on
+    // screen that offers it.
+    expect(page).toMatch(/href=\{withReturnMark\(hrefFor\(slug\)\)\}/);
+    expect(page).toMatch(/u\.searchParams\.set\('q', CAMPAIGN_RETURN_MARK\)/);
+  });
+
+  it('sends an index into the app’s table, never a path', () => {
+    // `?q=/hub/campaign` would have been shorter and would have let whoever
+    // built the link choose what an app renders as its way home — on the one
+    // element a stranded visitor is meant to trust. `2` is matched against a
+    // closed table over there; `1` is the Founding Quest.
+    expect(page).toMatch(/const CAMPAIGN_RETURN_MARK = '2'/);
+  });
+
+  it('would leave a link we do not own alone', () => {
+    // Conditional on purpose. Every mission today lands on *.tecosystem.app —
+    // the Connection invite included (`connection.tecosystem.app/app?invite=…`),
+    // and it gets the mark like any other.
+    //
+    // The guard is held on the narrower claim that IS true: one branch of
+    // `hrefFor` returns a value that arrives from the SERVICE, and annotating a
+    // URL we do not own would put campaign plumbing on somebody else's page for
+    // a reader that never looks at it.
+    //
+    // Worth recording: the first version of this test asserted the opposite —
+    // that the invite was a foreign chat URL — and a render test pinning the
+    // exact href proved it wrong. The guard survived; the reason for it did not.
+    expect(page).toMatch(/return href;/);
+    expect(page).toMatch(/test\(u\.hostname\)/);
   });
 });

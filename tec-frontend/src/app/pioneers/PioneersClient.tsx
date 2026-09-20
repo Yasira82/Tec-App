@@ -17,6 +17,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { LIVE_DOMAINS } from '@/domains/_registry';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { getSource } from '@/lib-client/campaign';
+import { rememberReturn } from '@/lib-client/return-to';
 
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
@@ -447,6 +448,32 @@ export default function PioneersClient() {
   }, [applyQuest]);
 
   const markVisited = useCallback((slug: string) => {
+    /**
+     * Remember this page BEFORE the visit takes the pioneer away.
+     *
+     * ── What the back button actually does in Pi Browser ────────────────────
+     *
+     * It does not go back one entry. Leaving an app returns you to the HUB'S
+     * ROOT — `hub.tecosystem.app`, no path — whatever page you were on when
+     * you left. Observed on a phone: from here, back landed on the Hub's
+     * "Sign in with Pi" landing, not on this Quest.
+     *
+     * `/hub/campaign` appeared to be immune, and it is worth being exact about
+     * why, because it is not the history: it lands on the same root, and the
+     * root's own `takeReturn()` forwards it onward. **The recovery is the Hub
+     * catching you, not the browser remembering.** This page never wrote
+     * anything for it to catch.
+     *
+     * This is also why the `tec-auth@1.2.0` `location.replace` change produced
+     * nothing visible here. It removes a real, redundant history entry — right
+     * in any browser that reads history — and this one does not.
+     *
+     * Set OUTSIDE the eligibility guard below: a signed-out visitor still
+     * browses apps and still deserves to land back here, even though nothing
+     * about their visit is recorded.
+     */
+    try { rememberReturn('/pioneers'); } catch { /* ignore */ }
+
     // Non-verified visitors browse freely but never accrue progress or a ✓ mark.
     if (!eligible) return;
     setVisited((prev) => {

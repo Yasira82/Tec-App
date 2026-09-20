@@ -132,12 +132,21 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
 /**
  * Record that this pioneer opened an app.
  *
- * The campaign reads the SAME `PioneerQuest.opened_apps` the Founding Quest
- * writes — which is only true if somebody writes it. The Founding page does
- * this on every app link; the mission links here did not, so a pioneer could
- * open all eight apps and stay at zero, with no way ever to reach the claim
- * form. A campaign whose missions cannot be completed is worse than one that is
- * closed: it looks open.
+ * The mission links here used not to record anything, so a pioneer could open
+ * all eight apps and stay at zero, with no way ever to reach the claim form. A
+ * campaign whose missions cannot be completed is worse than one that is closed:
+ * it looks open.
+ *
+ * ── What it records, and what it deliberately does not ─────────────────────
+ *
+ * A campaign visit, and only that. The write used to land in the Founding
+ * Quest's `opened_apps` as well — one endpoint served both pages — so a pioneer
+ * who finished the missions here opened `/pioneers` to find its apps already
+ * ticked: a permanent badge, and one of a hundred seats, granted for work that
+ * page never saw them do. (An earlier version of this comment said the campaign
+ * READS `opened_apps`. It has not for some time: it keeps its own timestamped
+ * `CampaignVisit` rows, precisely so an old Founding visit cannot claim fresh
+ * Pi. `origin: 'campaign'` is the same idea pointing the other way.)
  *
  * `keepalive` because these missions may leave the page, and a fetch in flight
  * when the tab navigates is cancelled — the exact way the Founding open was lost
@@ -163,7 +172,11 @@ const recordOpen = (slug: string) => {
         'Content-Type': 'application/json',
         ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}),
       },
-      body: JSON.stringify({ app: slug, ...(getSource() ? { source: getSource() } : {}) }),
+      body: JSON.stringify({
+        app: slug,
+        origin: 'campaign',
+        ...(getSource() ? { source: getSource() } : {}),
+      }),
     }).catch(() => {});
   } catch { /* ignore */ }
 };

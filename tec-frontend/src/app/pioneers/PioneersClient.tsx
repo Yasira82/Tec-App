@@ -439,7 +439,11 @@ export default function PioneersClient() {
         // tiny, well under the 64KB keepalive limit.
         keepalive:   true,
         headers:     { 'Content-Type': 'application/json', ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}) },
-        body:        JSON.stringify({ app: slug, ...(source ? { source } : {}) }),
+        // Said out loud although it is also the default: this page is the ONLY
+        // thing that may tick the Founding Quest, and a default is a fact that
+        // lives somewhere else. Written here, the rule is visible from the page
+        // it belongs to.
+        body:        JSON.stringify({ app: slug, origin: 'founding', ...(source ? { source } : {}) }),
       });
       if (!res.ok) return;
       const q = (await res.json().catch(() => null))?.data?.quest;

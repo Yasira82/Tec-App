@@ -197,3 +197,36 @@ describe('the seat is taken by itself', () => {
     expect(posts()).toHaveLength(0);
   });
 });
+
+/**
+ * The campaign records its own visits — and does not finish the Founding Quest.
+ *
+ * Reported from a phone: tap the missions here, they tick (correct); then open
+ * `/pioneers` and ITS apps are already marked done. The pioneer never tapped
+ * them there, and the Founding badge that page asks them to earn was being
+ * handed over for work it never saw.
+ *
+ * One endpoint served both pages, so every open landed in the same
+ * `opened_apps`. This page had already been given the mirror-image fix in the
+ * other direction — its `CampaignVisit` rows are timestamped so an old Founding
+ * visit cannot claim fresh Pi. `origin: 'campaign'` is that fix pointing back.
+ */
+describe('a mission tap is a campaign visit and nothing else', () => {
+  const opens = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/pioneer/open'));
+
+  it('declares its origin, so the Founding Quest is left alone', async () => {
+    vi.stubGlobal('fetch', answer());
+    const { container } = render(<CampaignPage />);
+    await waitFor(() => expect(container.querySelectorAll('a').length).toBeGreaterThan(0));
+
+    const mission = [...container.querySelectorAll('a')]
+      .find((a) => a.getAttribute('href')?.includes('zone.tecosystem.app'));
+    expect(mission).toBeTruthy();
+    mission!.click();
+
+    await waitFor(() => expect(opens().length).toBe(1));
+    const body = JSON.parse(String((opens()[0][1] as RequestInit).body));
+    expect(body).toMatchObject({ app: 'zone', origin: 'campaign' });
+  });
+});

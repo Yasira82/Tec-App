@@ -128,3 +128,24 @@ describe('the Quest page is what the Hub catches you with', () => {
     expect(remember).toBeLessThan(guard);
   });
 });
+
+/**
+ * Two campaigns, side by side — and neither finishes the other.
+ *
+ * Reported from a phone: do the Pi reward campaign at `/hub/campaign`, tap its
+ * missions, they tick — correct. Then open THIS page, and its apps are already
+ * marked done. The pioneer never tapped them here.
+ *
+ * One endpoint served both pages, so every open landed in the same
+ * `opened_apps` list. The campaign had already fixed the mirror image of this
+ * in its own direction — it keeps timestamped `CampaignVisit` rows so an old
+ * Founding visit cannot claim fresh Pi. This is that fix pointing back.
+ */
+describe('this page is the only thing that ticks the Founding Quest', () => {
+  it('says so in the open it sends', () => {
+    // `founding` is also the server's default. Stated anyway: a default is a
+    // fact that lives in another repo, and the rule is worth reading from the
+    // page it belongs to.
+    expect(code).toMatch(/origin: 'founding'/);
+  });
+});

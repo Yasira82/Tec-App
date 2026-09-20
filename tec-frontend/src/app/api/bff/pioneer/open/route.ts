@@ -32,6 +32,11 @@ export const POST = createHandler({
       message: 'Unknown app',
     }),
     source: z.string().max(200).optional(),
+    // Which Hub surface sent this pioneer. `campaign` records the visit for the
+    // Pi reward campaign WITHOUT ticking the Founding Quest — the two campaigns
+    // run side by side and one must not complete the other. Absent means the
+    // Founding page, which is the only caller that ever meant to tick it.
+    origin: z.enum(['founding', 'campaign']).optional(),
   }),
   handler: async ({ input, ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
@@ -42,7 +47,11 @@ export const POST = createHandler({
         'Content-Type': 'application/json',
         'x-request-id': ctx.requestId,
       },
-      body: JSON.stringify({ app: input.app, ...(input.source ? { source: input.source } : {}) }),
+      body: JSON.stringify({
+        app: input.app,
+        ...(input.source ? { source: input.source } : {}),
+        ...(input.origin ? { origin: input.origin } : {}),
+      }),
     });
     if (!res.ok) throw Object.assign(new Error(`Gateway ${res.status}`), { status: res.status });
     return res.json();

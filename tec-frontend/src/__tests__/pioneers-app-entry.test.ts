@@ -99,3 +99,32 @@ describe('the tick still fires', () => {
     expect(code).toMatch(/onClick=\{\(\) => markVisited\(d\.slug\)\}/);
   });
 });
+
+describe('the Quest page is what the Hub catches you with', () => {
+  it('remembers itself before the visit takes the pioneer away', () => {
+    // ── What the back button actually does in Pi Browser ────────────────────
+    // It does not go back one entry. Leaving an app returns you to the HUB'S
+    // ROOT — `hub.tecosystem.app`, no path — whatever page you were on when you
+    // left. Observed on a phone: from here, back landed on the Hub's "Sign in
+    // with Pi" landing, not on this Quest.
+    //
+    // `/hub/campaign` looked immune. It is not: it lands on the same root, and
+    // the root's own `takeReturn()` forwards it onward. The recovery is the Hub
+    // CATCHING you, not the browser remembering — and this page wrote nothing
+    // for it to catch. One call, the same one `recordOpen` makes over there.
+    expect(code).toMatch(/rememberReturn\('\/pioneers'\)/);
+    expect(code).toMatch(/from '@\/lib-client\/return-to'/);
+  });
+
+  it('remembers it for a signed-out visitor too', () => {
+    // Set BEFORE the eligibility guard. Somebody browsing without a session
+    // accrues no progress — but stranding them is not the same as not counting
+    // them, and they are the likeliest person to give up and never come back.
+    const fn = code.slice(code.indexOf('const markVisited'));
+    const remember = fn.indexOf("rememberReturn('/pioneers')");
+    const guard    = fn.indexOf('if (!eligible) return;');
+    expect(remember).toBeGreaterThan(-1);
+    expect(guard).toBeGreaterThan(-1);
+    expect(remember).toBeLessThan(guard);
+  });
+});

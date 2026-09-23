@@ -363,3 +363,15 @@ describe('PioneersClient — the PRO link waits for the PRO', () => {
     await waitFor(() => expect(container.querySelector('a[href="/hub/subscription"]')).not.toBeNull());
   });
 });
+
+describe('PioneersClient — the same-tab trial, as rendered', () => {
+  it('Zone opens in this tab; another app still opens a new one', async () => {
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    const zone  = container.querySelector('a[data-app="zone"]');
+    const nexus = container.querySelector('a[data-app="nexus"]');
+    expect(zone?.getAttribute('target')).toBeNull();
+    expect(zone?.getAttribute('rel')).toBe('noreferrer');
+    expect(nexus?.getAttribute('target')).toBe('_blank');
+  });
+});

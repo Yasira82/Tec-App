@@ -17,7 +17,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { LIVE_DOMAINS } from '@/domains/_registry';
 import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { getSource } from '@/lib-client/campaign';
-import { rememberReturn } from '@/lib-client/return-to';
+import { rememberReturn, clearReturn } from '@/lib-client/return-to';
 
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
@@ -421,6 +421,11 @@ export default function PioneersClient() {
       }
     } catch { /* ignore — start fresh */ }
   }, []);
+
+  // Back on the Quest: a destination remembered by an earlier tap — here or on
+  // the campaign — belongs to a trip that is over. Left in place it would send
+  // a later back press somewhere this visit never went.
+  useEffect(() => { clearReturn(); }, []);
 
   // Pull the REAL campaign counter (public) + the caller's own quest (if logged in).
   // Both degrade silently — a logged-out visitor or an undeployed backend just keeps

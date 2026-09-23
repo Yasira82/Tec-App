@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter }                        from 'next/navigation';
 import { usePiAuth }                        from '@/lib-client/hooks/usePiAuth';
-import { rememberReturn }                   from '@/lib-client/return-to';
+import { rememberReturn, clearReturn, takeOnward } from '@/lib-client/return-to';
 import { usePiSdkReady }                    from '@/lib-client/hooks/usePiSdkReady';
 import { useRealtimeNotifications }         from '@/lib-client/hooks/useRealtimeNotifications';
 import { useExternalPayment }               from '@/lib-client/hooks/useExternalPayment';
@@ -139,6 +139,17 @@ function HubPageInner() {
       rememberReturn('/hub');
       router.replace('/');
     }
+  }, [isLoading, isAuthenticated, pendingPayment, router]);
+
+  /* ── Returning from an app: open the page it was tapped from, on top of the Hub ── */
+  useEffect(() => {
+    if (isLoading || !isAuthenticated) return;
+    // Standing on the Hub signed in: any remembered destination is from a trip
+    // that is over — see clearReturn.
+    clearReturn();
+    const onward = takeOnward();
+    // Pushed, not replaced: the Hub stays underneath, so the next back lands here.
+    if (onward && !pendingPayment) router.push(onward);
   }, [isLoading, isAuthenticated, pendingPayment, router]);
 
   const { unread: wsUnread, clearUnread } = useRealtimeNotifications({

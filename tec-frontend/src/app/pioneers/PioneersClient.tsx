@@ -123,6 +123,29 @@ function withQuestMark(href: string): string {
  */
 const APP_LINK_PROPS = { target: '_blank', rel: 'noopener noreferrer' } as const;
 
+/**
+ * TRIAL: apps that open in THIS tab instead of a new one.
+ *
+ * Seen on a phone: open an app from here, press back, and Pi Browser closed
+ * altogether instead of returning to the Quest. `_blank` does not give Pi
+ * Browser a tab it can go back from — it gives it a fresh context whose history
+ * holds only the app, so back has nowhere to go but out.
+ *
+ * In the same tab the history is `/pioneers → app`, and back returns here.
+ * What is being tested is the cost: a same-tab visit keeps the app's
+ * sessionStorage, so a `__tec_hub_entry` flag from an earlier SSO hop could
+ * still make the app skip the Pi SDK — the thing this whole page is for. The
+ * referrer is stripped either way.
+ *
+ * One app, confirmed on a phone (back returns here; the Portal still counts the
+ * visit), before it becomes every app.
+ */
+const SAME_TAB_TRIAL: ReadonlySet<string> = new Set(['zone']);
+const SAME_TAB_PROPS = { rel: 'noreferrer' } as const;
+
+const linkPropsFor = (slug: string, external: boolean) =>
+  !external ? {} : SAME_TAB_TRIAL.has(slug) ? SAME_TAB_PROPS : APP_LINK_PROPS;
+
 /** Same-origin Hub routes (`/hub`) keep normal navigation: there is no Pi
  *  session to protect and no referrer worth stripping — it is this app. */
 const isExternal = (href: string) => href.startsWith('http');
@@ -766,7 +789,7 @@ export default function PioneersClient() {
                   key={d.slug}
                   data-app={d.slug}
                   href={href}
-                  {...(ext ? APP_LINK_PROPS : {})}
+                  {...linkPropsFor(d.slug, ext)}
                   // The tick now lands while the page is still on screen. With a
                   // same-tab jump this POST raced the navigation away from it.
                   onClick={() => markVisited(d.slug)}

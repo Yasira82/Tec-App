@@ -53,7 +53,8 @@ describe('an app link hands the app its own Pi session', () => {
     // same question must decide both, or a Hub route could get one and not the
     // other.
     expect(code).toMatch(/const ext\s+= isExternal\(raw\);/);
-    expect(code).toMatch(/\{\.\.\.\(ext \? APP_LINK_PROPS : \{\}\)\}/);
+    expect(code).toMatch(/\{\.\.\.linkPropsFor\(d\.slug, ext\)\}/);
+    expect(code).toMatch(/!external \? \{\}/);
   });
 });
 
@@ -147,5 +148,27 @@ describe('this page is the only thing that ticks the Founding Quest', () => {
     // fact that lives in another repo, and the rule is worth reading from the
     // page it belongs to.
     expect(code).toMatch(/origin: 'founding'/);
+  });
+});
+
+/**
+ * TRIAL — Zone opens in THIS tab.
+ *
+ * Seen on a phone: open an app from here, press back, and Pi Browser closed.
+ * `_blank` gives Pi Browser a fresh context whose history holds only the app, so
+ * back has nowhere to go but out. One app first, confirmed on a phone, then all.
+ */
+describe('the same-tab trial', () => {
+  it('opens Zone in this tab, so back returns to the Quest', () => {
+    expect(code).toMatch(/SAME_TAB_TRIAL: ReadonlySet<string> = new Set\(\['zone'\]\)/);
+    expect(code).not.toMatch(/SAME_TAB_PROPS = \{[^}]*_blank/);
+  });
+
+  it('still strips the referrer — the app must not detect a Hub entry', () => {
+    expect(code).toMatch(/SAME_TAB_PROPS = \{ rel: 'noreferrer' \}/);
+  });
+
+  it('is ONLY Zone — every other app keeps the new-tab behaviour until confirmed', () => {
+    expect(code).toMatch(/SAME_TAB_TRIAL\.has\(slug\) \? SAME_TAB_PROPS : APP_LINK_PROPS/);
   });
 });

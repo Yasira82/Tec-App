@@ -142,6 +142,8 @@ type Copy = {
   appsSignedOut: string;
   /** Where a Founding Pioneer actually sees the PRO the page promised them. */
   seePro: string;
+  /** Said INSTEAD of `seePro` while commerce has not confirmed the gift. */
+  proPending: string;
   badgeTitle: string; badgeBody: string;
   foundingLive: (claimed: number, remaining: number) => string;
   youAreFounding: (n: number) => string;
@@ -200,6 +202,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     foundingLive: (c, r) => `${c} of ${FOUNDING_CAP} Founding spots claimed · ${r} left`,
     youAreFounding: (n) => `🎉 You are Founding Pioneer #${n} — welcome.`,
     seePro: 'See your 6 months of PRO ›',
+    proPending: 'Your 6 months of PRO is being activated — open this page again in a few minutes.',
     openToAll: (total) => `Open all ${total} apps to complete the Quest — free, and no payment at any point. Any Pi account qualifies: no documents, and no TEC verification step. Whether your Pi account is verified is Pi's business, not ours — we never ask, and we cannot see it.`,
     footer: 'Thank you for pioneering TEC. Every app you open and every Pi you spend helps a real Pi-native economy go live.',
     share: 'Share',
@@ -243,6 +246,7 @@ const COPY: Record<'en' | 'ar', Copy> = {
     foundingLive: (c, r) => `اتحجز ${c} من ${FOUNDING_CAP} مكان مؤسّس · باقي ${r}`,
     youAreFounding: (n) => `🎉 إنت Founding Pioneer رقم #${n} — أهلاً بيك.`,
     seePro: 'شوف الـ ٦ شهور PRO بتاعتك ›',
+    proPending: 'الـ ٦ شهور PRO بتاعتك بتتفعّل — افتح الصفحة دي تاني بعد دقايق.',
     openToAll: (total) => `افتح الـ ${total} تطبيق عشان تكمّل الـ Quest — مجانًا، ومن غير أي دفع في أي خطوة. أي حساب Pi مؤهّل: من غير مستندات، ومن غير أي خطوة توثيق في TEC. توثيق حسابك في Pi ده شأن Pi وحدها — إحنا مش بنطلبه ومش بنقدر نشوفه.`,
     footer: 'شكراً لريادتك لـ TEC. كل تطبيق بتفتحه وكل Pi بتصرفه بيساعد اقتصاد Pi حقيقي إنه يشتغل.',
     share: 'شارك',
@@ -288,6 +292,20 @@ export default function PioneersClient() {
   const [visited, setVisited] = useState<string[]>([]);
   const [serverStats, setServerStats] = useState<{ claimed: number; remaining: number; pioneers: number; completed: number } | null>(null);
   const [foundingNumber, setFoundingNumber] = useState<number | null>(null);
+  /**
+   * Whether commerce has CONFIRMED this Founding member's PRO.
+   *
+   * The link below used to appear the moment a number did. But the gift is a
+   * separate call to a separate service, and it could fail while the number
+   * stood — so the page pointed somebody at "your 6 months of PRO" and the link
+   * opened a FREE plan. That is the moment a new pioneer decides the whole
+   * campaign was a lie.
+   *
+   * `null` means the backend did not say (an identity-service older than this
+   * field) and keeps the old behaviour; only an explicit 'pending' holds the
+   * link back.
+   */
+  const [foundingGift, setFoundingGift] = useState<'granted' | 'pending' | null>(null);
   const [shared, setShared] = useState(false);
 
   /**
@@ -408,8 +426,13 @@ export default function PioneersClient() {
       } catch { /* keep local-only */ }
       try {
         const r = await fetch('/api/bff/pioneer/me', { credentials: 'include' });
-        const q = (await r.json().catch(() => null))?.data?.quest;
+        const body = await r.json().catch(() => null);
+        const q = body?.data?.quest;
         if (alive && q) applyQuest(q);
+        // Asked on this read because this read is what makes sure of it — the
+        // service retries a gift that did not land the first time.
+        const g = body?.data?.founding_gift;
+        if (alive && (g === 'granted' || g === 'pending')) setFoundingGift(g);
       } catch { /* not logged in / backend down — local-only */ }
     })();
     return () => { alive = false; };
@@ -772,7 +795,13 @@ export default function PioneersClient() {
             <>
               <div style={{ fontSize: 13, color: C.green, marginTop: 10, fontWeight: 800 }}>{t.youAreFounding(foundingNumber)}</div>
               {/* The page now promises 6 months of PRO. Somebody who has just
-                  earned it should not have to go looking for where it lives. */}
+                  earned it should not have to go looking for where it lives —
+                  and must not be sent there before it exists. */}
+              {foundingGift === 'pending' ? (
+                <div style={{ marginTop: 10, fontSize: 13, fontWeight: 700, color: C.subtext, lineHeight: 1.6 }}>
+                  {t.proPending}
+                </div>
+              ) : (
               <Link
                 href="/hub/subscription"
                 style={{
@@ -783,6 +812,7 @@ export default function PioneersClient() {
               >
                 {t.seePro}
               </Link>
+              )}
             </>
           )}
           {/* Shown to EVERYONE, not gated on `kyc_verified`.

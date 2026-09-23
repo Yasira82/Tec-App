@@ -69,6 +69,29 @@ describe('the page reports the repair honestly', () => {
     expect(page).toContain('Nothing was missing');
   });
 
+  it('says "Nothing was missing" ONLY when nothing failed, was skipped or is unresolvable', () => {
+    // It used to follow from `granted === 0` alone. When commerce was down or
+    // never configured, EVERY gift failed or was skipped — granted stayed 0 —
+    // and this screen said, in green, that all was well. The button built to
+    // catch a missing PRO reassured its owner at the exact moment the PRO was
+    // missing for everyone.
+    expect(page).toMatch(/const notLanded = regrant\.failed \+ skipped \+ regrant\.unresolvable\.length;/);
+    // The green line sits LAST in the chain, behind every way of not landing.
+    const chain = page.slice(page.indexOf('const headline'));
+    expect(chain.indexOf('notLanded > 0')).toBeLessThan(chain.indexOf('Nothing was missing'));
+    expect(chain.indexOf('commerce_configured === false')).toBeLessThan(chain.indexOf('Nothing was missing'));
+  });
+
+  it('names the unset env var outright when that is the cause', () => {
+    // "N failed" sends somebody to look at commerce. The real answer — one env
+    // var on identity-service — is only useful if the screen says it.
+    expect(page).toContain('COMMERCE_SERVICE_URL is unset on identity-service');
+  });
+
+  it('counts skipped apart from failed', () => {
+    expect(page).toMatch(/skipped > 0 && /);
+  });
+
   it('keeps `already` and `by_lookup` distinguishable from a recovery', () => {
     // An id inferred from a username is a fair risk for a gift and not the same
     // fact as a recorded one, so it must not be folded into the total.

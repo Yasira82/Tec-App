@@ -130,6 +130,62 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
 };
 
 /**
+ * Missions tapped on THIS page, kept locally so a lost POST can be re-sent.
+ *
+ * This became necessary the moment a campaign visit stopped being openable by
+ * anything but a tap here. Before that, the app's own arrival report created
+ * the row, so a `keepalive` POST that died in flight was quietly rescued. Now
+ * nothing rescues it, and a mission that never registers is the failure this
+ * page exists to avoid — "worse than closed: it looks open".
+ *
+ * The `/pioneers` page has carried the same re-send for the same reason.
+ */
+const TAPPED_KEY = 'tec_campaign_tapped';
+
+const readTapped = (): string[] => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TAPPED_KEY) ?? '[]');
+    return Array.isArray(raw) ? raw.filter((s): s is string => typeof s === 'string') : [];
+  } catch { return []; /* blocked or corrupt — the tap simply has no backup */ }
+};
+
+const rememberTapped = (slug: string) => {
+  try {
+    const next = readTapped();
+    if (!next.includes(slug)) localStorage.setItem(TAPPED_KEY, JSON.stringify([...next, slug]));
+  } catch { /* ignore */ }
+};
+
+/**
+ * The POST alone — no side effects on this browser.
+ *
+ * Split out so the lost-tap re-send below can use it. The re-send runs on
+ * page LOAD, while the pioneer is standing on this page and going nowhere; if
+ * it went through `recordOpen` it would also `rememberReturn('/hub/campaign')`,
+ * and the next time they tapped Home the Hub root would consume that and send
+ * them straight back here.
+ */
+const sendVisit = (slug: string) => {
+  try {
+    const csrf = document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '';
+    void fetch('/api/bff/pioneer/open', {
+      method:      'POST',
+      credentials: 'include',
+      keepalive:   true,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}),
+      },
+      body: JSON.stringify({
+        app: slug,
+        origin: 'campaign',
+        ...(getSource() ? { source: getSource() } : {}),
+      }),
+    }).catch(() => {});
+  } catch { /* ignore */ }
+};
+
+/**
  * Record that this pioneer opened an app.
  *
  * The mission links here used not to record anything, so a pioneer could open
@@ -153,6 +209,7 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
  * before. Best-effort and silent: a failed record must never block the visit.
  */
 const recordOpen = (slug: string) => {
+  rememberTapped(slug);
   // Remember where they were BEFORE the mission takes them away.
   //
   // A mission leads to another tecosystem.app app, which may bounce through the
@@ -162,23 +219,7 @@ const recordOpen = (slug: string) => {
   // how to forward a remembered destination after a bounce; this was the one
   // place that never told it where the person had been standing.
   try { rememberReturn('/hub/campaign'); } catch { /* ignore */ }
-  try {
-    const csrf = document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '';
-    void fetch('/api/bff/pioneer/open', {
-      method:      'POST',
-      credentials: 'include',
-      keepalive:   true,
-      headers: {
-        'Content-Type': 'application/json',
-        ...(csrf ? { 'x-csrf-token': decodeURIComponent(csrf) } : {}),
-      },
-      body: JSON.stringify({
-        app: slug,
-        origin: 'campaign',
-        ...(getSource() ? { source: getSource() } : {}),
-      }),
-    }).catch(() => {});
-  } catch { /* ignore */ }
+  sendVisit(slug);
 };
 
 function Mission({ slug, done, needsAction, locale, href, onOpen, hintConnection, hintChat }: {
@@ -388,6 +429,34 @@ export default function CampaignPage() {
   }, [isAuthenticated]);
 
   useEffect(() => { if (!authLoading) void load(); }, [authLoading, load]);
+
+  /**
+   * Re-send a mission tap the server never received.
+   *
+   * These links leave the page, and a fetch in flight when the browser
+   * navigates is cancelled. `keepalive` covers most of it; nothing covers all
+   * of it, and since a campaign visit can no longer be opened by the app's own
+   * arrival report, a lost tap now means a mission that never ticks and a
+   * pioneer who can never reach the claim form.
+   *
+   * The set difference IS the work list, and the writes are idempotent — the
+   * service upserts one row per (owner, app). Bounded to one retry per app per
+   * session so an app that stays untickable for another reason (`connection`
+   * also needs a message sent) cannot turn this into a loop.
+   */
+  const resent = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!me) return;
+    const done  = new Set(me.done ?? []);
+    // Only THIS round's missions. The tapped list outlives rounds, and an app
+    // from an earlier round is not something this campaign asked for.
+    const asked = new Set(me.apps ?? []);
+    for (const slug of readTapped()) {
+      if (!asked.has(slug) || done.has(slug) || resent.current.has(slug)) continue;
+      resent.current.add(slug);
+      sendVisit(slug); // not recordOpen — see sendVisit for why
+    }
+  }, [me]);
 
 
   /**

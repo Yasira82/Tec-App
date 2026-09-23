@@ -80,6 +80,15 @@ interface Regrant {
   granted:       number;
   already:       number;
   failed:        number;
+  /**
+   * Never asked, because this service was not told where commerce is. Counted
+   * apart from `failed`: "commerce refused" and "commerce was never called" have
+   * different fixes, and one number made them look the same. Optional so an
+   * older identity-service that does not send it still renders.
+   */
+  skipped?:      number;
+  /** `false` means every gift since launch was silently skipped. */
+  commerce_configured?: boolean;
   /** Resolved by asking auth for the id, because the quest predates `user_id`. */
   by_lookup:     number;
   /** Named, never silently skipped — a recovery that hides what it could not
@@ -353,25 +362,41 @@ export default function AdminPioneersPage() {
               </div>
             )}
 
-            {regrant && (
+            {regrant && (() => {
+              // "Nothing was missing" used to follow from `granted === 0` alone
+              // — so when EVERY gift failed or was skipped, this screen said, in
+              // green, that all was well. The one button built to catch a
+              // missing PRO was reassuring its owner at the exact moment the
+              // PRO was missing for everyone.
+              const skipped   = regrant.skipped ?? 0;
+              const notLanded = regrant.failed + skipped + regrant.unresolvable.length;
+              const headline  = regrant.commerce_configured === false
+                ? { text: 'Gifts are NOT being sent — COMMERCE_SERVICE_URL is unset on identity-service', color: 'var(--tec-red)' }
+                : notLanded > 0
+                  ? { text: `${notLanded} still without their PRO`, color: 'var(--tec-red)' }
+                  : regrant.granted > 0
+                    ? { text: `${regrant.granted} recovered`, color: 'var(--tec-gold)' }
+                    : { text: 'Nothing was missing', color: 'var(--tec-green)' };
+              return (
               <div style={{ marginTop: 'var(--sp-3)' }}>
-                {/* `granted` leads, and says whether anything was actually
-                    wrong. Zero recovered is the GOOD answer, and it has to read
-                    as one rather than as an empty result. */}
+                {/* The headline answers ONE question — does every Founding
+                    member have the PRO they were promised? — and only says yes
+                    when nothing failed, nothing was skipped and nobody is
+                    unresolvable. Zero recovered is still the good answer, but
+                    only in that case. */}
                 <div dir="ltr" style={{
-                  fontSize: 'var(--text-sm)', fontWeight: 700,
-                  color: regrant.granted > 0 ? 'var(--tec-gold)' : 'var(--tec-green)',
+                  fontSize: 'var(--text-sm)', fontWeight: 700, color: headline.color,
                 }}>
-                  {regrant.granted > 0
-                    ? `${regrant.granted} recovered`
-                    : 'Nothing was missing'}
+                  {headline.text}
                 </div>
 
                 <div dir="ltr" style={{
                   marginTop: 4, fontSize: 11.5, color: 'var(--tec-text-3)', lineHeight: 1.7,
                 }}>
                   {regrant.checked} checked · {regrant.already} already held
+                  {regrant.granted > 0 && notLanded > 0 && <> · {regrant.granted} recovered</>}
                   {regrant.failed  > 0 && <> · <b style={{ color: 'var(--tec-red)' }}>{regrant.failed} failed</b></>}
+                  {skipped > 0 && <> · <b style={{ color: 'var(--tec-red)' }}>{skipped} skipped</b></>}
                   {/* An id inferred from a username is a fair risk for a gift
                       and not the same fact as a recorded one, so it is counted
                       apart rather than folded into the total. */}
@@ -392,7 +417,8 @@ export default function AdminPioneersPage() {
                   </div>
                 )}
               </div>
-            )}
+              );
+            })()}
           </div>
         </>
       ) : null}

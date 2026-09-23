@@ -230,3 +230,83 @@ describe('a mission tap is a campaign visit and nothing else', () => {
     expect(body).toMatchObject({ app: 'zone', origin: 'campaign' });
   });
 });
+
+/**
+ * A tap the server never received.
+ *
+ * These mission links leave the page, and a fetch in flight when the browser
+ * navigates is cancelled. `keepalive` covers most of that; nothing covers all
+ * of it — and a campaign visit can no longer be opened by the app's own arrival
+ * report, because that report fires on any page load from any entry and would
+ * hand a mission to anyone who merely loaded the app. So the rescue has to
+ * happen here.
+ */
+describe('a lost mission tap is re-sent', () => {
+  const opens = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/pioneer/open'));
+
+  beforeEach(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+
+  it('re-sends a mission this page tapped that the server does not show as done', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone']));
+    // `ME_BODY` marks `zone` done, which is the opposite of the case under
+    // test — so the server here reports nothing done at all.
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    expect(JSON.parse(String((opens()[0][1] as RequestInit).body)))
+      .toMatchObject({ app: 'zone', origin: 'campaign' });
+  });
+
+  it('does NOT re-send one the server already counted', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone']));
+    vi.stubGlobal('fetch', answer());           // ME_BODY: zone is done
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(opens()).toHaveLength(0);
+  });
+
+  it('re-sends at most once, however many times the page re-renders', async () => {
+    // `connection` needs a message sent as well as a visit, so it can sit in
+    // `missing` after a perfectly good tap. Without the guard this becomes a
+    // POST on every render.
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['connection']));
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    const { rerender } = render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    rerender(<CampaignPage />);
+    rerender(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+  });
+});
+
+describe('the re-send does not hijack the way home', () => {
+  const opens = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/pioneer/open'));
+
+  beforeEach(() => {
+    try { localStorage.clear(); sessionStorage.clear(); } catch { /* ignore */ }
+  });
+
+  it('leaves the return destination alone — the pioneer is not leaving', async () => {
+    // A load-time re-send used to go through recordOpen, which remembers
+    // `/hub/campaign` as the place to come back to. The next tap on Home then
+    // bounced straight back here.
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone']));
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    expect(sessionStorage.getItem('__tec_return_to')).toBeNull();
+  });
+
+  it('re-sends only this round\'s missions', async () => {
+    // `explorer` was tapped in an earlier round; this round asks for
+    // connection + zone. Re-sending it would open a visit nobody asked for.
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['explorer']));
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(opens()).toHaveLength(0);
+  });
+});

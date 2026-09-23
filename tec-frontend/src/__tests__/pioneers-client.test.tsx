@@ -314,3 +314,52 @@ describe('PioneersClient — Founding counter', () => {
     expect(container.textContent).toContain(`you opened all ${TOTAL}`);
   });
 });
+
+/**
+ * The PRO link appears only once the PRO exists.
+ *
+ * The Founding gift is a separate call to a separate service, and it could fail
+ * while the Founding number stood. The page showed "See your 6 months of PRO"
+ * the moment a number did — so a brand-new Founding Pioneer tapped it and found
+ * a FREE plan. That is the screen where somebody decides the campaign was a lie.
+ *
+ * The service now retries the gift on this very read and says whether it has
+ * landed. The page believes it.
+ */
+describe('PioneersClient — the PRO link waits for the PRO', () => {
+  const withGift = (founding_gift: unknown) => vi.fn((url: string) => {
+    const u = String(url);
+    if (u.includes('/pioneer/me')) {
+      return Promise.resolve({ ok: true, json: async () => ({
+        data: { quest: { opened_apps: [], founding_number: 7, completed_at: '2026-09-20' }, founding_gift },
+      }) });
+    }
+    return Promise.resolve({ ok: true, json: async () => ({ data: {} }) });
+  });
+
+  it('holds the link back while commerce has not confirmed the gift', async () => {
+    global.fetch = withGift('pending') as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => expect(container.textContent).toContain('Founding Pioneer #7'));
+    expect(container.textContent).toContain('being activated');
+    expect(container.querySelector('a[href="/hub/subscription"]')).toBeNull();
+  });
+
+  it('shows the link once the gift is confirmed', async () => {
+    global.fetch = withGift('granted') as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => expect(container.querySelector('a[href="/hub/subscription"]')).not.toBeNull());
+    expect(container.textContent).not.toContain('being activated');
+  });
+
+  it('keeps the old behaviour when an older service does not say', async () => {
+    // Rolling out, the Hub may deploy before identity-service does. An absent
+    // field must not strand every Founding member on "being activated".
+    global.fetch = withGift(undefined) as unknown as typeof fetch;
+    let container!: HTMLElement;
+    await act(async () => { ({ container } = render(<PioneersClient />)); });
+    await waitFor(() => expect(container.querySelector('a[href="/hub/subscription"]')).not.toBeNull());
+  });
+});

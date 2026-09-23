@@ -7,7 +7,7 @@ import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
 import { getSource }   from '@/lib-client/campaign';
-import { rememberReturn } from '@/lib-client/return-to';
+import { rememberReturn, clearReturn } from '@/lib-client/return-to';
 import { useTranslation, fill } from '@/lib/i18n';
 
 /**
@@ -321,6 +321,10 @@ export default function CampaignPage() {
   const { t, dir } = useTranslation();
   const c = t.hub.campaignPage;
   const locale: 'en' | 'ar' = dir === 'rtl' ? 'ar' : 'en';
+
+  // Back on the campaign: whatever an earlier tap remembered is from a trip
+  // that is over (see clearReturn). The Quest does the same.
+  useEffect(() => { clearReturn(); }, []);
 
   const [status,  setStatus]  = useState<Status | null>(null);
   const [me,      setMe]      = useState<Me | null>(null);

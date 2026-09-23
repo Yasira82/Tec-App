@@ -55,7 +55,7 @@ describe('the landing page stays reachable', () => {
     // In Pi Browser `/api/auth/me` takes a moment; acting on a half-known
     // state is how a page flickers to somewhere the user did not ask for.
     mockUsePiAuth.mockReturnValue(loading);
-    sessionStorage.setItem('__tec_return_to', '/dashboard');
+    sessionStorage.setItem('__tec_return_to', `/dashboard|${Date.now()}`);
     render(<HomePage />);
     await waitFor(() => expect(mockReplace).not.toHaveBeenCalled());
   });
@@ -63,7 +63,7 @@ describe('the landing page stays reachable', () => {
 
 describe('a bounced visitor still gets carried back', () => {
   it('forwards to the remembered screen', async () => {
-    sessionStorage.setItem('__tec_return_to', '/dashboard/wallet');
+    sessionStorage.setItem('__tec_return_to', `/dashboard/wallet|${Date.now()}`);
     render(<HomePage />);
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/dashboard/wallet'));
   });
@@ -71,8 +71,30 @@ describe('a bounced visitor still gets carried back', () => {
   it('refuses a remembered value that is not a same-origin path', async () => {
     // Storage is a convenience, not a trust boundary — `//evil.com` starts
     // with "/" and browsers treat it as external.
-    sessionStorage.setItem('__tec_return_to', '//evil.com');
+    sessionStorage.setItem('__tec_return_to', `//evil.com|${Date.now()}`);
     render(<HomePage />);
     await waitFor(() => expect(mockReplace).not.toHaveBeenCalled());
+  });
+});
+
+describe('back from an app: the page it was tapped from, then the Hub', () => {
+  // Reported from a phone: back from an app opened on the Quest landed on the
+  // Quest — and the NEXT back went to the campaign, or somewhere else each
+  // time. The landing page replaced itself with the Quest, so what sat behind
+  // it was whatever the SSO chain left in history.
+  it.each(['/pioneers', '/hub/campaign'])('goes to the Hub first and stages %s on top', async (dest) => {
+    sessionStorage.setItem('__tec_return_to', `${dest}|${Date.now()}`);
+    render(<HomePage />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/hub'));
+    expect(mockReplace).not.toHaveBeenCalledWith(dest);
+    expect(sessionStorage.getItem('__tec_return_onward')?.startsWith(`${dest}|`)).toBe(true);
+  });
+
+  it('ignores a destination left over from an old trip', async () => {
+    // A campaign tap nobody came back through, still sitting there an hour later.
+    sessionStorage.setItem('__tec_return_to', `/hub/campaign|${Date.now() - 60 * 60 * 1000}`);
+    render(<HomePage />);
+    await waitFor(() => expect(mockReplace).not.toHaveBeenCalled());
+    expect(sessionStorage.getItem('__tec_return_onward')).toBeNull();
   });
 });

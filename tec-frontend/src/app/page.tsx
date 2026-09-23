@@ -16,7 +16,7 @@ import type { AppCategory } from '@/domains/_categories';
 import { iconOf }            from '@/domains/_categories';
 import { Icon }              from '@/components/ui/Icon';
 import { usePiAuth }         from '@/lib-client/hooks/usePiAuth';
-import { takeReturn }        from '@/lib-client/return-to';
+import { takeReturn, returnsThroughHub, stageOnward } from '@/lib-client/return-to';
 import { SocialLinks }       from '@/components/social/SocialLinks';
 import styles                    from './page.module.css';
 
@@ -49,7 +49,15 @@ export default function HomePage() {
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
     const back = takeReturn();
-    if (back) router.replace(back);
+    if (!back) return;
+    // The Quest and the campaign go back THROUGH the Hub, so the press after
+    // this one lands on the Hub instead of wherever the SSO chain left history.
+    if (returnsThroughHub(back)) {
+      stageOnward(back);
+      router.replace('/hub');
+    } else {
+      router.replace(back);
+    }
   }, [isAuthenticated, isLoading, router]);
 
   const { t, dir }                        = useTranslation();

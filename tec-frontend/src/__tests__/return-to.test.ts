@@ -1,12 +1,17 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { rememberReturn, takeReturn } from '@/lib-client/return-to';
+import {
+  rememberReturn, takeReturn, clearReturn,
+  returnsThroughHub, stageOnward, takeOnward,
+} from '@/lib-client/return-to';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 // The bug: a guard bounced an unresolved session with `router.push('/')`, which
 // is right about the destination and wrong about everything else — the person
 // signs in again and lands on the marketing page instead of the screen they
 // were already on.
 
-beforeEach(() => sessionStorage.clear());
+beforeEach(() => { sessionStorage.clear(); vi.useRealTimers(); });
 
 describe('it brings you back to where you were', () => {
   it('remembers a path and returns it', () => {
@@ -87,5 +92,100 @@ describe('storage refusing does not break the app', () => {
     expect(() => rememberReturn('/dashboard')).not.toThrow();
     expect(takeReturn()).toBeNull();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('a destination belongs to ONE trip', () => {
+  it('expires — an old tap does not steer a later back press', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-23T10:00:00Z'));
+    rememberReturn('/hub/campaign');
+    vi.setSystemTime(new Date('2026-09-23T10:31:00Z'));
+    expect(takeReturn()).toBeNull();
+  });
+
+  it('is still good within the window', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-23T10:00:00Z'));
+    rememberReturn('/pioneers');
+    vi.setSystemTime(new Date('2026-09-23T10:20:00Z'));
+    expect(takeReturn()).toBe('/pioneers');
+  });
+
+  it('reads a value with no timestamp (an older build) as expired', () => {
+    sessionStorage.setItem('__tec_return_to', '/hub/campaign');
+    expect(takeReturn()).toBeNull();
+  });
+
+  it('clearReturn forgets it', () => {
+    rememberReturn('/hub/campaign');
+    clearReturn();
+    expect(takeReturn()).toBeNull();
+  });
+});
+
+describe('the Quest and the campaign come back THROUGH the Hub', () => {
+  it('knows which pages sit under the Hub', () => {
+    expect(returnsThroughHub('/pioneers')).toBe(true);
+    expect(returnsThroughHub('/hub/campaign')).toBe(true);
+    expect(returnsThroughHub('/dashboard/wallet')).toBe(false);
+    expect(returnsThroughHub('/hub')).toBe(false);
+  });
+
+  it('the onward hop is one-shot', () => {
+    stageOnward('/pioneers');
+    expect(takeOnward()).toBe('/pioneers');
+    expect(takeOnward()).toBeNull();
+  });
+
+  it('the onward hop is short-lived — only the very next Hub load may take it', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-09-23T10:00:00Z'));
+    stageOnward('/pioneers');
+    vi.setSystemTime(new Date('2026-09-23T10:02:00Z'));
+    expect(takeOnward()).toBeNull();
+  });
+
+  it('refuses to stage anything that is not a Hub child', () => {
+    stageOnward('https://evil.com');
+    stageOnward('/dashboard');
+    expect(takeOnward()).toBeNull();
+    sessionStorage.setItem('__tec_return_onward', `//evil.com|${Date.now()}`);
+    expect(takeOnward()).toBeNull();
+  });
+
+  it('the whole trip: Quest → app → back → Quest → back → Hub', () => {
+    // Tap on the Quest.
+    rememberReturn('/pioneers');
+    // Back from the app surfaces on the landing page, which does this:
+    const back = takeReturn();
+    expect(back).toBe('/pioneers');
+    stageOnward(back!);             // …and router.replace('/hub')
+    // The Hub loads, clears, and pushes the Quest on top of itself.
+    clearReturn();
+    expect(takeOnward()).toBe('/pioneers');
+    // Back from the Quest pops to the Hub, which loads again — and stays.
+    clearReturn();
+    expect(takeOnward()).toBeNull();
+    // A later visit to the landing page is not forwarded anywhere.
+    expect(takeReturn()).toBeNull();
+  });
+});
+
+describe('every Hub surface forgets a finished trip', () => {
+  const src = (p: string) => readFileSync(join(process.cwd(), 'src', p), 'utf8');
+
+  it.each([
+    'app/pioneers/PioneersClient.tsx',
+    'app/hub/campaign/page.tsx',
+    'app/hub/page.tsx',
+  ])('%s calls clearReturn', (file) => {
+    expect(src(file)).toMatch(/clearReturn\(\)/);
+  });
+
+  it('the Hub PUSHES the onward page — a replace would drop the Hub from history', () => {
+    const hub = src('app/hub/page.tsx');
+    expect(hub).toMatch(/takeOnward\(\)/);
+    expect(hub).toMatch(/router\.push\(onward\)/);
   });
 });

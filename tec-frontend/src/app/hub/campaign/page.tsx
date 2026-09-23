@@ -130,29 +130,6 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
 };
 
 /**
- * Record that this pioneer opened an app.
- *
- * The mission links here used not to record anything, so a pioneer could open
- * all eight apps and stay at zero, with no way ever to reach the claim form. A
- * campaign whose missions cannot be completed is worse than one that is closed:
- * it looks open.
- *
- * ── What it records, and what it deliberately does not ─────────────────────
- *
- * A campaign visit, and only that. The write used to land in the Founding
- * Quest's `opened_apps` as well — one endpoint served both pages — so a pioneer
- * who finished the missions here opened `/pioneers` to find its apps already
- * ticked: a permanent badge, and one of a hundred seats, granted for work that
- * page never saw them do. (An earlier version of this comment said the campaign
- * READS `opened_apps`. It has not for some time: it keeps its own timestamped
- * `CampaignVisit` rows, precisely so an old Founding visit cannot claim fresh
- * Pi. `origin: 'campaign'` is the same idea pointing the other way.)
- *
- * `keepalive` because these missions may leave the page, and a fetch in flight
- * when the tab navigates is cancelled — the exact way the Founding open was lost
- * before. Best-effort and silent: a failed record must never block the visit.
- */
-/**
  * Missions tapped on THIS page, kept locally so a lost POST can be re-sent.
  *
  * This became necessary the moment a campaign visit stopped being openable by
@@ -179,17 +156,16 @@ const rememberTapped = (slug: string) => {
   } catch { /* ignore */ }
 };
 
-const recordOpen = (slug: string) => {
-  rememberTapped(slug);
-  // Remember where they were BEFORE the mission takes them away.
-  //
-  // A mission leads to another tecosystem.app app, which may bounce through the
-  // Hub's SSO to resolve its own session. Coming back then walks into the middle
-  // of that chain and lands on the sign-in page — with the campaign, and the
-  // reason they were signing in at all, nowhere on screen. The Hub already knows
-  // how to forward a remembered destination after a bounce; this was the one
-  // place that never told it where the person had been standing.
-  try { rememberReturn('/hub/campaign'); } catch { /* ignore */ }
+/**
+ * The POST alone — no side effects on this browser.
+ *
+ * Split out so the lost-tap re-send below can use it. The re-send runs on
+ * page LOAD, while the pioneer is standing on this page and going nowhere; if
+ * it went through `recordOpen` it would also `rememberReturn('/hub/campaign')`,
+ * and the next time they tapped Home the Hub root would consume that and send
+ * them straight back here.
+ */
+const sendVisit = (slug: string) => {
   try {
     const csrf = document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/)?.[1] ?? '';
     void fetch('/api/bff/pioneer/open', {
@@ -207,6 +183,43 @@ const recordOpen = (slug: string) => {
       }),
     }).catch(() => {});
   } catch { /* ignore */ }
+};
+
+/**
+ * Record that this pioneer opened an app.
+ *
+ * The mission links here used not to record anything, so a pioneer could open
+ * all eight apps and stay at zero, with no way ever to reach the claim form. A
+ * campaign whose missions cannot be completed is worse than one that is closed:
+ * it looks open.
+ *
+ * ── What it records, and what it deliberately does not ─────────────────────
+ *
+ * A campaign visit, and only that. The write used to land in the Founding
+ * Quest's `opened_apps` as well — one endpoint served both pages — so a pioneer
+ * who finished the missions here opened `/pioneers` to find its apps already
+ * ticked: a permanent badge, and one of a hundred seats, granted for work that
+ * page never saw them do. (An earlier version of this comment said the campaign
+ * READS `opened_apps`. It has not for some time: it keeps its own timestamped
+ * `CampaignVisit` rows, precisely so an old Founding visit cannot claim fresh
+ * Pi. `origin: 'campaign'` is the same idea pointing the other way.)
+ *
+ * `keepalive` because these missions may leave the page, and a fetch in flight
+ * when the tab navigates is cancelled — the exact way the Founding open was lost
+ * before. Best-effort and silent: a failed record must never block the visit.
+ */
+const recordOpen = (slug: string) => {
+  rememberTapped(slug);
+  // Remember where they were BEFORE the mission takes them away.
+  //
+  // A mission leads to another tecosystem.app app, which may bounce through the
+  // Hub's SSO to resolve its own session. Coming back then walks into the middle
+  // of that chain and lands on the sign-in page — with the campaign, and the
+  // reason they were signing in at all, nowhere on screen. The Hub already knows
+  // how to forward a remembered destination after a bounce; this was the one
+  // place that never told it where the person had been standing.
+  try { rememberReturn('/hub/campaign'); } catch { /* ignore */ }
+  sendVisit(slug);
 };
 
 function Mission({ slug, done, needsAction, locale, href, onOpen, hintConnection, hintChat }: {
@@ -434,11 +447,14 @@ export default function CampaignPage() {
   const resent = useRef<Set<string>>(new Set());
   useEffect(() => {
     if (!me) return;
-    const done = new Set(me.done ?? []);
+    const done  = new Set(me.done ?? []);
+    // Only THIS round's missions. The tapped list outlives rounds, and an app
+    // from an earlier round is not something this campaign asked for.
+    const asked = new Set(me.apps ?? []);
     for (const slug of readTapped()) {
-      if (done.has(slug) || resent.current.has(slug)) continue;
+      if (!asked.has(slug) || done.has(slug) || resent.current.has(slug)) continue;
       resent.current.add(slug);
-      recordOpen(slug);
+      sendVisit(slug); // not recordOpen — see sendVisit for why
     }
   }, [me]);
 

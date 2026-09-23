@@ -279,3 +279,34 @@ describe('a lost mission tap is re-sent', () => {
     await waitFor(() => expect(opens().length).toBe(1));
   });
 });
+
+describe('the re-send does not hijack the way home', () => {
+  const opens = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/pioneer/open'));
+
+  beforeEach(() => {
+    try { localStorage.clear(); sessionStorage.clear(); } catch { /* ignore */ }
+  });
+
+  it('leaves the return destination alone — the pioneer is not leaving', async () => {
+    // A load-time re-send used to go through recordOpen, which remembers
+    // `/hub/campaign` as the place to come back to. The next tap on Home then
+    // bounced straight back here.
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone']));
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    expect(sessionStorage.getItem('__tec_return_to')).toBeNull();
+  });
+
+  it('re-sends only this round\'s missions', async () => {
+    // `explorer` was tapped in an earlier round; this round asks for
+    // connection + zone. Re-sending it would open a visit nobody asked for.
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['explorer']));
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(opens()).toHaveLength(0);
+  });
+});

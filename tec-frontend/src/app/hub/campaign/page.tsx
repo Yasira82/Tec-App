@@ -152,7 +152,35 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
  * when the tab navigates is cancelled — the exact way the Founding open was lost
  * before. Best-effort and silent: a failed record must never block the visit.
  */
+/**
+ * Missions tapped on THIS page, kept locally so a lost POST can be re-sent.
+ *
+ * This became necessary the moment a campaign visit stopped being openable by
+ * anything but a tap here. Before that, the app's own arrival report created
+ * the row, so a `keepalive` POST that died in flight was quietly rescued. Now
+ * nothing rescues it, and a mission that never registers is the failure this
+ * page exists to avoid — "worse than closed: it looks open".
+ *
+ * The `/pioneers` page has carried the same re-send for the same reason.
+ */
+const TAPPED_KEY = 'tec_campaign_tapped';
+
+const readTapped = (): string[] => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(TAPPED_KEY) ?? '[]');
+    return Array.isArray(raw) ? raw.filter((s): s is string => typeof s === 'string') : [];
+  } catch { return []; /* blocked or corrupt — the tap simply has no backup */ }
+};
+
+const rememberTapped = (slug: string) => {
+  try {
+    const next = readTapped();
+    if (!next.includes(slug)) localStorage.setItem(TAPPED_KEY, JSON.stringify([...next, slug]));
+  } catch { /* ignore */ }
+};
+
 const recordOpen = (slug: string) => {
+  rememberTapped(slug);
   // Remember where they were BEFORE the mission takes them away.
   //
   // A mission leads to another tecosystem.app app, which may bounce through the
@@ -388,6 +416,31 @@ export default function CampaignPage() {
   }, [isAuthenticated]);
 
   useEffect(() => { if (!authLoading) void load(); }, [authLoading, load]);
+
+  /**
+   * Re-send a mission tap the server never received.
+   *
+   * These links leave the page, and a fetch in flight when the browser
+   * navigates is cancelled. `keepalive` covers most of it; nothing covers all
+   * of it, and since a campaign visit can no longer be opened by the app's own
+   * arrival report, a lost tap now means a mission that never ticks and a
+   * pioneer who can never reach the claim form.
+   *
+   * The set difference IS the work list, and the writes are idempotent — the
+   * service upserts one row per (owner, app). Bounded to one retry per app per
+   * session so an app that stays untickable for another reason (`connection`
+   * also needs a message sent) cannot turn this into a loop.
+   */
+  const resent = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!me) return;
+    const done = new Set(me.done ?? []);
+    for (const slug of readTapped()) {
+      if (done.has(slug) || resent.current.has(slug)) continue;
+      resent.current.add(slug);
+      recordOpen(slug);
+    }
+  }, [me]);
 
 
   /**

@@ -230,3 +230,52 @@ describe('a mission tap is a campaign visit and nothing else', () => {
     expect(body).toMatchObject({ app: 'zone', origin: 'campaign' });
   });
 });
+
+/**
+ * A tap the server never received.
+ *
+ * These mission links leave the page, and a fetch in flight when the browser
+ * navigates is cancelled. `keepalive` covers most of that; nothing covers all
+ * of it — and a campaign visit can no longer be opened by the app's own arrival
+ * report, because that report fires on any page load from any entry and would
+ * hand a mission to anyone who merely loaded the app. So the rescue has to
+ * happen here.
+ */
+describe('a lost mission tap is re-sent', () => {
+  const opens = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/pioneer/open'));
+
+  beforeEach(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+
+  it('re-sends a mission this page tapped that the server does not show as done', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone']));
+    // `ME_BODY` marks `zone` done, which is the opposite of the case under
+    // test — so the server here reports nothing done at all.
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    expect(JSON.parse(String((opens()[0][1] as RequestInit).body)))
+      .toMatchObject({ app: 'zone', origin: 'campaign' });
+  });
+
+  it('does NOT re-send one the server already counted', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone']));
+    vi.stubGlobal('fetch', answer());           // ME_BODY: zone is done
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(opens()).toHaveLength(0);
+  });
+
+  it('re-sends at most once, however many times the page re-renders', async () => {
+    // `connection` needs a message sent as well as a visit, so it can sit in
+    // `missing` after a perfectly good tap. Without the guard this becomes a
+    // POST on every render.
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['connection']));
+    vi.stubGlobal('fetch', answer({ ...ME_BODY, done: [], missing: ['connection', 'zone'] }));
+    const { rerender } = render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    rerender(<CampaignPage />);
+    rerender(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+  });
+});

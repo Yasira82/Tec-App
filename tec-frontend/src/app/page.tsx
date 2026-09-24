@@ -189,10 +189,11 @@ export default function HomePage() {
       <section id="payment" className={styles.paymentSection}>
         <div className={styles.paymentCard}>
           <div className={styles.paymentCardInner}>
-            {/* Signed in already: this page is still reachable on purpose (see
-                the return effect above), but it must not ASK for a sign-in —
-                reached by back from the Quest it read as "you were signed out".
-                Seen on a phone, 2026-09-24. */}
+            {/* Always "Sign in with Pi" — the owner's call, 2026-09-24. What
+                differs for someone ALREADY signed in is what the tap does: it
+                opens the Hub at once instead of asking Pi again, which is the
+                slow half and the one that can stall (C-123 §9). This page stays
+                reachable to a signed-in visitor on purpose (see the effect above). */}
             {isAuthenticated ? (
               <Link
                 href="/hub"
@@ -201,7 +202,7 @@ export default function HomePage() {
                   fontSize: 11, letterSpacing: '0.25em', textTransform: 'uppercase',
                   padding: '4px 8px', textDecoration: 'none',
                 }}>
-                Open the Hub →
+                Sign in with Pi
               </Link>
             ) : (
               <PiPaymentButton />

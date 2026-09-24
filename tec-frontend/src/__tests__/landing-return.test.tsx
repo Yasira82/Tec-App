@@ -99,20 +99,21 @@ describe('back from an app: the page it was tapped from, then the Hub', () => {
   });
 });
 
-describe('a signed-in visitor is not asked to sign in', () => {
-  // Reached by back from the Quest, this page offered "Sign in with Pi" to a
-  // person who was signed in — it read as "you were logged out". Seen on a
-  // phone, 2026-09-24. The page stays reachable; it just says the true thing.
-  it('offers the Hub instead of the sign-in button', () => {
+describe('the sign-in label is always "Sign in with Pi"', () => {
+  // The owner's call (2026-09-24): the label never changes. For someone already
+  // signed in, the tap opens the Hub at once instead of asking Pi again.
+  it('signed in: same label, and it goes straight to the Hub', () => {
     render(<HomePage />);
-    expect(screen.getByText('Open the Hub →').closest('a')?.getAttribute('href')).toBe('/hub');
+    // The nav bar has its own "Sign in with Pi" (#payment); this is the button.
+    const hrefs = screen.getAllByText('Sign in with Pi').map((el) => el.closest('a')?.getAttribute('href'));
+    expect(hrefs).toContain('/hub');
     expect(screen.queryByText('SIGN-IN-BUTTON')).toBeNull();
+    expect(screen.queryByText(/Open the Hub/)).toBeNull();
   });
 
-  it('still shows the sign-in button to a visitor who is not signed in', () => {
+  it('not signed in: the real sign-in button', () => {
     mockUsePiAuth.mockReturnValue({ isAuthenticated: false, isLoading: false });
     render(<HomePage />);
     expect(screen.getByText('SIGN-IN-BUTTON')).toBeInTheDocument();
-    expect(screen.queryByText('Open the Hub →')).toBeNull();
   });
 });

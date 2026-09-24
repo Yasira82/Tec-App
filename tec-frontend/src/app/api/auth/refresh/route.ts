@@ -90,6 +90,19 @@ export async function POST(req: NextRequest) {
       maxAge:   60 * 60 * 24,
     });
 
+    // tec_user was set with the token's 24h life at sign-in, and renewing the
+    // token alone left a live token with no user a day later: /api/auth/me →
+    // 401 no_user → "Not signed in" while the wallet still worked (C-13 §1).
+    // Copied from the request, never invented — no cookie in, no cookie out.
+    const user = req.cookies.get('tec_user')?.value;
+    if (user) {
+      res.cookies.set('tec_user', user, {
+        ...cookieOpts,
+        httpOnly: false,
+        maxAge:   60 * 60 * 24,
+      });
+    }
+
     if (newRefreshToken) {
       res.cookies.set('tec_refresh_token', newRefreshToken, {
         ...cookieOpts,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify }        from 'jose';
-import { ALLOWED_APP_ORIGINS as ALLOWED_TARGETS } from '@/domains/allowed-origins';
+import { ALLOWED_APP_ORIGINS as ALLOWED_TARGETS, isAllowedAppUrl } from '@/domains/allowed-origins';
 
 /**
  * How long the handoff waits on its own refresh hop.
@@ -18,7 +18,25 @@ export async function GET(req: NextRequest) {
   const userCookie  = req.cookies.get('tec_user')?.value;
 
   if (!accessToken || !userCookie) {
-    return NextResponse.redirect(new URL('/', req.url));
+    // No Hub session in THIS context — sign in first, then continue to the app.
+    //
+    // This used to send the visitor to `/` bare. The sign-in button already
+    // knows how to finish a trip (`returnTo` → back through this route), but
+    // it was never told where the trip was going: a pioneer tapped an app,
+    // signed in again, and landed on the Hub instead of the app. Seen in the
+    // Vercel log on 2026-09-24 — sso 307 → me 401 → pi-login → /hub.
+    //
+    // Why the session can be missing 40 seconds after a sign-in: Pi Browser
+    // opens apps in different contexts, each with its own cookie jar
+    // (C-123 §7). The app's context has never seen the Hub's cookies.
+    //
+    // Carried only when it is an allowed app ORIGIN — matched on the origin,
+    // never a prefix — and re-validated when the button sends it back here,
+    // so this can never become a redirect to anywhere.
+    const home   = new URL('/', req.url);
+    const target = req.nextUrl.searchParams.get('target');
+    if (target && isAllowedAppUrl(target)) home.searchParams.set('returnTo', target);
+    return NextResponse.redirect(home);
   }
 
   const target = req.nextUrl.searchParams.get('target');

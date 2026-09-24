@@ -38,6 +38,7 @@ vi.mock('@/lib-client/pi/pi-payment', () => ({
 }));
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({
+  isPiSilent: vi.fn(() => false),
   getAccessToken: vi.fn(() => 'tok'),
   getStoredUser:  vi.fn(() => ({ id: 'u-1' })),
   isPiBrowser:    vi.fn(() => true),

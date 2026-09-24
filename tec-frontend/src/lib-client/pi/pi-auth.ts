@@ -28,11 +28,21 @@ const ERRORS = {
     'Pi SDK failed to load. Please check your internet connection and try again.',
   SDK_INIT_FAILED:
     'Pi SDK initialization failed. Please try again.',
+  // Not "check your internet". This fires when `Pi.authenticate` never
+  // answers — the bridge stays silent, it does not fail (C-02, C-76), and the
+  // server is never reached. Every request before and after it went through,
+  // so pointing at the connection sent people hunting the one thing that was
+  // working. The cure is a fresh page, which is what closing and reopening
+  // was doing by hand.
   AUTH_TIMEOUT:
-    'Authentication timed out. Please check your internet connection and try again.',
+    'Pi did not respond. Tap "Try again" to reload the page.',
   SAVE_FAILED:
     'Failed to save authentication data. Please ensure private browsing mode is disabled.',
 };
+
+/** True when a sign-in failed because Pi never answered — not a network error. */
+export const isPiSilent = (err: unknown): boolean =>
+  err instanceof Error && err.message === ERRORS.AUTH_TIMEOUT;
 
 export const isPiBrowser = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -347,14 +357,29 @@ const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> 
 };
 
 // ── Login with Pi ─────────────────────────────────────────
-export const loginWithPi = async (): Promise<TecAuthResponse> => {
+/**
+ * Which half of a sign-in is running — so the screen can say where it is.
+ *
+ *   'pi'     — waiting on `Pi.authenticate`. The half that hangs: when Pi
+ *              Browser's app context belongs to another app (a Quest visit
+ *              runs each app's own `Pi.init`), the bridge simply never replies.
+ *   'server' — Pi answered; our own `/api/auth/pi-login` is creating the
+ *              session. Seen in the logs at under a second.
+ */
+export type LoginStage = 'pi' | 'server';
+
+export const loginWithPi = async (
+  opts: { onStage?: (stage: LoginStage) => void } = {},
+): Promise<TecAuthResponse> => {
   if (!isPiBrowser()) {
     throw new Error(ERRORS.NOT_PI_BROWSER);
   }
 
   _pendingPaymentId = null;
 
+  opts.onStage?.('pi');
   const piAuth = await authenticateWithTimeout();
+  opts.onStage?.('server');
 
   const res = await fetch('/api/auth/pi-login', {
     method:      'POST',

@@ -73,6 +73,7 @@ vi.mock('@/lib-client/pi/pi-auth', () => ({
   getCsrfToken:   vi.fn(() => 'csrf-tok'),
   ssoRedirect:    vi.fn(),
   loginWithPi:    mockLoginWithPi,
+  isPiSilent:     vi.fn(() => false),
   isPiBrowser:    vi.fn(() => true),
   logout:         vi.fn().mockResolvedValue(undefined),
 }));

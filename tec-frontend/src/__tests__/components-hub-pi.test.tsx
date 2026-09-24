@@ -57,6 +57,7 @@ vi.mock('next/image', () => ({
 }));
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({
+  isPiSilent: vi.fn(() => false),
   getStoredUser: vi.fn(() => ({
     id: 'u-1',
     username: 'testuser',

@@ -9,6 +9,7 @@ import { render, act } from '@/test-utils/render-with-locale';
 const mockUsePiAuthFn = vi.hoisted(() => vi.fn());
 
 vi.mock('@/lib-client/pi/pi-auth', () => ({
+  isPiSilent: vi.fn(() => false),
   isPiBrowser:    vi.fn(() => false),
   loginWithPi:    vi.fn().mockResolvedValue({ uid: 'u1', username: 'alice' }),
   getStoredUser:  vi.fn(() => ({ id: 'u1', piUsername: 'alice' })),

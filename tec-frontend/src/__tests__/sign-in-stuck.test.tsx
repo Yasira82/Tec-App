@@ -26,6 +26,7 @@ const reload = vi.fn();
 
 beforeEach(() => {
   vi.useFakeTimers();
+  sessionStorage.clear();
   reload.mockReset();
   mockLoginWithPi.mockReset();
   Object.defineProperty(window, '__TEC_PI_READY', { value: true, writable: true, configurable: true });
@@ -85,6 +86,33 @@ describe('a silent Pi gets a way out, early', () => {
     await tap();
     expect(screen.getByText(SILENT)).toBeInTheDocument();
     expect(screen.queryByText(/internet/i)).toBeNull();
+    expect(screen.getByText('Try again')).toBeInTheDocument();
+  });
+});
+
+describe('a reload is not assumed to be enough (C-76: Pi kept ownership across one)', () => {
+  it('remembers that "Try again" was used', async () => {
+    mockLoginWithPi.mockImplementation(({ onStage }) => { onStage('pi'); return new Promise(() => {}); });
+    await tap();
+    await act(async () => { vi.advanceTimersByTime(PI_SILENT_OFFER_MS); });
+    fireEvent.click(screen.getByText('Try again'));
+    expect(sessionStorage.getItem('tec_pi_signin_retried')).toMatch(/^\d+$/);
+  });
+
+  it('if Pi is silent again after it, names the step that works instead of the same button', async () => {
+    sessionStorage.setItem('tec_pi_signin_retried', String(Date.now()));
+    mockLoginWithPi.mockImplementation(({ onStage }) => { onStage('pi'); return new Promise(() => {}); });
+    await tap();
+    await act(async () => { vi.advanceTimersByTime(PI_SILENT_OFFER_MS); });
+    expect(screen.getByText(/Close Pi Browser completely/)).toBeInTheDocument();
+    expect(screen.queryByText('Try again')).toBeNull();
+  });
+
+  it('forgets an old retry, so a later visit gets the quick button again', async () => {
+    sessionStorage.setItem('tec_pi_signin_retried', String(Date.now() - 10 * 60_000));
+    mockLoginWithPi.mockImplementation(({ onStage }) => { onStage('pi'); return new Promise(() => {}); });
+    await tap();
+    await act(async () => { vi.advanceTimersByTime(PI_SILENT_OFFER_MS); });
     expect(screen.getByText('Try again')).toBeInTheDocument();
   });
 });

@@ -189,7 +189,23 @@ export default function HomePage() {
       <section id="payment" className={styles.paymentSection}>
         <div className={styles.paymentCard}>
           <div className={styles.paymentCardInner}>
-            <PiPaymentButton />
+            {/* Signed in already: this page is still reachable on purpose (see
+                the return effect above), but it must not ASK for a sign-in —
+                reached by back from the Quest it read as "you were signed out".
+                Seen on a phone, 2026-09-24. */}
+            {isAuthenticated ? (
+              <Link
+                href="/hub"
+                style={{
+                  display: 'block', textAlign: 'center', color: 'var(--tec-gold)',
+                  fontSize: 11, letterSpacing: '0.25em', textTransform: 'uppercase',
+                  padding: '4px 8px', textDecoration: 'none',
+                }}>
+                Open the Hub →
+              </Link>
+            ) : (
+              <PiPaymentButton />
+            )}
             <p style={{ fontSize: 11, color: '#4a4a5a', marginTop: 12, textAlign: 'center' }}>
               🌐 Best experience in Pi Browser
             </p>

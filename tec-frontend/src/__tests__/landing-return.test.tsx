@@ -14,7 +14,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 // The REAL LocaleProvider, not a mocked dictionary — a mocked one would let a
 // missing key pass, and this page is rendered in full here.
-import { render, waitFor } from '@/test-utils/render-with-locale';
+import { render, waitFor, screen } from '@/test-utils/render-with-locale';
 
 // `vi.hoisted` because vi.mock factories are lifted above every other
 // statement in the file — a plain `const` above them is not yet initialised
@@ -30,7 +30,7 @@ vi.mock('next/navigation', () => ({
 vi.mock('@/lib-client/hooks/usePiAuth', () => ({ usePiAuth: mockUsePiAuth }));
 
 vi.mock('@/components/LanguageSwitcher', () => ({ default: () => null }));
-vi.mock('@/components/payment/PiPaymentButton', () => ({ default: () => null }));
+vi.mock('@/components/payment/PiPaymentButton', () => ({ default: () => <span>SIGN-IN-BUTTON</span> }));
 
 import HomePage from '@/app/page';
 
@@ -96,5 +96,23 @@ describe('back from an app: the page it was tapped from, then the Hub', () => {
     render(<HomePage />);
     await waitFor(() => expect(mockReplace).not.toHaveBeenCalled());
     expect(sessionStorage.getItem('__tec_return_onward')).toBeNull();
+  });
+});
+
+describe('a signed-in visitor is not asked to sign in', () => {
+  // Reached by back from the Quest, this page offered "Sign in with Pi" to a
+  // person who was signed in — it read as "you were logged out". Seen on a
+  // phone, 2026-09-24. The page stays reachable; it just says the true thing.
+  it('offers the Hub instead of the sign-in button', () => {
+    render(<HomePage />);
+    expect(screen.getByText('Open the Hub →').closest('a')?.getAttribute('href')).toBe('/hub');
+    expect(screen.queryByText('SIGN-IN-BUTTON')).toBeNull();
+  });
+
+  it('still shows the sign-in button to a visitor who is not signed in', () => {
+    mockUsePiAuth.mockReturnValue({ isAuthenticated: false, isLoading: false });
+    render(<HomePage />);
+    expect(screen.getByText('SIGN-IN-BUTTON')).toBeInTheDocument();
+    expect(screen.queryByText('Open the Hub →')).toBeNull();
   });
 });

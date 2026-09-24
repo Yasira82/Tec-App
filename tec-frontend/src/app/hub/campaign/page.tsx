@@ -8,6 +8,7 @@ import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
 import { getSource }   from '@/lib-client/campaign';
 import { rememberReturn, clearReturn } from '@/lib-client/return-to';
+import { useBackGoesToHub } from '@/lib-client/back-to-hub';
 import { useTranslation, fill } from '@/lib/i18n';
 
 /**
@@ -325,6 +326,10 @@ export default function CampaignPage() {
   // Back on the campaign: whatever an earlier tap remembered is from a trip
   // that is over (see clearReturn). The Quest does the same.
   useEffect(() => { clearReturn(); }, []);
+
+  // Same trap as the Quest: an app's "Back to the campaign" bar leaves the app
+  // behind this page. Back from here goes to the Hub (lib-client/back-to-hub.ts).
+  useBackGoesToHub('/hub/campaign');
 
   const [status,  setStatus]  = useState<Status | null>(null);
   const [me,      setMe]      = useState<Me | null>(null);

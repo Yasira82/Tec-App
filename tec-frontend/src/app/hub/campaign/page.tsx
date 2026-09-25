@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
+import { useHandoffLinks } from '@/lib-client/handoff-links';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
 import { getDomain }   from '@/domains/_registry';
@@ -607,6 +608,11 @@ export default function CampaignPage() {
     return me?.connection_invite_url || status?.connection_invite_url || linkFor(slug);
   };
 
+  // Each mission link, signed for the visitor while they are still HERE
+  // (C-123 §12): the app opens standalone on its own domain, already signed in.
+  const missionHrefs = (me?.apps ?? status?.apps ?? []).map((slug) => withReturnMark(hrefFor(slug)));
+  const signed = useHandoffLinks(missionHrefs, isAuthenticated);
+
   return (
     <HubSubShell
       title={c.title}
@@ -978,8 +984,8 @@ export default function CampaignPage() {
                   done={me?.done.includes(slug) ?? false}
                   needsAction={me?.action_apps.includes(slug) ?? false}
                   locale={locale}
-                  href={withReturnMark(hrefFor(slug))}
-                  onOpen={recordOpen}
+                  href={signed(withReturnMark(hrefFor(slug)))}
+                  onOpen={(s) => { recordOpen(s); signed.spent(withReturnMark(hrefFor(s))); }}
                   hintConnection={c.missionConnection}
                   hintChat={c.missionChat}
                 />

@@ -73,7 +73,11 @@ export function useExternalPayment({ isLoading, piReady, user, onError }: Args) 
     setPending({
       amount,
       memo:         decodeURIComponent(p.get('memo') ?? 'TEC Payment'),
-      productId:    p.get('product_id') ?? '',
+      // `product_id` is the documented name; `item` is what tec-template-base — and the
+      // 17 apps cloned from it — send. Reading only `product_id` recorded those payments
+      // with no product, so commerce could not tell a Pro purchase from anything else and
+      // activated nothing. `||`, not `??`: an empty `product_id=` must not hide `item`.
+      productId:    p.get('product_id') || p.get('item') || '',
       nexusRunId:   p.get('nexus_run')  ?? '',
       nexusStepIdx: p.get('nexus_step') ?? '',
       // Where to send the user after Cancel or success. Two rules:

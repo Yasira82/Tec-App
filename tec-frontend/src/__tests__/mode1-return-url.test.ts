@@ -24,8 +24,9 @@ describe('the Mode-1 return allowlist', () => {
   });
 
   it('refuses a look-alike that merely STARTS with an allowed origin', () => {
-    // The SSO route matches with startsWith on the whole URL. Doing that here
-    // would accept this, which is the classic way an allowlist fails open.
+    // A prefix match on the whole URL would accept this — the classic way an
+    // allowlist fails open. The SSO route used one until 2026-09-26; it now
+    // matches the origin exactly, through this function.
     expect(isAllowedAppUrl('https://hub.tecosystem.app.evil.example/x')).toBe(false);
     expect(isAllowedAppUrl('https://tec-system.vercel.app.evil.example')).toBe(false);
   });

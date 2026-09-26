@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SignJWT, jwtVerify }        from 'jose';
-import { ALLOWED_APP_ORIGINS as ALLOWED_TARGETS, isAllowedAppUrl } from '@/domains/allowed-origins';
+import { isAllowedAppUrl } from '@/domains/allowed-origins';
 
 /**
  * How long the handoff waits on its own refresh hop.
@@ -41,7 +41,12 @@ export async function GET(req: NextRequest) {
 
   const target = req.nextUrl.searchParams.get('target');
 
-  const targetBase = ALLOWED_TARGETS.find(t => target?.startsWith(t));
+  // Matched on the ORIGIN, exactly — the same test the no-session branch above
+  // and /api/auth/sso-links use. A prefix test (`target.startsWith(t)`) accepted
+  // `https://hub.tecosystem.app.evil.com/…`: harmless only because the callback
+  // is built from the matched entry, not the target — an allowlist should not
+  // depend on that to hold.
+  const targetBase = target && isAllowedAppUrl(target) ? new URL(target).origin : undefined;
   if (!target || !targetBase) {
     // Say WHAT was rejected. The bare `{"error":"invalid_target"}` sent the
     // next person hunting: an app whose real Vercel hostname carries a suffix

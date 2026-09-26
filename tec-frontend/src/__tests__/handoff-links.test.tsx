@@ -39,14 +39,18 @@ describe('useHandoffLinks', () => {
     expect(result.current(A)).toBe(A);
   });
 
-  it('a tapped link is spent: it is dropped and a fresh set is fetched', async () => {
+  it('THE TAP USES THE SIGNED LINK: spending it does not swap the href back during the tap', async () => {
+    // The browser reads the href after the click handlers run, and React has
+    // applied the click's state update by then. Dropping the link in the
+    // handler sent every tap to the plain app link (phone, 2026-09-26).
     let n = 0;
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ links: { [A]: `https://dx.tecosystem.app/api/auth/sso-callback?token=t${++n}` } })));
     vi.stubGlobal('fetch', fetchMock);
     const { result } = renderHook(() => useHandoffLinks([A], true));
     await waitFor(() => expect(result.current(A)).toContain('token=t1'));
     act(() => result.current.spent(A));
-    expect(result.current(A)).toBe(A);
+    expect(result.current(A)).toContain('token=t1');
+    // …and a fresh one replaces it a moment later.
     await waitFor(() => expect(result.current(A)).toContain('token=t2'), { timeout: 3000 });
   });
 });

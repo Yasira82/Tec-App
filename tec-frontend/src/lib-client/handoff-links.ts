@@ -23,7 +23,7 @@ const csrf = (): string => {
 export interface HandoffLinks {
   /** The signed link for `href`, or `href` itself when there is none. */
   (href: string): string;
-  /** A link was tapped: its token is spent — drop it and fetch a fresh set. */
+  /** A link was tapped: its token is spent — fetch a fresh set, AFTER the tap. */
   spent: (href: string) => void;
 }
 
@@ -72,8 +72,15 @@ export function useHandoffLinks(hrefs: readonly string[], enabled: boolean): Han
   }, [enabled, load]);
 
   const resolve = useCallback((href: string) => links[href] ?? href, [links]) as HandoffLinks;
-  resolve.spent = (href: string) => {
-    setLinks((prev) => { const rest = { ...prev }; delete rest[href]; return rest; });
+  // NOT a state change inside the tap. The browser reads the link's href AFTER
+  // the click handlers have run — and React applies a state update from a
+  // click before that. Dropping the spent link here swapped the href back to
+  // the plain app link in the very tap that was meant to use it: on a phone
+  // (2026-09-26) sso-links answered 200 every time and not one app received
+  // an sso-callback. The fresh set simply replaces it a moment later; until
+  // then a second tap reuses the spent token, which the app now treats as a
+  // visit without one (sso-callback carries on, C-123 §12).
+  resolve.spent = (_href: string) => {
     setTimeout(() => void load(), 1_000);
   };
   return resolve;

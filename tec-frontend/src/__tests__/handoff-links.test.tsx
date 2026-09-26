@@ -53,4 +53,26 @@ describe('useHandoffLinks', () => {
     // …and a fresh one replaces it a moment later.
     await waitFor(() => expect(result.current(A)).toContain('token=t2'), { timeout: 3000 });
   });
+
+  it('BACK ON THE PAGE, a spent link is dropped at once — a quick tap never reuses a used token', async () => {
+    // Pi Browser restores the page with the old hrefs; a tap before the fresh
+    // set arrived reused the spent token → replay_detected (phone, 2026-09-26).
+    let n = 0;
+    let release: () => void = () => {};
+    const fetchMock = vi.fn(async () => {
+      n += 1;
+      if (n === 1) return new Response(JSON.stringify({ links: { [A]: 'https://dx.tecosystem.app/api/auth/sso-callback?token=t1' } }));
+      await new Promise<void>((r) => { release = r; }); // the refetch is slow
+      return new Response(JSON.stringify({ links: { [A]: 'https://dx.tecosystem.app/api/auth/sso-callback?token=t2' } }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useHandoffLinks([A], true));
+    await waitFor(() => expect(result.current(A)).toContain('token=t1'));
+    act(() => result.current.spent(A));
+    expect(result.current(A)).toContain('token=t1');             // the tap itself used it
+    act(() => { window.dispatchEvent(new Event('pageshow')); }); // back on the page
+    expect(result.current(A)).toBe(A);                            // plain until fresh
+    act(() => release());
+    await waitFor(() => expect(result.current(A)).toContain('token=t2'));
+  });
 });

@@ -31,6 +31,9 @@ export function useHandoffLinks(hrefs: readonly string[], enabled: boolean): Han
   const [links, setLinks] = useState<Record<string, string>>({});
   const key = hrefs.join('\n');
   const inFlight = useRef(false);
+  // Links whose token a tap has used. Kept OUT of state on purpose (see spent)
+  // and dropped the moment the visitor is back on this page.
+  const spentRef = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     if (!enabled || !key || inFlight.current) return;
@@ -45,6 +48,7 @@ export function useHandoffLinks(hrefs: readonly string[], enabled: boolean): Han
       });
       const data = res.ok ? await res.json().catch(() => null) as { links?: unknown } | null : null;
       const next = data?.links && typeof data.links === 'object' ? data.links as Record<string, unknown> : {};
+      spentRef.current.clear();
       setLinks(Object.fromEntries(
         Object.entries(next).filter((e): e is [string, string] => typeof e[1] === 'string'),
       ));
@@ -61,7 +65,19 @@ export function useHandoffLinks(hrefs: readonly string[], enabled: boolean): Han
     const timer = setInterval(() => void load(), REFRESH_MS);
     // Back from an app (Pi Browser has one history stack): the token that was
     // tapped is spent, and the others may be near the end of their 5 minutes.
-    const again = () => { if (document.visibilityState === 'visible') void load(); };
+    // On the way back the page can be restored as it was — spent tokens still in
+    // the hrefs — and a quick tap reused one: `replay_detected` on Commerce,
+    // Assets and Ecommerce (phone, 2026-09-26). Drop them FIRST, so a tap before
+    // the fresh set arrives takes the plain link, never a used token.
+    const again = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (spentRef.current.size) {
+        const used = new Set(spentRef.current);
+        spentRef.current.clear();
+        setLinks((prev) => Object.fromEntries(Object.entries(prev).filter(([k]) => !used.has(k))));
+      }
+      void load();
+    };
     document.addEventListener('visibilitychange', again);
     window.addEventListener('pageshow', again);
     return () => {
@@ -80,7 +96,8 @@ export function useHandoffLinks(hrefs: readonly string[], enabled: boolean): Han
   // an sso-callback. The fresh set simply replaces it a moment later; until
   // then a second tap reuses the spent token, which the app now treats as a
   // visit without one (sso-callback carries on, C-123 §12).
-  resolve.spent = (_href: string) => {
+  resolve.spent = (href: string) => {
+    spentRef.current.add(href);
     setTimeout(() => void load(), 1_000);
   };
   return resolve;

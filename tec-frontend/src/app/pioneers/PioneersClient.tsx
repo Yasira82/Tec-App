@@ -10,7 +10,7 @@
 // (localStorage) as an offline hint — no fabricated global counters. Completing the quest
 // is the path to the Founding Pioneer badge (first 100 — a real limit, granted later via
 // the reputation layer). Inline styles only (Pi Browser safe — no CSS modules/Tailwind).
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -19,6 +19,7 @@ import { usePiAuth } from '@/lib-client/hooks/usePiAuth';
 import { getSource } from '@/lib-client/campaign';
 import { rememberReturn, clearReturn } from '@/lib-client/return-to';
 import { useBackGoesToHub } from '@/lib-client/back-to-hub';
+import { useHandoffLinks } from '@/lib-client/handoff-links';
 
 // TEC EVL tokens (C-83) — inlined so the page is self-contained in Pi Browser.
 const C = {
@@ -299,6 +300,14 @@ export default function PioneersClient() {
   // open to everyone.
   const { isAuthenticated, isLoading: authLoading, user } = usePiAuth();
   const eligible = isAuthenticated;
+
+  // Each app link, signed for the visitor while they are still HERE (C-123 §12):
+  // the app opens on its own domain, standalone as before, but already signed in.
+  const appHrefs = useMemo(() => LIVE_DOMAINS
+    .map((d) => linkFor(d.slug, d.route))
+    .filter(isExternal)
+    .map(withQuestMark), []);
+  const signed = useHandoffLinks(appHrefs, eligible);
 
   // Admin-only live counter: the public honest counter (joined / completed / founding
   // claimed) is shown ONLY to a configured owner, so cold campaign visitors never see
@@ -799,11 +808,11 @@ export default function PioneersClient() {
                 <a
                   key={d.slug}
                   data-app={d.slug}
-                  href={href}
+                  href={ext ? signed(href) : href}
                   {...linkPropsFor(d.slug, ext)}
                   // The tick now lands while the page is still on screen. With a
                   // same-tab jump this POST raced the navigation away from it.
-                  onClick={() => markVisited(d.slug)}
+                  onClick={() => { markVisited(d.slug); if (ext) signed.spent(href); }}
                   style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', borderColor: isDone ? `${C.green}55` : `${C.gold}22` }}
                 >
                   <span style={{ fontSize: 24, lineHeight: 1, flex: '0 0 auto' }}>{d.emoji}</span>

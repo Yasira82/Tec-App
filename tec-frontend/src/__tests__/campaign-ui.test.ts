@@ -617,7 +617,7 @@ describe('a mission actually records the visit', () => {
     // worse than a closed one: it looks open.
     expect(page).toContain("fetch('/api/bff/pioneer/open'");
     expect(page).toMatch(/onClick=\{\(\) => onOpen\(slug\)\}/);
-    expect(page).toMatch(/onOpen=\{recordOpen\}/);
+    expect(page).toMatch(/onOpen=\{\(s\) => \{ recordOpen\(s\);/);
   });
 
   it('uses keepalive, because the mission navigates away', () => {
@@ -659,7 +659,7 @@ describe('the Connection mission points at the TEC group', () => {
     // `hrefFor` still decides WHERE every mission goes. It is now wrapped by
     // `withReturnMark`, which annotates our own domains and leaves this invite
     // — a Pi chat URL we do not own — exactly as it is.
-    expect(page).toMatch(/href=\{withReturnMark\(hrefFor\(slug\)\)\}/);
+    expect(page).toMatch(/href=\{signed\(withReturnMark\(hrefFor\(slug\)\)\)\}/);
   });
 
   it('falls back to the app when no invite is configured', () => {
@@ -772,7 +772,7 @@ describe('a mission sends the pioneer somewhere they can come back from', () => 
     // `rememberReturn` already handled the SSO-BOUNCE half. This is the other
     // half: standing inside the app, wanting to get back, with nothing on
     // screen that offers it.
-    expect(page).toMatch(/href=\{withReturnMark\(hrefFor\(slug\)\)\}/);
+    expect(page).toMatch(/href=\{signed\(withReturnMark\(hrefFor\(slug\)\)\)\}/);
     expect(page).toMatch(/u\.searchParams\.set\('q', CAMPAIGN_RETURN_MARK\)/);
   });
 

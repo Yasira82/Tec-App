@@ -97,7 +97,7 @@ describe('the tick still fires', () => {
   it('records the open on the tap', () => {
     // With a same-tab jump this POST raced the navigation away from the page.
     // The new tab removes the race rather than relying on `keepalive`.
-    expect(code).toMatch(/onClick=\{\(\) => markVisited\(d\.slug\)\}/);
+    expect(code).toMatch(/onClick=\{\(\) => \{ markVisited\(d\.slug\);/);
   });
 });
 

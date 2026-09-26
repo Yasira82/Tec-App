@@ -12,6 +12,7 @@ const CSRF_SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 const CSRF_PROTECTED = [
   '/api/auth/logout',
   '/api/auth/refresh',
+  '/api/auth/sso-links', // mints one-time sign-in links (C-123 §12) — never cross-site
   '/api/wallet',
   '/api/kyc',
   '/api/notifications',

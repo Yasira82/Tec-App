@@ -300,7 +300,7 @@ export const en = {
       // The group is still what this asks for — it is the one mission that
       // leaves something behind for the next pioneer — so it is still the
       // quickest way, and it is now the quickest way for a reason that holds.
-      missionConnection: 'This link puts you in the TEC group — say hello, and post your Pi wallet address there. Then the claim fills itself in and there is nothing left to type.',
+      missionConnection: 'This link puts you in the TEC group — say hello, and post your Pi Mainnet wallet address there. Then the claim fills itself in and there is nothing left to type.',
       missionChat:  'Open a chat and send one message — opening the app is not enough here',
       finishFirst:  'Finish the list above to claim.',
       neverAsk1:    'We will',
@@ -308,6 +308,9 @@ export const en = {
       neverAsk3:    'ask for your passphrase or secret key — not here, not in the group, not anywhere. Post only your',
       neverAsk4:    'public address',
       neverAsk5:    ', the one that starts with',
+      // A Testnet wallet's address starts with G too — reported on r/PiNetwork
+      // (2026-09-28). The payout is checked on Mainnet, so the wrong one is lost.
+      neverAsk6:    ' — from your Mainnet wallet, not your Testnet one.',
       willSendTo:   'We will send to the address you posted in the TEC group:',
       notRightOne:  'Not the right one? Post the correct address in the group — the newest one you send is the one we use.',
       // The fallback route. It says WHY we are asking, because "give us your
@@ -317,7 +320,7 @@ export const en = {
       // No promise about seats or amount: this text is pasted into a chat and
       // read hours later, by which time a number in it may be a lie.
       shareText:    'Visit the TEC apps and claim free Pi — while seats last.',
-      typeAddrIntro: 'One last thing: your Pi wallet address. It is how we know one person is claiming once — each wallet can claim a single reward. Only the public address, the one that starts with G.',
+      typeAddrIntro: 'One last thing: your Pi wallet address. It is how we know one person is claiming once — each wallet can claim a single reward. Only the public address of your Mainnet wallet, the one that starts with G — not your Testnet one.',
       claimWithAddr: 'Claim {reward} π',
       orPostInstead: 'You can also post it in the TEC group instead, and we will read it from there.',
       taking:       'Taking your seat…',

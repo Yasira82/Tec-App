@@ -145,6 +145,24 @@ describe('the claim form is not shaped like a phishing page', () => {
     expect(ar).toMatch(/بيبدأ بحرف/);
   });
 
+  // Reported twice on r/PiNetwork (2026-09-28, the same Pioneer): a Testnet
+  // wallet's address ALSO starts with G. "Your public address" alone lets
+  // someone post the wrong one, claim, and never receive the Pi — the payout is
+  // checked on Mainnet. Every place that asks for the address says Mainnet.
+  it('names MAINNET — and rules out Testnet — wherever it asks for the address, in both languages', () => {
+    const block = (src: string, key: string) => {
+      const m = src.match(new RegExp(`${key}:\\s*'([^']*)'`));
+      return m ? m[1] : '';
+    };
+    for (const src of [en, ar]) {
+      expect(block(src, 'missionConnection')).toMatch(/Mainnet/);
+      expect(block(src, 'typeAddrIntro')).toMatch(/Mainnet/);
+      expect(block(src, 'typeAddrIntro')).toMatch(/Testnet/);
+      expect(block(src, 'neverAsk6')).toMatch(/Testnet/);
+    }
+    expect(page).toMatch(/<code>G<\/code>\{c\.neverAsk6\}/);
+  });
+
   it('never mentions a payment to qualify, in either language', () => {
     expect(en).toMatch(/there is no payment at any step/);
     expect(ar).toMatch(/مفيش أي دفع في أي خطوة/);
@@ -676,7 +694,7 @@ describe('the Connection mission points at the TEC group', () => {
     // just as plainly as one reading the English.
     expect(page).toMatch(/hintConnection=\{c\.missionConnection\}/);
     expect(read('lib/i18n/en.ts')).toMatch(/puts you in the TEC group/);
-    expect(read('lib/i18n/en.ts')).toMatch(/post your Pi wallet address there/i);
+    expect(read('lib/i18n/en.ts')).toMatch(/post your Pi Mainnet wallet address there/i);
     expect(read('lib/i18n/ar.ts')).toMatch(/جروب TEC/);
     expect(read('lib/i18n/ar.ts')).toMatch(/عنوان محفظة/);
   });

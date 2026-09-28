@@ -969,7 +969,7 @@ export default function CampaignPage() {
                 <Icon name="shield" size={16} color="var(--tec-red)" />
                 <div style={{ fontSize: 12, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
                   {c.neverAsk1} <strong>{c.neverAsk2}</strong> {c.neverAsk3}{' '}
-                  <strong>{c.neverAsk4}</strong>{c.neverAsk5} <code>G</code>.
+                  <strong>{c.neverAsk4}</strong>{c.neverAsk5} <code>G</code>{c.neverAsk6}
                 </div>
               </div>
 

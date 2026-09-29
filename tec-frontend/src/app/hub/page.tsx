@@ -27,7 +27,7 @@ import { sessionToken }   from '@/lib-client/pi/session-source';
 import '@/styles/tec-design-tokens.css';
 
 function HubPageInner() {
-  const { user, isAuthenticated, isLoading } = usePiAuth();
+  const { user, isAuthenticated, isLoading, signingIn } = usePiAuth();
   const { t, dir } = useTranslation();
   const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
 
@@ -158,7 +158,9 @@ function HubPageInner() {
   });
 
   /* ── Early returns ── */
-  if (isLoading || (!isAuthenticated && !pendingPayment)) return <HubSkeleton />;
+  if (isLoading || (!isAuthenticated && !pendingPayment)) {
+    return <HubSkeleton message={signingIn ? t.hub.signingIn : undefined} />;
+  }
 
   // A Mode-1 payment is still being prepared — show only the splash, not the whole
   // Hub. Covers both the signed-in case and the one where SSO is still resolving;

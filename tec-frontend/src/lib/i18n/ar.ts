@@ -182,6 +182,8 @@ export const ar = {
     version: 'الإصدار',
   },
   hub: {
+    // Shown over the loading skeleton while a silent Pi sign-in runs.
+    signingIn: 'جاري تسجيل دخولك بـ Pi…',
     nav: {
       main: 'التنقل الرئيسي',
       hub: 'الرئيسية', wallet: 'المحفظة',

@@ -617,7 +617,7 @@ describe('the status request stays out of the payment path', () => {
     // PaymentPreparing). A hook below them is called conditionally, and React
     // fails the whole page with "Rendered fewer hooks than expected".
     const hookAt   = hub.indexOf('setCampaignOpen');
-    const firstRet = hub.indexOf('return <HubSkeleton />');
+    const firstRet = hub.indexOf('return <HubSkeleton');
     expect(hookAt).toBeGreaterThan(-1);
     expect(firstRet).toBeGreaterThan(-1);
     expect(hookAt).toBeLessThan(firstRet);

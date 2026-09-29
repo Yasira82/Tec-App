@@ -201,6 +201,8 @@ export const en = {
    * cannot search for.
    */
   hub: {
+    // Shown over the loading skeleton while a silent Pi sign-in runs.
+    signingIn: 'Signing you in with Pi…',
     nav: {
       main: 'Main navigation',
       // "Home", not "Hub": the Hub IS the product, so labelling one tab with

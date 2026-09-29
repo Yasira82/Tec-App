@@ -1,8 +1,19 @@
 'use client';
 
-export function HubSkeleton() {
+/**
+ * `message` is for a wait the person should know about. Grey cards alone, held for
+ * the seconds a silent Pi sign-in takes, read as a black screen — and the natural
+ * answer to a black screen is Back, which leaves the Hub (2026-09-29).
+ */
+export function HubSkeleton({ message }: { message?: string } = {}) {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--tec-bg)', padding: '0 0 90px' }}>
+      {message && (
+        <div role="status" aria-live="polite"
+          style={{ padding: '12px 20px', textAlign: 'center', fontSize: 14, color: 'var(--tec-text-2)' }}>
+          {message}
+        </div>
+      )}
       <style>{`@keyframes shimmer{0%,100%{opacity:0.4}50%{opacity:0.8}}.sk{animation:shimmer 1.4s ease infinite;background:var(--tec-surface-1);border-radius:18px}`}</style>
       <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--tec-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

@@ -6,11 +6,31 @@ import { tecSession } from '@/lib-client/pi/tec-session';
 import { silentReauth } from '@/lib-client/pi/bff-client';
 import { TecUser } from '@/types/pi.types';
 
+// Both bounds exist for the same screen: the Hub shows a skeleton until this hook
+// settles, and nothing else on it moves. Back from an app in Pi Browser, the Hub
+// can open in a context that has none of its cookies (C-123 §7) — /api/auth/me is
+// a 401 and the only way in is a silent Pi sign-in, which could wait 15 s for the
+// SDK plus 45 s for Pi. A minute of grey cards read as a black screen, and the next
+// back left the app (owner, phone, 2026-09-29). Bounded, the worst case is the
+// sign-in page, with the Hub remembered as where to return.
+export const ME_TIMEOUT_MS         = 8_000;
+export const LOAD_REAUTH_BUDGET_MS = 20_000;
+
+const within = <T,>(p: Promise<T>, ms: number, fallback: T): Promise<T> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  return Promise.race([
+    p,
+    new Promise<T>((resolve) => { timer = setTimeout(() => resolve(fallback), ms); }),
+  ]).finally(() => clearTimeout(timer));
+};
+
 interface AuthState {
   user:            TecUser | null;
   isLoading:       boolean;
   isAuthenticated: boolean;
   isNewUser:       boolean;
+  /** No session was found, and a silent Pi sign-in is running — say so on screen. */
+  signingIn:       boolean;
   error:           string | null;
   errorType:       'not_pi_browser' | 'auth_failed' | 'timeout' | 'storage' | null;
 }
@@ -21,6 +41,7 @@ export const usePiAuth = () => {
     isLoading:       true,
     isAuthenticated: false,
     isNewUser:       false,
+    signingIn:       false,
     error:           null,
     errorType:       null,
   });
@@ -35,7 +56,7 @@ export const usePiAuth = () => {
     const settle = (user: TecUser | null) => {
       if (cancelled || authSettledRef.current) return;
       if (user) authSettledRef.current = true;
-      setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false }));
+      setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false, signingIn: false }));
     };
 
     // 0) In-memory session survives client-side navigation regardless of cookies.
@@ -53,7 +74,16 @@ export const usePiAuth = () => {
     // works even when the browser context refuses cookies entirely.
     (async () => {
       try {
-        const res  = await fetch('/api/auth/me', { credentials: 'include' });
+        // Bounded: a request that never answers must not hold the page. An abort
+        // lands in the catch below → unauthenticated, the same as a 401.
+        const ctrl  = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), ME_TIMEOUT_MS);
+        let res: Response;
+        try {
+          res = await fetch('/api/auth/me', { credentials: 'include', cache: 'no-store', signal: ctrl.signal });
+        } finally {
+          clearTimeout(timer);
+        }
         const data = res.ok ? await res.json() : null;
         const user = (data?.user ?? null) as TecUser | null;
         // Share it. This hook is the only place that knows how to resolve an
@@ -65,7 +95,8 @@ export const usePiAuth = () => {
         if (isPiBrowser()) {
           // Shared single-flight + cooldown lives in bff-client — parallel hook
           // instances and 401-healing BFF calls all reuse one attempt.
-          const autoUser = await silentReauth();
+          if (!cancelled) setState(prev => ({ ...prev, signingIn: true }));
+          const autoUser = await within(silentReauth(), LOAD_REAUTH_BUDGET_MS, null);
           settle(autoUser);
           return;
         }
@@ -93,6 +124,7 @@ export const usePiAuth = () => {
         isAuthenticated: !!user,
         isNewUser:       result.isNewUser,
         isLoading:       false,
+        signingIn:       false,
         error:           null,
         errorType:       null,
       }));
@@ -110,6 +142,7 @@ export const usePiAuth = () => {
       setState(prev => ({
         ...prev,
         isLoading: false,
+        signingIn: false,
         error:     message,
         errorType,
       }));

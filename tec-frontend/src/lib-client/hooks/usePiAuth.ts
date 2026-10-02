@@ -35,7 +35,18 @@ interface AuthState {
   errorType:       'not_pi_browser' | 'auth_failed' | 'timeout' | 'storage' | null;
 }
 
-export const usePiAuth = () => {
+export interface UsePiAuthOptions {
+  /**
+   * Try a silent Pi sign-in on load when no session is found (C-123 §7 step 4).
+   * Default true. The Hub turns it off when the page was reached with Back:
+   * Pi does not answer an authenticate nobody tapped for there, so the attempt
+   * only spent its whole budget before the sign-in screen (owner, 2026-10-02 —
+   * the same Pi answered at once when the button was tapped).
+   */
+  silentOnLoad?: boolean;
+}
+
+export const usePiAuth = ({ silentOnLoad = true }: UsePiAuthOptions = {}) => {
   const [state, setState] = useState<AuthState>({
     user:            null,
     isLoading:       true,
@@ -49,6 +60,8 @@ export const usePiAuth = () => {
   // Once login() (or a client-cookie read) establishes auth, a late
   // /api/auth/me response must NOT clobber it back to unauthenticated.
   const authSettledRef = useRef(false);
+  // Read once, at mount — the load path runs once per page load.
+  const silentOnLoadRef = useRef(silentOnLoad);
 
   useEffect(() => {
     let cancelled = false;
@@ -92,7 +105,7 @@ export const usePiAuth = () => {
         if (user) tecSession.setUser(user);
         if (user || cancelled || authSettledRef.current) { settle(user); return; }
 
-        if (isPiBrowser()) {
+        if (silentOnLoadRef.current && isPiBrowser()) {
           // Shared single-flight + cooldown lives in bff-client — parallel hook
           // instances and 401-healing BFF calls all reuse one attempt.
           if (!cancelled) setState(prev => ({ ...prev, signingIn: true }));

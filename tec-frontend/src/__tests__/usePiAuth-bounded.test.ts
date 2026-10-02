@@ -64,6 +64,15 @@ describe('usePiAuth — bounded resolution', () => {
     expect(result.current.signingIn).toBe(false);
   });
 
+  it('silentOnLoad: false — no silent Pi sign-in at all; signed out as soon as /me says so (Back from an app, 2026-10-02)', async () => {
+    const { result } = renderHook(() => usePiAuth({ silentOnLoad: false }));
+    await flush(); await flush();
+    expect(silentReauth).not.toHaveBeenCalled();
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isAuthenticated).toBe(false);
+    expect(result.current.signingIn).toBe(false);
+  });
+
   it('a silent sign-in that never answers ends in "signed out" after the budget — not a minute of skeleton', async () => {
     vi.mocked(silentReauth).mockReturnValue(new Promise(() => { /* Pi never answers */ }));
 

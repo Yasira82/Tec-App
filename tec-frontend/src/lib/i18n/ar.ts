@@ -184,6 +184,12 @@ export const ar = {
   hub: {
     // Shown over the loading skeleton while a silent Pi sign-in runs.
     signingIn: 'جاري تسجيل دخولك بـ Pi…',
+    continueBack: {
+      title:  'أهلاً بعودتك',
+      body:   'اضغط للمتابعة إلى الـ Hub بحساب Pi الخاص بك.',
+      button: 'المتابعة بـ Pi',
+      failed: 'لم يستجب Pi. اضغط مرة أخرى.',
+    },
     nav: {
       main: 'التنقل الرئيسي',
       hub: 'الرئيسية', wallet: 'المحفظة',

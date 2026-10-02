@@ -85,6 +85,12 @@ export function PaymentModal({
     setTrace((prev) => [...prev, `${((Date.now() - t) / 1000).toFixed(1)}s ${level}: ${msg}`]);
   }, []);
   const [message, setMessage] = useState('');
+  // The trace on MAINNET, after a failure, on request. `traceVisible()` keeps it
+  // off real buyers' screens — which also meant the one failure that matters,
+  // "Pi auth (TIMEOUT)" on hub.tecosystem.app, reached us as one line with no
+  // timings. A failed payment is the moment the steps are worth reading, and a
+  // tap away is still off the screen of everyone whose payment worked.
+  const [showDetails, setShowDetails] = useState(false);
   const hasStarted = useRef(false);
 
   /**
@@ -158,6 +164,12 @@ export function PaymentModal({
     // at all, and the two problems are independent.
     const waitForSdk = async () => {
       pushTrace('info', `build ${process.env.NEXT_PUBLIC_BUILD_SHA ?? '?'}`);
+      // Where the modal was opened from — the host only, never the path. "Hub
+      // first, then an app" fails and "app first" does not, so which page led
+      // here is the first thing to read in a failed trace.
+      let from = 'direct';
+      try { if (document.referrer) from = new URL(document.referrer).hostname; } catch { /* unparseable → direct */ }
+      pushTrace('info', `from ${from}`);
       pushTrace('info', 'waiting for Pi.init');
       await waitForPiReady();
       if (cancelled) return;
@@ -392,7 +404,7 @@ export function PaymentModal({
             "Backend record created" then createPayment was called and answered
             with nothing, and the fault is between the browser and Pi — not in
             anything the server can see. */}
-        {traceVisible() && trace.length > 0 && (
+        {(traceVisible() || (status === 'error' && showDetails)) && trace.length > 0 && (
           <div style={{
             textAlign: 'left', marginBottom: 20, padding: 10, borderRadius: 10,
             background: '#00000040', border: '1px solid #ffffff14',
@@ -488,6 +500,17 @@ export function PaymentModal({
             <div style={{ fontSize: 48 }}>❌</div>
             <div style={{ fontSize: 16, fontWeight: 700, color: '#e74c3c' }}>{p.failedTitle}</div>
             <div style={{ fontSize: 12, color: '#4a4a5a', marginBottom: 8 }}>{message}</div>
+            {!traceVisible() && trace.length > 0 && (
+              <button
+                onClick={() => setShowDetails((v) => !v)}
+                style={{
+                  background: 'none', border: 'none', color: '#6b6b7a',
+                  fontSize: 11, textDecoration: 'underline', cursor: 'pointer', marginBottom: 4,
+                }}
+              >
+                {showDetails ? p.hideDetails : p.showDetails}
+              </button>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               {/* Try Again just returns to idle. It used to reset + reInit and
                   then authenticate on a 2s timer — two seconds after the tap,

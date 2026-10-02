@@ -304,6 +304,7 @@ export const ar = {
       successTitle: 'تم الدفع بنجاح!', redirecting: 'جارٍ إعادتك...',
       cancelledTitle: 'أُلغيت العملية',
       failedTitle: 'فشل الدفع', failed: 'فشل الدفع',
+      showDetails: 'إظهار التفاصيل', hideDetails: 'إخفاء التفاصيل',
       openInPiBrowser: 'افتح داخل Pi Browser',
       alreadyInProgress: 'هناك عملية دفع جارية بالفعل',
       sdkNotReady: 'Pi SDK غير جاهز. حاول مرة أخرى.',

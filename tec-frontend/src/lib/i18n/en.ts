@@ -359,6 +359,7 @@ export const en = {
       successTitle: 'Payment Successful!', redirecting: 'Redirecting back...',
       cancelledTitle: 'Cancelled',
       failedTitle: 'Payment Failed', failed: 'Payment failed',
+      showDetails: 'Show details', hideDetails: 'Hide details',
       openInPiBrowser: 'Open in Pi Browser',
       alreadyInProgress: 'Payment already in progress',
       sdkNotReady: 'Pi SDK not ready. Please try again.',

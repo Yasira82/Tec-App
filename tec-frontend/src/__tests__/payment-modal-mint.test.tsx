@@ -422,6 +422,52 @@ describe('PaymentModal — handlePay outcomes', () => {
   });
 });
 
+describe('PaymentModal — Show details (the trace on Mainnet, after a failure)', () => {
+  // "Pi auth (TIMEOUT): TIMEOUT" reached us from hub.tecosystem.app as one line,
+  // because the trace is hidden off the Testnet host. On failure it is one tap away.
+  const failAuth = async () => {
+    renderModal();
+    await waitForReady();
+    mockPiSessionEnsurePaymentsReady.mockResolvedValue(false);
+    mockPiSessionLastError.value = 'TIMEOUT';
+    await act(async () => { fireEvent.click(screen.getByText(/^Pay \d+π$/)); });
+    await waitFor(() => expect(screen.getByText('Payment Failed')).toBeTruthy());
+    mockPiSessionLastError.value = null;
+  };
+
+  it('hides the trace on a production host while the payment is idle', async () => {
+    renderModal();
+    await waitForReady();
+    expect(screen.queryByText(/waiting for Pi\.init/)).toBeNull();
+    expect(screen.queryByText('Show details')).toBeNull();
+  });
+
+  it('offers Show details on failure, and reveals the timed steps — including where the modal came from', async () => {
+    Object.defineProperty(document, 'referrer', {
+      value: 'https://ecommerce.tecosystem.app/product/42?x=1', configurable: true,
+    });
+    await failAuth();
+    expect(screen.queryByText(/tap: auth FAILED TIMEOUT/)).toBeNull();
+
+    fireEvent.click(screen.getByText('Show details'));
+    expect(screen.getByText(/tap: auth FAILED TIMEOUT/)).toBeTruthy();
+    // Host only — never the path or the query.
+    expect(screen.getByText(/from ecommerce\.tecosystem\.app$/)).toBeTruthy();
+    expect(screen.queryByText(/product\/42/)).toBeNull();
+
+    fireEvent.click(screen.getByText('Hide details'));
+    expect(screen.queryByText(/tap: auth FAILED TIMEOUT/)).toBeNull();
+    Object.defineProperty(document, 'referrer', { value: '', configurable: true });
+  });
+
+  it('Try Again puts the trace away again', async () => {
+    await failAuth();
+    fireEvent.click(screen.getByText('Show details'));
+    fireEvent.click(screen.getByText('Try Again'));
+    expect(screen.queryByText(/tap: auth FAILED/)).toBeNull();
+  });
+});
+
 describe('PaymentModal — Try Again', () => {
   it('returns to idle with Pay live again, and authenticates NOTHING by itself', async () => {
     mockCreateU2APayment.mockResolvedValue({

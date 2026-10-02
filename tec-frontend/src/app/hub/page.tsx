@@ -29,9 +29,9 @@ import { useHandoffLinks } from '@/lib-client/handoff-links';
 import '@/styles/tec-design-tokens.css';
 
 /**
- * No silent Pi sign-in on /hub: a /hub that finds no session offers the tap at
- * once (HubContinue), on the Hub, instead of leaving for the marketing page.
- * Read once, at mount.
+ * No silent Pi sign-in on /hub: in Pi Browser, a /hub that finds no session
+ * offers the tap at once (HubContinue), on the Hub, instead of leaving for the
+ * marketing page. Read once, at mount.
  *
  * A grid app opens in a NEW tab — the only way Pi answers the app, counts the
  * visit as the app's, and lets it take a payment (owner, phone, 2026-10-02: in
@@ -46,8 +46,23 @@ import '@/styles/tec-design-tokens.css';
  */
 const tapToContinue = (): boolean => {
   try {
-    return new URLSearchParams(window.location.search).get('pay') !== '1';
-  } catch { return true; }
+    if (new URLSearchParams(window.location.search).get('pay') === '1') return false;
+  } catch { /* ignore */ }
+  return looksLikePiBrowser();
+};
+
+/**
+ * Pi Browser, by its user agent — the same tokens `usePiBrowser` reads, plus
+ * Android's in-app WebView marker (`; wv)`), which Pi Browser is and an ordinary
+ * phone browser is not. Not `window.Pi`: the SDK script defines it in ANY
+ * browser, and it may not have loaded yet at mount. A desktop browser keeps the
+ * old behaviour (to "/"), where a Pi tap could never work anyway.
+ */
+const looksLikePiBrowser = (): boolean => {
+  try {
+    const ua = navigator.userAgent;
+    return /PiBrowser|Pi Network|MinePI/i.test(ua) || (/Android/i.test(ua) && /;\s*wv\)/.test(ua));
+  } catch { return false; }
 };
 
 function HubPageInner() {

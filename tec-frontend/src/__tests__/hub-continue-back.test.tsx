@@ -163,9 +163,14 @@ const signedOut = { user: null, isAuthenticated: false, isLoading: false, signin
 const navType = (type: string) =>
   vi.spyOn(performance, 'getEntriesByType').mockReturnValue([{ type } as unknown as PerformanceEntry]);
 
+const setUA = (ua: string) => Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true });
+const PI_UA = 'Mozilla/5.0 (Linux; Android 13; SM-A515F Build/TP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36 PiBrowser/2.0';
+const DESKTOP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
+  setUA(PI_UA);
   login.mockReset();
   mockUsePiAuth.mockReturnValue(signedOut);
   mockUsePiSdkReady.mockReturnValue({ piReady: false, authReady: false, lastError: null, ensurePiAuth: vi.fn() });
@@ -216,6 +221,22 @@ describe('Hub — no session on /hub: the tap, at once, on the Hub', () => {
     await act(async () => { render(<HubPage />); });
     await act(async () => { fireEvent.click(screen.getByText('Continue with Pi')); });
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
+  });
+
+  it('a desktop browser keeps the old way — to the sign-in page, where it can at least be told to open Pi Browser', async () => {
+    setUA(DESKTOP_UA);
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: true });
+    expect(screen.queryByText('Continue with Pi')).toBeNull();
+    expect(mockReplace).toHaveBeenCalledWith('/');
+  });
+
+  it('recognises Pi Browser by its WebView marker even without a Pi token in the agent', async () => {
+    setUA('Mozilla/5.0 (Linux; Android 13; SM-A515F; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36');
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
     expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
   });
 

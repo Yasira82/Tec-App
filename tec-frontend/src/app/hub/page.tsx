@@ -14,6 +14,7 @@ import { ErrorBoundary }                    from '@/components/ErrorBoundary';
 import { ToastContainer, Toast }            from './components/ToastContainer';
 import { AIDrawer }                         from './components/AIDrawer';
 import { HubSkeleton }                      from './components/HubSkeleton';
+import { HubContinue }                      from './components/HubContinue';
 import { PaymentModal }                     from './components/PaymentModal';
 import { PaymentPreparing }                 from './components/PaymentPreparing';
 import {
@@ -27,8 +28,26 @@ import { sessionToken }   from '@/lib-client/pi/session-source';
 import { useHandoffLinks } from '@/lib-client/handoff-links';
 import '@/styles/tec-design-tokens.css';
 
+/**
+ * Was this page reached with Back? Read once, at mount. Android's Back from an
+ * app opened by the grid lands here — see HubContinue for why that matters.
+ */
+const reachedByBack = (): boolean => {
+  try {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
+    return nav?.type === 'back_forward';
+  } catch { return false; }
+};
+
 function HubPageInner() {
-  const { user, isAuthenticated, isLoading, signingIn } = usePiAuth();
+  const [cameBack] = useState(reachedByBack);
+  // Once offered, the continue screen stays while its sign-in runs (login()
+  // flips isLoading) — so a failure can still say so beside the button.
+  const [offerContinue, setOfferContinue] = useState(false);
+  // Back from an app: no silent Pi sign-in on load — Pi does not answer one
+  // there, and waiting it out ended on the marketing page. HubContinue offers
+  // the tap instead, which Pi does answer.
+  const { user, isAuthenticated, isLoading, signingIn, login } = usePiAuth({ silentOnLoad: !cameBack });
   const { t, dir } = useTranslation();
   const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
 
@@ -153,13 +172,17 @@ function HubPageInner() {
 
   /* ── Auth guard ── */
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !pendingPayment) {
+    if (!isLoading && !isAuthenticated && !pendingPayment && !cameBack) {
       // Remember the Hub before leaving it, so signing in returns here rather
       // than to the marketing page. Same reason as the dashboard guard.
       rememberReturn('/hub');
       router.replace('/');
     }
-  }, [isLoading, isAuthenticated, pendingPayment, router]);
+  }, [isLoading, isAuthenticated, pendingPayment, cameBack, router]);
+
+  useEffect(() => {
+    if (cameBack && !isLoading && !isAuthenticated && !pendingPayment) setOfferContinue(true);
+  }, [cameBack, isLoading, isAuthenticated, pendingPayment]);
 
   /* ── Returning from an app: open the page it was tapped from, on top of the Hub ── */
   useEffect(() => {
@@ -178,6 +201,9 @@ function HubPageInner() {
   });
 
   /* ── Early returns ── */
+  if (offerContinue && !isAuthenticated && !pendingPayment) {
+    return <HubContinue onContinue={login} />;
+  }
   if (isLoading || (!isAuthenticated && !pendingPayment)) {
     return <HubSkeleton message={signingIn ? t.hub.signingIn : undefined} />;
   }

@@ -203,6 +203,12 @@ export const en = {
   hub: {
     // Shown over the loading skeleton while a silent Pi sign-in runs.
     signingIn: 'Signing you in with Pi…',
+    continueBack: {
+      title:  'Welcome back',
+      body:   'Tap to continue to the Hub with your Pi account.',
+      button: 'Continue with Pi',
+      failed: 'Pi did not answer. Tap again.',
+    },
     nav: {
       main: 'Main navigation',
       // "Home", not "Hub": the Hub IS the product, so labelling one tab with

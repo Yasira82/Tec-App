@@ -44,4 +44,10 @@ export interface HubApp {
   href:  string;
   desc:  string;
   group?: string;
+  /**
+   * Set when the tile opens an app on its OWN domain, standalone (C-123 §12):
+   * the plain app URL, which is also the key its signed link is minted under.
+   * `href` is then the signed link (or this URL, until one is ready).
+   */
+  appUrl?: string;
 }

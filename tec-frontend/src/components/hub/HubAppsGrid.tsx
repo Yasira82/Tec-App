@@ -22,6 +22,11 @@ interface Props {
    * P1 Single Source of Truth). Unset on the Hub itself → tiles open the app.
    */
   openTo?: string;
+  /**
+   * A tile with `appUrl` was tapped: its one-time link is spent. Called AFTER the
+   * tap, never to change the link the tap is following (C-123 §12, #259).
+   */
+  onOpenStandalone?: (app: HubApp) => void;
 }
 
 const FAV_KEY      = 'tec_fav_apps';
@@ -53,7 +58,7 @@ function readList(key: string): string[] {
   } catch { return []; }
 }
 
-export function HubAppsGrid({ apps, openTo }: Props) {
+export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
   const { t, dir } = useTranslation();
   const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
   const router = useRouter();
@@ -121,14 +126,29 @@ export function HubAppsGrid({ apps, openTo }: Props) {
   // appears in Edit mode, so the default grid stays clean (no star on every tile).
   const AppCard = ({ app, featured = false }: { app: HubApp; featured?: boolean }) => {
     const isFav = favs.includes(app.slug);
+    const tileStyle: React.CSSProperties = {
+      width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+      padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer',
+      textDecoration: 'none', boxSizing: 'border-box',
+    };
+    // An app on its own domain opens STANDALONE — a real link, a new tab, and NO
+    // referrer, exactly like the campaign's missions (C-123 §12). The referrer is
+    // the whole point: an app that sees the Hub as referrer marks the tab
+    // Hub-owned (ADR-007), never signs in with Pi, and Pi credits the Hub for the
+    // visit. `window.location.href` would send it; `rel="noreferrer"` does not.
+    const standalone = !!app.appUrl && !openTo && !editing;
+    const Tile = ({ children }: { children: React.ReactNode }) => standalone ? (
+      <a className="tec-btn" href={app.href} target="_blank" rel="noopener noreferrer"
+        onClick={() => { haptic('light'); onOpenStandalone?.(app); }}
+        style={tileStyle}>{children}</a>
+    ) : (
+      <button className="tec-btn"
+        onClick={() => (editing ? toggleFav(app.slug) : openApp(app))}
+        style={tileStyle}>{children}</button>
+    );
     return (
       <div style={{ position: 'relative' }}>
-        <button className="tec-btn"
-          onClick={() => (editing ? toggleFav(app.slug) : openApp(app))}
-          style={{
-            width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-            padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer',
-          }}>
+        <Tile>
           <div style={{
             position: 'relative',
             width: 54, height: 54, borderRadius: 16,
@@ -160,7 +180,7 @@ export function HubAppsGrid({ apps, openTo }: Props) {
             lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden',
             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
           }}>{app.name}</span>
-        </button>
+        </Tile>
       </div>
     );
   };

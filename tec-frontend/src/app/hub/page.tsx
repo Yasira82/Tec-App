@@ -24,6 +24,7 @@ import { useHubData }     from '@/hooks/useHubData';
 import { useTranslation } from '@/lib/i18n';
 import { haptic }         from '@/lib/hub/utils';
 import { sessionToken }   from '@/lib-client/pi/session-source';
+import { useHandoffLinks } from '@/lib-client/handoff-links';
 import '@/styles/tec-design-tokens.css';
 
 function HubPageInner() {
@@ -40,7 +41,18 @@ function HubPageInner() {
   // LIVE NOW shows every live app: visibility is not authorization — KYC/role
   // gating stays enforced by each app and its services (P6). Filtering live
   // apps by the KYC flag made Assets/Commerce invisible to non-KYC users.
-  // External apps are entered through Hub SSO so they land with a session.
+  //
+  // External apps open STANDALONE, on their own domain — the way the campaign
+  // opens them (C-123 §12), and for the same reason. They used to go through
+  // `/api/auth/sso?target=…`: the app saw a Hub referrer, marked the tab
+  // Hub-owned (ADR-007) and never signed the visitor in with Pi, so every grid
+  // visit counted at Pi for the HUB, not the app, and every purchase bounced
+  // back into the Hub's modal (Mode 1). Owner decision, 2026-10-02 — KB
+  // audits/HUB_GRID_VISITS_NOT_COUNTED_2026-09-29.md.
+  //
+  // Now the Hub signs each app's link while the visitor is still here, and the
+  // tile opens it with no referrer: the app arrives signed in, signs in with Pi
+  // itself (the visit is the app's), and pays inside itself (Mode 2).
   const visibleLive = LIVE_DOMAINS
     .filter(d => d.layer !== 'os')
     .map(d => {
@@ -49,18 +61,26 @@ function HubPageInner() {
       // visitor to the Mainnet app — and from there the app correctly resolved
       // the Mainnet Hub, so the payment came back as a Mainnet payment that a
       // Test-Pi wallet can never pay. See domains/testnet-hosts.ts.
-      const route = routeForNetwork(d.route ?? `/${d.slug}`, d.slug);
-      const href  = route.startsWith('http')
-        ? `/api/auth/sso?target=${encodeURIComponent(route)}`
-        : route;
+      const route  = routeForNetwork(d.route ?? `/${d.slug}`, d.slug);
+      const appUrl = route.startsWith('http') ? route : undefined;
       // The registry already carries `name.ar` / `description.ar`; the Hub grid was
       // pinned to `.en`, so every tile stayed English on an otherwise Arabic screen.
       return {
-        slug: d.slug, emoji: d.emoji, href, group: d.group,
+        slug: d.slug, emoji: d.emoji, href: route, appUrl, group: d.group,
         name: tr(d.name, locale),
         desc: tr(d.valueProp ?? d.description, locale),
       };
     });
+
+  // One signed link per app, minted while the visitor is here (C-123 §12). Not
+  // during a Hub payment (`?pay=1`): that screen never shows the grid.
+  const onPayScreen = typeof window !== 'undefined'
+    && new URLSearchParams(window.location.search).get('pay') === '1';
+  const signed = useHandoffLinks(
+    visibleLive.flatMap((a) => (a.appUrl ? [a.appUrl] : [])),
+    isAuthenticated && !onPayScreen,
+  );
+  const gridApps = visibleLive.map((a) => (a.appUrl ? { ...a, href: signed(a.appUrl) } : a));
 
   const { balance, balanceError, piPrice, notifCount, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
@@ -226,7 +246,7 @@ function HubPageInner() {
         goToReferral={goToReferral}
       />
 
-      <HubAppsGrid apps={visibleLive} />
+      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => app.appUrl && signed.spent(app.appUrl)} />
       <HubComingSoon />
 
 

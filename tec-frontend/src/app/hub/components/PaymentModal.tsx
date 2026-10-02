@@ -174,6 +174,12 @@ export function PaymentModal({
       await waitForPiReady();
       if (cancelled) return;
 
+      // A fresh page whose Pi.init answers "already initialized" is not starting
+      // its own Pi session — it is inside one an earlier page opened. If that
+      // page was another app, Pi.authenticate here may never answer (ADR-007,
+      // the other way round). Printed either way, so a trace says which.
+      pushTrace('info', `Pi.init: ${(window as unknown as { __TEC_PI_INIT_ALREADY?: boolean }).__TEC_PI_INIT_ALREADY ? 'ALREADY initialized before this page' : 'fresh'}`);
+
       if (!PiRuntime.isAvailable()) {
         pushTrace('error', 'Pi SDK not available — open in Pi Browser');
         setStatus('error');

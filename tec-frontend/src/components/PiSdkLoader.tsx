@@ -84,6 +84,9 @@ export default function PiSdkLoader({ sandbox: configured, timeout, onReady }: P
       } catch (e) {
         const msg = e instanceof Error ? e.message.toLowerCase() : '';
         if (!msg.includes('already')) return false;
+        // Pi was already initialised before this page ran — the payment trace
+        // reports it, because it says whose Pi session this tab is in.
+        (window as unknown as { __TEC_PI_INIT_ALREADY?: boolean }).__TEC_PI_INIT_ALREADY = true;
       }
       // ✅ mark ready synchronously — no setTimeout hack
       window.__TEC_PI_READY = true;

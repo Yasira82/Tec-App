@@ -460,6 +460,20 @@ describe('PaymentModal — Show details (the trace on Mainnet, after a failure)'
     Object.defineProperty(document, 'referrer', { value: '', configurable: true });
   });
 
+  it('says whether Pi was already initialised before this page (whose session the tab is in)', async () => {
+    (window as unknown as { __TEC_PI_INIT_ALREADY?: boolean }).__TEC_PI_INIT_ALREADY = true;
+    await failAuth();
+    fireEvent.click(screen.getByText('Show details'));
+    expect(screen.getByText(/Pi\.init: ALREADY initialized before this page/)).toBeTruthy();
+    delete (window as unknown as { __TEC_PI_INIT_ALREADY?: boolean }).__TEC_PI_INIT_ALREADY;
+  });
+
+  it('reports a fresh Pi.init when this page started its own session', async () => {
+    await failAuth();
+    fireEvent.click(screen.getByText('Show details'));
+    expect(screen.getByText(/Pi\.init: fresh/)).toBeTruthy();
+  });
+
   it('Try Again puts the trace away again', async () => {
     await failAuth();
     fireEvent.click(screen.getByText('Show details'));

@@ -29,13 +29,33 @@ import { useHandoffLinks } from '@/lib-client/handoff-links';
 import '@/styles/tec-design-tokens.css';
 
 /**
- * Was this page reached with Back? Read once, at mount. Android's Back from an
- * app opened by the grid lands here — see HubContinue for why that matters.
+ * Set when a grid tile opens an app — a time, never a credential (ADR-001). The
+ * Hub reads it to know it is the page the visitor is coming BACK to, even when
+ * Pi Browser reloads it as an ordinary navigation rather than a Back.
+ */
+const LEFT_FOR_APP_KEY = 'tec_hub_left_for_app';
+const LEFT_FOR_APP_TTL = 30 * 60 * 1000;
+
+const markLeftForApp = () => {
+  try { sessionStorage.setItem(LEFT_FOR_APP_KEY, String(Date.now())); } catch { /* ignore */ }
+};
+const clearLeftForApp = () => {
+  try { sessionStorage.removeItem(LEFT_FOR_APP_KEY); } catch { /* ignore */ }
+};
+
+/**
+ * Is the visitor coming back to the Hub from an app? Read once, at mount —
+ * see HubContinue for why it matters. Either signal is enough: the browser
+ * calls it a Back, or a grid tile in this tab sent them to an app recently.
  */
 const reachedByBack = (): boolean => {
   try {
     const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-    return nav?.type === 'back_forward';
+    if (nav?.type === 'back_forward') return true;
+  } catch { /* ignore */ }
+  try {
+    const at = Number(sessionStorage.getItem(LEFT_FOR_APP_KEY));
+    return at > 0 && Date.now() - at < LEFT_FOR_APP_TTL;
   } catch { return false; }
 };
 
@@ -188,8 +208,9 @@ function HubPageInner() {
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
     // Standing on the Hub signed in: any remembered destination is from a trip
-    // that is over — see clearReturn.
+    // that is over — see clearReturn. The same goes for the trip to an app.
     clearReturn();
+    clearLeftForApp();
     const onward = takeOnward();
     // Pushed, not replaced: the Hub stays underneath, so the next back lands here.
     if (onward && !pendingPayment) router.push(onward);
@@ -272,7 +293,10 @@ function HubPageInner() {
         goToReferral={goToReferral}
       />
 
-      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => app.appUrl && signed.spent(app.appUrl)} />
+      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => {
+        markLeftForApp();
+        if (app.appUrl) signed.spent(app.appUrl);
+      }} />
       <HubComingSoon />
 
 

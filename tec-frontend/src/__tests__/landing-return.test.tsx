@@ -68,6 +68,13 @@ describe('a bounced visitor still gets carried back', () => {
     await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/dashboard/wallet'));
   });
 
+  it('back from an app opened by the Hub grid: "/" goes straight on to /hub (owner, phone, 2026-10-02)', async () => {
+    // Pi Browser's Back from the app's tab opens the Hub app's ROOT, not /hub.
+    sessionStorage.setItem('__tec_return_to', `/hub|${Date.now()}`);
+    render(<HomePage />);
+    await waitFor(() => expect(mockReplace).toHaveBeenCalledWith('/hub'));
+  });
+
   it('refuses a remembered value that is not a same-origin path', async () => {
     // Storage is a convenience, not a trust boundary — `//evil.com` starts
     // with "/" and browsers treat it as external.

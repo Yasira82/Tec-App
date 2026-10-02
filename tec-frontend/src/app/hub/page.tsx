@@ -296,7 +296,14 @@ function HubPageInner() {
         goToReferral={goToReferral}
       />
 
-      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => app.appUrl && signed.spent(app.appUrl)} />
+      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => {
+        // Android's Back from the app's tab opens the Hub's ROOT — Pi Browser
+        // goes back to the Hub app's own URL, `/`, not `/hub` (owner, phone,
+        // 2026-10-02). `/` forwards a signed-in visitor to a remembered
+        // destination; the campaign has always left one, the grid never did.
+        rememberReturn('/hub');
+        if (app.appUrl) signed.spent(app.appUrl);
+      }} />
       <HubComingSoon />
 
 

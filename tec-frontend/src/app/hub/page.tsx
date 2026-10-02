@@ -29,45 +29,34 @@ import { useHandoffLinks } from '@/lib-client/handoff-links';
 import '@/styles/tec-design-tokens.css';
 
 /**
- * Set when a grid tile opens an app — a time, never a credential (ADR-001). The
- * Hub reads it to know it is the page the visitor is coming BACK to, even when
- * Pi Browser reloads it as an ordinary navigation rather than a Back.
+ * No silent Pi sign-in on /hub: a /hub that finds no session offers the tap at
+ * once (HubContinue), on the Hub, instead of leaving for the marketing page.
+ * Read once, at mount.
+ *
+ * A grid app opens in a NEW tab — the only way Pi answers the app, counts the
+ * visit as the app's, and lets it take a payment (owner, phone, 2026-10-02: in
+ * the same tab, four payments from grid visits never reached approve while a
+ * standalone one completed). Coming back from that tab, Pi Browser reloads the
+ * Hub with none of its cookies (C-123 §7), and Pi does not answer a sign-in
+ * nobody tapped: the silent attempt only ran out its budget and left for the
+ * marketing page. The tap works at once — so it is offered first.
+ *
+ * Not on the Mode-1 pay screen (`?pay=1`): that path keeps the silent sign-in
+ * its payment preparation waits on.
  */
-const LEFT_FOR_APP_KEY = 'tec_hub_left_for_app';
-const LEFT_FOR_APP_TTL = 30 * 60 * 1000;
-
-const markLeftForApp = () => {
-  try { sessionStorage.setItem(LEFT_FOR_APP_KEY, String(Date.now())); } catch { /* ignore */ }
-};
-const clearLeftForApp = () => {
-  try { sessionStorage.removeItem(LEFT_FOR_APP_KEY); } catch { /* ignore */ }
-};
-
-/**
- * Is the visitor coming back to the Hub from an app? Read once, at mount —
- * see HubContinue for why it matters. Either signal is enough: the browser
- * calls it a Back, or a grid tile in this tab sent them to an app recently.
- */
-const reachedByBack = (): boolean => {
+const tapToContinue = (): boolean => {
   try {
-    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined;
-    if (nav?.type === 'back_forward') return true;
-  } catch { /* ignore */ }
-  try {
-    const at = Number(sessionStorage.getItem(LEFT_FOR_APP_KEY));
-    return at > 0 && Date.now() - at < LEFT_FOR_APP_TTL;
-  } catch { return false; }
+    return new URLSearchParams(window.location.search).get('pay') !== '1';
+  } catch { return true; }
 };
 
 function HubPageInner() {
-  const [cameBack] = useState(reachedByBack);
+  const [tapFirst] = useState(tapToContinue);
   // Once offered, the continue screen stays while its sign-in runs (login()
   // flips isLoading) — so a failure can still say so beside the button.
   const [offerContinue, setOfferContinue] = useState(false);
-  // Back from an app: no silent Pi sign-in on load — Pi does not answer one
-  // there, and waiting it out ended on the marketing page. HubContinue offers
-  // the tap instead, which Pi does answer.
-  const { user, isAuthenticated, isLoading, signingIn, login } = usePiAuth({ silentOnLoad: !cameBack });
+  // See tapToContinue: no silent Pi sign-in here; HubContinue offers the tap.
+  const { user, isAuthenticated, isLoading, signingIn, login } = usePiAuth({ silentOnLoad: !tapFirst });
   const { t, dir } = useTranslation();
   const locale: Locale = dir === 'rtl' ? 'ar' : 'en';
 
@@ -192,25 +181,24 @@ function HubPageInner() {
 
   /* ── Auth guard ── */
   useEffect(() => {
-    if (!isLoading && !isAuthenticated && !pendingPayment && !cameBack) {
+    if (!isLoading && !isAuthenticated && !pendingPayment && !tapFirst) {
       // Remember the Hub before leaving it, so signing in returns here rather
       // than to the marketing page. Same reason as the dashboard guard.
       rememberReturn('/hub');
       router.replace('/');
     }
-  }, [isLoading, isAuthenticated, pendingPayment, cameBack, router]);
+  }, [isLoading, isAuthenticated, pendingPayment, tapFirst, router]);
 
   useEffect(() => {
-    if (cameBack && !isLoading && !isAuthenticated && !pendingPayment) setOfferContinue(true);
-  }, [cameBack, isLoading, isAuthenticated, pendingPayment]);
+    if (tapFirst && !isLoading && !isAuthenticated && !pendingPayment) setOfferContinue(true);
+  }, [tapFirst, isLoading, isAuthenticated, pendingPayment]);
 
   /* ── Returning from an app: open the page it was tapped from, on top of the Hub ── */
   useEffect(() => {
     if (isLoading || !isAuthenticated) return;
     // Standing on the Hub signed in: any remembered destination is from a trip
-    // that is over — see clearReturn. The same goes for the trip to an app.
+    // that is over — see clearReturn.
     clearReturn();
-    clearLeftForApp();
     const onward = takeOnward();
     // Pushed, not replaced: the Hub stays underneath, so the next back lands here.
     if (onward && !pendingPayment) router.push(onward);
@@ -293,10 +281,7 @@ function HubPageInner() {
         goToReferral={goToReferral}
       />
 
-      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => {
-        markLeftForApp();
-        if (app.appUrl) signed.spent(app.appUrl);
-      }} />
+      <HubAppsGrid apps={gridApps} onOpenStandalone={(app) => app.appUrl && signed.spent(app.appUrl)} />
       <HubComingSoon />
 
 

@@ -207,15 +207,6 @@ describe('Hub grid — apps open standalone (owner decision, 2026-10-02)', () =>
     expect(screen.getByTestId('tile-kyc').getAttribute('href')).toBe('/hub/kyc');
   });
 
-  it('a tap leaves a return mark for the Hub to find on the way back', async () => {
-    sessionStorage.clear();
-    const { default: HubPage } = await import('@/app/hub/page');
-    await act(async () => { render(<HubPage />); });
-    fireEvent.click(screen.getByTestId('tile-ecommerce'));
-    expect(Number(sessionStorage.getItem('tec_hub_left_for_app'))).toBeGreaterThan(0);
-    sessionStorage.clear();
-  });
-
   it('a tap marks the token spent and fetches a fresh set afterwards', async () => {
     const { default: HubPage } = await import('@/app/hub/page');
     await act(async () => { render(<HubPage />); });

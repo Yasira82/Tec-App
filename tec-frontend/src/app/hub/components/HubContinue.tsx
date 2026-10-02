@@ -4,10 +4,10 @@ import { useState } from 'react';
 import { useTranslation } from '@/lib/i18n';
 
 /**
- * Back on the Hub from an app, with no session in this page.
+ * The Hub with no session in this page — typically back from an app.
  *
- * Since the grid opens apps on their own domain (tec-app #266), Android's Back
- * returns to a freshly loaded Hub that finds none of its cookies (C-123 §7).
+ * The grid opens apps on their own domain, in a new tab (tec-app #266).
+ * Android's Back then reloads the Hub with none of its cookies (C-123 §7).
  * It used to try a silent Pi sign-in, wait out its budget, and then leave for
  * the marketing page's "Sign in with Pi" — where one tap worked at once (owner,
  * phone, 2026-10-02). Pi answers the tap; it does not answer an authenticate

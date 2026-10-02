@@ -137,13 +137,15 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
     // credits the Hub for the visit. `window.location.href` would send it;
     // `rel="noreferrer"` does not.
     //
-    // In THIS tab, not a new one. #266 opened a new tab, and Android's Back from
-    // the app then reloaded the Hub elsewhere, with no session — the owner landed
-    // on the sign-in page instead of the Hub he left (2026-10-02). In the same
-    // tab, Back returns to this page, as it did before #266.
+    //
+    // In a NEW tab. #268 tried this tab, so Back would return to the Hub; on a
+    // phone (2026-10-02) Pi then treated the app as the Hub — it never answered
+    // the app, four grid-visit payments timed out, and the visit counted for the
+    // Hub. Only a new tab gives the app its own Pi session. Coming back is handled
+    // on the Hub's side (HubContinue).
     const standalone = !!app.appUrl && !openTo && !editing;
     const Tile = ({ children }: { children: React.ReactNode }) => standalone ? (
-      <a className="tec-btn" href={app.href} rel="noopener noreferrer"
+      <a className="tec-btn" href={app.href} target="_blank" rel="noopener noreferrer"
         onClick={() => { haptic('light'); onOpenStandalone?.(app); }}
         style={tileStyle}>{children}</a>
     ) : (

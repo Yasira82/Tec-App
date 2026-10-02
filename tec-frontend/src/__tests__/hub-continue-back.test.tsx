@@ -165,6 +165,7 @@ const navType = (type: string) =>
 
 beforeEach(() => {
   vi.clearAllMocks();
+  sessionStorage.clear();
   login.mockReset();
   mockUsePiAuth.mockReturnValue(signedOut);
   mockUsePiSdkReady.mockReturnValue({ piReady: false, authReady: false, lastError: null, ensurePiAuth: vi.fn() });
@@ -209,6 +210,26 @@ describe('Hub — Back from an app with no session', () => {
     await act(async () => { fireEvent.click(screen.getByText('Continue with Pi')); });
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
+  });
+
+  it('also knows it is a return when Pi Browser reloads it as an ordinary navigation — the grid left a mark', async () => {
+    navType('navigate');
+    sessionStorage.setItem('tec_hub_left_for_app', String(Date.now()));
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: false });
+    expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalledWith('/');
+    sessionStorage.clear();
+  });
+
+  it('a mark older than 30 minutes is not a return', async () => {
+    navType('navigate');
+    sessionStorage.setItem('tec_hub_left_for_app', String(Date.now() - 31 * 60 * 1000));
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: true });
+    sessionStorage.clear();
   });
 
   it('an ordinary visit is unchanged: silent sign-in on, and signed-out goes to the sign-in page', async () => {

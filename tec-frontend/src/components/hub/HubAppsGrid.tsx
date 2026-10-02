@@ -131,14 +131,19 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
       padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer',
       textDecoration: 'none', boxSizing: 'border-box',
     };
-    // An app on its own domain opens STANDALONE — a real link, a new tab, and NO
-    // referrer, exactly like the campaign's missions (C-123 §12). The referrer is
-    // the whole point: an app that sees the Hub as referrer marks the tab
-    // Hub-owned (ADR-007), never signs in with Pi, and Pi credits the Hub for the
-    // visit. `window.location.href` would send it; `rel="noreferrer"` does not.
+    // An app on its own domain opens STANDALONE — a real link with NO referrer
+    // (C-123 §12). The referrer is the whole point: an app that sees the Hub as
+    // referrer marks the tab Hub-owned (ADR-007), never signs in with Pi, and Pi
+    // credits the Hub for the visit. `window.location.href` would send it;
+    // `rel="noreferrer"` does not.
+    //
+    // In THIS tab, not a new one. #266 opened a new tab, and Android's Back from
+    // the app then reloaded the Hub elsewhere, with no session — the owner landed
+    // on the sign-in page instead of the Hub he left (2026-10-02). In the same
+    // tab, Back returns to this page, as it did before #266.
     const standalone = !!app.appUrl && !openTo && !editing;
     const Tile = ({ children }: { children: React.ReactNode }) => standalone ? (
-      <a className="tec-btn" href={app.href} target="_blank" rel="noopener noreferrer"
+      <a className="tec-btn" href={app.href} rel="noopener noreferrer"
         onClick={() => { haptic('light'); onOpenStandalone?.(app); }}
         style={tileStyle}>{children}</a>
     ) : (

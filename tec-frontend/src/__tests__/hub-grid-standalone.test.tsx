@@ -33,12 +33,14 @@ beforeEach(() => { localStorage.clear(); });
 const link = (name: string) => screen.getByText(name).closest('a');
 
 describe('Hub grid — an app opens standalone', () => {
-  it('is a real link to the signed href, in a new tab, with NO referrer', () => {
+  it('is a real link to the signed href, in THIS tab, with NO referrer', () => {
+    // Same tab: in a new one, Android's Back reloaded the Hub elsewhere with no
+    // session and landed on the sign-in page (owner, 2026-10-02).
     render(<HubAppsGrid apps={APPS} />);
     const a = link('Ecommerce')!;
     expect(a).toBeTruthy();
     expect(a.getAttribute('href')).toBe(SIGNED);
-    expect(a.getAttribute('target')).toBe('_blank');
+    expect(a.getAttribute('target')).toBeNull();
     expect(a.getAttribute('rel')).toContain('noreferrer');
     expect(a.getAttribute('href')).not.toContain('/api/auth/sso?target=');
   });

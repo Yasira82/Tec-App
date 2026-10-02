@@ -228,7 +228,10 @@ describe('HubPage — loading state', () => {
     expect(screen.getByTestId('hub-skeleton')).toBeInTheDocument();
   });
 
-  it('renders HubSkeleton when not authenticated and no pendingPayment', async () => {
+  it('offers "Continue with Pi" when not authenticated and no pendingPayment', async () => {
+    Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (Linux; Android 13; SM-A515F Build/TP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36 PiBrowser/2.0', configurable: true });
+    // Not the skeleton, and not a trip to "/": the tap Pi answers, on the Hub
+    // (owner, phone, 2026-10-02 — see HubContinue).
     mockUsePiAuth.mockReturnValue({
       ...defaultAuthState,
       user:            null,
@@ -237,7 +240,7 @@ describe('HubPage — loading state', () => {
     });
     const HubPage = await getPage();
     render(<HubPage />);
-    expect(screen.getByTestId('hub-skeleton')).toBeInTheDocument();
+    expect(await screen.findByText('Continue with Pi')).toBeInTheDocument();
   });
 });
 
@@ -245,7 +248,8 @@ describe('HubPage — loading state', () => {
 // 2. Auth guard redirect
 // ─────────────────────────────────────────────────────────────────
 describe('HubPage — auth guard', () => {
-  it('redirects to "/" when not authenticated after load', async () => {
+  it('stays on the Hub when not authenticated after load — the sign-in tap is offered here, not on "/"', async () => {
+    Object.defineProperty(navigator, 'userAgent', { value: 'Mozilla/5.0 (Linux; Android 13; SM-A515F Build/TP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36 PiBrowser/2.0', configurable: true });
     mockUsePiAuth.mockReturnValue({
       ...defaultAuthState,
       user:            null,
@@ -254,7 +258,8 @@ describe('HubPage — auth guard', () => {
     });
     const HubPage = await getPage();
     await act(async () => { render(<HubPage />); });
-    expect(mockReplace).toHaveBeenCalledWith('/');
+    expect(mockReplace).not.toHaveBeenCalledWith('/');
+    expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
   });
 
   it('does NOT redirect when authenticated', async () => {

@@ -163,9 +163,14 @@ const signedOut = { user: null, isAuthenticated: false, isLoading: false, signin
 const navType = (type: string) =>
   vi.spyOn(performance, 'getEntriesByType').mockReturnValue([{ type } as unknown as PerformanceEntry]);
 
+const setUA = (ua: string) => Object.defineProperty(navigator, 'userAgent', { value: ua, configurable: true });
+const PI_UA = 'Mozilla/5.0 (Linux; Android 13; SM-A515F Build/TP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36 PiBrowser/2.0';
+const DESKTOP_UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36';
+
 beforeEach(() => {
   vi.clearAllMocks();
   sessionStorage.clear();
+  setUA(PI_UA);
   login.mockReset();
   mockUsePiAuth.mockReturnValue(signedOut);
   mockUsePiSdkReady.mockReturnValue({ piReady: false, authReady: false, lastError: null, ensurePiAuth: vi.fn() });
@@ -182,8 +187,8 @@ beforeEach(() => {
   vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: true, json: async () => ({}) } as any);
 });
 
-describe('Hub — Back from an app with no session', () => {
-  it('turns the silent Pi sign-in off, and offers "Continue with Pi" on the Hub instead of leaving', async () => {
+describe('Hub — no session on /hub: the tap, at once, on the Hub', () => {
+  it('turns the silent Pi sign-in off, and offers "Continue with Pi" instead of leaving', async () => {
     navType('back_forward');
     const { default: HubPage } = await import('@/app/hub/page');
     await act(async () => { render(<HubPage />); });
@@ -193,8 +198,16 @@ describe('Hub — Back from an app with no session', () => {
     expect(mockReplace).not.toHaveBeenCalledWith('/');
   });
 
+  it('the same for a reload that is not a Back — Pi Browser reloads the Hub from a new tab that way', async () => {
+    navType('navigate');
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: false });
+    expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
+    expect(mockReplace).not.toHaveBeenCalledWith('/');
+  });
+
   it('the tap signs in with Pi', async () => {
-    navType('back_forward');
     login.mockResolvedValue({ success: true });
     const { default: HubPage } = await import('@/app/hub/page');
     await act(async () => { render(<HubPage />); });
@@ -203,7 +216,6 @@ describe('Hub — Back from an app with no session', () => {
   });
 
   it('says so when Pi does not answer the tap, and keeps the button', async () => {
-    navType('back_forward');
     login.mockRejectedValue(new Error('timed out'));
     const { default: HubPage } = await import('@/app/hub/page');
     await act(async () => { render(<HubPage />); });
@@ -212,32 +224,29 @@ describe('Hub — Back from an app with no session', () => {
     expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
   });
 
-  it('also knows it is a return when Pi Browser reloads it as an ordinary navigation — the grid left a mark', async () => {
-    navType('navigate');
-    sessionStorage.setItem('tec_hub_left_for_app', String(Date.now()));
-    const { default: HubPage } = await import('@/app/hub/page');
-    await act(async () => { render(<HubPage />); });
-    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: false });
-    expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
-    expect(mockReplace).not.toHaveBeenCalledWith('/');
-    sessionStorage.clear();
-  });
-
-  it('a mark older than 30 minutes is not a return', async () => {
-    navType('navigate');
-    sessionStorage.setItem('tec_hub_left_for_app', String(Date.now() - 31 * 60 * 1000));
-    const { default: HubPage } = await import('@/app/hub/page');
-    await act(async () => { render(<HubPage />); });
-    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: true });
-    sessionStorage.clear();
-  });
-
-  it('an ordinary visit is unchanged: silent sign-in on, and signed-out goes to the sign-in page', async () => {
-    navType('navigate');
+  it('a desktop browser keeps the old way — to the sign-in page, where it can at least be told to open Pi Browser', async () => {
+    setUA(DESKTOP_UA);
     const { default: HubPage } = await import('@/app/hub/page');
     await act(async () => { render(<HubPage />); });
     expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: true });
     expect(screen.queryByText('Continue with Pi')).toBeNull();
     expect(mockReplace).toHaveBeenCalledWith('/');
+  });
+
+  it('recognises Pi Browser by its WebView marker even without a Pi token in the agent', async () => {
+    setUA('Mozilla/5.0 (Linux; Android 13; SM-A515F; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/120.0 Mobile Safari/537.36');
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+    expect(screen.getByText('Continue with Pi')).toBeInTheDocument();
+  });
+
+  it('the Mode-1 pay screen keeps its silent sign-in — its payment preparation waits on it', async () => {
+    Object.defineProperty(window, 'location', {
+      value: { href: '/hub?pay=1&amount=5', search: '?pay=1&amount=5', replace: vi.fn() },
+      writable: true, configurable: true,
+    });
+    const { default: HubPage } = await import('@/app/hub/page');
+    await act(async () => { render(<HubPage />); });
+    expect(mockUsePiAuth).toHaveBeenCalledWith({ silentOnLoad: true });
   });
 });

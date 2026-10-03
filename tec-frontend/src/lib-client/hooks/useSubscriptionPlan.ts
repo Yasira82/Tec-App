@@ -15,8 +15,15 @@ import { useCallback, useEffect, useState } from 'react';
  * the unwrap lives here in ONE place, with flat/bare fallbacks, failing closed to FREE (P6).
  */
 export interface PlanState {
-  /** Uppercase plan id — 'FREE' | 'PRO' | 'ENTERPRISE'. */
+  /**
+   * The plan IN FORCE — 'FREE' | 'PRO' | 'ENTERPRISE'. A cancelled or lapsed PRO is
+   * 'FREE' here: commerce keeps `plan: PRO` on that row, and four screens (sidebar
+   * badge, dashboard Plan card, both profile pages) printed it as "PRO" after the
+   * owner had cancelled (2026-10-03). The stored name is `storedPlan`.
+   */
   plan:     string;
+  /** The plan name on the commerce row, live or not — for "your Pro expired" copy. */
+  storedPlan: string;
   /** True only for a paid plan that is active and not expired (no auto-renewal). */
   isPaid:   boolean;
   /** Days left in the current period, when commerce reports it. */
@@ -30,17 +37,19 @@ export function resolvePlan(raw: unknown): Omit<PlanState, 'loading' | 'refresh'
   const d = raw as { data?: { subscription?: Record<string, unknown> } & Record<string, unknown> } & Record<string, unknown>;
   const s = (d?.data?.subscription ?? d?.data ?? d) as Record<string, unknown> | undefined;
 
-  const plan      = typeof s?.plan === 'string' ? s.plan.toUpperCase() : 'FREE';
-  const active    = s?.isActive  !== false;   // absent → assume active, plan gates it
+  const stored    = typeof s?.plan === 'string' ? s.plan.toUpperCase() : 'FREE';
+  const status    = typeof s?.status === 'string' ? s.status.toUpperCase() : '';
+  const active    = s?.isActive !== false && (!status || status === 'ACTIVE');   // absent → assume active
   const isExpired = s?.isExpired === true;
   const days      = typeof s?.daysRemaining === 'number' ? s.daysRemaining : null;
+  const isPaid    = stored !== 'FREE' && active && !isExpired;
 
-  return { plan, isPaid: plan !== 'FREE' && active && !isExpired, daysRemaining: days, isExpired };
+  return { plan: isPaid ? stored : 'FREE', storedPlan: stored, isPaid, daysRemaining: days, isExpired };
 }
 
 export function useSubscriptionPlan(enabled = true): PlanState {
   const [state, setState] = useState<Omit<PlanState, 'loading' | 'refresh'>>({
-    plan: 'FREE', isPaid: false, daysRemaining: null, isExpired: false,
+    plan: 'FREE', storedPlan: 'FREE', isPaid: false, daysRemaining: null, isExpired: false,
   });
   const [loading, setLoading] = useState(enabled);
 

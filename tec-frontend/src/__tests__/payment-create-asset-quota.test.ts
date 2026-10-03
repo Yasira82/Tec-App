@@ -53,3 +53,19 @@ describe('Hub /api/payment/create — the asset cap on a new asset', () => {
     expect(mockQuota).not.toHaveBeenCalled();
   });
 });
+
+describe('Hub /api/payment/create — a header with no real token', () => {
+  it('"Bearer null" falls back to the session cookie', async () => {
+    const r = new NextRequest('https://hub.tecosystem.app/api/payment/create', {
+      method:  'POST',
+      headers: { authorization: 'Bearer null', 'content-type': 'application/json' },
+      body:    JSON.stringify({ amount: 10, currency: 'PI', payment_method: 'pi', metadata: { type: 'subscription', plan: 'PRO' } }),
+    });
+    r.cookies.set('tec_user', encodeURIComponent(JSON.stringify({ id: 'u1' })));
+    r.cookies.set('tec_access_token', 'cookie-tok');
+    const { POST } = await import('@/app/api/payment/create/route');
+    expect((await POST(r)).status).toBe(201);
+    const init = mockFetchTimeout.mock.calls[0][1] as RequestInit;
+    expect((init.headers as Record<string, string>).Authorization ?? (init.headers as Record<string, string>).authorization).toBe('Bearer cookie-tok');
+  });
+});

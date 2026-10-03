@@ -203,6 +203,42 @@ describe('HubSubscriptionPage', () => {
     expect(container).toBeTruthy();
   });
 
+  it('a CANCELLED PRO shows the Free plan — no expiry, no unlimited assets, no Cancel button', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: { subscription: {
+          plan: 'PRO', status: 'CANCELLED', isActive: false, isExpired: false,
+          current_period_end: new Date(Date.now() + 29 * 86_400_000).toISOString(), daysRemaining: 29,
+        } },
+      }),
+    }) as any;
+    const { default: HubSubscriptionPage } = await import('@/app/hub/subscription/page');
+    const { findByTestId } = render(<HubSubscriptionPage />);
+    const shell = await findByTestId('hub-shell');
+    const text = shell.textContent ?? '';
+    expect(text).not.toMatch(/Expires/);
+    expect(text).not.toMatch(/Unlimited assets/);
+    expect(text).not.toMatch(/Cancel Subscription/);
+  });
+
+  it('a live ACTIVE PRO still shows its expiry and the Cancel button', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        data: { subscription: {
+          plan: 'PRO', status: 'ACTIVE', isActive: true, isExpired: false,
+          current_period_end: new Date(Date.now() + 29 * 86_400_000).toISOString(), daysRemaining: 29,
+        } },
+      }),
+    }) as any;
+    const { default: HubSubscriptionPage } = await import('@/app/hub/subscription/page');
+    const { findByTestId } = render(<HubSubscriptionPage />);
+    const shell = await findByTestId('hub-shell');
+    expect(shell.textContent).toMatch(/Expires in 29 days/);
+    expect(shell.textContent).toMatch(/Cancel Subscription/);
+  });
+
   it('renders with failed fetch (no subscription)', async () => {
     global.fetch = vi.fn().mockResolvedValue({
       ok: false, json: async () => ({}),

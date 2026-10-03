@@ -95,6 +95,22 @@ export function normalizePlan(raw: unknown): PlanId {
   return s === 'PRO' || s === 'ENTERPRISE' ? s : 'FREE';
 }
 
+/**
+ * The plan a subscription actually grants RIGHT NOW. Commerce keeps `plan` after a
+ * cancel or an expiry — the row says PRO with status CANCELLED/EXPIRED — so the plan
+ * name alone is not the answer: only a live ACTIVE subscription grants its plan.
+ * The server gate (plan.server.ts) already read it this way; the subscription page
+ * read `plan` alone and showed "Pro · Expires …" after the owner had cancelled
+ * (2026-10-03). Every reader that DISPLAYS a plan uses this.
+ */
+export function effectivePlan(sub: unknown): PlanId {
+  const s = (sub ?? {}) as { plan?: unknown; status?: unknown; isActive?: unknown; isExpired?: unknown };
+  const status = String(s.status ?? '').toUpperCase();
+  if (status && status !== 'ACTIVE') return 'FREE';
+  if (s.isActive === false || s.isExpired === true) return 'FREE';
+  return normalizePlan(s.plan);
+}
+
 export function entitlementsFor(plan: unknown): Entitlements {
   return ENTITLEMENTS[normalizePlan(plan)];
 }

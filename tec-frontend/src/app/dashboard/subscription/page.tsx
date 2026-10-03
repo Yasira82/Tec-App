@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback }  from 'react';
 import { getAccessToken }                    from '@/lib-client/pi/pi-auth';
 import { DashboardShell, DashboardCard }     from '@/components/dashboard';
 import { sessionToken } from '@/lib-client/pi/session-source';
+import { effectivePlan } from '@/lib/subscription/entitlements';
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -251,7 +252,8 @@ export default function SubscriptionPage() {
     finally { setCancelling(false); }
   };
 
-  const currentPlan = sub?.plan ?? 'FREE';
+  // A cancelled or lapsed PRO keeps `plan: PRO` in commerce — only a live one is current.
+  const currentPlan = effectivePlan(sub);
 
   const badge = currentPlan === 'ENTERPRISE'
     ? { text: 'ENTERPRISE', color: 'blue'  as const }

@@ -21,6 +21,8 @@ const getCsrfToken = (): string => {
   return document.cookie.split('; ').find(r => r.startsWith('tec_csrf='))?.split('=')?.[1] ?? '';
 };
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /**
  * The URL to return to, or the Hub when the caller named one this Hub may not
  * send a user to. Fails closed (P6): an unknown origin is not a reason to
@@ -80,6 +82,11 @@ export function useExternalPayment({ isLoading, piReady, user, onError }: Args) 
       productId:    p.get('product_id') || p.get('item') || '',
       nexusRunId:   p.get('nexus_run')  ?? '',
       nexusStepIdx: p.get('nexus_step') ?? '',
+      // The order the app reserved before sending the buyer here (Ecommerce holds
+      // the last unit BEFORE payment). Only a UUID is carried; anything else is
+      // dropped. It is not trusted either way: commerce marks the hold PAID only
+      // when it belongs to the payer and the payment covers its total.
+      orderId:      UUID.test(p.get('order_id') ?? '') ? (p.get('order_id') as string) : undefined,
       // Where to send the user after Cancel or success. Two rules:
       //
       // 1. It must be ALLOWLISTED. This URL is navigated to, and on success it
@@ -159,6 +166,7 @@ export function useExternalPayment({ isLoading, piReady, user, onError }: Args) 
               ...(pending.nexusRunId
                 ? { nexusRunId: pending.nexusRunId, nexusStepIdx: Number(pending.nexusStepIdx) }
                 : {}),
+              ...(pending.orderId ? { order_id: pending.orderId } : {}),
               // IIC 4.5 §7 — what the human is about to look at, recorded WITH the
               // payment rather than reconstructed from it afterwards.
               //

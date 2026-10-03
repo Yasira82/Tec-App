@@ -30,6 +30,9 @@ export interface ExternalPayment {
   // the Hub, these travel into the payment metadata so the run resumes on completion.
   nexusRunId?:   string;
   nexusStepIdx?: string;
+  // The app's held order (commerce-service) this payment is for. It rides in the
+  // payment metadata so payment.completed.v1 turns THAT hold into a PAID order.
+  orderId?:      string;
 }
 
 /**

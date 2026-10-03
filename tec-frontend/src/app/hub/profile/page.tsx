@@ -53,9 +53,10 @@ export default function HubProfilePage() {
 
   // Plan comes from commerce, NOT the auth session — /me never carries it, so
   // `user.subscriptionPlan` reported FREE to paying Pro/Enterprise users.
-  const { plan }  = useSubscriptionPlan();
-  // `plan` is the enum from commerce; the reader gets its translated name.
-  const planLabel = t.hub.plans[normalizePlan(plan)].name.toUpperCase();
+  const { plan, isPaid } = useSubscriptionPlan();
+  // `plan` is the enum from commerce; the reader gets its translated name. A
+  // cancelled or lapsed PRO keeps `plan: PRO` in commerce — only a live one is Pro.
+  const planLabel = t.hub.plans[isPaid ? normalizePlan(plan) : 'FREE'].name.toUpperCase();
   // `role` is a backend enum ('admin'), but it renders where a WORD belongs. An
   // unknown role falls back to the raw value rather than silently reading "User" —
   // a role we cannot name is something to notice, not to paper over (P6).

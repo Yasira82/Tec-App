@@ -8,7 +8,7 @@ import { HubSubShell }                      from '@/components/hub';
 import { DashboardCard }                    from '@/components/dashboard';
 import { sessionToken }                     from '@/lib-client/pi/session-source';
 import {
-  PLAN_META, PLAN_ORDER, FEATURE_ROWS, entitlementsFor, normalizePlan,
+  PLAN_META, PLAN_ORDER, FEATURE_ROWS, entitlementsFor, effectivePlan,
   type PlanId, type FeatureRow,
 } from '@/lib/subscription/entitlements';
 
@@ -304,10 +304,12 @@ export default function HubSubscriptionPage() {
     finally { setCancelling(false); }
   };
 
-  const plan: PlanId = normalizePlan(sub?.plan);
+  // What the subscription grants now — a cancelled or lapsed PRO is FREE here, as it
+  // is at the server gate. Reading `sub.plan` alone showed "Pro" after a cancel.
+  const plan: PlanId = effectivePlan(sub);
   const meta         = PLAN_META[plan];
   const ent          = entitlementsFor(plan);
-  const isActivePaid = plan !== 'FREE' && String(sub?.status ?? 'ACTIVE').toUpperCase() === 'ACTIVE';
+  const isActivePaid = plan !== 'FREE';
   // The badge showed the raw plan ENUM ('FREE'/'PRO') — an identifier, not copy.
   // It reads as the plan's name, so it gets the plan's translated name.
   const badge = {
@@ -361,7 +363,7 @@ export default function HubSubscriptionPage() {
           </div>
         </div>
 
-        {sub?.current_period_end && (
+        {isActivePaid && sub?.current_period_end && (
           <RenewalNotice
             endISO={sub.current_period_end}
             daysRemaining={sub.daysRemaining}

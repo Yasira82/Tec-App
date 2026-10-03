@@ -12,7 +12,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { useExternalPayment } from '@/lib-client/hooks/useExternalPayment';
 import { piSession } from '@/lib-client/pi/pi-session';
 
-const productSentToCreate = async (url: string): Promise<unknown> => {
+const metadataSentToCreate = async (url: string): Promise<Record<string, unknown>> => {
   window.history.replaceState({}, '', url);
   vi.spyOn(piSession, 'ensurePaymentsReady').mockResolvedValue(true);
   const fetchMock = vi.fn(async () =>
@@ -24,8 +24,9 @@ const productSentToCreate = async (url: string): Promise<unknown> => {
 
   const body = JSON.parse((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body as string);
   vi.unstubAllGlobals();
-  return body.metadata.product_id;
+  return body.metadata;
 };
+const productSentToCreate = async (url: string) => (await metadataSentToCreate(url)).product_id;
 
 describe('Mode 1 — the product reaches the payment whichever name the app used', () => {
   beforeEach(() => vi.restoreAllMocks());
@@ -43,5 +44,27 @@ describe('Mode 1 — the product reaches the payment whichever name the app used
   it('prefers `product_id` when an app sends both (Life sends both)', async () => {
     expect(await productSentToCreate('/hub?pay=1&amount=5&source=life&product_id=life_pro_monthly&item=legacy'))
       .toBe('life_pro_monthly');
+  });
+});
+
+// Ecommerce holds the last unit BEFORE sending the buyer here; the hold's id has
+// to reach the payment's metadata, or the paid hold is never settled.
+describe('Mode 1 — the held order rides into the payment', () => {
+  beforeEach(() => vi.restoreAllMocks());
+  const ORDER = '11111111-2222-4333-8444-555555555555';
+
+  it('carries order_id when the app sent one', async () => {
+    const m = await metadataSentToCreate(`/hub?pay=1&amount=12&source=ecommerce&product_id=p1&order_id=${ORDER}`);
+    expect(m.order_id).toBe(ORDER);
+  });
+
+  it('drops an order_id that is not a UUID', async () => {
+    const m = await metadataSentToCreate('/hub?pay=1&amount=12&source=ecommerce&product_id=p1&order_id=..%2Fx');
+    expect(m).not.toHaveProperty('order_id');
+  });
+
+  it('sends no order_id when the app sent none (every Pro purchase)', async () => {
+    const m = await metadataSentToCreate('/hub?pay=1&amount=15&source=estate&item=estate_pro_monthly');
+    expect(m).not.toHaveProperty('order_id');
   });
 });

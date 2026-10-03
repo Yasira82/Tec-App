@@ -1,5 +1,6 @@
 import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 import { getAccessToken, getStoredUser, waitForPiSDK } from './pi-auth';
+import { sessionToken } from './session-source';
 import { piSession } from '@/lib-client/pi/pi-session';
 import sdk           from '@/lib/sdk';
 import { buildHeaders } from '@/lib/request-id';
@@ -11,6 +12,15 @@ import {
   MAX_RETRIES,
   RETRY_BASE_DELAY_MS,
 } from './payment-timeouts';
+
+// The session's token, only when there is one. Pi Browser hides the HttpOnly
+// cookie from page JS (C-123 §3), and `Bearer ${getAccessToken()}` then sent
+// "Bearer null" — a header the server preferred over the cookie it could read.
+// With no header, the routes use the session cookie.
+const bearer = (): Record<string, string> => {
+  const t = sessionToken();
+  return t ? { Authorization: `Bearer ${t}` } : {};
+};
 
 export interface A2UPaymentRequest {
   recipientUid: string;
@@ -107,38 +117,42 @@ export const createU2APayment = async (
 
   // ✅ self-create if caller didn't pre-create
   if (!internalId) {
+    // ALWAYS create the record. This used to run only when the page could read a
+    // user id from the tec_user cookie — and Pi Browser hides that cookie from page
+    // JS (C-123 §3), so in Pi Browser the step was skipped and every self-created
+    // payment stopped at "Payment setup failed" before Pi opened. The owner hit it
+    // on the Hub's "Upgrade to Pro" (2026-10-03). /api/payment/create resolves the
+    // user from the session cookie server-side and never trusts this body's id (P6).
     const storedUser = getStoredUser();
     const userId     = storedUser?.id ?? storedUser?.piId ?? null;
-    if (userId) {
-      try {
-        onDiagnostic?.('info', 'Creating payment record', { userId, amount });
-        const res = await fetch('/api/payment/create', {
-          method:      'POST',
-          credentials: 'include',
-          headers: {
-            ...buildHeaders(),
-            Authorization:  `Bearer ${getAccessToken()}`,
-            'x-csrf-token': getCsrfToken(),
-          },
-          body: JSON.stringify({ userId, amount, currency: 'PI', payment_method: 'pi', metadata }),
-        });
-        if (res.ok) {
-          const data = await res.json();
-          internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? undefined;
-          onDiagnostic?.('info', 'Backend record created', { internalId });
-        } else {
-          const errStatus = res.status;
-          onDiagnostic?.('error', `Backend create returned ${errStatus} — aborting Pi call`);
-          const errMsg = errStatus === 401
-            ? 'Session expired — please log out and log in again, then retry.'
-            : `Payment setup failed (${errStatus}). Please try again.`;
-          throw new Error(errMsg);
-        }
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Backend create failed';
-        onDiagnostic?.('error', `Backend create failed: ${msg}`);
-        throw new Error(msg);
+    try {
+      onDiagnostic?.('info', 'Creating payment record', { userId, amount });
+      const res = await fetch('/api/payment/create', {
+        method:      'POST',
+        credentials: 'include',
+        headers: {
+          ...buildHeaders(),
+          ...bearer(),
+          'x-csrf-token': getCsrfToken(),
+        },
+        body: JSON.stringify({ ...(userId ? { userId } : {}), amount, currency: 'PI', payment_method: 'pi', metadata }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        internalId = data?.data?.payment?.id ?? data?.data?.id ?? data?.data?.payment_id ?? undefined;
+        onDiagnostic?.('info', 'Backend record created', { internalId });
+      } else {
+        const errStatus = res.status;
+        onDiagnostic?.('error', `Backend create returned ${errStatus} — aborting Pi call`);
+        const errMsg = errStatus === 401
+          ? 'Session expired — please log out and log in again, then retry.'
+          : `Payment setup failed (${errStatus}). Please try again.`;
+        throw new Error(errMsg);
       }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Backend create failed';
+      onDiagnostic?.('error', `Backend create failed: ${msg}`);
+      throw new Error(msg);
     }
   }
 
@@ -210,7 +224,7 @@ export const createU2APayment = async (
                   credentials: 'include',
                   headers: {
                     ...buildHeaders(),
-                    Authorization:  `Bearer ${getAccessToken()}`,
+                    ...bearer(),
                     'x-csrf-token': getCsrfToken(),
                   },
                   body: JSON.stringify({ payment_id: internalId, pi_payment_id: piPaymentId }),
@@ -251,7 +265,7 @@ export const createU2APayment = async (
                   credentials: 'include',
                   headers: {
                     ...buildHeaders(),
-                    Authorization:  `Bearer ${getAccessToken()}`,
+                    ...bearer(),
                     'x-csrf-token': getCsrfToken(),
                   },
                   body: JSON.stringify({ payment_id: internalId, transaction_id: txid }),

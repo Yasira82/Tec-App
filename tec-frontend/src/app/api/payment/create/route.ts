@@ -43,9 +43,14 @@ async function refreshAccessToken(req: NextRequest): Promise<string | null> {
 }
 
 export async function POST(req: NextRequest) {
+  // A header carrying no real token ("Bearer null" / "Bearer undefined" — what a
+  // page that cannot read the HttpOnly cookie used to send) is treated as absent,
+  // so the session cookie is used instead of a token that cannot authenticate.
+  const headerAuth = req.headers.get('authorization') ?? req.headers.get('Authorization');
+  const headerToken = headerAuth?.startsWith('Bearer ') ? headerAuth.slice(7).trim() : '';
+  const usableHeader = headerToken && headerToken !== 'null' && headerToken !== 'undefined' ? headerAuth : null;
   let authHeader =
-    req.headers.get('authorization') ??
-    req.headers.get('Authorization') ??
+    usableHeader ??
     (() => {
       const raw = req.cookies.get('tec_access_token')?.value;
       return raw ? `Bearer ${raw}` : null;

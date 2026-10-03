@@ -37,9 +37,10 @@ describe('resolvePlan', () => {
     expect(res.isPaid).toBe(true);
   });
 
-  it('treats an EXPIRED paid plan as not paid (no auto-renewal)', () => {
+  it('treats an EXPIRED paid plan as not paid (no auto-renewal) — and shows it as FREE', () => {
     const res = resolvePlan({ data: { subscription: { plan: 'PRO', isActive: true, isExpired: true } } });
-    expect(res.plan).toBe('PRO');
+    expect(res.plan).toBe('FREE');
+    expect(res.storedPlan).toBe('PRO');
     expect(res.isPaid).toBe(false);
     expect(res.isExpired).toBe(true);
   });
@@ -47,6 +48,15 @@ describe('resolvePlan', () => {
   it('treats an INACTIVE paid plan as not paid', () => {
     const res = resolvePlan({ data: { subscription: { plan: 'PRO', isActive: false } } });
     expect(res.isPaid).toBe(false);
+  });
+
+  it('a CANCELLED Pro is FREE wherever a plan is shown (2026-10-03: sidebar and dashboard said PRO)', () => {
+    const res = resolvePlan({ data: { subscription: { plan: 'PRO', status: 'CANCELLED', isActive: false } } });
+    expect(res.plan).toBe('FREE');
+    expect(res.storedPlan).toBe('PRO');
+    expect(res.isPaid).toBe(false);
+    // status alone is enough, even if isActive were missing
+    expect(resolvePlan({ data: { subscription: { plan: 'PRO', status: 'CANCELLED' } } }).plan).toBe('FREE');
   });
 
   it('FREE is never paid', () => {

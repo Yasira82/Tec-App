@@ -3,6 +3,7 @@ import { randomUUID }                from 'crypto';
 import { isE2eMode }                 from '@/lib/server/e2e-mode';
 import { fetchWithTimeout }          from '@/lib/server/fetch-with-timeout';
 import { networkMetadata }           from '@/lib/pi-network';
+import { checkAssetQuota }           from '@/lib/subscription/plan.server';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -66,6 +67,29 @@ export async function POST(req: NextRequest) {
         { error: 'Cannot resolve userId from session', requestId },
         { status: 401, headers: { 'X-Request-ID': requestId } },
       );
+    }
+
+    // A NEW asset paid through the Hub's modal (Mode 1 — Assets' NFT upload sends
+    // `product_id: nft:…`) meets the plan's asset cap HERE, before any π moves.
+    // The cap was enforced only on /api/assets and /api/assets/provision, which an
+    // app-minted NFT never passes: a FREE owner with 65 assets minted a 66th
+    // (2026-10-03). Same check, same 402 shape as provision.
+    const productId = String((body?.metadata as Record<string, unknown> | undefined)?.product_id ?? '');
+    if (productId.startsWith('nft:')) {
+      const quota = await checkAssetQuota(authHeader.slice(7), userId);
+      if (!quota.allowed) {
+        return NextResponse.json(
+          {
+            error:        `Your ${quota.plan} plan allows up to ${quota.limit} assets. Upgrade to Pro for unlimited assets.`,
+            code:         'UPGRADE_REQUIRED',
+            requiredPlan: 'PRO',
+            limit:        quota.limit,
+            owned:        quota.owned,
+            requestId,
+          },
+          { status: 402, headers: { 'X-Request-ID': requestId } },
+        );
+      }
     }
 
     const missing = REQUIRED_FIELDS.filter(f => body[f] == null || body[f] === '');

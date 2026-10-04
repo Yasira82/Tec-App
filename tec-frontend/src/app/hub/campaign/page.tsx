@@ -12,6 +12,7 @@ import { rememberReturn, clearReturn } from '@/lib-client/return-to';
 import { useBackGoesToHub } from '@/lib-client/back-to-hub';
 import { useTranslation, fill } from '@/lib/i18n';
 import { StopReasonCard, type StopReason } from './StopReasonCard';
+import { PickMissions, type PickMission } from './PickMissions';
 
 /**
  * The Pi reward campaign.
@@ -35,6 +36,18 @@ interface Me {
   posted_address: string | null;
   eligible:    boolean;
   reward_pi:   number;
+  /**
+   * Round 3 (`pick`): the pioneer chooses 1 to `pick_max` of `apps`, reports on
+   * each, and is paid `reward_pi` per app — `reward_total` in all. Round 2
+   * (`all`, or absent): every app on the list, one reward.
+   */
+  mode?:        'all' | 'pick';
+  pick_max?:    number;
+  picks?:       string[];
+  missions?:    PickMission[];
+  reward_total?: number;
+  /** Only WHETHER the continuity question was answered — never the answer. */
+  continuity_answered?: boolean;
   /** This pioneer's own answer to "why did you stop?", if they gave one. */
   stop_reason?: { reason: StopReason; note: string | null } | null;
   claim: null | {
@@ -463,7 +476,7 @@ export default function CampaignPage() {
     const done  = new Set(me.done ?? []);
     // Only THIS round's missions. The tapped list outlives rounds, and an app
     // from an earlier round is not something this campaign asked for.
-    const asked = new Set(me.apps ?? []);
+    const asked = new Set(me.mode === 'pick' ? (me.picks ?? []) : (me.apps ?? []));
     for (const slug of readTapped()) {
       if (!asked.has(slug) || done.has(slug) || resent.current.has(slug)) continue;
       resent.current.add(slug);
@@ -560,6 +573,9 @@ export default function CampaignPage() {
   };
 
   const claim   = me?.claim ?? null;
+  const pickRound = me?.mode === 'pick';
+  // What the claim pays: one reward in Round 2, one per reported app in Round 3.
+  const rewardShown = pickRound ? (me?.reward_total ?? me?.reward_pi ?? '') : (me?.reward_pi ?? '');
 
   /**
    * A REJECTED claim is not an active one.
@@ -774,7 +790,7 @@ export default function CampaignPage() {
                 fontWeight: 800, fontSize: 'var(--text-sm)',
                 color: claim.status === 'PAID' ? 'var(--tec-green)' : 'var(--tec-gold)',
               }}>
-                {claim.status === 'PAID'     ? fill(c.paidTitle, { reward: me?.reward_pi ?? '' })
+                {claim.status === 'PAID'     ? fill(c.paidTitle, { reward: rewardShown })
                  : claim.status === 'REJECTED' ? c.rejectedTitle
                  : claim.payout_blocked        ? fill(c.seatBlocked, { seat: claim.seat ?? '' })
                  : fill(c.seatYours, { seat: claim.seat ?? '' })}
@@ -977,10 +993,23 @@ export default function CampaignPage() {
               </div>
 
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-3)', lineHeight: 1.6 }}>
-                {fill(c.missionsIntro, { reward: me?.reward_pi ?? status?.reward_pi ?? '' })}
+                {fill(pickRound ? c.pick.intro : c.missionsIntro, { reward: me?.reward_pi ?? status?.reward_pi ?? '' })}
               </div>
 
-              {(me?.apps ?? status?.apps ?? []).map((slug) => (
+              {pickRound && me ? (
+                <PickMissions
+                  apps={me.apps}
+                  missions={me.missions ?? []}
+                  rewardPi={me.reward_pi}
+                  pickMax={me.pick_max ?? 3}
+                  continuityAnswered={me.continuity_answered ?? false}
+                  strings={c.pick}
+                  nameOf={(slug) => nameOf(slug, locale)}
+                  linkOf={(slug) => signed(withReturnMark(hrefFor(slug)))}
+                  onOpen={(slug) => { recordOpen(slug); signed.spent(withReturnMark(hrefFor(slug))); }}
+                  onChanged={load}
+                />
+              ) : (me?.apps ?? status?.apps ?? []).map((slug) => (
                 <Mission
                   key={slug}
                   slug={slug}
@@ -999,7 +1028,9 @@ export default function CampaignPage() {
                 {!me?.eligible ? (
                   <>
                     <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)', textAlign: 'center' }}>
-                      {c.finishFirst}
+                      {pickRound && (me?.picks?.length ?? 0) > 0
+                        ? fill(c.pick.finishFirst, { total: rewardShown })
+                        : pickRound ? '' : c.finishFirst}
                     </div>
                     {/* Signed in, not finished, no seat: ask why, once (Round 3 decision). */}
                     {me && !claim && (
@@ -1053,7 +1084,7 @@ export default function CampaignPage() {
                         cursor: sending ? 'default' : 'pointer', font: 'inherit',
                       }}
                     >
-                      {sending ? c.taking : fill(c.claimWithAddr, { reward: me?.reward_pi ?? '' })}
+                      {sending ? c.taking : fill(c.claimWithAddr, { reward: rewardShown })}
                     </button>
                     <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)', marginTop: 8, lineHeight: 1.6 }}>
                       {c.orPostInstead}
@@ -1104,7 +1135,7 @@ export default function CampaignPage() {
                       fontSize: 13, fontWeight: 700,
                       color: error ? 'var(--tec-red)' : 'var(--tec-gold)',
                     }}>
-                      {sending ? c.taking : error ? '' : fill(c.claiming, { reward: me?.reward_pi ?? '' })}
+                      {sending ? c.taking : error ? '' : fill(c.claiming, { reward: rewardShown })}
                     </div>
 
                     {error && (

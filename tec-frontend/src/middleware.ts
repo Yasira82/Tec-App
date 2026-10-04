@@ -29,6 +29,9 @@ const CSRF_PROTECTED = [
   '/api/bff/commerce',
   '/api/bff/identity',
   '/api/bff/notifications',
+  // The campaign's writes: claim, address, stop reason, and Round 3's pick /
+  // report / continuity. Same-origin fetches pass on Origin alone.
+  '/api/bff/campaign',
 ];
 
 // Double-submit CSRF token cookie. Not a secret — same-origin policy stops

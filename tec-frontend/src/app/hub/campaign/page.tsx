@@ -11,6 +11,7 @@ import { getSource }   from '@/lib-client/campaign';
 import { rememberReturn, clearReturn } from '@/lib-client/return-to';
 import { useBackGoesToHub } from '@/lib-client/back-to-hub';
 import { useTranslation, fill } from '@/lib/i18n';
+import { StopReasonCard, type StopReason } from './StopReasonCard';
 
 /**
  * The Pi reward campaign.
@@ -34,6 +35,8 @@ interface Me {
   posted_address: string | null;
   eligible:    boolean;
   reward_pi:   number;
+  /** This pioneer's own answer to "why did you stop?", if they gave one. */
+  stop_reason?: { reason: StopReason; note: string | null } | null;
   claim: null | {
     seat:           number | null;
     status:         'CLAIMED' | 'PAID' | 'REJECTED';
@@ -994,9 +997,23 @@ export default function CampaignPage() {
               {/* ── Claim ──────────────────────────────────── */}
               <div style={{ marginTop: 'var(--sp-5)' }}>
                 {!me?.eligible ? (
-                  <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)', textAlign: 'center' }}>
-                    {c.finishFirst}
-                  </div>
+                  <>
+                    <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)', textAlign: 'center' }}>
+                      {c.finishFirst}
+                    </div>
+                    {/* Signed in, not finished, no seat: ask why, once (Round 3 decision). */}
+                    {me && !claim && (
+                      <StopReasonCard
+                        initial={me.stop_reason ?? null}
+                        strings={{
+                          title: c.stopReason.title,
+                          reasons: { a: c.stopReason.a, b: c.stopReason.b, c: c.stopReason.c, d: c.stopReason.d, e: c.stopReason.e },
+                          note: c.stopReason.note, send: c.stopReason.send, thanks: c.stopReason.thanks,
+                          change: c.stopReason.change, failed: c.stopReason.failed,
+                        }}
+                      />
+                    )}
+                  </>
                 ) : !me?.posted_address ? (
                   <>
                     {/* Nothing in the group — so ask, here, once.

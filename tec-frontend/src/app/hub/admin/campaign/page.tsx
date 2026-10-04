@@ -5,6 +5,7 @@ import { useRouter }  from 'next/navigation';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
+import { FunnelCard }  from './FunnelCard';
 
 /**
  * The payout queue.
@@ -516,6 +517,7 @@ export default function AdminCampaignPage() {
         </div>
       ) : (
         <>
+          <FunnelCard />
           <div style={{ display: 'flex', gap: 6, marginBottom: 'var(--sp-4)', flexWrap: 'wrap' }}>
             {(['CLAIMED', 'PAID', 'REJECTED', 'ALL'] as const).map((s) => (
               <button key={s} onClick={() => setFilter(s)} style={{

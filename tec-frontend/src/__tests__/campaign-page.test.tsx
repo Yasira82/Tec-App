@@ -310,3 +310,32 @@ describe('the re-send does not hijack the way home', () => {
     expect(opens()).toHaveLength(0);
   });
 });
+
+describe('a Round 3 pick round (mode: pick)', () => {
+  const PICK_ME = {
+    mode: 'pick', apps: ['explorer', 'zone', 'commerce'], action_apps: [], picks: ['zone', 'explorer'],
+    missions: [
+      { app: 'zone', arrived: true, report: 'Clear and quick', reported_at: '2026-10-05T10:00:00Z', evidence: 'partial' },
+      { app: 'explorer', arrived: false, report: null, reported_at: null, evidence: null },
+    ],
+    done: ['zone'], missing: ['explorer'], eligible: false, reward_pi: 1, reward_total: 2, pick_max: 3,
+    continuity_answered: false, posted_address: null, claim: null,
+  };
+
+  it('shows the picked apps with their state, and the total the claim will pay', async () => {
+    vi.stubGlobal('fetch', answer(PICK_ME));
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByTestId('mission-zone')).toBeInTheDocument());
+    expect(screen.getByTestId('mission-explorer')).toBeInTheDocument();
+    expect(screen.queryByTestId('mission-commerce')).toBeNull();
+    expect(screen.getByText(/to claim 2 π/)).toBeInTheDocument();
+    expect(screen.getByTestId('continuity-card')).toBeInTheDocument();
+  });
+
+  it('with nothing picked yet, opens on the picker', async () => {
+    vi.stubGlobal('fetch', answer({ ...PICK_ME, picks: [], missions: [], done: [], missing: [], reward_total: 0 }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByRole('group')).toBeInTheDocument());
+    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+  });
+});

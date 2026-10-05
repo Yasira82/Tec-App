@@ -37,14 +37,17 @@ interface Me {
   eligible:    boolean;
   reward_pi:   number;
   /**
-   * Round 3 (`pick`): the pioneer chooses 1 to `pick_max` of `apps`, reports on
-   * each, and is paid `reward_pi` per app — `reward_total` in all. Round 2
-   * (`all`, or absent): every app on the list, one reward.
+   * Round 3 (`pick`): the service assigns 3 apps, the pioneer reports on each,
+   * the owner reviews, and 3/3 approved pays `reward_total`. Round 2 (`all`, or
+   * absent): every app on the list, one reward.
    */
   mode?:        'all' | 'pick';
   pick_max?:    number;
   picks?:       string[];
   missions?:    PickMission[];
+  /** False until the service has assigned this pioneer's apps. */
+  assigned?:    boolean;
+  swaps_left?:  number;
   reward_total?: number;
   /** This pioneer's own answer to "why did you stop?", if they gave one. */
   stop_reason?: { reason: StopReason; note: string | null } | null;
@@ -1001,10 +1004,10 @@ export default function CampaignPage() {
 
               {pickRound && me ? (
                 <PickMissions
-                  apps={me.apps}
+                  assigned={me.assigned ?? (me.missions ?? []).length > 0}
                   missions={me.missions ?? []}
+                  swapsLeft={me.swaps_left ?? 0}
                   rewardPi={me.reward_pi}
-                  pickMax={me.pick_max ?? 3}
                   strings={c.pick}
                   nameOf={(slug) => nameOf(slug, locale)}
                   linkOf={(slug) => signed(withReturnMark(hrefFor(slug)))}
@@ -1055,11 +1058,6 @@ export default function CampaignPage() {
                         is reached only by somebody who finished every mission
                         and did not post one. The warning above the missions has
                         already said what we will never ask for. */}
-                    {pickRound && (me?.picks?.length ?? 0) < (me?.pick_max ?? 3) && (
-                      <div style={{ fontSize: 12, color: 'var(--tec-text-3)', lineHeight: 1.6, marginBottom: 'var(--sp-3)' }}>
-                        {fill(c.pick.orAdd, { max: me?.pick_max ?? 3, reward: me?.reward_pi ?? '' })}
-                      </div>
-                    )}
                     <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.7, marginBottom: 'var(--sp-3)' }}>
                       {c.typeAddrIntro}
                     </div>
@@ -1133,15 +1131,10 @@ export default function CampaignPage() {
                     </div>
 
                     {/* Round 2: no button — the seat is taken the moment there is
-                        nothing left to decide. A pick round asks, because there
-                        IS something left: whether to add another app first. */}
+                        nothing left to decide. A pick round asks: the claim is
+                        the pioneer's own step once the owner has approved all 3. */}
                     {pickRound ? (
                       <>
-                        {(me?.picks?.length ?? 0) < (me?.pick_max ?? 3) && (
-                          <div style={{ fontSize: 12, color: 'var(--tec-text-3)', textAlign: 'center', lineHeight: 1.6, marginTop: 'var(--sp-3)' }}>
-                            {fill(c.pick.orAdd, { max: me?.pick_max ?? 3, reward: me?.reward_pi ?? '' })}
-                          </div>
-                        )}
                         <button
                           onClick={() => { void submit(); }}
                           disabled={sending}

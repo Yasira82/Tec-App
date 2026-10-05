@@ -311,58 +311,48 @@ describe('the re-send does not hijack the way home', () => {
   });
 });
 
-describe('a Round 3 pick round (mode: pick)', () => {
-  const PICK_ME = {
-    mode: 'pick', apps: ['explorer', 'zone', 'commerce'], action_apps: [], picks: ['zone', 'explorer'],
-    missions: [
-      { app: 'zone', arrived: true, report: 'Clear and quick', reported_at: '2026-10-05T10:00:00Z', evidence: 'partial' },
-      { app: 'explorer', arrived: false, report: null, reported_at: null, evidence: null },
-    ],
-    done: ['zone'], missing: ['explorer'], eligible: false, reward_pi: 1, reward_total: 2, pick_max: 3,
+describe('Round 3 — three assigned apps (mode: pick)', () => {
+  const m = (app: string, status: string, arrived = true) => ({
+    app, status, arrived, report: status === 'ASSIGNED' ? null : 'I opened it and signed in.',
+    had_problem: false, detail: status === 'ASSIGNED' ? null : 'The menu was clear and quick.',
+    suggestion: null, review_note: null, reported_at: status === 'ASSIGNED' ? null : '2026-10-05T10:00:00Z', evidence: null,
+  });
+  const ME = {
+    mode: 'pick', apps: ['titan', 'vip', 'insure'], action_apps: [], picks: ['titan', 'vip', 'insure'], assigned: true, swaps_left: 2,
+    missions: [m('titan', 'APPROVED'), m('vip', 'SUBMITTED'), m('insure', 'ASSIGNED', false)],
+    done: ['titan'], missing: ['vip', 'insure'], eligible: false, reward_pi: 1, reward_total: 3, pick_max: 3,
     posted_address: null, claim: null,
   };
 
-  it('shows the picked apps with their state, and the total the claim will pay', async () => {
-    vi.stubGlobal('fetch', answer(PICK_ME));
+  it('shows the three assigned apps, each with where it stands, and what the claim will pay', async () => {
+    vi.stubGlobal('fetch', answer(ME));
     render(<CampaignPage />);
-    await waitFor(() => expect(screen.getByTestId('mission-zone')).toBeInTheDocument());
-    expect(screen.getByTestId('mission-explorer')).toBeInTheDocument();
-    expect(screen.queryByTestId('mission-commerce')).toBeNull();
-    expect(screen.getByText(/to claim 2 π/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByTestId('mission-titan')).toBeInTheDocument());
+    expect(screen.getByTestId('mission-titan').textContent).toContain('Approved');
+    expect(screen.getByTestId('mission-vip').textContent).toContain('waiting for review');
+    expect(screen.getByTestId('mission-insure').textContent).toContain('Open it from here');
+    expect(screen.getByText('1 of 3 approved — 1 π each')).toBeInTheDocument();
+    expect(screen.getByText(/claim 3 π/)).toBeInTheDocument();
+    expect(screen.getByTestId('criteria')).toBeInTheDocument();
   });
 
-  it('with nothing picked yet, opens on the picker', async () => {
-    vi.stubGlobal('fetch', answer({ ...PICK_ME, picks: [], missions: [], done: [], missing: [], reward_total: 0 }));
+  it('before assignment, offers one button — the apps are not chosen here', async () => {
+    vi.stubGlobal('fetch', answer({ ...ME, assigned: false, picks: [], apps: [], missions: [], done: [], missing: [] }));
     render(<CampaignPage />);
-    await waitFor(() => expect(screen.getByRole('group')).toBeInTheDocument());
-    expect(screen.getAllByRole('checkbox')).toHaveLength(3);
+    await waitFor(() => expect(screen.getByText('Get my 3 apps')).toBeInTheDocument());
+    expect(screen.queryByRole('checkbox')).toBeNull();
   });
-});
 
-describe('a pick round claims on a tap — the pioneer may still add apps', () => {
-  const DONE_ONE = {
-    mode: 'pick', apps: ['titan', 'vip', 'zone'], action_apps: [], picks: ['titan'],
-    missions: [{ app: 'titan', arrived: true, report: 'Clear and quick', reported_at: '2026-10-05T10:00:00Z', evidence: 'partial', suggestion: null }],
-    done: ['titan'], missing: [], eligible: true, reward_pi: 1, reward_total: 1, pick_max: 3,
-    posted_address: 'GAIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCF6M', claim: null,
-  };
-
-  it('does not take the seat by itself, offers to add another app, and claims on the button', async () => {
-    const f = answer(DONE_ONE);
+  it('3/3 approved: claims on the button, never by itself', async () => {
+    const done = { ...ME, missions: ['titan', 'vip', 'insure'].map((a) => m(a, 'APPROVED')), done: ['titan', 'vip', 'insure'], missing: [], eligible: true,
+      posted_address: 'GAIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCF6M' };
+    const f = answer(done);
     vi.stubGlobal('fetch', f);
     render(<CampaignPage />);
-    await waitFor(() => expect(screen.getByText('Claim 1 π now')).toBeInTheDocument());
-    expect(screen.getByText(/add another app first/)).toBeInTheDocument();
-    expect(f.mock.calls.some(([u, i]) => String(u).includes('/campaign/claim') && (i as RequestInit | undefined)?.method === 'POST')).toBe(false);
-    screen.getByText('Claim 1 π now').click();
-    await waitFor(() => expect(f.mock.calls.some(([u, i]) => String(u).includes('/campaign/claim') && (i as RequestInit | undefined)?.method === 'POST')).toBe(true));
-  });
-
-  it('with 3 apps picked there is nothing to add, so no hint', async () => {
-    vi.stubGlobal('fetch', answer({ ...DONE_ONE, picks: ['titan', 'vip', 'zone'], reward_total: 3,
-      missions: ['titan', 'vip', 'zone'].map((app) => ({ ...DONE_ONE.missions[0], app })), done: ['titan', 'vip', 'zone'] }));
-    render(<CampaignPage />);
     await waitFor(() => expect(screen.getByText('Claim 3 π now')).toBeInTheDocument());
-    expect(screen.queryByText(/add another app first/)).toBeNull();
+    const claimed = () => f.mock.calls.some(([u, i]) => String(u).includes('/campaign/claim') && (i as RequestInit | undefined)?.method === 'POST');
+    expect(claimed()).toBe(false);
+    screen.getByText('Claim 3 π now').click();
+    await waitFor(() => expect(claimed()).toBe(true));
   });
 });

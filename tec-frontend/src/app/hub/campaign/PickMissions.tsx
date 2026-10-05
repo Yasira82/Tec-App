@@ -4,36 +4,45 @@ import { useState } from 'react';
 import { fill } from '@/lib/i18n';
 
 /**
- * Round 3 — pick 1 to 3 apps, open each, report what you found
- * (KB audits/ROUND_3_DISCOVERY_DECISION_2026-10-04.md §4).
+ * Round 3 — three assigned apps, a report on each, reviewed by the owner
+ * (KB audits/ROUND_3_DISCOVERY_DECISION_2026-10-04.md §4b, owner 2026-10-05).
  *
- * The size of the mission is the pioneer's choice. That choice is the round's
- * question: how many pick 1 against how many pick 3 is the answer to "is one app
- * too little, or are 24 too many?".
+ *   ASSIGNED → SUBMITTED → (NEEDS_REVISION → SUBMITTED)* → APPROVED
  *
- * Nothing here decides anything. The service checks the picks, accepts a report
- * only after the app itself reported the arrival, and works out the reward. This
- * screen shows what it says and sends what the pioneer chose.
+ * The service assigns the apps and decides everything; this screen shows where
+ * each report stands and sends what the pioneer wrote. The report asks what
+ * HAPPENED — an app that simply worked is evidence too — and "needs revision"
+ * is the owner asking for more, never a rejection.
  */
+export type MissionStatus = 'ASSIGNED' | 'SUBMITTED' | 'NEEDS_REVISION' | 'APPROVED';
+
 export interface PickMission {
-  app:         string;
-  arrived:     boolean;
-  report:      string | null;
-  reported_at: string | null;
-  evidence:    string | null;
-  /** The update they would like in this app — optional, sent with the report. */
-  suggestion?: string | null;
+  app:          string;
+  status?:      MissionStatus;
+  arrived:      boolean;
+  report:       string | null;
+  had_problem?: boolean | null;
+  detail?:      string | null;
+  suggestion?:  string | null;
+  /** The owner's note when the report needs revision. */
+  review_note?: string | null;
+  reported_at:  string | null;
+  evidence:     string | null;
 }
 
 export interface PickStrings {
-  choose: string; start: string; change: string;
-  notOpened: string; arrived: string; reported: string; edit: string;
-  placeholder: string; send: string; failed: string;
-  suggestion: string; suggested: string;
+  criteria: string; getApps: string; approvedOf: string;
+  notOpened: string; arrived: string; submitted: string; needsRevision: string;
+  ownerNote: string; approved: string;
+  observedLabel: string; problemQ: string; yes: string; no: string;
+  problemLabel: string; goodLabel: string; suggestion: string;
+  send: string; resend: string; edit: string; failed: string;
+  swap: string; swapReason: string; swapConfirm: string; cancel: string;
+  problemTag: string; goodTag: string; suggested: string;
 }
 
-const REPORT_MIN = 10;
-const REPORT_MAX = 1000;
+const TEXT_MIN = 10;
+const TEXT_MAX = 1000;
 const SUGGESTION_MAX = 500;
 
 const csrfHeader = (): Record<string, string> => {
@@ -58,6 +67,14 @@ const box = {
   borderRadius: 'var(--radius-md)', padding: 'var(--sp-3) var(--sp-4)', marginBottom: 'var(--sp-2)',
 } as const;
 
+const area = {
+  width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px solid var(--tec-border)',
+  background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13,
+  resize: 'vertical', boxSizing: 'border-box',
+} as const;
+
+const label = { display: 'block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: 'var(--tec-text-2)' } as const;
+
 const goldButton = (enabled: boolean) => ({
   width: '100%', marginTop: 'var(--sp-3)', padding: '11px 0', borderRadius: 12, border: 'none',
   background: 'var(--tec-gold)', color: 'var(--tec-on-gold, #1A1205)', fontWeight: 800, fontSize: 13.5,
@@ -69,157 +86,195 @@ const linkButton = {
   fontSize: 12.5, fontWeight: 700, cursor: 'pointer', font: 'inherit',
 } as const;
 
+const alert = (text?: string) =>
+  text ? <div role="alert" style={{ marginTop: 8, color: 'var(--tec-red)', fontSize: 12.5 }}>{text}</div> : null;
+
+interface Draft { observed: string; had_problem: boolean | null; detail: string; suggestion: string }
+
+const draftOf = (m: PickMission): Draft => ({
+  observed: m.report ?? '', had_problem: m.had_problem ?? null, detail: m.detail ?? '', suggestion: m.suggestion ?? '',
+});
+
 export function PickMissions({
-  apps, missions, rewardPi, pickMax, strings: s,
+  assigned, missions, swapsLeft, rewardPi, strings: s,
   nameOf, linkOf, onOpen, onChanged,
 }: {
-  apps:      string[];
+  assigned:  boolean;
   missions:  PickMission[];
+  swapsLeft: number;
   rewardPi:  number;
-  pickMax:   number;
   strings:   PickStrings;
   nameOf:    (slug: string) => string;
   linkOf:    (slug: string) => string;
   onOpen:    (slug: string) => void;
   onChanged: () => void | Promise<void>;
 }) {
-  const picks = missions.map((m) => m.app);
-  const reportedApps = missions.filter((m) => m.reported_at).map((m) => m.app);
-
-  const [choosing, setChoosing] = useState(picks.length === 0);
-  const [chosen,   setChosen]   = useState<string[]>(picks);
   const [busy,     setBusy]     = useState<string | null>(null);
   const [errors,   setErrors]   = useState<Record<string, string>>({});
-  const [drafts,   setDrafts]   = useState<Record<string, string>>({});
+  const [drafts,   setDrafts]   = useState<Record<string, Draft>>({});
   const [editing,  setEditing]  = useState<Record<string, boolean>>({});
-  const [ideas,    setIdeas]    = useState<Record<string, string>>({});
+  const [swapping, setSwapping] = useState<string | null>(null);
+  const [reason,   setReason]   = useState('');
 
-  const fail = (key: string, e: unknown) =>
-    setErrors((x) => ({ ...x, [key]: (e as Error).message || s.failed }));
-  const clear = (key: string) => setErrors(({ [key]: _gone, ...rest }) => rest);
-
-  const toggle = (slug: string) => {
-    if (reportedApps.includes(slug)) return;   // a reported app stays picked
-    setChosen((c) => (c.includes(slug)
-      ? c.filter((a) => a !== slug)
-      : c.length >= pickMax ? c : [...c, slug]));
-  };
-
-  const savePicks = async () => {
-    setBusy('pick'); clear('pick');
+  const run = async (key: string, path: string, body: unknown, after?: () => void) => {
+    setBusy(key);
+    setErrors(({ [key]: _gone, ...rest }) => rest);
     try {
-      await post('pick', { apps: chosen }, s.failed);
-      setChoosing(false);
+      await post(path, body, s.failed);
+      after?.();
       await onChanged();
-    } catch (e) { fail('pick', e); } finally { setBusy(null); }
+    } catch (e) {
+      setErrors((x) => ({ ...x, [key]: (e as Error).message || s.failed }));
+    } finally { setBusy(null); }
   };
 
-  const sendReport = async (app: string) => {
-    const text = (drafts[app] ?? '').trim();
-    const idea = (ideas[app] ?? missions.find((m) => m.app === app)?.suggestion ?? '').trim();
-    setBusy(app); clear(app);
-    try {
-      await post('report', { app, report: text, ...(idea ? { suggestion: idea } : {}) }, s.failed);
-      setEditing((x) => ({ ...x, [app]: false }));
-      await onChanged();
-    } catch (e) { fail(app, e); } finally { setBusy(null); }
-  };
+  // What makes a report acceptable, said BEFORE anyone writes one.
+  const criteria = (
+    <div data-testid="criteria" style={{ ...box, background: 'var(--tec-surface-1)', fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.7 }}>
+      {s.criteria}
+    </div>
+  );
 
-  // ── Choosing ────────────────────────────────────────────────
-  if (choosing) {
+  if (!assigned) {
     return (
       <div>
-        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tec-text-1)', marginBottom: 'var(--sp-2)' }}>
-          {fill(s.choose, { n: chosen.length, max: pickMax })}
-        </div>
-        <div role="group" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {apps.map((slug) => {
-            const on = chosen.includes(slug);
-            const full = !on && chosen.length >= pickMax;
-            return (
-              <button key={slug} role="checkbox" aria-checked={on} disabled={full || reportedApps.includes(slug)}
-                onClick={() => toggle(slug)}
-                style={{
-                  textAlign: 'start', padding: '11px 12px', borderRadius: 10, font: 'inherit', fontSize: 13.5,
-                  cursor: full ? 'default' : 'pointer', opacity: full ? 0.45 : 1,
-                  border: `1px solid ${on ? 'var(--tec-gold)' : 'var(--tec-border)'}`,
-                  background: on ? 'var(--tec-gold-dim)' : 'transparent', color: 'var(--tec-text-1)',
-                  display: 'flex', alignItems: 'center', gap: 10,
-                }}>
-                <span aria-hidden>{on ? '☑' : '☐'}</span>{nameOf(slug)}
-              </button>
-            );
-          })}
-        </div>
-        <button onClick={() => { void savePicks(); }} disabled={chosen.length === 0 || busy === 'pick'}
-          style={goldButton(chosen.length > 0 && busy !== 'pick')}>
-          {fill(s.start, { n: chosen.length || 1, total: Number(((chosen.length || 1) * rewardPi).toFixed(8)) })}
+        {criteria}
+        <button onClick={() => { void run('assign', 'assign', {}); }} disabled={busy === 'assign'}
+          style={goldButton(busy !== 'assign')}>
+          {s.getApps}
         </button>
-        {errors.pick && <div role="alert" style={{ marginTop: 8, color: 'var(--tec-red)', fontSize: 12.5 }}>{errors.pick}</div>}
+        {alert(errors.assign)}
       </div>
     );
   }
 
-  // ── The picked missions ─────────────────────────────────────
+  const approvedCount = missions.filter((m) => m.status === 'APPROVED').length;
 
   return (
     <div>
+      {criteria}
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--tec-text-1)', margin: 'var(--sp-3) 0 var(--sp-2)' }}>
+        {fill(s.approvedOf, { n: approvedCount, total: missions.length, reward: rewardPi })}
+      </div>
+
       {missions.map((m) => {
-        const reported = !!m.reported_at;
-        const writing = m.arrived && (!reported || editing[m.app]);
-        const draft = drafts[m.app] ?? m.report ?? '';
-        const okLength = draft.trim().length >= REPORT_MIN;
+        const status = m.status ?? 'ASSIGNED';
+        const d = drafts[m.app] ?? draftOf(m);
+        const set = (patch: Partial<Draft>) => setDrafts((x) => ({ ...x, [m.app]: { ...d, ...patch } }));
+        const canWrite = m.arrived
+          && (status === 'ASSIGNED' || status === 'NEEDS_REVISION' || (status === 'SUBMITTED' && !!editing[m.app]));
+        const ready = d.observed.trim().length >= TEXT_MIN && d.had_problem !== null && d.detail.trim().length >= TEXT_MIN;
+        const line = status === 'APPROVED' ? s.approved
+          : status === 'SUBMITTED' ? s.submitted
+          : status === 'NEEDS_REVISION' ? s.needsRevision
+          : m.arrived ? s.arrived : s.notOpened;
+        const tone = status === 'APPROVED' ? 'var(--tec-green)' : status === 'NEEDS_REVISION' ? 'var(--tec-red)' : 'var(--tec-gold)';
+        const icon = status === 'APPROVED' ? '✅' : status === 'SUBMITTED' ? '⏳' : status === 'NEEDS_REVISION' ? '✏️' : m.arrived ? '◐' : '○';
+        const showSent = (status === 'SUBMITTED' && !editing[m.app]) || status === 'APPROVED';
+
         return (
           <div key={m.app} data-testid={`mission-${m.app}`}
-            style={{ ...box, borderColor: reported ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)' }}>
+            style={{ ...box, borderColor: status === 'APPROVED' ? 'rgba(34,197,94,0.3)' : 'var(--tec-border)' }}>
             <a href={linkOf(m.app)} target="_blank" rel="noopener noreferrer" onClick={() => onOpen(m.app)}
               style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none' }}>
-              <span style={{ fontSize: 18 }}>{reported ? '✅' : m.arrived ? '◐' : '○'}</span>
+              <span style={{ fontSize: 18 }}>{icon}</span>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{nameOf(m.app)}</div>
-                <div style={{ fontSize: 11.5, marginTop: 2, color: reported ? 'var(--tec-green)' : 'var(--tec-gold)' }}>
-                  {reported ? s.reported : m.arrived ? s.arrived : s.notOpened}
-                </div>
+                <div style={{ fontSize: 11.5, marginTop: 2, color: tone }}>{line}</div>
               </div>
               <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
             </a>
 
-            {reported && !editing[m.app] && (
-              <div style={{ marginTop: 8 }}>
-                <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>“{m.report}”</div>
-                {m.suggestion && (
-                  <div style={{ fontSize: 12, color: 'var(--tec-text-3)', lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
-                    {s.suggested} “{m.suggestion}”
-                  </div>
-                )}
-                <button onClick={() => { setEditing((x) => ({ ...x, [m.app]: true })); setDrafts((d) => ({ ...d, [m.app]: m.report ?? '' })); }}
-                  style={{ ...linkButton, marginTop: 6 }}>{s.edit}</button>
+            {status === 'NEEDS_REVISION' && m.review_note && (
+              <div data-testid={`note-${m.app}`} style={{ marginTop: 10, padding: 'var(--sp-3)', borderRadius: 10, background: 'rgba(251,180,74,0.10)', border: '1px solid var(--tec-border-gold)', fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
+                <strong>{s.ownerNote}</strong> {m.review_note}
               </div>
             )}
 
-            {writing && (
-              <div style={{ marginTop: 10 }}>
-                <textarea value={draft} rows={3} placeholder={s.placeholder} aria-label={s.placeholder}
-                  onChange={(e) => setDrafts((d) => ({ ...d, [m.app]: e.target.value.slice(0, REPORT_MAX) }))}
-                  style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
-                {/* Optional — what they would change. It replaced the lost-phone
-                    question (owner, 2026-10-05): the round asks about the apps. */}
-                <textarea value={ideas[m.app] ?? m.suggestion ?? ''} rows={2} placeholder={s.suggestion} aria-label={s.suggestion}
-                  onChange={(e) => setIdeas((d) => ({ ...d, [m.app]: e.target.value.slice(0, SUGGESTION_MAX) }))}
-                  style={{ width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
-                <button onClick={() => { void sendReport(m.app); }} disabled={!okLength || busy === m.app}
-                  style={goldButton(okLength && busy !== m.app)}>{s.send}</button>
+            {showSent && (
+              <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                <div>“{m.report}”</div>
+                {m.detail && <div style={{ marginTop: 4 }}>{m.had_problem ? s.problemTag : s.goodTag} “{m.detail}”</div>}
+                {m.suggestion && <div style={{ marginTop: 4, color: 'var(--tec-text-3)' }}>{s.suggested} “{m.suggestion}”</div>}
+                {status === 'SUBMITTED' && (
+                  <button onClick={() => { setEditing((x) => ({ ...x, [m.app]: true })); setDrafts((x) => ({ ...x, [m.app]: draftOf(m) })); }}
+                    style={{ ...linkButton, marginTop: 6 }}>{s.edit}</button>
+                )}
               </div>
             )}
-            {errors[m.app] && <div role="alert" style={{ marginTop: 8, color: 'var(--tec-red)', fontSize: 12.5 }}>{errors[m.app]}</div>}
+
+            {canWrite && (
+              <div style={{ marginTop: 6 }}>
+                <label style={label}>{s.observedLabel}
+                  <textarea value={d.observed} rows={3} aria-label={s.observedLabel}
+                    onChange={(e) => set({ observed: e.target.value.slice(0, TEXT_MAX) })} style={area} />
+                </label>
+                <div style={label}>{s.problemQ}</div>
+                <div role="radiogroup" aria-label={s.problemQ} style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+                  {([[true, s.yes], [false, s.no]] as const).map(([v, text]) => (
+                    <button key={String(v)} role="radio" aria-checked={d.had_problem === v} onClick={() => set({ had_problem: v })}
+                      style={{
+                        flex: 1, padding: '9px 0', borderRadius: 10, font: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                        border: `1px solid ${d.had_problem === v ? 'var(--tec-gold)' : 'var(--tec-border)'}`,
+                        background: d.had_problem === v ? 'var(--tec-gold-dim)' : 'transparent', color: 'var(--tec-text-1)',
+                      }}>
+                      {text}
+                    </button>
+                  ))}
+                </div>
+                {d.had_problem !== null && (
+                  <label style={label}>{d.had_problem ? s.problemLabel : s.goodLabel}
+                    <textarea value={d.detail} rows={3} aria-label={d.had_problem ? s.problemLabel : s.goodLabel}
+                      onChange={(e) => set({ detail: e.target.value.slice(0, TEXT_MAX) })} style={area} />
+                  </label>
+                )}
+                <label style={label}>{s.suggestion}
+                  <textarea value={d.suggestion} rows={2} aria-label={s.suggestion}
+                    onChange={(e) => set({ suggestion: e.target.value.slice(0, SUGGESTION_MAX) })} style={area} />
+                </label>
+                <button
+                  onClick={() => {
+                    void run(m.app, 'report', {
+                      app: m.app, observed: d.observed.trim(), had_problem: d.had_problem, detail: d.detail.trim(),
+                      ...(d.suggestion.trim() ? { suggestion: d.suggestion.trim() } : {}),
+                    }, () => setEditing((x) => ({ ...x, [m.app]: false })));
+                  }}
+                  disabled={!ready || busy === m.app}
+                  style={goldButton(ready && busy !== m.app)}>
+                  {status === 'ASSIGNED' ? s.send : s.resend}
+                </button>
+              </div>
+            )}
+
+            {/* A technical problem: swap this app for another, saying why. */}
+            {status === 'ASSIGNED' && swapsLeft > 0 && (swapping === m.app ? (
+              <div style={{ marginTop: 10 }}>
+                <label style={label}>{s.swapReason}
+                  <textarea value={reason} rows={2} aria-label={s.swapReason}
+                    onChange={(e) => setReason(e.target.value.slice(0, TEXT_MAX))} style={area} />
+                </label>
+                <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                  <button
+                    onClick={() => { void run(`swap-${m.app}`, 'swap', { app: m.app, reason: reason.trim() }, () => { setSwapping(null); setReason(''); }); }}
+                    disabled={reason.trim().length < TEXT_MIN || busy === `swap-${m.app}`}
+                    style={{ ...goldButton(reason.trim().length >= TEXT_MIN), marginTop: 0, flex: 1 }}>
+                    {s.swapConfirm}
+                  </button>
+                  <button onClick={() => { setSwapping(null); setReason(''); }} style={{ ...linkButton, color: 'var(--tec-text-3)', padding: '0 12px' }}>
+                    {s.cancel}
+                  </button>
+                </div>
+                {alert(errors[`swap-${m.app}`])}
+              </div>
+            ) : (
+              <button onClick={() => { setSwapping(m.app); setReason(''); }} style={{ ...linkButton, marginTop: 10, color: 'var(--tec-text-3)' }}>
+                {fill(s.swap, { left: swapsLeft })}
+              </button>
+            ))}
+            {alert(errors[m.app])}
           </div>
         );
       })}
-
-      <button onClick={() => { setChosen(picks); setChoosing(true); }} style={{ ...linkButton, marginTop: 4 }}>
-        {s.change}
-      </button>
-
     </div>
   );
 }

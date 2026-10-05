@@ -16,8 +16,6 @@ interface Funnel {
   per_app: { app: string; tapped: number; arrived: number; picked?: number; reported?: number }[];
   /** Round 3: how many chose 1, 2 or 3 apps — the round's question. */
   picks?: { one: number; two: number; three: number };
-  /** Round 3: the continuity answers. Counts only — the service never says who. */
-  continuity?: { yes: number; no: number; not_sure: number };
   stop_reasons: { reason: string; label: string; count: number }[];
   notes: { reason: string; note: string; at: string }[];
 }
@@ -34,7 +32,7 @@ const STAGES: { key: keyof Funnel['stages']; label: string }[] = [
 const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : '—');
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-interface Report { owner: string; app: string; report: string | null; reported_at: string | null }
+interface Report { owner: string; app: string; report: string | null; suggestion?: string | null; reported_at: string | null }
 
 export function FunnelCard() {
   const [f, setF] = useState<Funnel | null>(null);
@@ -116,20 +114,6 @@ export function FunnelCard() {
         </>
       )}
 
-      {f.continuity && (
-        <>
-          <div style={head}>“If your phone were lost today, would your Pi be safe?” — counts only</div>
-          <div data-testid="continuity-counts" style={{ display: 'flex', gap: 8 }}>
-            {([['Yes', f.continuity.yes], ['No', f.continuity.no], ['Not sure', f.continuity.not_sure]] as const).map(([label, n]) => (
-              <div key={label} style={{ flex: 1, textAlign: 'center', padding: '6px 0', borderRadius: 10, border: '1px solid var(--tec-border)' }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--tec-text-1)' }}>{n}</div>
-                <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)' }}>{label}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-
       <div style={head}>Why people stopped (their words)</div>
       {f.stop_reasons.every((r) => r.count === 0) ? (
         <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)' }}>No answers yet.</div>
@@ -150,13 +134,16 @@ export function FunnelCard() {
 
       {f.mode === 'pick' && (
         <>
-          <div style={head}>Reports — what pioneers found ({reports.length})</div>
+          <div style={head}>Reports — what pioneers found, and what they would change ({reports.length})</div>
           {reports.length === 0 ? (
             <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)' }}>No reports yet.</div>
           ) : reports.map((r, i) => (
             <div key={i} style={{ fontSize: 12, color: 'var(--tec-text-2)', padding: '5px 0', lineHeight: 1.5, borderBottom: '1px solid var(--tec-border)' }}>
               <span style={{ fontWeight: 700 }}>{r.app}</span> — “{r.report}”{' '}
               <span style={{ color: 'var(--tec-text-4)' }}>@{r.owner}{r.reported_at ? ` · ${day(r.reported_at)}` : ''}</span>
+              {r.suggestion && (
+                <div style={{ color: 'var(--tec-gold)', marginTop: 2 }}>Suggestion: “{r.suggestion}”</div>
+              )}
             </div>
           ))}
         </>

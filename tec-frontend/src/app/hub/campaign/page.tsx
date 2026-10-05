@@ -46,8 +46,6 @@ interface Me {
   picks?:       string[];
   missions?:    PickMission[];
   reward_total?: number;
-  /** Only WHETHER the continuity question was answered — never the answer. */
-  continuity_answered?: boolean;
   /** This pioneer's own answer to "why did you stop?", if they gave one. */
   stop_reason?: { reason: StopReason; note: string | null } | null;
   claim: null | {
@@ -1002,7 +1000,6 @@ export default function CampaignPage() {
                   missions={me.missions ?? []}
                   rewardPi={me.reward_pi}
                   pickMax={me.pick_max ?? 3}
-                  continuityAnswered={me.continuity_answered ?? false}
                   strings={c.pick}
                   nameOf={(slug) => nameOf(slug, locale)}
                   linkOf={(slug) => signed(withReturnMark(hrefFor(slug)))}

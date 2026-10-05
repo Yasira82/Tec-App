@@ -21,18 +21,20 @@ export interface PickMission {
   report:      string | null;
   reported_at: string | null;
   evidence:    string | null;
+  /** The update they would like in this app — optional, sent with the report. */
+  suggestion?: string | null;
 }
 
 export interface PickStrings {
   choose: string; start: string; change: string;
   notOpened: string; arrived: string; reported: string; edit: string;
   placeholder: string; send: string; failed: string;
-  continuityTitle: string; question: string; yes: string; no: string; notSure: string;
-  skip: string; thanks: string;
+  suggestion: string; suggested: string;
 }
 
 const REPORT_MIN = 10;
 const REPORT_MAX = 1000;
+const SUGGESTION_MAX = 500;
 
 const csrfHeader = (): Record<string, string> => {
   const m = typeof document === 'undefined' ? null : document.cookie.match(/(?:^|;\s*)tec_csrf=([^;]+)/);
@@ -68,14 +70,13 @@ const linkButton = {
 } as const;
 
 export function PickMissions({
-  apps, missions, rewardPi, pickMax, continuityAnswered, strings: s,
+  apps, missions, rewardPi, pickMax, strings: s,
   nameOf, linkOf, onOpen, onChanged,
 }: {
   apps:      string[];
   missions:  PickMission[];
   rewardPi:  number;
   pickMax:   number;
-  continuityAnswered: boolean;
   strings:   PickStrings;
   nameOf:    (slug: string) => string;
   linkOf:    (slug: string) => string;
@@ -91,10 +92,7 @@ export function PickMissions({
   const [errors,   setErrors]   = useState<Record<string, string>>({});
   const [drafts,   setDrafts]   = useState<Record<string, string>>({});
   const [editing,  setEditing]  = useState<Record<string, boolean>>({});
-  // The continuity card, once per visit: a skip is this screen's business only.
-  const [skipped,  setSkipped]  = useState(false);
-  const [answered, setAnswered] = useState(continuityAnswered);
-  const [thanked,  setThanked]  = useState(false);
+  const [ideas,    setIdeas]    = useState<Record<string, string>>({});
 
   const fail = (key: string, e: unknown) =>
     setErrors((x) => ({ ...x, [key]: (e as Error).message || s.failed }));
@@ -118,20 +116,13 @@ export function PickMissions({
 
   const sendReport = async (app: string) => {
     const text = (drafts[app] ?? '').trim();
+    const idea = (ideas[app] ?? missions.find((m) => m.app === app)?.suggestion ?? '').trim();
     setBusy(app); clear(app);
     try {
-      await post('report', { app, report: text }, s.failed);
+      await post('report', { app, report: text, ...(idea ? { suggestion: idea } : {}) }, s.failed);
       setEditing((x) => ({ ...x, [app]: false }));
       await onChanged();
     } catch (e) { fail(app, e); } finally { setBusy(null); }
-  };
-
-  const answer = async (value: 'yes' | 'no' | 'not_sure') => {
-    setBusy('continuity'); clear('continuity');
-    try {
-      await post('continuity', { answer: value }, s.failed);
-      setAnswered(true); setThanked(true);
-    } catch (e) { fail('continuity', e); } finally { setBusy(null); }
   };
 
   // ── Choosing ────────────────────────────────────────────────
@@ -170,7 +161,6 @@ export function PickMissions({
   }
 
   // ── The picked missions ─────────────────────────────────────
-  const showContinuity = reportedApps.length > 0 && !answered && !skipped;
 
   return (
     <div>
@@ -197,6 +187,11 @@ export function PickMissions({
             {reported && !editing[m.app] && (
               <div style={{ marginTop: 8 }}>
                 <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>“{m.report}”</div>
+                {m.suggestion && (
+                  <div style={{ fontSize: 12, color: 'var(--tec-text-3)', lineHeight: 1.6, marginTop: 4, whiteSpace: 'pre-wrap' }}>
+                    {s.suggested} “{m.suggestion}”
+                  </div>
+                )}
                 <button onClick={() => { setEditing((x) => ({ ...x, [m.app]: true })); setDrafts((d) => ({ ...d, [m.app]: m.report ?? '' })); }}
                   style={{ ...linkButton, marginTop: 6 }}>{s.edit}</button>
               </div>
@@ -207,6 +202,11 @@ export function PickMissions({
                 <textarea value={draft} rows={3} placeholder={s.placeholder} aria-label={s.placeholder}
                   onChange={(e) => setDrafts((d) => ({ ...d, [m.app]: e.target.value.slice(0, REPORT_MAX) }))}
                   style={{ width: '100%', padding: 10, borderRadius: 10, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+                {/* Optional — what they would change. It replaced the lost-phone
+                    question (owner, 2026-10-05): the round asks about the apps. */}
+                <textarea value={ideas[m.app] ?? m.suggestion ?? ''} rows={2} placeholder={s.suggestion} aria-label={s.suggestion}
+                  onChange={(e) => setIdeas((d) => ({ ...d, [m.app]: e.target.value.slice(0, SUGGESTION_MAX) }))}
+                  style={{ width: '100%', marginTop: 8, padding: 10, borderRadius: 10, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
                 <button onClick={() => { void sendReport(m.app); }} disabled={!okLength || busy === m.app}
                   style={goldButton(okLength && busy !== m.app)}>{s.send}</button>
               </div>
@@ -220,28 +220,6 @@ export function PickMissions({
         {s.change}
       </button>
 
-      {/* One tap, once, optional — and nothing to type. A question about a
-          phone's safety must never become a place where somebody pastes the
-          thing it is about (C-106 §10a). */}
-      {showContinuity && (
-        <div data-testid="continuity-card" style={{ ...box, marginTop: 'var(--sp-4)', background: 'var(--tec-surface-1)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)' }}>{s.continuityTitle}</div>
-          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--tec-text-1)', margin: '6px 0 10px' }}>{s.question}</div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {([['yes', s.yes], ['no', s.no], ['not_sure', s.notSure]] as const).map(([v, label]) => (
-              <button key={v} onClick={() => { void answer(v); }} disabled={busy === 'continuity'}
-                style={{ flex: 1, minWidth: 80, padding: '10px 0', borderRadius: 10, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                {label}
-              </button>
-            ))}
-          </div>
-          <button onClick={() => setSkipped(true)} style={{ ...linkButton, marginTop: 10, color: 'var(--tec-text-3)' }}>{s.skip}</button>
-          {errors.continuity && <div role="alert" style={{ marginTop: 8, color: 'var(--tec-red)', fontSize: 12.5 }}>{errors.continuity}</div>}
-        </div>
-      )}
-      {thanked && (
-        <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', marginTop: 'var(--sp-3)', lineHeight: 1.6 }}>{s.thanks}</div>
-      )}
     </div>
   );
 }

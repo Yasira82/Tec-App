@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Round 3: what pioneers reported, in their words, read before a payout. ADMIN —
- * decided by identity-service from the token. The continuity answers are not here.
+ * decided by identity-service from the token. Each report carries its suggestion.
  *
  * No `x-internal-key`, for the same reason as the claims route: the service reads it
  * as a ServiceActor and would skip the role check. Only the session goes downstream.

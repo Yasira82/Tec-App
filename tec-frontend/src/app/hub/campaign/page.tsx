@@ -600,6 +600,11 @@ export default function CampaignPage() {
   useEffect(() => {
     if (autoClaimed.current) return;
     if (!me?.eligible || !me.posted_address || activeClaim || sending) return;
+    // A pick round claims on a tap, not by itself: a pioneer who reported on one
+    // app may still want to add a second or third — and a seat taken the moment
+    // the first report lands ends the round for them at 1 π, with the other apps
+    // gone from the screen (seen in the owner's own test, 2026-10-05).
+    if (me.mode === 'pick') return;
     autoClaimed.current = true;
     void submit();
     // `submit` is stable enough for this: it closes over `load`, which is a
@@ -1050,6 +1055,11 @@ export default function CampaignPage() {
                         is reached only by somebody who finished every mission
                         and did not post one. The warning above the missions has
                         already said what we will never ask for. */}
+                    {pickRound && (me?.picks?.length ?? 0) < (me?.pick_max ?? 3) && (
+                      <div style={{ fontSize: 12, color: 'var(--tec-text-3)', lineHeight: 1.6, marginBottom: 'var(--sp-3)' }}>
+                        {fill(c.pick.orAdd, { max: me?.pick_max ?? 3, reward: me?.reward_pi ?? '' })}
+                      </div>
+                    )}
                     <div style={{ fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.7, marginBottom: 'var(--sp-3)' }}>
                       {c.typeAddrIntro}
                     </div>
@@ -1122,12 +1132,31 @@ export default function CampaignPage() {
                       </div>
                     </div>
 
-                    {/* No button. The seat is taken the moment there is
-                        nothing left to decide: the missions are done and an
-                        address is on record. Asking somebody to confirm what
-                        they already did is a step that only exists to be
-                        forgotten — and this one used to be the last thing
-                        between a pioneer and their Pi. */}
+                    {/* Round 2: no button — the seat is taken the moment there is
+                        nothing left to decide. A pick round asks, because there
+                        IS something left: whether to add another app first. */}
+                    {pickRound ? (
+                      <>
+                        {(me?.picks?.length ?? 0) < (me?.pick_max ?? 3) && (
+                          <div style={{ fontSize: 12, color: 'var(--tec-text-3)', textAlign: 'center', lineHeight: 1.6, marginTop: 'var(--sp-3)' }}>
+                            {fill(c.pick.orAdd, { max: me?.pick_max ?? 3, reward: me?.reward_pi ?? '' })}
+                          </div>
+                        )}
+                        <button
+                          onClick={() => { void submit(); }}
+                          disabled={sending}
+                          style={{
+                            width: '100%', marginTop: 'var(--sp-3)',
+                            padding: '12px 16px', borderRadius: 'var(--radius-sm)', border: 'none',
+                            background: 'var(--tec-gold)', color: '#1A1205',
+                            fontSize: 14, fontWeight: 800, opacity: sending ? 0.5 : 1,
+                            cursor: sending ? 'default' : 'pointer', font: 'inherit',
+                          }}
+                        >
+                          {sending ? c.taking : fill(c.pick.claimNow, { total: rewardShown })}
+                        </button>
+                      </>
+                    ) : (
                     <div style={{
                       marginTop: 'var(--sp-3)', textAlign: 'center',
                       fontSize: 13, fontWeight: 700,
@@ -1135,6 +1164,7 @@ export default function CampaignPage() {
                     }}>
                       {sending ? c.taking : error ? '' : fill(c.claiming, { reward: rewardShown })}
                     </div>
+                    )}
 
                     {error && (
                       <div role="alert" style={{

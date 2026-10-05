@@ -338,3 +338,31 @@ describe('a Round 3 pick round (mode: pick)', () => {
     expect(screen.getAllByRole('checkbox')).toHaveLength(3);
   });
 });
+
+describe('a pick round claims on a tap — the pioneer may still add apps', () => {
+  const DONE_ONE = {
+    mode: 'pick', apps: ['titan', 'vip', 'zone'], action_apps: [], picks: ['titan'],
+    missions: [{ app: 'titan', arrived: true, report: 'Clear and quick', reported_at: '2026-10-05T10:00:00Z', evidence: 'partial', suggestion: null }],
+    done: ['titan'], missing: [], eligible: true, reward_pi: 1, reward_total: 1, pick_max: 3,
+    posted_address: 'GAIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCEIRCF6M', claim: null,
+  };
+
+  it('does not take the seat by itself, offers to add another app, and claims on the button', async () => {
+    const f = answer(DONE_ONE);
+    vi.stubGlobal('fetch', f);
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByText('Claim 1 π now')).toBeInTheDocument());
+    expect(screen.getByText(/add another app first/)).toBeInTheDocument();
+    expect(f.mock.calls.some(([u, i]) => String(u).includes('/campaign/claim') && (i as RequestInit | undefined)?.method === 'POST')).toBe(false);
+    screen.getByText('Claim 1 π now').click();
+    await waitFor(() => expect(f.mock.calls.some(([u, i]) => String(u).includes('/campaign/claim') && (i as RequestInit | undefined)?.method === 'POST')).toBe(true));
+  });
+
+  it('with 3 apps picked there is nothing to add, so no hint', async () => {
+    vi.stubGlobal('fetch', answer({ ...DONE_ONE, picks: ['titan', 'vip', 'zone'], reward_total: 3,
+      missions: ['titan', 'vip', 'zone'].map((app) => ({ ...DONE_ONE.missions[0], app })), done: ['titan', 'vip', 'zone'] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByText('Claim 3 π now')).toBeInTheDocument());
+    expect(screen.queryByText(/add another app first/)).toBeNull();
+  });
+});

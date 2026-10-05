@@ -311,6 +311,52 @@ describe('the re-send does not hijack the way home', () => {
   });
 });
 
+describe('Round 3 re-sends only a tap made on this assignment (owner, 2026-10-05)', () => {
+  // "I never opened Ecommerce and it was ticked": this phone had saved an
+  // Ecommerce tap on an earlier day, and the page re-sent it the moment
+  // Ecommerce was assigned again.
+  const opens = () => (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+    .filter((c) => String(c[0]).includes('/pioneer/open'));
+  const ASSIGNED = '2026-10-05T12:00:00Z';
+  const mission = (app: string, arrived = false) => ({
+    app, status: 'ASSIGNED', arrived, report: null, reported_at: null, evidence: null, assigned_at: ASSIGNED,
+  });
+  const ME3 = {
+    mode: 'pick', apps: ['ecommerce', 'zone'], action_apps: [], picks: ['ecommerce', 'zone'], assigned: true, swaps_left: 0,
+    missions: [mission('ecommerce'), mission('zone')], done: [], missing: ['ecommerce', 'zone'], eligible: false,
+    reward_pi: 1, reward_total: 2, pick_max: 2, posted_address: null, claim: null,
+  };
+  const at = (iso: string) => Date.parse(iso);
+
+  beforeEach(() => { try { localStorage.clear(); } catch { /* ignore */ } });
+
+  it('a tap saved BEFORE the assignment — or with no time at all — is not re-sent', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify(['zone', { app: 'ecommerce', at: at('2026-10-04T09:00:00Z') }]));
+    vi.stubGlobal('fetch', answer(ME3));
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(opens()).toHaveLength(0);
+  });
+
+  it('a tap made after the assignment, that the server has not counted, is re-sent', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify([{ app: 'ecommerce', at: at('2026-10-05T12:05:00Z') }]));
+    vi.stubGlobal('fetch', answer(ME3));
+    render(<CampaignPage />);
+    await waitFor(() => expect(opens().length).toBe(1));
+    expect(JSON.parse(String((opens()[0][1] as RequestInit).body))).toMatchObject({ app: 'ecommerce', origin: 'campaign' });
+  });
+
+  it('nor once the server already shows it open', async () => {
+    localStorage.setItem('tec_campaign_tapped', JSON.stringify([{ app: 'ecommerce', at: at('2026-10-05T12:05:00Z') }]));
+    vi.stubGlobal('fetch', answer({ ...ME3, missions: [mission('ecommerce', true), mission('zone')] }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    await new Promise((r) => setTimeout(r, 50));
+    expect(opens()).toHaveLength(0);
+  });
+});
+
 describe('Round 3 — three assigned apps (mode: pick)', () => {
   const m = (app: string, status: string, arrived = true) => ({
     app, status, arrived, report: status === 'ASSIGNED' ? null : 'I opened it and signed in.',

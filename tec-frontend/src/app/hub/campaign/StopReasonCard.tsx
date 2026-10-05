@@ -38,8 +38,13 @@ export function StopReasonCard({ strings: s, initial, onSaved, collapsed = false
   const [saved,  setSaved]  = useState(initial);
   const [pick,   setPick]   = useState<StopReason | null>(initial?.reason ?? null);
   const [note,   setNote]   = useState(initial?.note ?? '');
-  const [open,   setOpen]   = useState(!initial && !collapsed);
+  // Whether the PERSON opened it. Whether it shows is derived, not stored: the
+  // card mounts before a round's apps are assigned, and a state seeded from
+  // `collapsed` at that moment stayed open after it should have collapsed
+  // (seen in the owner's test, 2026-10-05).
+  const [opened, setOpen]   = useState(false);
   const [busy,   setBusy]   = useState(false);
+  const open = opened || (!saved && !collapsed);
   const [error,  setError]  = useState<string | null>(null);
 
   const send = async () => {

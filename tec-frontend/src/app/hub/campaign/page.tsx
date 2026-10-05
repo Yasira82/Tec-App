@@ -1046,7 +1046,7 @@ export default function CampaignPage() {
                     {me && !claim && (
                       <StopReasonCard
                         initial={me.stop_reason ?? null}
-                        collapsed={pickRound && (me.picks?.length ?? 0) > 0}
+                        collapsed={pickRound}
                         strings={{
                           title: c.stopReason.title, open: c.stopReason.open,
                           reasons: { a: c.stopReason.a, b: c.stopReason.b, c: c.stopReason.c, d: c.stopReason.d, e: c.stopReason.e },

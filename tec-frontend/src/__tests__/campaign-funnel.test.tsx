@@ -115,3 +115,13 @@ describe('StopReasonCard — collapsed while the pioneer is mid-mission', () => 
     expect(screen.getByTestId('stop-reason-saved')).toBeTruthy();
   });
 });
+
+describe('StopReasonCard — collapses when the round says so, even after it mounted open', () => {
+  it('re-rendered with collapsed, the five reasons fold into one line', () => {
+    const { rerender } = render(<StopReasonCard strings={{ ...S, open: 'Not going to finish? Tell us why' }} initial={null} />);
+    expect(screen.getByText('Too many apps')).toBeTruthy();
+    rerender(<StopReasonCard strings={{ ...S, open: 'Not going to finish? Tell us why' }} initial={null} collapsed />);
+    expect(screen.queryByText('Too many apps')).toBeNull();
+    expect(screen.getByTestId('stop-reason-open')).toBeTruthy();
+  });
+});

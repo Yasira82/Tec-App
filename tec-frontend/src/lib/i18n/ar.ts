@@ -214,6 +214,9 @@ export const ar = {
       send: 'إرسال', receive: 'استقبال', history: 'السجل',
       internalOnly: 'الإرسال والاستقبال ينقلان π بين حسابات TEC فقط.',
       market24h: 'حركة ٢٤ ساعة',
+      recentTitle: 'آخر المدفوعات', recentEmpty: 'لا توجد مدفوعات Pi بعد.',
+      paymentGeneric: 'دفعة Pi',
+      status: { completed: 'مكتملة', pending: 'قيد التنفيذ', failed: 'فشلت', cancelled: 'أُلغيت' },
     },
     carousel: {
       foundingTitle: 'المئة المؤسِّسة',
@@ -336,6 +339,8 @@ export const ar = {
       favorites: '★ المفضلة',
       noMatch: 'لا يوجد تطبيق يطابق «{q}».',
       results: '{n} نتيجة', resultOne: 'نتيجة واحدة',
+      list: 'قائمة', grid: 'شبكة',
+      showList: 'اعرض التطبيقات كقائمة مع الوصف', showGrid: 'اعرض التطبيقات كشبكة',
     },
     comingSoon: {
       title: 'قريبًا', count: '{n} من {total}',

@@ -33,6 +33,14 @@ const FAV_KEY      = 'tec_fav_apps';
 /** Which groups the reader has collapsed. Absent = open, so a NEW group ships
  *  visible rather than hidden behind a preference set before it existed. */
 const COLLAPSED_KEY = 'tec_collapsed_groups';
+/**
+ * Grid or list. The grid is icons and names — every app on one screen. The list
+ * adds the one-line description under each name, for a reader who does not yet
+ * know what "Nexus" or "Zone" is for. Search results are always a list: a match
+ * on the description should show the description it matched.
+ */
+const VIEW_KEY = 'tec_apps_view';
+export type AppsView = 'grid' | 'list';
 
 /**
  * The launcher is on FIXED rails: four columns, every section, always.
@@ -66,10 +74,21 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
   const [favs,    setFavs]    = useState<string[]>([]);
   const [editing, setEditing] = useState(false); // Edit mode → pin/unpin surface
   const [collapsed, setCollapsed] = useState<string[]>([]);
+  const [view,    setView]    = useState<AppsView>('grid');
 
   useEffect(() => {
     setFavs(readList(FAV_KEY));
     setCollapsed(readList(COLLAPSED_KEY));
+    try { if (localStorage.getItem(VIEW_KEY) === 'list') setView('list'); } catch { /* ignore */ }
+  }, []);
+
+  const toggleView = useCallback(() => {
+    haptic('light');
+    setView((v) => {
+      const next: AppsView = v === 'grid' ? 'list' : 'grid';
+      try { localStorage.setItem(VIEW_KEY, next); } catch { /* ignore */ }
+      return next;
+    });
   }, []);
 
   const toggleGroup = useCallback((group: string) => {
@@ -109,6 +128,7 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
 
   const q = query.trim().toLowerCase();
   const searching = q.length > 0;
+  const asList = searching || view === 'list';
   const matches = (a: HubApp) => a.name.toLowerCase().includes(q) || a.desc.toLowerCase().includes(q);
 
   const favApps = favs.map((s) => bySlug.get(s)).filter((a): a is HubApp => !!a);
@@ -124,13 +144,7 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
   // Compact icon tile (WeChat/iOS-style launcher) — dense so all apps fit in a few
   // rows. Tap opens (or toggles the pin while in Edit mode). The pin control only
   // appears in Edit mode, so the default grid stays clean (no star on every tile).
-  const AppCard = ({ app, featured = false }: { app: HubApp; featured?: boolean }) => {
-    const isFav = favs.includes(app.slug);
-    const tileStyle: React.CSSProperties = {
-      width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
-      padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer',
-      textDecoration: 'none', boxSizing: 'border-box',
-    };
+  const Launch = ({ app, style, children }: { app: HubApp; style: React.CSSProperties; children: React.ReactNode }) => {
     // An app on its own domain opens STANDALONE — a real link with NO referrer
     // (C-123 §12). The referrer is the whole point: an app that sees the Hub as
     // referrer marks the tab Hub-owned (ADR-007), never signs in with Pi, and Pi
@@ -144,53 +158,87 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
     // Hub. Only a new tab gives the app its own Pi session. Coming back is handled
     // on the Hub's side (HubContinue).
     const standalone = !!app.appUrl && !openTo && !editing;
-    const Tile = ({ children }: { children: React.ReactNode }) => standalone ? (
+    return standalone ? (
       <a className="tec-btn" href={app.href} target="_blank" rel="noopener noreferrer"
         onClick={() => { haptic('light'); onOpenStandalone?.(app); }}
-        style={tileStyle}>{children}</a>
+        style={style}>{children}</a>
     ) : (
       <button className="tec-btn"
         onClick={() => (editing ? toggleFav(app.slug) : openApp(app))}
-        style={tileStyle}>{children}</button>
+        style={style}>{children}</button>
     );
+  };
+
+  /** The app's icon square. `size` 54 in the grid, smaller in a list row. */
+  const AppIcon = ({ app, featured, size }: { app: HubApp; featured: boolean; size: number }) => {
+    const isFav = favs.includes(app.slug);
     return (
-      <div style={{ position: 'relative' }}>
-        <Tile>
-          <div style={{
-            position: 'relative',
-            width: 54, height: 54, borderRadius: 16,
-            // Neutral. The tile used to be tinted with the category accent and lit
-            // by a coloured glow — six saturated hues on one screen, each repeated
-            // across four or five tiles. Colour that appears everywhere stops being
-            // information. The group CARD does the grouping now; a featured app is
-            // the only tile that gets the accent, and it stands out because of it.
-            background: featured ? 'var(--tec-accent-tile)' : 'var(--tec-surface-2)',
-            border: featured ? '1px solid var(--tec-border-gold)' : '1px solid transparent',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            opacity: editing && !isFav ? 0.55 : 1,
-          }}>
-            <Icon name={iconOf(app.slug)} size={26}
-              color={featured ? 'var(--tec-gold)' : 'var(--tec-icon)'} strokeWidth={1.8} />
-            {/* Edit-mode pin badge — only rendered while editing */}
-            {editing && (
-              <span aria-hidden style={{
-                position: 'absolute', top: -6, insetInlineEnd: -6, width: 20, height: 20, borderRadius: 999,
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1,
-                background: isFav ? 'var(--tec-gold)' : 'var(--tec-surface-3)', color: isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)',
-                border: '1px solid var(--tec-border)', fontWeight: 800,
-              }}><Icon name={isFav ? 'star' : 'plus'} size={11}
-                  color={isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)'} strokeWidth={2.4} /></span>
-            )}
-          </div>
-          <span style={{
-            fontSize: 11, fontWeight: 600, color: 'var(--tec-text-1)', textAlign: 'center',
-            lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
-          }}>{app.name}</span>
-        </Tile>
+      <div style={{
+        position: 'relative', flexShrink: 0,
+        width: size, height: size, borderRadius: Math.round(size * 0.3),
+        // Neutral. The tile used to be tinted with the category accent and lit
+        // by a coloured glow — six saturated hues on one screen, each repeated
+        // across four or five tiles. Colour that appears everywhere stops being
+        // information. The group CARD does the grouping now; a featured app is
+        // the only tile that gets the accent, and it stands out because of it.
+        background: featured ? 'var(--tec-accent-tile)' : 'var(--tec-surface-2)',
+        border: featured ? '1px solid var(--tec-border-gold)' : '1px solid transparent',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: editing && !isFav ? 0.55 : 1,
+      }}>
+        <Icon name={iconOf(app.slug)} size={Math.round(size * 0.48)}
+          color={featured ? 'var(--tec-gold)' : 'var(--tec-icon)'} strokeWidth={1.8} />
+        {/* Edit-mode pin badge — only rendered while editing */}
+        {editing && (
+          <span aria-hidden style={{
+            position: 'absolute', top: -6, insetInlineEnd: -6, width: 20, height: 20, borderRadius: 999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1,
+            background: isFav ? 'var(--tec-gold)' : 'var(--tec-surface-3)', color: isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)',
+            border: '1px solid var(--tec-border)', fontWeight: 800,
+          }}><Icon name={isFav ? 'star' : 'plus'} size={11}
+              color={isFav ? 'var(--tec-on-gold)' : 'var(--tec-text-2)'} strokeWidth={2.4} /></span>
+        )}
       </div>
     );
   };
+
+  const AppCard = ({ app, featured = false }: { app: HubApp; featured?: boolean }) => (
+    <div style={{ position: 'relative' }}>
+      <Launch app={app} style={{
+        width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7,
+        padding: '10px 2px', background: 'transparent', border: 'none', cursor: 'pointer',
+        textDecoration: 'none', boxSizing: 'border-box',
+      }}>
+        <AppIcon app={app} featured={featured} size={54} />
+        <span style={{
+          fontSize: 11, fontWeight: 600, color: 'var(--tec-text-1)', textAlign: 'center',
+          lineHeight: 1.2, maxWidth: '100%', overflow: 'hidden',
+          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+        }}>{app.name}</span>
+      </Launch>
+    </div>
+  );
+
+  /** List view: the same app, with what it is for under its name. */
+  const AppRow = ({ app, featured = false, first }: { app: HubApp; featured?: boolean; first: boolean }) => (
+    <Launch app={app} style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+      padding: '10px 8px', background: 'transparent', border: 'none', cursor: 'pointer',
+      textDecoration: 'none', boxSizing: 'border-box', textAlign: 'start',
+      borderTop: first ? 'none' : '1px solid var(--tec-border)',
+    }}>
+      <AppIcon app={app} featured={featured} size={42} />
+      <span style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--tec-text-1)' }}>{app.name}</span>
+        {app.desc && (
+          <span style={{
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            fontSize: 12, color: 'var(--tec-text-2)', lineHeight: 1.35, marginTop: 2,
+          }}>{app.desc}</span>
+        )}
+      </span>
+    </Launch>
+  );
 
   /**
    * A section is a CARD, not a coloured heading.
@@ -266,11 +314,15 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
           <div style={headingStyle}>{heading}</div>
         )}
 
-        {isOpen && (
+        {isOpen && (asList ? (
+          <div id={headingId} style={{ display: 'flex', flexDirection: 'column', paddingBottom: 6 }}>
+            {items.map((app, i) => <AppRow key={app.slug} app={app} featured={featured} first={i === 0} />)}
+          </div>
+        ) : (
           <div id={headingId} style={{ display: 'grid', gridTemplateColumns: `repeat(${GRID_COLUMNS},1fr)`, gap: 4 }}>
             {items.map((app) => <AppCard key={app.slug} app={app} featured={featured} />)}
           </div>
-        )}
+        ))}
       </div>
     );
   };
@@ -283,6 +335,14 @@ export function HubAppsGrid({ apps, openTo, onOpenStandalone }: Props) {
           <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--tec-text-2)', letterSpacing: 2, textTransform: 'uppercase' }}>{t.hub.apps.title}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={toggleView}
+            aria-pressed={view === 'list'}
+            aria-label={view === 'list' ? t.hub.apps.showGrid : t.hub.apps.showList}
+            style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', cursor: 'pointer',
+              padding: '3px 10px', borderRadius: 999,
+              background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)', color: 'var(--tec-text-2)',
+            }}>{view === 'list' ? t.hub.apps.grid : t.hub.apps.list}</button>
           <button onClick={() => { haptic('light'); setEditing((e) => !e); }}
             aria-pressed={editing}
             style={{

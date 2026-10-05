@@ -14,6 +14,8 @@ export interface Payment {
   type:      string;
   createdAt: string;
   txHash?:   string;
+  /** The app the payment was for (payment-service `source`), when it says. */
+  source?:   string;
 }
 
 /**
@@ -39,6 +41,9 @@ export function normalizePayment(raw: Record<string, unknown>): Payment {
     type:      String(pick('type', 'payment_type', 'paymentType', 'direction') ?? 'payment').toLowerCase(),
     createdAt: String(pick('createdAt', 'created_at', 'createdOn', 'timestamp') ?? ''),
     txHash:    pick('txHash', 'tx_hash', 'transaction_id') as string | undefined,
+    source:    typeof pick('source', 'app_source') === 'string'
+      ? String(pick('source', 'app_source')).toLowerCase()
+      : undefined,
   };
 }
 

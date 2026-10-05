@@ -244,6 +244,10 @@ export const en = {
       // holding's fiat value did as Pi's price moved, and the user did not
       // trade to earn or lose it.
       market24h: '24h market',
+      // Recent payments on the card — each named by the app it was for.
+      recentTitle: 'Recent payments', recentEmpty: 'No Pi payments yet.',
+      paymentGeneric: 'Pi payment',
+      status: { completed: 'Completed', pending: 'Pending', failed: 'Failed', cancelled: 'Cancelled' },
     },
     carousel: {
       foundingTitle: 'Founding 100',
@@ -391,6 +395,9 @@ export const en = {
       favorites: '★ Favorites',
       noMatch: 'No apps match “{q}”.',
       results: '{n} results', resultOne: '1 result',
+      // The view toggle names the view it switches TO.
+      list: 'List', grid: 'Grid',
+      showList: 'Show apps as a list with descriptions', showGrid: 'Show apps as a grid',
     },
     comingSoon: {
       title: 'Coming Soon', count: '{n} of {total}',

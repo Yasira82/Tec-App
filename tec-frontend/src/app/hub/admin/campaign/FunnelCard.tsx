@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ReportReview } from './ReportReview';
 
 /**
  * Where pioneers go, and where they stop — this round (Round 3 decision,
@@ -13,9 +14,10 @@ interface Funnel {
   counting_since: string | null;
   stages: { viewed: number; tapped: number; arrived: number; qualified: number; claimed: number; paid: number };
   mode?: 'all' | 'pick';
-  per_app: { app: string; tapped: number; arrived: number; picked?: number; reported?: number }[];
+  per_app: { app: string; tapped: number; arrived: number; assigned?: number; approved?: number; swapped?: number }[];
   /** Round 3: how many chose 1, 2 or 3 apps — the round's question. */
-  picks?: { one: number; two: number; three: number };
+  /** Round 3: where the reports stand (missions; `pioneers` is people). */
+  review?: { pioneers: number; assigned: number; submitted: number; needs_revision: number; approved: number; swapped: number };
   stop_reasons: { reason: string; label: string; count: number }[];
   notes: { reason: string; note: string; at: string }[];
 }
@@ -32,12 +34,10 @@ const STAGES: { key: keyof Funnel['stages']; label: string }[] = [
 const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : '—');
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
-interface Report { owner: string; app: string; report: string | null; suggestion?: string | null; reported_at: string | null }
 
 export function FunnelCard() {
   const [f, setF] = useState<Funnel | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [reports, setReports] = useState<Report[]>([]);
 
   useEffect(() => {
     fetch('/api/admin/campaign/funnel', { credentials: 'include', cache: 'no-store' })
@@ -49,14 +49,6 @@ export function FunnelCard() {
       .catch((e: Error) => setError(e.message));
   }, []);
 
-  // Round 3's reports — what pioneers found, read before a payout goes out.
-  useEffect(() => {
-    if (f?.mode !== 'pick') return;
-    fetch('/api/admin/campaign/reports', { credentials: 'include', cache: 'no-store' })
-      .then((r) => r.json().catch(() => ({})))
-      .then((d) => setReports(Array.isArray(d?.data?.reports) ? d.data.reports : []))
-      .catch(() => setReports([]));
-  }, [f?.mode]);
 
   const box = { padding: 'var(--sp-4)', borderRadius: 14, border: '1px solid var(--tec-border)', background: 'var(--tec-surface-1)', marginBottom: 'var(--sp-4)' } as const;
   const head = { fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--tec-text-3)', margin: 'var(--sp-3) 0 6px' } as const;
@@ -88,11 +80,11 @@ export function FunnelCard() {
 
       {f.per_app.length > 0 && (
         <>
-          <div style={head}>{f.mode === 'pick' ? 'Per app — picked · reported · tapped → arrived' : 'Per app — tapped → arrived'}</div>
+          <div style={head}>{f.mode === 'pick' ? 'Per app — assigned · approved · swapped · tapped → arrived' : 'Per app — tapped → arrived'}</div>
           {f.per_app.map((a) => (
             <div key={a.app} style={{ display: 'flex', gap: 8, fontSize: 12.5, color: 'var(--tec-text-2)', padding: '3px 0' }}>
               <span style={{ flex: 1 }}>{a.app}</span>
-              {f.mode === 'pick' && <span>{a.picked ?? 0} · {a.reported ?? 0} ·</span>}
+              {f.mode === 'pick' && <span>{a.assigned ?? 0} · {a.approved ?? 0} · {a.swapped ?? 0} ·</span>}
               <span>{a.tapped} → {a.arrived}</span>
               <span style={{ width: 44, textAlign: 'end', color: a.tapped > 0 && a.arrived / a.tapped < 0.7 ? 'var(--tec-red)' : 'var(--tec-text-3)' }}>{pct(a.arrived, a.tapped)}</span>
             </div>
@@ -100,12 +92,12 @@ export function FunnelCard() {
         </>
       )}
 
-      {f.picks && (
+      {f.review && (
         <>
-          <div style={head}>How many apps people chose</div>
-          <div data-testid="pick-split" style={{ display: 'flex', gap: 8 }}>
-            {([['1 app', f.picks.one], ['2 apps', f.picks.two], ['3 apps', f.picks.three]] as const).map(([label, n]) => (
-              <div key={label} style={{ flex: 1, textAlign: 'center', padding: '6px 0', borderRadius: 10, border: '1px solid var(--tec-border)' }}>
+          <div style={head}>Review — {f.review.pioneers} pioneers</div>
+          <div data-testid="review-counts" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {([['Assigned', f.review.assigned], ['Waiting', f.review.submitted], ['Revision', f.review.needs_revision], ['Approved', f.review.approved], ['Swapped', f.review.swapped]] as const).map(([label, n]) => (
+              <div key={label} style={{ flex: '1 0 60px', textAlign: 'center', padding: '6px 0', borderRadius: 10, border: '1px solid var(--tec-border)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--tec-gold)' }}>{n}</div>
                 <div style={{ fontSize: 11.5, color: 'var(--tec-text-3)' }}>{label}</div>
               </div>
@@ -132,22 +124,7 @@ export function FunnelCard() {
         </div>
       )}
 
-      {f.mode === 'pick' && (
-        <>
-          <div style={head}>Reports — what pioneers found, and what they would change ({reports.length})</div>
-          {reports.length === 0 ? (
-            <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)' }}>No reports yet.</div>
-          ) : reports.map((r, i) => (
-            <div key={i} style={{ fontSize: 12, color: 'var(--tec-text-2)', padding: '5px 0', lineHeight: 1.5, borderBottom: '1px solid var(--tec-border)' }}>
-              <span style={{ fontWeight: 700 }}>{r.app}</span> — “{r.report}”{' '}
-              <span style={{ color: 'var(--tec-text-4)' }}>@{r.owner}{r.reported_at ? ` · ${day(r.reported_at)}` : ''}</span>
-              {r.suggestion && (
-                <div style={{ color: 'var(--tec-gold)', marginTop: 2 }}>Suggestion: “{r.suggestion}”</div>
-              )}
-            </div>
-          ))}
-        </>
-      )}
+      {f.mode === 'pick' && <ReportReview />}
     </section>
   );
 }

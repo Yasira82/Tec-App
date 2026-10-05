@@ -339,6 +339,8 @@ export const en = {
         failed:     'Could not save — try again.',
         suggestion: 'What update would you suggest for this app? (optional)',
         suggested:  'Your suggestion:',
+        claimNow:   'Claim {total} π now',
+        orAdd:      'Done? Claim below. Or add another app first with “Change my apps” — up to {max}, {reward} π each.',
       },
       finishFirst:  'Finish the list above to claim.',
       neverAsk1:    'We will',

@@ -30,7 +30,7 @@ const CSRF_PROTECTED = [
   '/api/bff/identity',
   '/api/bff/notifications',
   // The campaign's writes: claim, address, stop reason, and Round 3's pick /
-  // report / continuity. Same-origin fetches pass on Origin alone.
+  // report. Same-origin fetches pass on Origin alone.
   '/api/bff/campaign',
 ];
 

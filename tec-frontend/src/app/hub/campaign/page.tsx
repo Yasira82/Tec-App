@@ -46,8 +46,6 @@ interface Me {
   picks?:       string[];
   missions?:    PickMission[];
   reward_total?: number;
-  /** Only WHETHER the continuity question was answered — never the answer. */
-  continuity_answered?: boolean;
   /** This pioneer's own answer to "why did you stop?", if they gave one. */
   stop_reason?: { reason: StopReason; note: string | null } | null;
   claim: null | {
@@ -1002,7 +1000,6 @@ export default function CampaignPage() {
                   missions={me.missions ?? []}
                   rewardPi={me.reward_pi}
                   pickMax={me.pick_max ?? 3}
-                  continuityAnswered={me.continuity_answered ?? false}
                   strings={c.pick}
                   nameOf={(slug) => nameOf(slug, locale)}
                   linkOf={(slug) => signed(withReturnMark(hrefFor(slug)))}
@@ -1036,8 +1033,9 @@ export default function CampaignPage() {
                     {me && !claim && (
                       <StopReasonCard
                         initial={me.stop_reason ?? null}
+                        collapsed={pickRound && (me.picks?.length ?? 0) > 0}
                         strings={{
-                          title: c.stopReason.title,
+                          title: c.stopReason.title, open: c.stopReason.open,
                           reasons: { a: c.stopReason.a, b: c.stopReason.b, c: c.stopReason.c, d: c.stopReason.d, e: c.stopReason.e },
                           note: c.stopReason.note, send: c.stopReason.send, thanks: c.stopReason.thanks,
                           change: c.stopReason.change, failed: c.stopReason.failed,

@@ -8,7 +8,7 @@
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 export async function campaignPost(
-  path: 'pick' | 'report' | 'continuity',
+  path: 'pick' | 'report',
   body: unknown,
   token: string,
   requestId: string,

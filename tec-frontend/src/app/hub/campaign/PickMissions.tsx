@@ -28,6 +28,8 @@ export interface PickMission {
   review_note?: string | null;
   reported_at:  string | null;
   evidence:     string | null;
+  /** When the service assigned this app — a tap saved before it is not this mission's. */
+  assigned_at?: string;
 }
 
 export interface PickStrings {

@@ -161,17 +161,31 @@ const nameOf = (slug: string, locale: 'en' | 'ar') => {
  */
 const TAPPED_KEY = 'tec_campaign_tapped';
 
-const readTapped = (): string[] => {
+/**
+ * Each saved tap carries WHEN it was made. The list outlives rounds and
+ * assignments, and without a time a tap saved on an earlier day was re-sent the
+ * moment the same app was assigned again — opening a Round 3 report the pioneer
+ * never worked for (owner, 2026-10-05: "I never opened Ecommerce and it was
+ * ticked"). An entry from before this change is a bare slug: `at` is null.
+ */
+interface SavedTap { app: string; at: number | null }
+
+const readTapped = (): SavedTap[] => {
   try {
     const raw = JSON.parse(localStorage.getItem(TAPPED_KEY) ?? '[]');
-    return Array.isArray(raw) ? raw.filter((s): s is string => typeof s === 'string') : [];
+    if (!Array.isArray(raw)) return [];
+    return raw.flatMap((e): SavedTap[] => {
+      if (typeof e === 'string') return [{ app: e, at: null }];
+      if (e && typeof e.app === 'string') return [{ app: e.app, at: typeof e.at === 'number' ? e.at : null }];
+      return [];
+    });
   } catch { return []; /* blocked or corrupt — the tap simply has no backup */ }
 };
 
 const rememberTapped = (slug: string) => {
   try {
-    const next = readTapped();
-    if (!next.includes(slug)) localStorage.setItem(TAPPED_KEY, JSON.stringify([...next, slug]));
+    const next = readTapped().filter((t) => t.app !== slug);
+    localStorage.setItem(TAPPED_KEY, JSON.stringify([...next, { app: slug, at: Date.now() }]));
   } catch { /* ignore */ }
 };
 
@@ -478,8 +492,17 @@ export default function CampaignPage() {
     // Only THIS round's missions. The tapped list outlives rounds, and an app
     // from an earlier round is not something this campaign asked for.
     const asked = new Set(me.mode === 'pick' ? (me.picks ?? []) : (me.apps ?? []));
-    for (const slug of readTapped()) {
+    const missions = new Map((me.missions ?? []).map((m) => [m.app, m]));
+    for (const { app: slug, at } of readTapped()) {
       if (!asked.has(slug) || done.has(slug) || resent.current.has(slug)) continue;
+      if (me.mode === 'pick') {
+        // Round 3: only a tap made on THIS assignment, which the server has not
+        // counted yet. A tap saved before the app was assigned is not one —
+        // re-sending it is what opened reports nobody had worked for.
+        const m = missions.get(slug);
+        const assignedAt = m?.assigned_at ? Date.parse(m.assigned_at) : NaN;
+        if (!m || m.arrived || at === null || Number.isNaN(assignedAt) || at < assignedAt) continue;
+      }
       resent.current.add(slug);
       sendVisit(slug); // not recordOpen — see sendVisit for why
     }

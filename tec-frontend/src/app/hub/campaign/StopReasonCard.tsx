@@ -14,6 +14,8 @@ export type StopReason = 'a' | 'b' | 'c' | 'd' | 'e';
 
 export interface StopReasonStrings {
   title:   string;
+  /** The one-line link shown while the pioneer is still working (`collapsed`). */
+  open?:   string;
   reasons: Record<StopReason, string>;
   note:    string;
   send:    string;
@@ -22,15 +24,21 @@ export interface StopReasonStrings {
   failed:  string;
 }
 
-export function StopReasonCard({ strings: s, initial, onSaved }: {
+export function StopReasonCard({ strings: s, initial, onSaved, collapsed = false }: {
   strings:  StopReasonStrings;
   initial:  { reason: StopReason; note: string | null } | null;
   onSaved?: () => void;
+  /**
+   * The pioneer is mid-mission (picked apps, reporting). Five reasons under the
+   * report box read as part of the task; one quiet line says "if you stop, tell
+   * us", and opens the card when tapped.
+   */
+  collapsed?: boolean;
 }) {
   const [saved,  setSaved]  = useState(initial);
   const [pick,   setPick]   = useState<StopReason | null>(initial?.reason ?? null);
   const [note,   setNote]   = useState(initial?.note ?? '');
-  const [open,   setOpen]   = useState(!initial);
+  const [open,   setOpen]   = useState(!initial && !collapsed);
   const [busy,   setBusy]   = useState(false);
   const [error,  setError]  = useState<string | null>(null);
 
@@ -59,6 +67,15 @@ export function StopReasonCard({ strings: s, initial, onSaved }: {
     marginTop: 'var(--sp-5)', padding: 'var(--sp-4)', borderRadius: 14,
     border: '1px solid var(--tec-border)', background: 'var(--tec-surface-1)',
   } as const;
+
+  if (!open && !saved) {
+    return (
+      <button onClick={() => setOpen(true)} data-testid="stop-reason-open"
+        style={{ display: 'block', margin: 'var(--sp-5) auto 0', background: 'none', border: 'none', padding: 0, color: 'var(--tec-text-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', font: 'inherit', textDecoration: 'underline' }}>
+        {s.open ?? s.title}
+      </button>
+    );
+  }
 
   if (!open && saved) {
     return (

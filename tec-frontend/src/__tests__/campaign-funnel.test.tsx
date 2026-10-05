@@ -101,3 +101,17 @@ describe('the admin funnel route forwards the user, not a service credential', (
     expect(route).not.toContain('INTERNAL_SECRET');
   });
 });
+
+describe('StopReasonCard — collapsed while the pioneer is mid-mission', () => {
+  it('shows one line, not five reasons, and opens on tap', () => {
+    render(<StopReasonCard strings={{ ...S, open: 'Not going to finish? Tell us why' }} initial={null} collapsed />);
+    expect(screen.queryByText('Too many apps')).toBeNull();
+    fireEvent.click(screen.getByTestId('stop-reason-open'));
+    expect(screen.getByText('Too many apps')).toBeTruthy();
+  });
+
+  it('an answer already given is still shown back, collapsed or not', () => {
+    render(<StopReasonCard strings={S} initial={{ reason: 'a', note: null }} collapsed />);
+    expect(screen.getByTestId('stop-reason-saved')).toBeTruthy();
+  });
+});

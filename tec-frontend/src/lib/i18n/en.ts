@@ -312,6 +312,7 @@ export const en = {
       missionChat:  'Open a chat and send one message — opening the app is not enough here',
       stopReason: {
         title:  'Not going to finish? One tap tells us why — it is the most useful thing you can send us.',
+        open:   'Not going to finish? Tell us why',
         a:      'Too many apps / too long',
         b:      'Something was confusing',
         c:      'Something did not work',

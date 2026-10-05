@@ -154,6 +154,17 @@ describe('the owner\'s review queue', () => {
     expect(JSON.parse(String(call[1]?.body))).toEqual({ action: 'approve' });
   });
 
+  it('says whether the app itself saw the Pi sign-in — what the reviewer weighs now that a tap opens the report', async () => {
+    const rows = [
+      { ...REPORTS[0], evidence: 'partial' },
+      { ...REPORTS[0], id: '33333333-3333-3333-3333-333333333333', owner: 'p3', evidence: 'declared' },
+    ];
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ data: { reports: rows } }) }) as Response));
+    render(<ReportReview />);
+    await waitFor(() => expect(screen.getByText('✓ Signed in with Pi inside the app')).toBeTruthy());
+    expect(screen.getByText(/the app did not report a Pi sign-in/)).toBeTruthy();
+  });
+
   it('needs revision asks for a note the pioneer will read', async () => {
     const f = queue();
     render(<ReportReview />);

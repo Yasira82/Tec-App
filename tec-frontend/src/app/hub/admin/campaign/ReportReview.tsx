@@ -16,6 +16,13 @@ export interface ReviewReport {
   status: 'ASSIGNED' | 'SUBMITTED' | 'NEEDS_REVISION' | 'APPROVED' | 'SWAPPED';
   report: string | null; had_problem: boolean | null; detail: string | null; suggestion: string | null;
   review_note: string | null; revisions: number; swap_reason: string | null; reported_at: string | null;
+  /**
+   * `partial` — the app itself saw this Pioneer sign in with Pi there.
+   * `declared` — opened from the campaign page, but the app never said so.
+   * A report opens on the tap (owner, 2026-10-05); this is what the reviewer
+   * weighs instead of a gate that kept missions shut.
+   */
+  evidence?: string | null;
 }
 
 const STATUS_LABEL: Record<ReviewReport['status'], string> = {
@@ -78,6 +85,13 @@ export function ReportReview() {
             <div>Why: “{r.swap_reason}”</div>
           ) : (
             <>
+              {r.evidence && (
+                <div style={{ fontSize: 11.5, fontWeight: 700, color: r.evidence === 'partial' ? 'var(--tec-green)' : 'var(--tec-text-3)' }}>
+                  {r.evidence === 'partial'
+                    ? '✓ Signed in with Pi inside the app'
+                    : '○ Opened from the campaign — the app did not report a Pi sign-in'}
+                </div>
+              )}
               <div>What happened: “{r.report}”</div>
               <div>{r.had_problem ? 'Problem' : 'No problem — clear / useful'}: “{r.detail}”</div>
               {r.suggestion && <div style={{ color: 'var(--tec-gold)' }}>Suggestion: “{r.suggestion}”</div>}

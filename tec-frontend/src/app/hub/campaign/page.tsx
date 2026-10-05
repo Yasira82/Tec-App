@@ -999,12 +999,17 @@ export default function CampaignPage() {
               </div>
 
               <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)', marginBottom: 'var(--sp-3)', lineHeight: 1.6 }}>
-                {fill(pickRound ? c.pick.intro : c.missionsIntro, { reward: me?.reward_pi ?? status?.reward_pi ?? '' })}
+                {fill(pickRound ? c.pick.intro : c.missionsIntro, {
+                  reward: me?.reward_pi ?? status?.reward_pi ?? '',
+                  n: me?.pick_max ?? 3,
+                  total: rewardShown,
+                })}
               </div>
 
               {pickRound && me ? (
                 <PickMissions
                   assigned={me.assigned ?? (me.missions ?? []).length > 0}
+                  count={me.pick_max ?? 3}
                   missions={me.missions ?? []}
                   swapsLeft={me.swaps_left ?? 0}
                   rewardPi={me.reward_pi}

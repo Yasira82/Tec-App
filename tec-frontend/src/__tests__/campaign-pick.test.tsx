@@ -24,7 +24,7 @@ const ok = (body: unknown = { success: true }) =>
 const setup = (missions: PickMission[], extra: Partial<React.ComponentProps<typeof PickMissions>> = {}) => {
   const onChanged = vi.fn();
   render(
-    <PickMissions assigned={missions.length > 0} missions={missions} swapsLeft={2} rewardPi={1}
+    <PickMissions assigned={missions.length > 0} count={3} missions={missions} swapsLeft={2} rewardPi={1}
       strings={en.hub.campaignPage.pick} nameOf={(s) => s.toUpperCase()} linkOf={(s) => `https://${s}.tecosystem.app/app`}
       onOpen={vi.fn()} onChanged={onChanged} {...extra} />,
   );
@@ -183,6 +183,13 @@ describe('the owner\'s review queue', () => {
     render(<FunnelCard />);
     await waitFor(() => expect(screen.getByTestId('review-counts')).toBeTruthy());
     expect(screen.getByTestId('review-counts').textContent).toBe('3Assigned2Waiting1Revision5Approved1Swapped');
+  });
+});
+
+describe('the owner\'s round — six apps', () => {
+  it('says how many apps the round gives', () => {
+    setup([], { count: 6 });
+    expect(screen.getByText('Get my 6 apps')).toBeTruthy();
   });
 });
 

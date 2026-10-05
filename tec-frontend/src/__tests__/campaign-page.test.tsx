@@ -336,6 +336,14 @@ describe('Round 3 — three assigned apps (mode: pick)', () => {
     expect(screen.getByTestId('criteria')).toBeInTheDocument();
   });
 
+  it('the owner\'s round: six apps at 0.5 π, 3 π in all, said up front', async () => {
+    vi.stubGlobal('fetch', answer({ ...ME, assigned: false, picks: [], apps: [], missions: [], done: [], missing: [],
+      pick_max: 6, reward_pi: 0.5, reward_total: 3 }));
+    render(<CampaignPage />);
+    await waitFor(() => expect(screen.getByText('Get my 6 apps')).toBeInTheDocument());
+    expect(screen.getByText(/We give you 6 TEC apps.*worth 0.5 π — 3 π when all 6 are approved/)).toBeInTheDocument();
+  });
+
   it('before assignment, offers one button — the apps are not chosen here', async () => {
     vi.stubGlobal('fetch', answer({ ...ME, assigned: false, picks: [], apps: [], missions: [], done: [], missing: [] }));
     render(<CampaignPage />);

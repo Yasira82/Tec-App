@@ -96,10 +96,12 @@ const draftOf = (m: PickMission): Draft => ({
 });
 
 export function PickMissions({
-  assigned, missions, swapsLeft, rewardPi, strings: s,
+  assigned, count, missions, swapsLeft, rewardPi, strings: s,
   nameOf, linkOf, onOpen, onChanged,
 }: {
   assigned:  boolean;
+  /** How many apps this round gives a pioneer — 3 by default, 6 in the owner's round. */
+  count:     number;
   missions:  PickMission[];
   swapsLeft: number;
   rewardPi:  number;
@@ -141,7 +143,7 @@ export function PickMissions({
         {criteria}
         <button onClick={() => { void run('assign', 'assign', {}); }} disabled={busy === 'assign'}
           style={goldButton(busy !== 'assign')}>
-          {s.getApps}
+          {fill(s.getApps, { n: count })}
         </button>
         {alert(errors.assign)}
       </div>

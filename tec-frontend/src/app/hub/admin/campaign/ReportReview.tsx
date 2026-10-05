@@ -48,12 +48,12 @@ export function ReportReview() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const review = async (id: string, action: 'approve' | 'revise') => {
+  const review = async (id: string, action: 'approve' | 'revise' | 'reopen') => {
     setBusy(id); setError(null);
     try {
       const res = await fetch(`/api/admin/campaign/reports/${id}/review`, {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action, ...(action === 'revise' ? { note: note.trim() } : {}) }),
+        body: JSON.stringify({ action, ...(action !== 'approve' ? { note: note.trim() } : {}) }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d?.message ?? d?.error ?? `HTTP ${res.status}`);
@@ -99,19 +99,29 @@ export function ReportReview() {
             </>
           )}
 
-          {r.status === 'SUBMITTED' && (revising === r.id ? (
+          {/* An APPROVED report can be sent back with a note until they claim
+              (owner, 2026-10-05 — two were approved that described the Hub,
+              not the app). The service refuses it after a claim. */}
+          {(r.status === 'SUBMITTED' || r.status === 'APPROVED') && (revising === r.id ? (
             <div style={{ marginTop: 6 }}>
               <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 500))} rows={2}
                 placeholder="What should they add or clarify? They will read this."
                 aria-label="Revision note"
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 12.5, boxSizing: 'border-box' }} />
               <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
-                <button onClick={() => { void review(r.id, 'revise'); }} disabled={note.trim().length < 5 || busy === r.id}
+                <button onClick={() => { void review(r.id, r.status === 'APPROVED' ? 'reopen' : 'revise'); }} disabled={note.trim().length < 5 || busy === r.id}
                   style={{ ...small, border: '1px solid var(--tec-gold)', background: 'transparent', color: 'var(--tec-gold)', opacity: note.trim().length < 5 ? 0.5 : 1 }}>
                   Send the note
                 </button>
                 <button onClick={() => { setRevising(null); setNote(''); }} style={{ ...small, border: 'none', background: 'none', color: 'var(--tec-text-3)' }}>Cancel</button>
               </div>
+            </div>
+          ) : r.status === 'APPROVED' ? (
+            <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+              <button onClick={() => { setRevising(r.id); setNote(''); }} disabled={busy === r.id}
+                style={{ ...small, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-3)' }}>
+                Send back
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>

@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 /**
  * Round 3: the owner reviews one report — approve, or ask for a revision with a
- * note the pioneer reads. ADMIN — decided by identity-service from the token,
+ * note the pioneer reads, or `reopen` an approved one with a note (refused by
+ * the service once the pioneer has claimed). ADMIN — decided by identity-service from the token,
  * which also writes the audit row.
  *
  * No `x-internal-key`, for the same reason as the claims route: the service reads it
@@ -16,8 +17,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return NextResponse.json({ error: 'Bad report id' }, { status: 400 });
   const body = await req.json().catch(() => ({})) as { action?: unknown; note?: unknown };
-  if (body.action !== 'approve' && body.action !== 'revise') {
-    return NextResponse.json({ error: 'action must be approve or revise' }, { status: 400 });
+  if (body.action !== 'approve' && body.action !== 'revise' && body.action !== 'reopen') {
+    return NextResponse.json({ error: 'action must be approve, revise or reopen' }, { status: 400 });
   }
   try {
     const res = await fetch(`${GATEWAY}/api/identity/campaign/reports/${encodeURIComponent(id)}/review`, {

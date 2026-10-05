@@ -165,6 +165,23 @@ describe('the owner\'s review queue', () => {
     expect(screen.getByText(/the app did not report a Pi sign-in/)).toBeTruthy();
   });
 
+  it('an approved report can be sent back with a note — sent as reopen', async () => {
+    const rows = [{ ...REPORTS[0], status: 'APPROVED' }];
+    const f = vi.fn(async (u: RequestInfo | URL, _i?: RequestInit) => ({
+      ok: true, status: 200, json: async () => (String(u).endsWith('/reports') ? { data: { reports: rows } } : { success: true }),
+    }) as Response);
+    vi.stubGlobal('fetch', f);
+    render(<ReportReview />);
+    await waitFor(() => expect(screen.getByText('Send back')).toBeTruthy());
+    expect(screen.queryByText('Approve')).toBeNull();
+    fireEvent.click(screen.getByText('Send back'));
+    fireEvent.change(screen.getByLabelText('Revision note'), { target: { value: 'This describes the Hub — tell us about this app.' } });
+    fireEvent.click(screen.getByText('Send the note'));
+    await waitFor(() => expect(f.mock.calls.some(([u]) => String(u).includes('/review'))).toBe(true));
+    const call = f.mock.calls.find(([u]) => String(u).includes('/review'))!;
+    expect(JSON.parse(String(call[1]?.body))).toEqual({ action: 'reopen', note: 'This describes the Hub — tell us about this app.' });
+  });
+
   it('needs revision asks for a note the pioneer will read', async () => {
     const f = queue();
     render(<ReportReview />);

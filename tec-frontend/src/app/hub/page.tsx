@@ -125,7 +125,7 @@ function HubPageInner() {
   );
   const gridApps = visibleLive.map((a) => (a.appUrl ? { ...a, href: signed(a.appUrl) } : a));
 
-  const { balance, balanceError, piPrice, notifCount, time, setNotifCount, refreshBalance } =
+  const { balance, balanceError, piPrice, notifCount, recentPayments, time, setNotifCount, refreshBalance } =
     useHubData(user?.id);
 
   const [carouselIdx, setCarouselIdx] = useState(0);
@@ -282,7 +282,7 @@ function HubPageInner() {
         </div>
       )}
 
-      <HubWalletCard balance={balance} piPrice={piPrice} balanceError={balanceError} onRetryBalance={refreshBalance} />
+      <HubWalletCard balance={balance} piPrice={piPrice} balanceError={balanceError} onRetryBalance={refreshBalance} recent={recentPayments} />
 
       {/* Carousel = the top spotlight: Founding-100 marketing missions + an app
           announcement + the live Pi price. */}

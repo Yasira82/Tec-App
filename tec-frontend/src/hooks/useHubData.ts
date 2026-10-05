@@ -1,6 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import { bffFetch }                         from '@/lib-client/pi/bff-client';
 import { PiPrice, asPiPrice }                from '@/lib/hub/types';
+import { normalizePayment, type Payment }    from '@/lib/dashboard-data';
+
+/** How many payments the wallet card shows. The full list is on the wallet page. */
+export const RECENT_PAYMENTS = 3;
 
 interface HubData {
   balance:           string;
@@ -8,6 +12,9 @@ interface HubData {
   assetCount:        number | null;
   piPrice:           PiPrice | null;
   notifCount:        number;
+  /** Last few payments, newest first. `null` until loaded, and on failure —
+   *  the card then shows nothing rather than a fabricated empty history. */
+  recentPayments:    Payment[] | null;
   time:              string;
   setNotifCount:     (n: number) => void;
   refresh:           () => Promise<void>;
@@ -20,6 +27,7 @@ export function useHubData(userId?: string): HubData {
   const [assetCount,   setAssetCount]   = useState<number | null>(null);
   const [piPrice,      setPiPrice]      = useState<PiPrice | null>(null);
   const [notifCount,   setNotifCount]   = useState(0);
+  const [recentPayments, setRecentPayments] = useState<Payment[] | null>(null);
   const [time,         setTime]         = useState('');
 
   // bffFetch (C-123 §7): Authorization header from the in-memory session + one
@@ -49,6 +57,17 @@ export function useHubData(userId?: string): HubData {
     } catch {}
   }, [userId]);
 
+  const refreshPayments = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const res = await bffFetch(`/api/bff/payments/history?limit=${RECENT_PAYMENTS}`, { cache: 'no-store' });
+      if (!res.ok) return;
+      const d    = await res.json();
+      const rows = d?.data?.payments ?? d?.data;
+      if (Array.isArray(rows)) setRecentPayments(rows.slice(0, RECENT_PAYMENTS).map(normalizePayment));
+    } catch {}
+  }, [userId]);
+
   const refreshPrice = useCallback(async () => {
     try {
       const res = await fetch('/api/market/pi-price', { cache: 'no-store' });
@@ -69,10 +88,10 @@ export function useHubData(userId?: string): HubData {
   }, [userId]);
 
   const refresh = useCallback(async () => {
-    await Promise.all([refreshBalance(), refreshAssets(), refreshPrice(), refreshNotifCount()]);
-  }, [refreshBalance, refreshAssets, refreshPrice, refreshNotifCount]);
+    await Promise.all([refreshBalance(), refreshAssets(), refreshPayments(), refreshPrice(), refreshNotifCount()]);
+  }, [refreshBalance, refreshAssets, refreshPayments, refreshPrice, refreshNotifCount]);
 
-  useEffect(() => { refreshBalance(); refreshAssets(); }, [refreshBalance, refreshAssets]);
+  useEffect(() => { refreshBalance(); refreshAssets(); refreshPayments(); }, [refreshBalance, refreshAssets, refreshPayments]);
 
   useEffect(() => {
     refreshNotifCount();
@@ -93,5 +112,5 @@ export function useHubData(userId?: string): HubData {
     return () => clearInterval(id);
   }, []);
 
-  return { balance, balanceError, assetCount, piPrice, notifCount, time, setNotifCount, refresh, refreshBalance };
+  return { balance, balanceError, assetCount, piPrice, notifCount, recentPayments, time, setNotifCount, refresh, refreshBalance };
 }

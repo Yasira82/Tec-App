@@ -5,6 +5,7 @@ import { usePiAuth }      from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell }    from '@/components/hub';
 import { Icon }           from '@/components/ui/Icon';
 import { LifeAiCard }     from './LifeAiCard';
+import { IntentReviewCard } from './IntentReviewCard';
 
 /**
  * /hub/admin/life-ai — the two numbers that gate every Life/AI expansion (M1).
@@ -32,7 +33,10 @@ export default function AdminLifeAiPage() {
           <div style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-text-3)' }}>{s.restrictedSub}</div>
         </div>
       ) : (
-        <LifeAiCard strings={s} />
+        <>
+          <LifeAiCard strings={s} />
+          <IntentReviewCard strings={s.intents} />
+        </>
       )}
     </HubSubShell>
   );

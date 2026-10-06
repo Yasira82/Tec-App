@@ -467,6 +467,16 @@ export const ar = {
       people:        'أشخاص',
       total:         'الإجمالي',
       unavailable:   'تعذّرت قراءة هذا',
+      intents: {
+        title: 'اللي المساعد ملوش كلمة ليه',
+        sub: 'آخر 4 أسابيع. كل سؤال ما طابقش هدف يا إما هدف جديد، يا إما حاجة TEC ما بتعملهاش. بدون أسماء.',
+        byObjective: 'الأسئلة حسب الهدف',
+        unmatched: 'أسئلة ما طابقتش أي هدف',
+        unmatchedNone: 'مفيش في الفترة دي.',
+        noObjective: '(بدون هدف)',
+        truncated: 'الأسئلة أكتر من اللي قراءة واحدة بتشيله — العدّ جزئي.',
+        unavailable: 'تعذّرت قراءة هذا',
+      },
       categories: {
         GOALS: 'الأهداف', SKILLS: 'المهارات', PREFERENCES: 'التفضيلات',
         ACTIVITY: 'النشاط', TRAJECTORY: 'المسار', INTENT: 'النوايا',

@@ -529,6 +529,16 @@ export const en = {
       people:        'people',
       total:         'total',
       unavailable:   'Could not read this',
+      intents: {
+        title: 'What the assistant has no word for',
+        sub: 'Last 4 weeks. Each unmatched ask is a new objective, or something TEC does not do. No names.',
+        byObjective: 'Asks by objective',
+        unmatched: 'Asks that matched nothing',
+        unmatchedNone: 'None in this window.',
+        noObjective: '(no objective)',
+        truncated: 'More asks than one read holds — counts are partial.',
+        unavailable: 'Could not read this',
+      },
       categories: {
         GOALS: 'Goals', SKILLS: 'Skills', PREFERENCES: 'Preferences',
         ACTIVITY: 'Activity', TRAJECTORY: 'Trajectory', INTENT: 'Intent',

@@ -1,6 +1,6 @@
 import { createHandler } from '@/lib/bff/createHandler';
 import { signContext }   from '@/lib/ai/context-token';
-import { lifeContextToAi } from '@/lib/ai/life-context';
+import { lifeContextToAi, type SkillLevel } from '@/lib/ai/life-context';
 
 /**
  * TEC AI — personalization context (C-104 reasoning input · C-121 pipeline).
@@ -54,6 +54,9 @@ export interface AiContext {
   goals:       { title: string; done: boolean }[];
   focus?:      string;
   activity?:   { logins?: number; payments?: number; volume?: string };
+  /** A1 — what Life's door served when SKILLS / TRAJECTORY are granted (lib/ai/life-context.ts). */
+  skills?:     { name: string; level: SkillLevel }[];
+  pace?:       { pi_per_week: number; active_days: number };
   /**
    * The same context, SIGNED for this caller — the only form `/api/ai/chat`
    * will accept (see lib/ai/context-token.ts).
@@ -85,6 +88,8 @@ export const GET = createHandler<Record<string, never>, AiContext>({
           goals:       c.goals,
           focus:       c.focus,
           activity:    c.activity,
+          skills:      c.skills,
+          pace:        c.pace,
         },
         ctx.userId,
         process.env.JWT_SECRET,
@@ -117,6 +122,10 @@ export const GET = createHandler<Record<string, never>, AiContext>({
     const life = lifeContextToAi(lifeRaw);
     out.goals = life.goals;
     out.focus = life.focus;
+    // Served only when granted — and then only the ladder word and the pace,
+    // never a score, never the entry log (C-106 §11b: the door serves a pace).
+    if (life.skills) out.skills = life.skills;
+    if (life.pace)   out.pace   = life.pace;
 
     // Activity — own aggregates only (never presented to the AI as financial truth).
     const ov = (overviewRaw as { data?: Record<string, unknown> })?.data ?? (overviewRaw as Record<string, unknown>) ?? {};

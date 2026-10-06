@@ -1,5 +1,6 @@
 import { createHandler } from '@/lib/bff/createHandler';
 import { signContext }   from '@/lib/ai/context-token';
+import { lifeContextToAi } from '@/lib/ai/life-context';
 
 /**
  * TEC AI — personalization context (C-104 reasoning input · C-121 pipeline).
@@ -21,7 +22,7 @@ import { signContext }   from '@/lib/ai/context-token';
 
 const TIMEOUT_MS = 2500;
 
-async function getJson(url: string, token: string, requestId: string): Promise<unknown | null> {
+async function getJson(url: string, token: string, requestId: string, extra: Record<string, string> = {}): Promise<unknown | null> {
   try {
     const controller = new AbortController();
     const timer      = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -30,6 +31,7 @@ async function getJson(url: string, token: string, requestId: string): Promise<u
         'Authorization': `Bearer ${token}`,
         'x-request-id':  requestId,
         ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
+        ...extra,
       },
       cache:  'no-store',
       signal: controller.signal,
@@ -43,7 +45,6 @@ async function getJson(url: string, token: string, requestId: string): Promise<u
 }
 
 // Narrow, defensive extractors — backends evolve; never throw on a shape change.
-const asArray = (v: unknown): unknown[] => (Array.isArray(v) ? v : Array.isArray((v as { data?: unknown })?.data) ? (v as { data: unknown[] }).data : []);
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
 
 export interface AiContext {
@@ -104,27 +105,18 @@ export const GET = createHandler<Record<string, never>, AiContext>({
     const out: AiContext = { username, kycVerified: ctx.kycVerified, goals: [] };
     if (!gateway || !token) return sealed(out); // fail-soft: base context only
 
-    const [goalsRaw, prefsRaw, overviewRaw] = await Promise.all([
-      getJson(`${gateway}/api/identity/life/goals`,       token, ctx.requestId),
-      getJson(`${gateway}/api/identity/life/preferences`, token, ctx.requestId),
-      getJson(`${gateway}/api/analytics/me/overview`,     token, ctx.requestId),
+    // Life is read through its CONSENT-GATED door only (lib/ai/life-context.ts):
+    // what the person switched off on Life's Privacy screen never reaches the
+    // prompt. The reader names itself — Life audits every read with it.
+    const [lifeRaw, overviewRaw] = await Promise.all([
+      username
+        ? getJson(`${gateway}/api/identity/life/context/${encodeURIComponent(username)}`, token, ctx.requestId, { 'x-service-name': 'tec-app-ai' })
+        : Promise.resolve(null),
+      getJson(`${gateway}/api/analytics/me/overview`, token, ctx.requestId),
     ]);
-
-    // Goals — keep at most 5 active/most-recent, title + done only (no ids/timestamps).
-    out.goals = asArray(goalsRaw)
-      .map((g) => {
-        const o = g as { title?: unknown; name?: unknown; done?: unknown; completed?: unknown; status?: unknown };
-        const title = str(o.title) ?? str(o.name);
-        if (!title) return null;
-        const done = o.done === true || o.completed === true || o.status === 'done';
-        return { title, done };
-      })
-      .filter((g): g is { title: string; done: boolean } => g !== null)
-      .slice(0, 5);
-
-    // Focus — from preferences (self-declared).
-    const prefs = prefsRaw as { focus?: unknown; data?: { focus?: unknown } } | null;
-    out.focus = str(prefs?.focus) ?? str(prefs?.data?.focus);
+    const life = lifeContextToAi(lifeRaw);
+    out.goals = life.goals;
+    out.focus = life.focus;
 
     // Activity — own aggregates only (never presented to the AI as financial truth).
     const ov = (overviewRaw as { data?: Record<string, unknown> })?.data ?? (overviewRaw as Record<string, unknown>) ?? {};

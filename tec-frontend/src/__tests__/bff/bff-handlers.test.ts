@@ -413,8 +413,14 @@ describe('GET /api/bff/ai/context', () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input: any) => {
       const url = String(input);
       const json = (data: unknown) => Promise.resolve({ ok: true, json: async () => data } as any);
-      if (url.includes('/life/goals'))       return json([{ title: 'Save 100 Pi', done: false }, { title: 'Old', done: true }]);
-      if (url.includes('/life/preferences')) return json({ focus: 'growth' });
+      // Life answers ONLY through its consent-gated door (C-106 §5/§11b): served
+      // categories, the consent map alongside, active goals only. A reader that
+      // asked the goals or preferences tables directly gets nothing here.
+      if (url.includes('/life/context/alice')) return json({ success: true, data: {
+        consent: [{ category: 'GOALS', granted: true }, { category: 'PREFERENCES', granted: true }, { category: 'SKILLS', granted: false }],
+        context: { goals: [{ id: 'g1', title: 'Save 100 Pi', progress: 10, target_amount: 100 }], preferences: { focus: 'growth' } },
+      } });
+      if (url.includes('/life/goals') || url.includes('/life/preferences')) throw new Error('read the gated door, not the tables');
       if (url.includes('/analytics/me/overview')) return json({ data: { logins: 12, payments: 3, volume: '45.5' } });
       return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as any);
     });
@@ -424,19 +430,47 @@ describe('GET /api/bff/ai/context', () => {
     expect(res.status).toBe(401);
   });
 
-  it('shapes own-scope goals + focus + activity (KYC from session)', async () => {
+  // makeReq builds a plain cookie jar (a `get` closure) — add the session user to it.
+  const asAlice = (req: NextRequest): NextRequest => {
+    const jar = (req as unknown as { cookies: { get: (n: string) => { value: string } | undefined } }).cookies;
+    const get = jar.get;
+    jar.get = (n: string) => (n === 'tec_user' ? { value: encodeURIComponent(JSON.stringify({ piUsername: 'alice' })) } : get(n));
+    return req;
+  };
+
+  it('shapes consented Life context + focus + activity (KYC from session)', async () => {
     authOk();
-    gatewayByUrl();
-    const res  = await GET(makeReq({ token: 'tok' }));
+    const fetchSpy = gatewayByUrl();
+    const res  = await GET(asAlice(makeReq({ token: 'tok' })));
     const body = await res.json();
     expect(res.status).toBe(200);
     expect(body.kycVerified).toBe(true);         // from the verified JWT, not a param
-    expect(body.goals).toEqual([
-      { title: 'Save 100 Pi', done: false },
-      { title: 'Old', done: true },
-    ]);
+    expect(body.goals).toEqual([{ title: 'Save 100 Pi', done: false }]);   // what Life SERVED — active, granted
     expect(body.focus).toBe('growth');
     expect(body.activity).toEqual({ logins: 12, payments: 3, volume: '45.5' });
+    // The reader names itself to Life's audit.
+    const lifeCall = fetchSpy.mock.calls.find(([u]) => String(u).includes('/life/context/'))!;
+    expect((lifeCall[1] as RequestInit).headers).toMatchObject({ 'x-service-name': 'tec-app-ai' });
+  });
+
+  it('goals switched OFF on Life\'s Privacy screen never reach the prompt', async () => {
+    authOk();
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input: any) => {
+      const url = String(input);
+      const json = (data: unknown) => Promise.resolve({ ok: true, json: async () => data } as any);
+      if (url.includes('/life/context/alice')) return json({ data: { consent: [{ category: 'GOALS', granted: false }], context: {} } });
+      return Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as any);
+    });
+    const body = await (await GET(asAlice(makeReq({ token: 'tok' })))).json();
+    expect(body.goals).toEqual([]);
+    expect(body.focus ?? null).toBeNull();
+  });
+
+  it('asks Life nothing when the session carries no username', async () => {
+    authOk();
+    const fetchSpy = gatewayByUrl();
+    await GET(makeReq({ token: 'tok' }));
+    expect(fetchSpy.mock.calls.some(([u]) => String(u).includes('/life/'))).toBe(false);
   });
 
   it('fail-soft: returns base context when every upstream fails', async () => {

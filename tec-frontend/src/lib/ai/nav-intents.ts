@@ -35,6 +35,12 @@ export interface NavIntent extends NavTarget {
   action?: string;
   /** Optional label the model supplied after the pipe; falls back to the name. */
   label?: string;
+  /**
+   * A3 (C-104 §10.1): this chip carries a pre-filled form value into an owning app.
+   * It is opened through the signed handoff (C-123 §12/§13) so the person arrives
+   * signed in, and the app saves nothing until they confirm there.
+   */
+  signed?: boolean;
 }
 
 /** slug → { href, name } for every LIVE app, built once from the registry. */
@@ -83,6 +89,7 @@ export const APP_ACTIONS: Record<string, { path: string; name: Localized }> = {
   'ecommerce:stores':  { path: '/store',        name: { en: 'Browse stores',    ar: 'تصفّح المتاجر' } },
   'ecommerce:sell':    { path: '/merchant',     name: { en: 'Sell (merchant)',  ar: 'بيع (تاجر)' } },
   'commerce:settings': { path: '/app/settings', name: { en: 'Store settings',   ar: 'إعدادات المتجر' } },
+  'life:goal':         { path: '/app',          name: { en: 'Add this goal in Life', ar: 'أضف الهدف ده في Life' } },
   // Nexus = the coordination runtime (C-109). These deep-link to a SPECIFIC governed
   // workflow so the assistant can recommend the right one for a multi-step goal.
   'nexus:workflows':    { path: '/app',                          name: { en: 'Nexus workflows',      ar: 'مسارات Nexus' } },
@@ -92,6 +99,41 @@ export const APP_ACTIONS: Record<string, { path: string; name: Localized }> = {
 };
 
 /** Origin of an absolute app route; '' for a relative (Hub) route. */
+/**
+ * C-104 §10.1 — which `(slug, action)` may carry a pre-filled value, and which
+ * keys. A key not listed here is DROPPED, never forwarded; a value that does not
+ * pass its check is dropped too. The owning app re-checks everything it receives
+ * and saves nothing until the person confirms — this is the first of two gates,
+ * not the only one.
+ *
+ * The marker key and the app's query key may differ: the assistant writes
+ * `title`, Life reads `goal`.
+ */
+export const PREFILL_KEYS: Record<string, Record<string, { param: string; required?: boolean; accept: (v: string) => string | null }>> = {
+  'life:goal': {
+    title:  { param: 'goal',   required: true, accept: (v) => { const t = v.replace(/\s+/g, ' ').trim().slice(0, 80).trim(); return t || null; } },
+    target: { param: 'target', accept: (v) => (/^(?:0|[1-9]\d{0,9})(?:\.\d{1,8})?$/.test(v.trim()) && Number(v) > 0 ? v.trim() : null) },
+  },
+};
+
+/** The whitelisted part of a marker's query, as the app's own query string — or '' when nothing survives. */
+export function prefillQuery(key: string, raw: string | undefined): string {
+  const allowed = PREFILL_KEYS[key];
+  if (!allowed || !raw) return '';
+  let q: URLSearchParams;
+  try { q = new URLSearchParams(raw); } catch { return ''; }
+  const out = new URLSearchParams();
+  for (const [k, rule] of Object.entries(allowed)) {
+    const v  = q.get(k);
+    const ok = v === null ? null : rule.accept(v);
+    // A required key that is missing or unusable voids the whole pre-fill: a
+    // target with no title is not half a goal, it is no proposal at all.
+    if (ok === null) { if (rule.required) return ''; continue; }
+    out.set(rule.param, ok);
+  }
+  return out.toString();
+}
+
 const originOf = (href: string): string => {
   try { return new URL(href).origin; } catch { return ''; }
 };
@@ -107,8 +149,9 @@ export interface NavFlow {
  * home, or the AI could silently point somewhere it didn't mean. Returns null when
  * the slug/action is unknown (fail closed).
  */
-function resolveStep(slug: string, action?: string, label?: string): NavIntent | null {
+function resolveStep(slug: string, action?: string, label?: string, query?: string): NavIntent | null {
   let base: NavTarget | undefined;
+  let signed = false;
   if (action) {
     const hubAction = ACTION_TARGETS[`${slug}:${action}`];
     if (hubAction) {
@@ -118,17 +161,24 @@ function resolveStep(slug: string, action?: string, label?: string): NavIntent |
       const appAction = APP_ACTIONS[`${slug}:${action}`];
       const app       = NAV_TARGETS[slug];
       const origin    = app ? originOf(app.href) : '';
-      if (appAction && origin) base = { slug, href: origin + appAction.path, name: appAction.name };
+      if (appAction && origin) {
+        // A pre-fill needs its title: a `life:goal` chip with nothing usable in it
+        // would open an empty form under a label that promises a goal.
+        const pre = prefillQuery(`${slug}:${action}`, query);
+        if (PREFILL_KEYS[`${slug}:${action}`] && !pre) return null;
+        base   = { slug, href: origin + appAction.path + (pre ? `?${pre}` : ''), name: appAction.name };
+        signed = Boolean(pre);
+      }
     }
   } else {
     base = NAV_TARGETS[slug];
   }
   if (!base) return null;
-  return { ...base, action, label: label || undefined };
+  return { ...base, action, label: label || undefined, ...(signed ? { signed: true } : {}) };
 }
 
 // [[go:slug]] · [[go:slug:action]] · with an optional |Label. Lowercase slug/action.
-const MARKER = /\[\[go:([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\|([^\]]+))?\]\]/gi;
+const MARKER = /\[\[go:([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\?([^\]|]*))?(?:\|([^\]]+))?\]\]/gi;
 // [[flow: step ; step ; … ]] — a multi-step journey. Steps split on ';' or '>'.
 const FLOW_MARKER = /\[\[flow:([^\]]+)\]\]/gi;
 const STEP_SPEC   = /^([a-z0-9-]+)(?::([a-z0-9-]+))?(?:\|(.+))?$/i;
@@ -170,7 +220,7 @@ export function parseNavIntents(raw: string): ParsedReply {
   let match: RegExpExecArray | null;
   MARKER.lastIndex = 0;
   while ((match = MARKER.exec(raw)) !== null) {
-    const step = resolveStep(match[1].toLowerCase(), match[2]?.toLowerCase(), match[3]?.trim());
+    const step = resolveStep(match[1].toLowerCase(), match[2]?.toLowerCase(), match[4]?.trim(), match[3]);
     if (!step) continue;
     const key = step.action ? `${step.slug}:${step.action}` : step.slug;
     if (seen.has(key)) continue;

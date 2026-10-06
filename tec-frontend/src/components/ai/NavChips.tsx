@@ -1,6 +1,8 @@
 'use client';
 
 import type { NavIntent } from '@/lib/ai/nav-intents';
+import { useHandoffLinks }  from '@/lib-client/handoff-links';
+import { rememberReturn }   from '@/lib-client/return-to';
 import { t }                from '@/domains/_types';
 import type { Locale }      from '@/domains/_types';
 
@@ -47,10 +49,25 @@ export function NavChip({
   // mounted; this renders inside a modal drawer that can be mounted in contexts without
   // it, and a chip that CRASHES the reply is worse than one that costs a full page load.
   const external = /^https?:\/\//.test(intent.href);
+  // A3 (C-104 §10.1 · C-123 §12/§13): a chip that carries a pre-filled value
+  // opens through the signed handoff — real link, new tab, no referrer — so the
+  // person lands in the owning app signed in, on the form. Until the signed link
+  // arrives (or if it cannot be had) the plain link is the fallback, never a
+  // dead end. Other chips are unchanged.
+  const signed = useHandoffLinks(intent.signed && external ? [intent.href] : [], Boolean(intent.signed && external));
+  const href   = intent.signed && external ? signed(intent.href) : intent.href;
+  const onClick = intent.signed && external
+    ? () => {
+        rememberReturn(window.location.pathname);
+        signed.spent(intent.href); // refreshed after the tap, never inside it (C-123 §12, #259)
+      }
+    : undefined;
   return (
     <a
-      href={intent.href}
+      href={href}
       {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+      {...(onClick ? { onClick } : {})}
+      {...(intent.signed ? { 'data-signed': 'true' } : {})}
       {...(className ? { className } : { style: defaultStyle })}
     >{content}</a>
   );

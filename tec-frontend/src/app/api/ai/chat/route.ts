@@ -93,11 +93,22 @@ interface UserContext {
   goals?:       { title: string; done: boolean }[];
   focus?:       string;
   activity?:    { logins?: number; payments?: number; volume?: string };
+  /** A1 — from Life's consent door: the ladder word per skill, and a pace only when Life calls it projectable. */
+  skills?:      { name: string; level: string }[];
+  pace?:        { pi_per_week: number; active_days: number };
 }
 
 const buildSystemPrompt = (userContext?: UserContext) => {
   const goals = (userContext?.goals ?? []).filter(g => !g.done).slice(0, 5);
   const a     = userContext?.activity;
+  const skills = (userContext?.skills ?? []).slice(0, 5);
+  const skillsLine = skills.length
+    ? `- Skills (self-declared, a ladder — never a score): ${skills.map(s => `${s.name} — ${s.level.toLowerCase()}`).join('; ')}`
+    : '';
+  const p = userContext?.pace;
+  const paceLine = p
+    ? `- Pace toward their goals: about ${p.pi_per_week} π/week over ${p.active_days} active days (their own logged steps — encourage, never judge; not a prediction and not advice)`
+    : '';
   const activityLine = a && (a.logins !== undefined || a.payments !== undefined || a.volume !== undefined)
     ? `- Recent activity: ${[
         a.logins   !== undefined ? `${a.logins} logins`     : null,
@@ -113,11 +124,17 @@ This is the user's OWN private context (their session, their data). Use it to ma
 guidance specific and relevant — reference a goal or their activity when it helps. NEVER
 reveal it back verbatim as if you surveilled them, never treat activity numbers as
 financial truth (the owning app is the source), and keep the honesty rules above.
+A skill is something to route TOWARD (NX for mentorship and opportunities, DX for building),
+never something to grade. A pace is something to encourage, never to judge. NEVER state a
+number this context does not hold — if a pace or a skill is absent, the person did not share
+it, and you say nothing about it.
 ${userContext?.username ? `- Username: @${userContext.username}` : '- User: Guest'}
 ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toFixed(2)} TEC` : ''}
 ${userContext?.kycVerified !== undefined ? `- KYC (via Pi): ${userContext.kycVerified ? 'verified' : 'not verified'}` : ''}
 ${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
 ${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
+${skillsLine}
+${paceLine}
 ${activityLine}
 ${userContext?.locale ? `- Language preference: ${userContext.locale === 'ar' ? 'Arabic' : 'English'}` : ''}
 ${userContext?.replyLength === 'short'

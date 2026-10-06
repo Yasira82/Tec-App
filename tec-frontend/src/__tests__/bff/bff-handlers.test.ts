@@ -417,8 +417,13 @@ describe('GET /api/bff/ai/context', () => {
       // categories, the consent map alongside, active goals only. A reader that
       // asked the goals or preferences tables directly gets nothing here.
       if (url.includes('/life/context/alice')) return json({ success: true, data: {
-        consent: [{ category: 'GOALS', granted: true }, { category: 'PREFERENCES', granted: true }, { category: 'SKILLS', granted: false }],
-        context: { goals: [{ id: 'g1', title: 'Save 100 Pi', progress: 10, target_amount: 100 }], preferences: { focus: 'growth' } },
+        consent: [{ category: 'GOALS', granted: true }, { category: 'PREFERENCES', granted: true }, { category: 'SKILLS', granted: true }, { category: 'TRAJECTORY', granted: true }],
+        context: {
+          goals: [{ id: 'g1', title: 'Save 100 Pi', progress: 10, target_amount: 100 }], preferences: { focus: 'growth' },
+          // A1: the door serves the ladder word and a pace when granted — and the reader keeps them now.
+          skills: [{ name: 'Design', level: 'EXPERT', source: 'SELF_DECLARED' }],
+          trajectory: { pi_per_week: 17.5, active_days: 4, projectable: true, goals: [] },
+        },
       } });
       if (url.includes('/life/goals') || url.includes('/life/preferences')) throw new Error('read the gated door, not the tables');
       if (url.includes('/analytics/me/overview')) return json({ data: { logins: 12, payments: 3, volume: '45.5' } });
@@ -447,6 +452,8 @@ describe('GET /api/bff/ai/context', () => {
     expect(body.kycVerified).toBe(true);         // from the verified JWT, not a param
     expect(body.goals).toEqual([{ title: 'Save 100 Pi', done: false }]);   // what Life SERVED — active, granted
     expect(body.focus).toBe('growth');
+    expect(body.skills).toEqual([{ name: 'Design', level: 'EXPERT' }]);      // A1 — the ladder word, never a score
+    expect(body.pace).toEqual({ pi_per_week: 17.5, active_days: 4 });        // A1 — only because Life said projectable
     expect(body.activity).toEqual({ logins: 12, payments: 3, volume: '45.5' });
     // The reader names itself to Life's audit.
     const lifeCall = fetchSpy.mock.calls.find(([u]) => String(u).includes('/life/context/'))!;
@@ -464,6 +471,8 @@ describe('GET /api/bff/ai/context', () => {
     const body = await (await GET(asAlice(makeReq({ token: 'tok' })))).json();
     expect(body.goals).toEqual([]);
     expect(body.focus ?? null).toBeNull();
+    expect(body.skills ?? null).toBeNull();   // not served → absent, not an empty list
+    expect(body.pace ?? null).toBeNull();
   });
 
   it('asks Life nothing when the session carries no username', async () => {

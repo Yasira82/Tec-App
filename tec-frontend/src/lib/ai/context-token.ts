@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
+import { SKILL_LEVELS, type SkillLevel } from './life-context';
 
 /**
  * The AI's personal context, signed by the server that assembled it.
@@ -69,6 +70,10 @@ export interface AiContextClaims {
   goals:       { title: string; done: boolean }[];
   focus?:      string;
   activity?:   { logins?: number; payments?: number; volume?: string };
+  /** A1 — from Life's door when SKILLS is granted: the ladder word, never a number. */
+  skills?:     { name: string; level: SkillLevel }[];
+  /** A1 — from Life's door when TRAJECTORY is granted and Life calls it projectable. */
+  pace?:       { pi_per_week: number; active_days: number };
 }
 
 /** Mint a context token for ONE user. Returns null if signing is not possible. */
@@ -137,6 +142,21 @@ export async function verifyContext(
       activity: c.activity && typeof c.activity === 'object'
         ? (c.activity as AiContextClaims['activity'])
         : undefined,
+      skills: Array.isArray(c.skills)
+        ? c.skills
+            .filter((s): s is { name: string; level: SkillLevel } =>
+              !!s && typeof (s as { name?: unknown }).name === 'string'
+              && (SKILL_LEVELS as readonly string[]).includes(String((s as { level?: unknown }).level)))
+            .map(s => ({ name: s.name, level: s.level }))
+            .slice(0, 5)
+        : undefined,
+      pace: (() => {
+        const p = c.pace as { pi_per_week?: unknown; active_days?: unknown } | undefined;
+        const ok = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v) && v >= 0;
+        return p && typeof p === 'object' && ok(p.pi_per_week) && ok(p.active_days)
+          ? { pi_per_week: p.pi_per_week, active_days: p.active_days }
+          : undefined;
+      })(),
     };
   } catch {
     return null;

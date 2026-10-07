@@ -6,6 +6,8 @@ import {
   loadSettings, saveSettings,
   type ArchivedChat, type AiSettings, type StoredTurn,
 } from '@/lib/ai-session';
+import { DICTIONARIES, type Locale } from '@/lib/i18n';
+import { LOCALES, localeInfo } from '@/lib/locales';
 
 /**
  * The assistant's own menu — archived chats, settings, starter questions, support.
@@ -21,34 +23,9 @@ import {
  * a nav chip in a reply — never through a private menu of its own.
  */
 
-const L = {
-  ar: {
-    menu: 'القائمة', chats: 'المحادثات', settings: 'الإعدادات',
-    ask: 'أسئلة جاهزة', support: 'الدعم',
-    empty: 'مفيش محادثات محفوظة لسه.',
-    restore: 'استرجاع', remove: 'حذف',
-    replyLang: 'لغة الرد', auto: 'تلقائي', arabic: 'عربي', english: 'إنجليزي',
-    replyLen: 'طول الرد', short: 'مختصر', detailed: 'مفصّل',
-    clearAll: 'مسح كل المحادثات', confirm: 'متأكد؟ مش هينفع ترجعها',
-    now: 'دلوقتي', minsAgo: 'من {n} د', hoursAgo: 'من {n} س',
-    rate: 'قيّم تجربتك', rated: '✅ شكراً على تقييمك!', contact: 'تواصل معنا', social: 'TEC على السوشيال',
-    supportNote: '💡 لو المساعد مجاوبش على سؤالك، كلّم الدعم مباشرة.',
-    close: 'إغلاق',
-  },
-  en: {
-    menu: 'Menu', chats: 'Chats', settings: 'Settings',
-    ask: 'Starter questions', support: 'Support',
-    empty: 'No saved conversations yet.',
-    restore: 'Restore', remove: 'Delete',
-    replyLang: 'Reply language', auto: 'Auto', arabic: 'Arabic', english: 'English',
-    replyLen: 'Reply length', short: 'Short', detailed: 'Detailed',
-    clearAll: 'Clear all conversations', confirm: 'Sure? This cannot be undone',
-    now: 'just now', minsAgo: '{n}m ago', hoursAgo: '{n}h ago',
-    rate: 'Rate your experience', rated: '✅ Thanks for your rating!', contact: 'Contact us', social: 'TEC on social',
-    supportNote: "💡 If the assistant couldn't answer, reach a human directly.",
-    close: 'Close',
-  },
-} as const;
+// The menu's words live in the dictionary (hub.aiMenu, hub.ai.starters) — in all
+// twelve languages. They used to be a local en/ar table here, so a third language
+// would have fallen back to English inside the assistant itself.
 
 /**
  * Real support channels — NOT app links. The /ai page already had these in a private
@@ -90,10 +67,7 @@ const SOCIAL_LINKS = [
 ] as const;
 
 /** Questions that FILL THE INPUT — they ask the assistant, they do not navigate away. */
-const STARTERS = {
-  ar: ['ايه هو TEC؟', 'إزاي أدفع بـ Pi؟', 'أنهي تطبيق يناسبني؟', 'إيه الفرق بين التطبيقات؟', 'إزاي أعمل KYC؟'],
-  en: ['What is TEC?', 'How do I pay with Pi?', 'Which app fits me?', 'How do the apps differ?', 'How do I complete KYC?'],
-} as const;
+
 
 type Tab = 'chats' | 'settings' | 'ask' | 'support';
 
@@ -108,7 +82,7 @@ function ago(at: number, tr: Copy): string {
 
 export interface AIMenuProps {
   storeKey: string;
-  locale:   'ar' | 'en';
+  locale:   Locale;
   /** Called with the restored turns so the surface can rebuild its own message shape. */
   onRestore: (turns: StoredTurn[]) => void;
   /** Fill the composer with a starter question. */
@@ -122,8 +96,9 @@ export interface AIMenuProps {
 export function AIMenu({
   storeKey, locale, onRestore, onAsk, onClearAll, onSettingsChange, onClose,
 }: AIMenuProps) {
-  const tr  = L[locale];
-  const dir = locale === 'ar' ? 'rtl' : 'ltr';
+  const dict = DICTIONARIES[locale] ?? DICTIONARIES.en;
+  const tr   = dict.hub.aiMenu;
+  const dir  = localeInfo(locale).dir;
 
   const [tab,      setTab]      = useState<Tab>('chats');
   const [archives, setArchives] = useState<ArchivedChat[]>(() => listArchives(storeKey));
@@ -183,7 +158,7 @@ export function AIMenu({
 
         {tab === 'ask' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {STARTERS[locale].map(q => (
+            {dict.hub.ai.starters.map(q => (
               <button key={q} onClick={() => { onAsk(q); onClose(); }} style={S.starter} dir="auto">{q}</button>
             ))}
           </div>
@@ -192,7 +167,7 @@ export function AIMenu({
         {tab === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <Choice label={tr.replyLang} value={settings.replyLocale}
-              options={[['auto', tr.auto], ['ar', tr.arabic], ['en', tr.english]]}
+              options={[['auto', tr.auto], ...LOCALES.map((l) => [l.code, l.native] as [string, string])]}
               onPick={v => update({ replyLocale: v as AiSettings['replyLocale'] })} />
             <Choice label={tr.replyLen} value={settings.replyLength}
               options={[['detailed', tr.detailed], ['short', tr.short]]}

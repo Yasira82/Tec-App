@@ -60,9 +60,10 @@ vi.mock('@/lib-client/pi/PiRuntime', () => ({
 // Mock with the REAL `en` bundle: a partial stub silently drops whole UI branches
 // (a missing t.dashboard.menu crashed the Sidebar), and a smoke test that renders
 // less than production isn't smoke-testing production.
-vi.mock('@/lib/i18n', async () => {
+vi.mock('@/lib/i18n', async (importOriginal) => {
   const { en } = await import('@/lib/i18n/en');
   return {
+    ...(await importOriginal<typeof import('@/lib/i18n')>()),
     useTranslation: () => ({ t: en, locale: 'en', setLocale: vi.fn(), setLanguage: vi.fn(), dir: 'ltr' }),
     LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   };

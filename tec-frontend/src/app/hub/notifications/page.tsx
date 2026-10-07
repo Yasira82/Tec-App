@@ -1,7 +1,7 @@
 'use client';
 
 import { useNotifications, Notification, NotifType } from '@/lib-client/hooks/useNotifications';
-import { useTranslation, fill, bcp47, errorText, type Translations } from '@/lib/i18n';
+import { useTranslation, fill, bcp47, errorText, type Translations, type Locale } from '@/lib/i18n';
 import { HubSubShell }                               from '@/components/hub';
 import { DashboardCard }                             from '@/components/dashboard';
 import { Icon, type IconName }                       from '@/components/ui/Icon';
@@ -9,7 +9,7 @@ import { Icon, type IconName }                       from '@/components/ui/Icon'
 /** Relative time, in the reader's language. Beyond a week it falls back to a real
  *  date — formatted by the locale, so Arabic gets Arabic month names rather than
  *  "Aug" sitting inside an Arabic sentence. */
-function formatDate(iso: string, t: Translations, locale: 'en' | 'ar') {
+function formatDate(iso: string, t: Translations, locale: Locale) {
   const n    = t.hub.notifications;
   const diff = Date.now() - new Date(iso).getTime();
   const mins = Math.floor(diff / 60000);

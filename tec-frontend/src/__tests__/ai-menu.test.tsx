@@ -95,10 +95,21 @@ describe('settings', () => {
     const onSettingsChange = vi.fn();
     menu({ onSettingsChange });
     fireEvent.click(screen.getByText('Settings'));
-    fireEvent.click(screen.getByText('Arabic'));
+    // Each language is named in itself, so a reader of any one of them finds it.
+    fireEvent.click(screen.getByText('العربية'));
 
     expect(loadSettings().replyLocale).toBe('ar');
     expect(onSettingsChange).toHaveBeenCalledWith(expect.objectContaining({ replyLocale: 'ar' }));
+  });
+
+  it('offers Auto plus all twelve languages as reply languages', () => {
+    menu();
+    fireEvent.click(screen.getByText('Settings'));
+    for (const name of ['Auto', 'English', 'العربية', '中文', 'Tiếng Việt', '한국어', 'Indonesia', 'हिन्दी', 'Español', 'Português', 'Français', 'Türkçe', 'Русский']) {
+      expect(screen.getByText(name), name).toBeTruthy();
+    }
+    fireEvent.click(screen.getByText('中文'));
+    expect(loadSettings().replyLocale).toBe('zh');
   });
 
   it('persists the reply length', () => {

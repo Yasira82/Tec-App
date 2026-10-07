@@ -113,7 +113,7 @@ export function ChatTranscript({
             }}>
               {m.role === 'ai' ? <RichText text={m.text} /> : m.text}
               {m.streaming && <span style={{ opacity: 0.5 }}>▌</span>}
-              {m.intents && <NavChips intents={m.intents} locale={locale} />}
+              {m.intents && <NavChips intents={m.intents} locale={locale === 'ar' ? 'ar' : 'en'} />}
               {m.role === 'ai' && !m.streaming && m.text.trim() && <CopyButton text={m.text} />}
             </div>
           </div>

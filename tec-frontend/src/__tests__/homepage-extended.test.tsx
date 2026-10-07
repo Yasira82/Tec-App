@@ -43,6 +43,12 @@ vi.mock('@/lib/i18n', () => ({
 // CSS modules
 vi.mock('./page.module.css', () => ({ default: {} }));
 
+// The page's own strings come from the real dictionaries; the values below are
+// test-specific overrides only (2026-10-07: the landing's inline en/ar ternaries
+// moved into the dictionaries for the twelve languages).
+import { en as EN_DICT } from '@/lib/i18n/en';
+import { ar as AR_DICT } from '@/lib/i18n/ar';
+
 const makeMockT = () => ({
   t: {
     common: {
@@ -55,6 +61,7 @@ const makeMockT = () => ({
       login:       'Login',
     },
     home: {
+      ...EN_DICT.home,
       description:     'Description text',
       subDescription:  'Sub description',
       ecosystem:       'Ecosystem',
@@ -100,8 +107,14 @@ const makeMockT = () => ({
   setLanguage: vi.fn(),
 });
 
+const pickHome = (h: typeof AR_DICT.home) => ({
+  assistant: h.assistant, wallet: h.wallet, exploreNexus: h.exploreNexus, searchApps: h.searchApps,
+  filterApps: h.filterApps, all: h.all, noResults: h.noResults, clearSearch: h.clearSearch,
+});
+
 const makeMockTRtl = () => ({
   ...makeMockT(),
+  t: { ...makeMockT().t, home: { ...makeMockT().t.home, ...pickHome(AR_DICT.home) } },
   language: 'ar',
   dir:      'rtl',
 });

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { useTranslation }              from '@/lib/i18n';
+import { useTranslation, fill, bcp47 } from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
 import { parseNavIntents }             from '@/lib/ai/nav-intents';
 import type { NavIntent, NavFlow }     from '@/lib/ai/nav-intents';
@@ -33,18 +33,15 @@ interface Message {
   flows?:    NavFlow[];
 }
 
-const SUGGESTED_QUESTIONS = [
-  { en: 'How do I invest with Pi?',  ar: 'كيف أستثمر بـ Pi؟'     },
-  { en: 'Show my TEC balance',       ar: 'وريني رصيدي'            },
-  { en: 'What is Nexus.pi?',         ar: 'ما هو Nexus.pi؟'        },
-  { en: 'Best app for real estate?', ar: 'أفضل app للعقارات؟'     },
-];
+// The quick questions are hub.ai.quick in the dictionary — all twelve languages.
 
 /** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
 const STORE_KEY = 'tec_ai_page';
 
 export default function AiClient() {
-  const { dir, locale }  = useTranslation();
+  const { dir, locale, t } = useTranslation();
+  // The domain registry (app names, NavChips) holds English and Arabic.
+  const regLocale: 'en' | 'ar' = locale === 'ar' ? 'ar' : 'en';
   const { user }         = usePiAuth();
   const [messages,     setMessages]     = useState<Message[]>([]);
   const [input,        setInput]        = useState('');
@@ -110,10 +107,10 @@ export default function AiClient() {
     id:        'welcome',
     role:      'assistant',
     timestamp: new Date(),
-    content: locale === 'ar'
-      ? `مرحباً${user?.piUsername ? ` @${user.piUsername}` : ''}! 👋\n\nأنا مساعد TEC الذكي. يمكنني مساعدتك في:\n- استكشاف الـ 24 تطبيق في المنظومة\n- الإجابة على أسئلتك عن Pi Network\n- إرشادك للتطبيق المناسب لاحتياجاتك\n\nكيف يمكنني مساعدتك اليوم؟`
-      : `Welcome${user?.piUsername ? ` @${user.piUsername}` : ''}! 👋\n\nI'm the TEC AI Assistant. I can help you:\n- Explore all 24 apps in the ecosystem\n- Answer questions about Pi Network\n- Guide you to the right app for your needs\n\nHow can I help you today?`,
-  }), [locale, user?.piUsername]);
+    content: user?.piUsername
+      ? `${fill(t.hub.ai.helloName, { name: `@${user.piUsername}` })}\n\n${t.hub.ai.welcome}`
+      : t.hub.ai.welcome,
+  }), [t, user?.piUsername]);
 
   useEffect(() => {
     if (seeded.current) return;
@@ -243,9 +240,7 @@ export default function AiClient() {
       // The provider hit its output cap. Say so — an answer that just stops reads as a
       // crash (C-96: a silent cut is an invisible failure).
       if (truncated) {
-        full += locale === 'ar'
-          ? '\n\n… (الإجابة اتقطعت عند الحد الأقصى — اسأل "كمّل" عشان الباقي)'
-          : '\n\n… (answer cut off at the length limit — ask "continue" for the rest)';
+        full += `\n\n${t.hub.ai.truncated}`;
       }
 
       // Resolve navigation intents: strip the machine-read marker from the prose
@@ -272,23 +267,13 @@ export default function AiClient() {
       }
       const code = err instanceof Error ? err.message : 'FAILED';
       const serverMsg = (err as { serverMsg?: string })?.serverMsg;
-      const ar = locale === 'ar';
       let content: string;
-      if (code === 'SIGN_IN') {
-        content = ar ? '🔒 سجّل دخولك بحساب Pi عشان تستخدم مساعد TEC.'
-                     : '🔒 Please sign in with Pi to use the TEC Assistant.';
-      } else if (code === 'RATE_LIMIT') {
-        content = ar ? '⏳ طلبات كتير — استنى دقيقة وحاول تاني.'
-                     : '⏳ Too many requests — wait a minute and try again.';
-      } else if (code === 'NOT_CONFIGURED') {
-        content = ar ? '🔧 مساعد TEC لسه مش مفعّل. جرّب بعدين.'
-                     : '🔧 The TEC Assistant isn’t switched on yet. Try again later.';
-      } else if (code === 'BUSY') {
-        content = ar ? '⏳ المساعد مشغول دلوقتي — جرّب تاني بعد لحظات.'
-                     : '⏳ The assistant is busy right now — try again in a moment.';
-      } else {
-        content = ar ? '❌ المساعد مش متاح دلوقتي — جرّب تاني بعد شوية.'
-                     : '❌ The assistant is temporarily unavailable — try again shortly.';
+      if (code === 'SIGN_IN')             content = `🔒 ${t.hub.aiErrors.signIn}`;
+      else if (code === 'RATE_LIMIT')     content = `⏳ ${t.hub.aiErrors.rateLimit}`;
+      else if (code === 'NOT_CONFIGURED') content = `🔧 ${t.hub.aiErrors.notConfigured}`;
+      else if (code === 'BUSY')           content = `⏳ ${t.hub.aiErrors.busy}`;
+      else {
+        content = `❌ ${t.hub.aiErrors.unavailable}`;
         // Deliberately NOT appending the provider's raw error: a wall of vendor JSON in a
         // chat bubble tells the user nothing they can act on. The full reason goes to the
         // server log, where it is actually diagnosable (C-96 — logged, not displayed).
@@ -329,7 +314,7 @@ export default function AiClient() {
           <div>
             <p className={styles.headerTitle}>TEC AI</p>
             <p className={styles.headerSub}>
-              {locale === 'ar' ? 'مساعدك الذكي في منظومة TEC' : 'Your AI guide to TEC ecosystem'}
+              {t.hub.ai.subtitle}
             </p>
           </div>
         </div>
@@ -344,15 +329,15 @@ export default function AiClient() {
                 setMessages([welcomeMessage()]);
                 setCanRestore(hasArchive(STORE_KEY));
               }}
-              aria-label={locale === 'ar' ? 'محادثة جديدة' : 'New chat'}
+              aria-label={t.hub.ai.newChat}
               style={{ background: 'none', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10,
                        color: 'rgba(232,224,208,0.55)', cursor: 'pointer', fontSize: 11,
                        padding: '5px 10px', fontFamily: 'inherit', marginInlineEnd: 8 }}>
-              {locale === 'ar' ? 'محادثة جديدة' : 'New chat'}
+              {t.hub.ai.newChat}
             </button>
           )}
           <span className={styles.statusDot} />
-          <span className={styles.statusText}>{locale === 'ar' ? 'نشط' : 'Online'}</span>
+          <span className={styles.statusText}>{t.hub.ai.online}</span>
         </div>
       </header>
 
@@ -373,12 +358,12 @@ export default function AiClient() {
             aria-expanded={menuOpen}
             onClick={() => setMenuOpen(o => !o)}
           >
-            ☰ {locale === 'ar' ? 'القائمة' : 'Menu'}
+            ☰ {t.hub.ai.menu}
           </button>
           <div className={styles.panelContent}>
             <AIMenu
               storeKey={STORE_KEY}
-              locale={locale === 'ar' ? 'ar' : 'en'}
+              locale={locale}
               onRestore={turns => {
                 seeded.current = true;
                 setMessages(turns.map((m, i) => ({
@@ -418,26 +403,26 @@ export default function AiClient() {
                     <RichText text={msg.content} className={styles.messageContent} />
                     {msg.intents && msg.intents.length > 0 && (
                       <div className={styles.intentRow}>
-                        <NavChips intents={msg.intents} locale={locale} dir={dir}
+                        <NavChips intents={msg.intents} locale={regLocale} dir={dir}
                           className={styles.intentChip} />
                       </div>
                     )}
                     {msg.flows && msg.flows.map((flow, fi) => (
                       <div key={fi} className={styles.flowCard}>
                         <div className={styles.flowTitle}>
-                          {locale === 'ar' ? 'خطوات مقترحة' : 'Suggested steps'}
+                          {t.hub.ai.suggestedSteps}
                         </div>
                         {flow.steps.map((step, si) => (
                           <div key={si} className={styles.flowStep}>
                             <span className={styles.flowNum}>{si + 1}</span>
-                            <NavChip intent={step} locale={locale} dir={dir}
+                            <NavChip intent={step} locale={regLocale} dir={dir}
                               className={styles.intentChip} />
                           </div>
                         ))}
                       </div>
                     ))}
                     <span className={styles.messageTime}>
-                      {msg.timestamp.toLocaleTimeString(locale === 'ar' ? 'ar' : 'en', {
+                      {msg.timestamp.toLocaleTimeString(bcp47(locale), {
                         hour: '2-digit', minute: '2-digit',
                       })}
                     </span>
@@ -455,7 +440,7 @@ export default function AiClient() {
               {failedQuestion && !isLoading && (
                 // An error message used to be a dead end — the question had to be retyped.
                 <button className={styles.suggestionBtn} onClick={() => sendMessage(failedQuestion)}>
-                  ↻ {locale === 'ar' ? 'جرّب تاني' : 'Try again'}
+                  {t.hub.ai.tryAgain}
                 </button>
               )}
               <div ref={messagesEndRef} />
@@ -465,13 +450,13 @@ export default function AiClient() {
 
           {messages.length <= 1 && (
             <div className={styles.suggestions}>
-              {SUGGESTED_QUESTIONS.map((q, i) => (
+              {t.hub.ai.quick.map((q, i) => (
                 <button
                   key={i}
                   className={styles.suggestionBtn}
-                  onClick={() => sendMessage(locale === 'ar' ? q.ar : q.en)}
+                  onClick={() => sendMessage(q)}
                 >
-                  {locale === 'ar' ? q.ar : q.en}
+                  {q}
                 </button>
               ))}
             </div>
@@ -486,7 +471,7 @@ export default function AiClient() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
                 dir="auto"
-                placeholder={locale === 'ar' ? 'اكتب رسالتك...' : 'Type your message...'}
+                placeholder={t.hub.ai.typeMessage}
                 rows={1}
                 disabled={isLoading}
               />
@@ -494,7 +479,7 @@ export default function AiClient() {
                 <button
                   className={styles.sendBtn}
                   onClick={() => abortRef.current?.abort()}
-                  aria-label={locale === 'ar' ? 'إيقاف' : 'Stop'}
+                  aria-label={t.hub.ai.stop}
                 >◼</button>
               ) : (
                 <button
@@ -508,9 +493,7 @@ export default function AiClient() {
               )}
             </div>
             <p className={styles.inputHint}>
-              {locale === 'ar'
-                ? 'Enter للإرسال · Shift+Enter لسطر جديد'
-                : 'Enter to send · Shift+Enter for new line'}
+              {t.hub.ai.inputHint}
             </p>
           </div>
         </div>

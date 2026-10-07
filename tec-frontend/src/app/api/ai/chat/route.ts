@@ -3,6 +3,8 @@ import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 import { checkRateLimit }    from '@/lib/ai/rate-limit';
 import { verifyContext }     from '@/lib/ai/context-token';
+import { resolveReplyLanguage, replyLanguageLine, type ReplyLanguage } from '@/lib/ai/reply-language';
+import { LOCALE_CODES } from '@/lib/locales';
 import { observeIntent }     from '@/lib/ai/intent-observation';
 
 export const runtime = 'edge';
@@ -85,6 +87,8 @@ interface UserContext {
   username?: string;
   balance?:  number;
   locale?:   string;
+  /** Resolved server-side (lib/ai/reply-language.ts): the setting, then the message's script, then mirror. */
+  replyLanguage?: ReplyLanguage;
   /** The user's chosen answer length, from the assistant's settings menu. */
   replyLength?: 'short' | 'detailed';
   // Personalization (C-104 reasoning input · C-121 pipeline). All OWN-SCOPE, assembled
@@ -136,7 +140,7 @@ ${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
 ${skillsLine}
 ${paceLine}
 ${activityLine}
-${userContext?.locale ? `- Language preference: ${userContext.locale === 'ar' ? 'Arabic' : 'English'}` : ''}
+${userContext?.replyLanguage ? replyLanguageLine(userContext.replyLanguage) : ''}
 ${userContext?.replyLength === 'short'
   ? '- Answer length: SHORT. Two or three sentences, or a handful of bullets. The user chose brevity — respect it over completeness.'
   : ''}
@@ -557,8 +561,18 @@ export async function POST(req: NextRequest) {
     const oneOf = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined =>
       typeof v === 'string' && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
 
+    // The interface language (`locale`) and the reply choice (`replyLocale`) are two
+    // different facts. The clients used to fold them into one field, and the route read
+    // it as "reply in this" — so an Arabic question in an English interface was answered
+    // in English (owner's /hub/admin/life-ai, 2026-10-07). Both are narrowed against the
+    // twelve locales; the message's own script outranks the interface.
+    const uiLocale     = oneOf(raw.locale, LOCALE_CODES);
+    const lastUserText = [...messages].reverse().find((m) => m.role === 'user')?.content ?? '';
+    const replyLanguage = resolveReplyLanguage({ setting: raw.replyLocale, lastMessage: lastUserText, ui: uiLocale });
+
     const userContext: UserContext = {
-      locale:      oneOf(raw.locale,      ['en', 'ar'] as const),
+      locale:      uiLocale,
+      replyLanguage,
       replyLength: oneOf(raw.replyLength, ['short', 'detailed'] as const),
       // Claims — verified, or absent. There is deliberately no fallback to the
       // body: failing closed here means a less personal answer, and falling open
@@ -575,7 +589,10 @@ export async function POST(req: NextRequest) {
 
     // IIC 3.3 — observe, and do nothing with it. Never awaited: the answer does not
     // wait on an instrument.
-    recordIntentObservation(req, messages, userContext.locale);
+    const obsLocale = replyLanguage.code === 'ar' || replyLanguage.code === 'en'
+      ? replyLanguage.code
+      : replyLanguage.code === null && (uiLocale === 'en' || uiLocale === 'ar') ? uiLocale : undefined;
+    recordIntentObservation(req, messages, obsLocale);
 
     const systemPrompt = buildSystemPrompt(userContext);
     const claudeKey    = process.env.ANTHROPIC_API_KEY;

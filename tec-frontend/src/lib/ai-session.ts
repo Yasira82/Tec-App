@@ -17,6 +17,7 @@
  */
 
 /** Keep the tail only — an unbounded transcript will eventually blow the storage quota. */
+import { isLocaleCode, type LocaleCode } from '@/lib/locales';
 const MAX_TURNS = 40;
 
 export interface StoredTurn {
@@ -165,7 +166,7 @@ export function clearAll(key: string): void {
 // be. localStorage (not session) because a preference the user has to set again every
 // tab is not a preference. Nothing here is personal content and nothing is a token.
 
-export type ReplyLocale = 'auto' | 'ar' | 'en';
+export type ReplyLocale = 'auto' | LocaleCode;
 export type ReplyLength = 'short' | 'detailed';
 
 export interface AiSettings {
@@ -184,7 +185,7 @@ export function loadSettings(): AiSettings {
     return {
       // Validate against the allowed values — a hand-edited value must not become a
       // locale the route has never heard of.
-      replyLocale: p.replyLocale === 'ar' || p.replyLocale === 'en' ? p.replyLocale : 'auto',
+      replyLocale: isLocaleCode(p.replyLocale) ? p.replyLocale : 'auto',
       replyLength: p.replyLength === 'short' ? 'short' : 'detailed',
     };
   } catch {

@@ -14,7 +14,8 @@
 import { describe, it, expect } from 'vitest';
 import { en } from '@/lib/i18n/en';
 import { ar } from '@/lib/i18n/ar';
-import { fill } from '@/lib/i18n';
+import { fill, DICTIONARIES, pickFromBrowser } from '@/lib/i18n';
+import { LOCALE_CODES } from '@/lib/locales';
 
 type Tree = { [k: string]: string | Tree };
 
@@ -75,6 +76,58 @@ describe('en ⟺ ar dictionary parity', () => {
       .map(([k]) => k);
     expect(untranslated).toEqual([]);
   });
+});
+
+/**
+ * The other ten (2026-10-07). Same four properties, applied to every locale the
+ * picker offers: a language in the list is a language that is COMPLETE — no key
+ * missing, no stale key, no empty string, no placeholder dropped, and no long
+ * English sentence left standing in for a translation.
+ */
+describe('every one of the twelve dictionaries matches English', () => {
+  const SAME_BY_DESIGN = new Set(['common.brand', 'common.acronym']);
+
+  it('offers exactly the twelve, each with a dictionary', () => {
+    expect(Object.keys(DICTIONARIES).sort()).toEqual([...LOCALE_CODES].sort());
+  });
+
+  describe.each(LOCALE_CODES.filter(c => c !== 'en'))('%s', (code) => {
+    const D = flatten(DICTIONARIES[code]);
+
+    it('has every English key and no other', () => {
+      expect([...EN.keys()].filter(k => !D.has(k))).toEqual([]);
+      expect([...D.keys()].filter(k => !EN.has(k))).toEqual([]);
+    });
+
+    it('has no empty string', () => {
+      expect([...D].filter(([, v]) => !v.trim()).map(([k]) => k)).toEqual([]);
+    });
+
+    it('keeps every placeholder', () => {
+      expect([...EN]
+        .filter(([k, v]) => String(placeholders(v)) !== String(placeholders(D.get(k) ?? '')))
+        .map(([k]) => k)).toEqual([]);
+    });
+
+    it('translates the prose', () => {
+      expect([...EN]
+        .filter(([k, v]) => v.length > 24 && D.get(k) === v && !SAME_BY_DESIGN.has(k))
+        .map(([k]) => k)).toEqual([]);
+    });
+  });
+});
+
+describe('a first visit follows the browser language', () => {
+  it.each([
+    [['zh-CN', 'en'], 'zh'],
+    [['pt-BR'], 'pt'],
+    [['ko-KR', 'ko'], 'ko'],
+    [['de-DE', 'fr-FR'], 'fr'],   // first SUPPORTED language wins
+    [['de-DE'], 'en'],            // nothing supported → English
+    [[], 'en'],
+  ])('%j → %s', (langs, code) => expect(pickFromBrowser(langs)).toBe(code));
+
+  it('tolerates a missing list', () => expect(pickFromBrowser(undefined)).toBe('en'));
 });
 
 describe('fill', () => {

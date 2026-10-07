@@ -37,3 +37,23 @@
 /* The lift on hover is a pointer affordance; on a touch header it just makes the
    row jitter, and `transform` on a sticky child can detach it from the top. */
 .compact:hover { transform: none; }
+
+/* The full-size picker is a native <select>: the phone's own list, twelve names
+   each written in its own language. */
+.select {
+  appearance: auto;
+  font-family: inherit;
+}
+
+/* Compact: the 36px face shows the short code; the real <select> covers it,
+   invisible, so a tap opens the phone's picker exactly where the face is. */
+.wrap { position: relative; overflow: hidden; }
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  font-size: 16px; /* below 16px iOS zooms the page on focus */
+}

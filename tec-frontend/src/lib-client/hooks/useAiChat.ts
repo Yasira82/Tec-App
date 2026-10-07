@@ -159,11 +159,12 @@ export function useAiChat({ storeKey, open, t }: {
           // such field in the body. See lib/ai/context-token.ts.
           contextToken: (ctx as { contextToken?: string } | null)?.contextToken,
           userContext: {
-            // Preferences only. The user's explicit choice wins; 'auto' falls back
-            // to the page language, so the reply matches the UI they are reading.
-            locale: settings.replyLocale !== 'auto'
-              ? settings.replyLocale
-              : (typeof document !== 'undefined' && document.documentElement.lang === 'en' ? 'en' : 'ar'),
+            // Preferences only, and two separate facts: the interface language (a
+            // hint) and the reply choice ('auto' unless the person picked one). The
+            // server reads the message's own script before either. This used to send
+            // 'ar' for ANY interface that was not English.
+            locale: typeof document !== 'undefined' ? document.documentElement.lang || undefined : undefined,
+            replyLocale: settings.replyLocale,
             replyLength: settings.replyLength,
           },
         }),

@@ -286,7 +286,9 @@ const COPY: Record<'en' | 'ar', Copy> = {
 };
 
 export default function PioneersClient() {
-  const { locale, dir } = useTranslation();
+  const { locale: uiLocale, dir } = useTranslation();
+  // This page's copy exists in English and Arabic; the other ten read English.
+  const locale = uiLocale === 'ar' ? 'ar' : 'en';
   const t = COPY[locale];
   /** How many apps are live right now — what the grid below lists. */
   const liveCount = LIVE_DOMAINS.length;

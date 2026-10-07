@@ -15,9 +15,9 @@
  */
 import type { ReactElement, ReactNode } from 'react';
 import { render as rtlRender, type RenderOptions } from '@testing-library/react';
-import { LocaleProvider } from '@/lib/i18n';
+import { LocaleProvider, type Locale } from '@/lib/i18n';
 
-export type Locale = 'en' | 'ar';
+export type { Locale };
 
 interface Options extends Omit<RenderOptions, 'wrapper'> {
   locale?: Locale;

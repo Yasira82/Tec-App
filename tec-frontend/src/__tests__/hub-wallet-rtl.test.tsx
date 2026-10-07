@@ -99,14 +99,20 @@ describe('header', () => {
   it('uses the compact language switcher — the full word overflowed the row', () => {
     // At 390px the word "English" was what pushed the account chip off the screen
     // edge and gave the page a horizontal scrollbar.
+    // Twelve languages now (2026-10-07), so the face is the CURRENT language's
+    // short code and the native picker sits invisibly over it.
     header('ar');
-    expect(screen.getByText('EN')).toBeTruthy();
-    expect(screen.queryByText('English')).toBeNull();
+    expect(screen.getByText('ع')).toBeTruthy();
+    expect(screen.queryByText('English', { selector: 'span' })).toBeNull();
   });
 
-  it('names the destination on the switcher, not the current language', () => {
+  it('opens a picker of all twelve, each named in itself', () => {
     header('en');
-    expect(screen.getByLabelText('التبديل إلى العربية')).toBeTruthy();
+    const select = screen.getByTestId('language-select') as HTMLSelectElement;
+    expect(select.getAttribute('aria-label')).toBe('Language');
+    expect(Array.from(select.options).map(o => o.value))
+      .toEqual(['en', 'ar', 'zh', 'vi', 'ko', 'id', 'hi', 'es', 'pt', 'fr', 'tr', 'ru']);
+    expect(Array.from(select.options).map(o => o.textContent)).toContain('中文');
   });
 
   it('clips rather than overflows', () => {

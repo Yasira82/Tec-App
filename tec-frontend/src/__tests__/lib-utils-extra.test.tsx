@@ -192,11 +192,12 @@ describe('LocaleProvider + useTranslation', () => {
 
   it('ignores invalid locale and warns, using "en" instead', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
-    localStorage.setItem('tec_locale', 'fr');
+    // 'fr' became a real locale on 2026-10-07; 'xx' is not one.
+    localStorage.setItem('tec_locale', 'xx');
     render(<Wrapped />);
     await act(async () => {});
     expect(screen.getByTestId('locale').textContent).toBe('en');
-    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('"fr"'));
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('"xx"'));
     warnSpy.mockRestore();
   });
 

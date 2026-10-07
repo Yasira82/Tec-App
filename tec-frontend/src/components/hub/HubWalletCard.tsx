@@ -1,6 +1,6 @@
 'use client';
 
-import { useTranslation } from '@/lib/i18n';
+import { useTranslation, bcp47 } from '@/lib/i18n';
 
 import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
@@ -27,7 +27,7 @@ const KIND_COLOR: Record<PaymentKind, string> = {
 };
 
 export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, recent = null }: Props) {
-  const { t, dir } = useTranslation();
+  const { t, dir, locale: uiLocale } = useTranslation();
   const locale = dir === 'rtl' ? 'ar' : 'en';
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
@@ -181,7 +181,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, 
             <div style={{ fontSize: 12, color: 'var(--tec-text-3)', padding: '6px 0 6px' }}>{t.hub.wallet.recentEmpty}</div>
           ) : recent.map((p, i) => {
             const kind = paymentKind(p.status);
-            const when = formatTxDate(p.createdAt, locale === 'ar' ? 'ar-EG' : 'en-US');
+            const when = formatTxDate(p.createdAt, bcp47(uiLocale));
             return (
               <button key={p.id || i} className="tec-btn" onClick={() => go('/dashboard/wallet')}
                 style={{

@@ -119,7 +119,7 @@ export default function HomePage() {
           <a href="#payment"   className={styles.navLink}>{t.common.login}</a>
           <Link href="/ai" className={styles.navAiLink}>
             <Icon name="spark" size={14} strokeWidth={1.9} />
-            {dir === 'rtl' ? 'المساعد' : 'Assistant'}
+            {t.home.assistant}
           </Link>
         </div>
         <div className={styles.navRight}>
@@ -163,7 +163,7 @@ export default function HomePage() {
           <div className={styles.heroStatDivider} />
           <div className={styles.heroStat}>
             <span className={styles.heroStatNum}>1</span>
-            <span className={styles.heroStatLabel}>{locale === 'ar' ? 'محفظة' : 'Wallet'}</span>
+            <span className={styles.heroStatLabel}>{t.home.wallet}</span>
           </div>
         </div>
 
@@ -227,7 +227,7 @@ export default function HomePage() {
             {nexus ? tr(nexus.valueProp ?? nexus.description, locale) : t.apps.Nexus}
           </p>
           <button className={styles.featuredBtn} onClick={goToSignIn}>
-            {dir === 'rtl' ? 'استكشف Nexus ←' : 'Explore Nexus →'}
+            {t.home.exploreNexus} {dir === 'rtl' ? '←' : '→'}
           </button>
         </div>
       </section>
@@ -251,7 +251,7 @@ export default function HomePage() {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={dir === 'rtl' ? 'ابحث عن تطبيق...' : 'Search apps...'}
+            placeholder={t.home.searchApps}
             aria-label="Search apps"
           />
           {searchQuery && (
@@ -268,12 +268,12 @@ export default function HomePage() {
         {/* Group filter — the registry's own groups, each with its real count.
             The old list was 10 hand-typed categories that no longer matched the
             registry, so "Health" filtered to one app that is a developer tool. */}
-        <div className={styles.filterBar} role="group" aria-label={locale === 'ar' ? 'تصفية التطبيقات' : 'Filter apps'}>
+        <div className={styles.filterBar} role="group" aria-label={t.home.filterApps}>
           <button
             onClick={() => setActiveGroup('all')}
             className={`${styles.filterBtn} ${activeGroup === 'all' ? styles.filterBtnActive : ''}`}
           >
-            {locale === 'ar' ? 'الكل' : 'All'} <span className={styles.filterCount}>{APPS.length}</span>
+            {t.home.all} <span className={styles.filterCount}>{APPS.length}</span>
           </button>
           {GROUPS.map(g => (
             <button
@@ -290,12 +290,12 @@ export default function HomePage() {
         {filteredApps.length === 0 ? (
           <div className={styles.noResults}>
             <span>🔍</span>
-            <p>{dir === 'rtl' ? 'لا توجد نتائج' : 'No apps found'}</p>
+            <p>{t.home.noResults}</p>
             <button
               className={styles.noResultsBtn}
               onClick={() => { setSearchQuery(''); setActiveGroup('all'); }}
             >
-              {dir === 'rtl' ? 'مسح البحث' : 'Clear search'}
+              {t.home.clearSearch}
             </button>
           </div>
         ) : (

@@ -27,13 +27,15 @@ vi.mock('next/image', () => ({
   default: ({ src, alt }: any) => <img src={src} alt={alt} />,
 }));
 
-vi.mock('@/lib/i18n', () => ({
-  useTranslation: vi.fn(() => ({
-    locale: 'en', setLocale: vi.fn(), dir: 'ltr',
-    t: { common: { loading: 'Loading...', login: 'Login', appName: 'TEC' } },
-  })),
-  LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
+// The real dictionaries and helpers — only the hook is pinned to English.
+vi.mock('@/lib/i18n', async (importOriginal) => {
+  const real = await importOriginal<typeof import('@/lib/i18n')>();
+  return {
+    ...real,
+    useTranslation: vi.fn(() => ({ locale: 'en', setLocale: vi.fn(), dir: 'ltr', t: real.DICTIONARIES.en })),
+    LocaleProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  };
+});
 
 vi.mock('@/lib-client/hooks/usePiAuth', () => ({ usePiAuth: mockUsePiAuth }));
 vi.mock('@/lib-client/hooks/usePiSdkReady', () => ({ usePiSdkReady: mockUsePiSdkReady }));

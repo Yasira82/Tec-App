@@ -134,7 +134,12 @@ describe('the chat route reads claims from the token, never from the body', () =
   });
 
   it('narrows preferences against a closed set', () => {
-    expect(route).toMatch(/oneOf\(raw\.locale,\s*\['en', 'ar'\]/);
+    // Still a CLOSED set — the twelve locales (lib/locales.ts) rather than two —
+    // and the reply choice is narrowed the same way (isLocaleCode, in
+    // lib/ai/reply-language.ts), so the body cannot introduce a language the
+    // prompt would render.
+    expect(route).toMatch(/oneOf\(raw\.locale, LOCALE_CODES\)/);
+    expect(route).toMatch(/resolveReplyLanguage\(\{ setting: raw\.replyLocale/);
     expect(route).toMatch(/oneOf\(raw\.replyLength,\s*\['short', 'detailed'\]/);
   });
 });

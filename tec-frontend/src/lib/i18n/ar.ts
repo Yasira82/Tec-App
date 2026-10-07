@@ -480,6 +480,7 @@ export const ar = {
       categories: {
         GOALS: 'الأهداف', SKILLS: 'المهارات', PREFERENCES: 'التفضيلات',
         ACTIVITY: 'النشاط', TRAJECTORY: 'المسار', INTENT: 'النوايا',
+        BUDGET: 'الميزانية',
       },
     },
     profile: {

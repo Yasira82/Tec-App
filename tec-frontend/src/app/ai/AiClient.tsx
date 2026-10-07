@@ -172,7 +172,8 @@ export default function AiClient() {
           userContext: {
             // Preferences only. The user's explicit choice wins; 'auto' follows
             // the UI locale.
-            locale: settings.replyLocale !== 'auto' ? settings.replyLocale : locale,
+            locale: locale,                     // the interface language — a hint, never the reply choice
+            replyLocale: settings.replyLocale,   // 'auto' unless the person picked one; the server reads the message's script first
             replyLength: settings.replyLength,
           },
         }),

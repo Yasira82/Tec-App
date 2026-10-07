@@ -542,6 +542,7 @@ export const en = {
       categories: {
         GOALS: 'Goals', SKILLS: 'Skills', PREFERENCES: 'Preferences',
         ACTIVITY: 'Activity', TRAJECTORY: 'Trajectory', INTENT: 'Intent',
+        BUDGET: 'Budget',
       },
     },
     profile: {

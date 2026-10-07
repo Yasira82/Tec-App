@@ -54,6 +54,14 @@ export const OBJECTIVES = [
   'create_project',
   'check_reputation',
   'understand_platform',
+  // From the first real reading (2026-10-07): 24 of 25 asks matched nothing, and they
+  // fell into these five. Each came from asks people actually made — the rule this
+  // set was built on.
+  'change_language',
+  'platform_trust',
+  'compare_apps',
+  'recommend_app',
+  'explain_app',
 ] as const;
 
 export type Objective = (typeof OBJECTIVES)[number];
@@ -117,6 +125,12 @@ function normalize(text: string): string {
  * more specific objectives come first.
  */
 const VOCABULARY: [Objective, Needle[]][] = [
+  // FIRST: a request about the conversation itself outranks its topic — "مش قولنا
+  // بالعربي" is about language, whatever else it mentions.
+  ['change_language',     ['بالعربي', 'بالعربيه', 'ترجم', 'in arabic', 'in english', 'in chinese', 'translate', 'english only', '中文', '切换', '翻译', 'tiếng việt', '한국어', 'en español', 'em português', 'en français']],
+  ['platform_trust',      ['هينجح', 'تضييع وقت', 'نصب', 'is tec legit', 'is this legit', 'scam', 'worth it', 'يستاهل', 'can i trust', 'اثق']],
+  ['compare_apps',        ['الفرق بين', 'difference between', ' vs ', 'compare', 'يعتبر زي', 'similar to', 'زي تطبيق']],
+  ['recommend_app',       ['اكتر تطبيق', 'افضل تطبيق', 'انهي تطبيق', 'which app', 'best app', 'most useful app', 'app should i']],
   // A regex, because the amount usually sits between the verb and the unit: "send 50 pi
   // to my friend" is the ordinary phrasing, and an adjacent-words match misses it.
   ['send_pi',             [/\bsend\b.{0,12}\bpi\b/, /\btransfer\b.{0,12}\bpi\b/, 'ابعت', 'احول', 'تحويل باي']],
@@ -134,6 +148,8 @@ const VOCABULARY: [Objective, Needle[]][] = [
   ['make_payment',        ['pay', 'checkout', 'buy now', 'ادفع', 'الدفع', 'اشتري ده']],
   ['find_product',        ['buy', 'looking for a', 'find a', 'shop for', 'اشتري', 'ادور علي', 'عايز اشتري']],
   ['understand_platform', ['what is tec', 'what can i do', 'how does', 'ايه هو تك', 'اعمل ايه', 'ازاي']],
+  // LAST: the most generic — "ايه هو تطبيق Nexus", "اشرحلي Epic", "و تطبيق Dx".
+  ['explain_app',         ['ايه هو تطبيق', 'اشرحلي', 'اشرح لي', 'يعني ايه', 'ايه تاني', 'explain', 'what does', 'tell me about', 'what is the', /^(و\s*)?تطبيق\s+\S+$/, /^(and\s+)?the\s+\S+\s+app\??$/]],
 ];
 
 /** Numeric budget: "under 250 pi", "أقل من 250 باي", "max 100π". */

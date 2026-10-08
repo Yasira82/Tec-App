@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 /**
  * A model id that production has served traffic on must never disappear from the
  * candidate list.
@@ -19,11 +21,13 @@
  * is a deliberate decision with a reason attached rather than an accident.
  */
 import { describe, it, expect } from 'vitest';
-import { GROQ_MODELS, GEMINI_MODELS } from '@/app/api/ai/chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, OPENROUTER_MODELS } from '@/app/api/ai/chat/route';
 
 /** Model ids that have served real production traffic. Removing one needs evidence. */
 const PINNED = {
-  groq:   ['llama-3.1-8b-instant'],
+  // gpt-oss-20b first: the only Groq id /api/ai/health found answering on 2026-10-08.
+  // llama-3.1-8b-instant (pinned by #154) now 404s — demoted with that evidence, kept.
+  groq:   ['openai/gpt-oss-20b', 'llama-3.1-8b-instant'],
   gemini: ['gemini-3.6-flash'],
 } as const;
 
@@ -51,5 +55,36 @@ describe('provider model candidates', () => {
     // first — a hardcoded list that outranks it cannot be fixed from the dashboard.
     expect(GROQ_MODELS.length).toBeGreaterThan(1);
     expect(GEMINI_MODELS.length).toBeGreaterThan(1);
+  });
+});
+
+describe('Claude candidates (2026-10-08)', () => {
+  it('leads with a current model, after the env override', () => {
+    expect(CLAUDE_MODELS.filter(m => m !== process.env.ANTHROPIC_MODEL)[0]).toBe('claude-opus-5-5');
+  });
+
+  it('keeps the retired id that production served — last, never first', () => {
+    expect(CLAUDE_MODELS).toContain('claude-3-5-sonnet-20240620');
+    expect(CLAUDE_MODELS[CLAUDE_MODELS.length - 1]).toBe('claude-3-5-sonnet-20240620');
+  });
+});
+
+describe('free first, GPT included (owner, 2026-10-08)', () => {
+  const route = readFileSync(join(process.cwd(), 'src/app/api/ai/chat/route.ts'), 'utf8');
+
+  it('free GPT on Groq sits below the pinned id; OpenRouter leads with free GPT', () => {
+    expect(GROQ_MODELS.indexOf('openai/gpt-oss-120b')).toBeGreaterThan(GROQ_MODELS.indexOf('openai/gpt-oss-20b'));
+    expect(OPENROUTER_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)[0]).toBe('openai/gpt-oss-120b:free');
+    for (const m of OPENROUTER_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)) expect(m).toMatch(/:free$/);
+  });
+
+  it('tries the free providers before the paid one', () => {
+    const order = ['gemini', 'groq', 'openrouter', 'claude'].map(n => route.indexOf(`['${n}',`));
+    expect(order.every(i => i > 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+  });
+
+  it('an OpenRouter "no endpoints found" moves to the next candidate', () => {
+    expect(route).toMatch(/no endpoints found/);
   });
 });

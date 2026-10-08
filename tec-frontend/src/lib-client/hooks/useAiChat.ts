@@ -1,5 +1,6 @@
 'use client';
 
+import { attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createSseReader }  from '@/lib/ai-stream';
 import { parseNavIntents }  from '@/lib/ai/nav-intents';
@@ -34,6 +35,9 @@ export function errorMessage(status: number, e: Translations['hub']['aiErrors'],
     case 'RATE_LIMIT':     return e.rateLimit;
     case 'NOT_CONFIGURED': return e.notConfigured;
     case 'BUSY':           return e.busy;
+    case 'ATTACH_LIMIT':       return e.attachLimit;
+    case 'ATTACH_UNSUPPORTED': return e.attachUnsupported;
+    case 'ATTACH_INVALID':     return e.attachInvalid;
   }
   switch (status) {
     case 401: return e.signIn;
@@ -97,9 +101,12 @@ export function useAiChat({ storeKey, open, t }: {
     })();
   }, [open]);
 
-  const send = useCallback(async (question: string) => {
-    const text = question.trim();
-    if (!text || loading) return;
+  const send = useCallback(async (question: string, attachments: PreparedAttachment[] = []) => {
+    const typed = question.trim();
+    if ((!typed && !attachments.length) || loading) return;
+    // A photo with no words still asks something; the transcript shows what was sent.
+    const text  = typed || t.hub.ai.attachOnly;
+    const shown = [attachmentLine(attachments), typed].filter(Boolean).join('\n');
     setFailedQuestion(null);
 
     // A previous stream must not keep writing into the bubble a new question just created.
@@ -111,7 +118,7 @@ export function useAiChat({ storeKey, open, t }: {
     // once at the end — which is why a long reply sat behind three dots and then
     // appeared all at once.
     const history = messages;
-    setMessages(prev => [...prev, { role: 'user', text }, { role: 'ai', text: '', streaming: true }]);
+    setMessages(prev => [...prev, { role: 'user', text: shown || text }, { role: 'ai', text: '', streaming: true }]);
     setLoading(true);
 
     const replyAt = (body: string) =>
@@ -151,6 +158,8 @@ export function useAiChat({ storeKey, open, t }: {
         signal: controller.signal,
         body: JSON.stringify({
           messages: [...priorTurns, { role: 'user', content: text }],
+          // This message's photos/PDFs only — never stored, never re-sent with later turns.
+          ...(attachments.length ? { attachments: toPayload(attachments) } : {}),
           // The context is passed as the OPAQUE TOKEN the BFF signed, not as the
           // fields themselves. This used to spread `...ctx` into the body, which
           // made the browser the carrier of every platform claim about the user

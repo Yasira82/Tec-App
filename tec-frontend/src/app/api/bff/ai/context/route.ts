@@ -44,6 +44,46 @@ async function getJson(url: string, token: string, requestId: string, extra: Rec
   }
 }
 
+/** Like getJson, but says WHY nothing came back — the "what TEC AI sees" line needs it. */
+async function getJsonStatus(url: string, token: string, requestId: string, extra: Record<string, string> = {}): Promise<{ status: number | null; body: unknown | null }> {
+  try {
+    const controller = new AbortController();
+    const timer      = setTimeout(() => controller.abort(), TIMEOUT_MS);
+    const res = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'x-request-id':  requestId,
+        ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
+        ...extra,
+      },
+      cache:  'no-store',
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    return { status: res.status, body: res.ok ? await res.json().catch(() => null) : null };
+  } catch {
+    return { status: null, body: null };
+  }
+}
+
+/**
+ * What the assistant was actually given from Life — shown to the person in the
+ * assistant's Settings ("what TEC AI can see now"). The second reading had "can you
+ * see my goals in Life?" with no way for anyone to tell whether the answer was a
+ * consent switch, an empty list, or a read that failed. This says which.
+ *
+ * NOT signed and never read by the chat route: it describes the person's own data to
+ * the person, and asserts nothing to the model.
+ */
+export interface AiSeen {
+  /** read · no Life profile (404) · the read failed · no username/gateway to ask with */
+  life:    'read' | 'no_profile' | 'unavailable' | 'not_asked';
+  consent: Record<string, boolean>;
+  goals:   number;
+  skills:  number | null;
+  pace:    boolean;
+}
+
 // Narrow, defensive extractors — backends evolve; never throw on a shape change.
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
 
@@ -68,6 +108,7 @@ export interface AiContext {
    * answers without personalization rather than on unverified input (P6).
    */
   contextToken?: string;
+  seen?: AiSeen;
 }
 
 export const GET = createHandler<Record<string, never>, AiContext>({
@@ -108,18 +149,30 @@ export const GET = createHandler<Record<string, never>, AiContext>({
     } catch { /* no username — the assistant greets generically */ }
 
     const out: AiContext = { username, kycVerified: ctx.kycVerified, goals: [] };
-    if (!gateway || !token) return sealed(out); // fail-soft: base context only
+    const notAsked: AiSeen = { life: 'not_asked', consent: {}, goals: 0, skills: null, pace: false };
+    if (!gateway || !token) return { ...(await sealed(out)), seen: notAsked }; // fail-soft: base context only
 
     // Life is read through its CONSENT-GATED door only (lib/ai/life-context.ts):
     // what the person switched off on Life's Privacy screen never reaches the
     // prompt. The reader names itself — Life audits every read with it.
-    const [lifeRaw, overviewRaw] = await Promise.all([
+    const [lifeRes, overviewRaw] = await Promise.all([
       username
-        ? getJson(`${gateway}/api/identity/life/context/${encodeURIComponent(username)}`, token, ctx.requestId, { 'x-service-name': 'tec-app-ai' })
+        ? getJsonStatus(`${gateway}/api/identity/life/context/${encodeURIComponent(username)}`, token, ctx.requestId, { 'x-service-name': 'tec-app-ai' })
         : Promise.resolve(null),
       getJson(`${gateway}/api/analytics/me/overview`, token, ctx.requestId),
     ]);
+    const lifeRaw = lifeRes?.body ?? null;
     const life = lifeContextToAi(lifeRaw);
+    const seen: AiSeen = {
+      life: !lifeRes ? 'not_asked'
+        : lifeRes.body ? 'read'
+        : lifeRes.status === 404 ? 'no_profile'
+        : 'unavailable',
+      consent: life.consent,
+      goals:   life.goals.length,
+      skills:  life.skills ? life.skills.length : null,
+      pace:    !!life.pace,
+    };
     out.goals = life.goals;
     out.focus = life.focus;
     // Served only when granted — and then only the ladder word and the pace,
@@ -139,6 +192,6 @@ export const GET = createHandler<Record<string, never>, AiContext>({
       out.activity = activity;
     }
 
-    return sealed(out);
+    return { ...(await sealed(out)), seen };
   },
 });

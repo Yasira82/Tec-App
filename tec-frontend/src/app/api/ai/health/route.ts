@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
-import { GROQ_MODELS, GEMINI_MODELS } from '../chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, OPENROUTER_MODELS } from '../chat/route';
 
 export const runtime = 'edge';
 
@@ -76,22 +76,24 @@ export async function GET(req: NextRequest) {
   const claudeKey = process.env.ANTHROPIC_API_KEY;
   const groqKey   = process.env.GROQ_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
+  const openrouterKey = process.env.OPENROUTER_API_KEY;
 
   const results: Record<string, ModelProbe[]> = {};
 
   if (claudeKey) {
-    results.claude = [await probe('https://api.anthropic.com/v1/messages', {
-      method:  'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         claudeKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620', max_tokens: 1,
-        messages: [{ role: 'user', content: 'hi' }],
-      }),
-    }, 'claude-3-5-sonnet-20240620')];
+    results.claude = [];
+    for (const model of CLAUDE_MODELS) {
+      results.claude.push(await probe('https://api.anthropic.com/v1/messages', {
+        method:  'POST',
+        headers: {
+          'Content-Type':      'application/json',
+          'x-api-key':         claudeKey,
+          'anthropic-version': '2023-06-01',
+        },
+        // 16, not 1: current models think on every request and spend from max_tokens.
+        body: JSON.stringify({ model, max_tokens: 16, messages: [{ role: 'user', content: 'hi' }] }),
+      }, model));
+    }
   }
 
   if (groqKey) {
@@ -100,6 +102,17 @@ export async function GET(req: NextRequest) {
       results.groq.push(await probe('https://api.groq.com/openai/v1/chat/completions', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${groqKey}` },
+        body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] }),
+      }, model));
+    }
+  }
+
+  if (openrouterKey) {
+    results.openrouter = [];
+    for (const model of OPENROUTER_MODELS) {
+      results.openrouter.push(await probe('https://openrouter.ai/api/v1/chat/completions', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openrouterKey}` },
         body: JSON.stringify({ model, max_tokens: 1, messages: [{ role: 'user', content: 'hi' }] }),
       }, model));
     }
@@ -130,12 +143,13 @@ export async function GET(req: NextRequest) {
     working,
     // Named so the fix is obvious from the response itself.
     recommendation: working.length
-      ? `Pin a winner: set GROQ_MODEL / GEMINI_MODEL to one of: ${working.join(', ')}`
+      ? `Pin a winner: set GEMINI_MODEL / GROQ_MODEL / OPENROUTER_MODEL / ANTHROPIC_MODEL to one of: ${working.join(', ')}`
       : 'No provider answered. Check the API keys, or that a key has quota left.',
     configured: {
       claude: !!claudeKey,
       groq:   !!groqKey,
       gemini: !!geminiKey,
+      openrouter: !!openrouterKey,
     },
     results,
   }, { headers: { 'Cache-Control': 'no-store' } });

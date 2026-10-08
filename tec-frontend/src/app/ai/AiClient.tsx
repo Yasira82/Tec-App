@@ -1,5 +1,7 @@
 'use client';
 
+import { AttachButton, AttachChips } from '@/components/ai/AttachBar';
+import { attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation, fill, bcp47 } from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
@@ -45,6 +47,8 @@ export default function AiClient() {
   const { user }         = usePiAuth();
   const [messages,     setMessages]     = useState<Message[]>([]);
   const [input,        setInput]        = useState('');
+  const [atts,     setAtts]     = useState<PreparedAttachment[]>([]);
+  const [attError, setAttError] = useState<string | null>(null);
   const [isLoading,    setIsLoading]    = useState(false);
   const [menuOpen,     setMenuOpen]     = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -131,8 +135,11 @@ export default function AiClient() {
     if (q && q.trim()) setInput(q.trim());
   }, []);
 
-  const sendMessage = async (content: string) => {
-    if (!content.trim() || isLoading) return;
+  const sendMessage = async (content: string, attachments: PreparedAttachment[] = []) => {
+    if ((!content.trim() && !attachments.length) || isLoading) return;
+    // A photo with no words still asks something; the transcript shows what was sent.
+    const asked = content.trim() || t.hub.ai.attachOnly;
+    const shown = [attachmentLine(attachments), content.trim()].filter(Boolean).join('\n') || asked;
     setFailedQuestion(null);
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -141,12 +148,13 @@ export default function AiClient() {
     const userMessage: Message = {
       id:        Date.now().toString(),
       role:      'user',
-      content:   content.trim(),
+      content:   shown,
       timestamp: new Date(),
     };
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    setAtts([]); setAttError(null);
     setIsLoading(true);
 
     try {
@@ -156,9 +164,11 @@ export default function AiClient() {
         signal:  controller.signal,
         headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCsrfToken() },
         body: JSON.stringify({
-          messages: [...messages, userMessage]
+          messages: [...messages, { ...userMessage, content: asked }]
             .filter(m => m.id !== 'welcome')
             .map(m => ({ role: m.role, content: m.content })),
+          // This message's photos/PDFs only — never stored, never re-sent with later turns.
+          ...(attachments.length ? { attachments: toPayload(attachments) } : {}),
           // The signed context, opaque. This used to spread `...aiCtx` (KYC,
           // goals, activity) and a client-read `username` into the body, all of
           // which the chat route dropped into the system prompt unverified.
@@ -272,6 +282,9 @@ export default function AiClient() {
       else if (code === 'RATE_LIMIT')     content = `⏳ ${t.hub.aiErrors.rateLimit}`;
       else if (code === 'NOT_CONFIGURED') content = `🔧 ${t.hub.aiErrors.notConfigured}`;
       else if (code === 'BUSY')           content = `⏳ ${t.hub.aiErrors.busy}`;
+      else if (code === 'ATTACH_LIMIT')   content = `📎 ${t.hub.aiErrors.attachLimit}`;
+      else if (code === 'ATTACH_UNSUPPORTED') content = `📎 ${t.hub.aiErrors.attachUnsupported}`;
+      else if (code === 'ATTACH_INVALID') content = `📎 ${t.hub.aiErrors.attachInvalid}`;
       else {
         content = `❌ ${t.hub.aiErrors.unavailable}`;
         // Deliberately NOT appending the provider's raw error: a wall of vendor JSON in a
@@ -294,7 +307,7 @@ export default function AiClient() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage(input);
+      sendMessage(input, atts);
     }
   };
 
@@ -463,7 +476,9 @@ export default function AiClient() {
           )}
 
           <div className={styles.inputWrap}>
+            <AttachChips value={atts} onChange={setAtts} error={attError} dark />
             <div className={styles.inputBox}>
+              <AttachButton value={atts} onChange={setAtts} onError={setAttError} disabled={isLoading} dark />
               <textarea
                 ref={inputRef}
                 className={styles.input}
@@ -484,8 +499,8 @@ export default function AiClient() {
               ) : (
                 <button
                   className={styles.sendBtn}
-                  onClick={() => sendMessage(input)}
-                  disabled={!input.trim()}
+                  onClick={() => sendMessage(input, atts)}
+                  disabled={!input.trim() && !atts.length}
                   aria-label="Send"
                 >
                   {dir === 'rtl' ? '←' : '→'}

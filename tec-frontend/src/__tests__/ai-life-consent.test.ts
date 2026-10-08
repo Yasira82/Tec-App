@@ -61,6 +61,6 @@ describe('the BFF context route uses the gated door', () => {
   });
 
   it('asks Life nothing when the session has no username to ask about', () => {
-    expect(bff).toMatch(/username\s*\?\s*getJson\(/);
+    expect(bff).toMatch(/username\s*\?\s*getJson(Status)?\(/);
   });
 });

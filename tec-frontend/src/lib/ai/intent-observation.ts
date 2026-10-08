@@ -62,6 +62,11 @@ export const OBJECTIVES = [
   'compare_apps',
   'recommend_app',
   'explain_app',
+  // From the second reading (2026-10-08): people asked what the assistant itself can
+  // see and do ("can you see my goals in Life?", "are you just a bot?") and what is
+  // new on the platform ("TEC's updates and roadmap", "update yourself").
+  'assistant_capability',
+  'platform_news',
 ] as const;
 
 export type Objective = (typeof OBJECTIVES)[number];
@@ -128,15 +133,22 @@ const VOCABULARY: [Objective, Needle[]][] = [
   // FIRST: a request about the conversation itself outranks its topic — "مش قولنا
   // بالعربي" is about language, whatever else it mentions.
   ['change_language',     ['بالعربي', 'بالعربيه', 'ترجم', 'in arabic', 'in english', 'in chinese', 'translate', 'english only', '中文', '切换', '翻译', 'tiếng việt', '한국어', 'en español', 'em português', 'en français']],
-  ['platform_trust',      ['هينجح', 'تضييع وقت', 'نصب', 'is tec legit', 'is this legit', 'scam', 'worth it', 'يستاهل', 'can i trust', 'اثق']],
+  // About the assistant itself — before any topic it mentions: "can you see my goals
+  // in Life?" is a question about the assistant, not about Life.
+  ['assistant_capability', ['تقدر تشوف', 'تقدر تعمل ايه', 'علاقه tec ai', 'علاقتك ب', 'بوت', 'are you a bot', 'can you see my', 'what can you do', 'do you know my', /اهداف\S*\s+(علي|في)\s+life/]],
+  ['platform_news',       ['تحديثات', 'خريطه طريق', 'خريطه الطريق', 'تحدث نفسك', 'اخر الاخبار', 'ايه الجديد', 'roadmap', "what's new", 'whats new', 'latest updates']],
+  ['platform_trust',      ['هينجح', 'تضييع وقت', 'نصب', 'is tec legit', 'is this legit', 'scam', 'worth it', 'يستاهل', 'can i trust', 'اثق',
+                           'اضعف', 'نقاط ضعف', 'بكل صدق', 'شايفو صغره', 'مش شايف اي استفاده', 'بتحورو', 'مجتمع باي', 'weakest', 'weakness', 'be honest']],
   ['compare_apps',        ['الفرق بين', 'difference between', ' vs ', 'compare', 'يعتبر زي', 'similar to', 'زي تطبيق']],
-  ['recommend_app',       ['اكتر تطبيق', 'افضل تطبيق', 'انهي تطبيق', 'which app', 'best app', 'most useful app', 'app should i']],
+  ['recommend_app',       ['اكتر تطبيق', 'افضل تطبيق', 'انهي تطبيق', 'which app', 'best app', 'most useful app', 'app should i',
+                           'ابدا بمين', 'ابدا بايه', 'عاوز ابدا', 'عايز ابدا', 'غير تطبيقات', 'where do i start', 'where should i start']],
   // A regex, because the amount usually sits between the verb and the unit: "send 50 pi
   // to my friend" is the ordinary phrasing, and an adjacent-words match misses it.
   ['send_pi',             [/\bsend\b.{0,12}\bpi\b/, /\btransfer\b.{0,12}\bpi\b/, 'ابعت', 'احول', 'تحويل باي']],
   ['check_balance',       ['balance', 'my wallet', 'how much pi do i', 'رصيد', 'محفظتي']],
   ['track_order',         ['my order', 'order status', 'where is my', 'طلبي', 'حاله الطلب']],
-  ['verify_identity',     ['kyc', 'verify my', 'verification', 'توثيق', 'تحقق من هويت']],
+  // 'وثق' covers اوثق · وثقت · موثقتش · ما وثقتش — Egyptian conjugates the verb.
+  ['verify_identity',     ['kyc', 'verify my', 'verification', 'توثيق', 'تحقق من هويت', 'اوثق', 'وثقت']],
   ['subscribe',           ['subscribe', 'pro plan', 'upgrade to pro', 'اشتراك', 'الباقه', 'باقات']],
   ['invite_others',       ['referral', 'invite', 'refer a friend', 'دعوه', 'ادعو', 'احاله']],
   ['sell_product',        ['sell', 'list my product', 'become a merchant', 'my store', 'ابيع', 'متجري', 'تاجر']],
@@ -146,11 +158,27 @@ const VOCABULARY: [Objective, Needle[]][] = [
   ['create_project',      ['start a project', 'launch a', 'build a community', 'مشروع جديد', 'اطلق']],
   ['check_reputation',    ['reputation', 'my score', 'achievements', 'سمعه', 'انجازات', 'تقييمي']],
   ['make_payment',        ['pay', 'checkout', 'buy now', 'ادفع', 'الدفع', 'اشتري ده']],
-  ['find_product',        ['buy', 'looking for a', 'find a', 'shop for', 'اشتري', 'ادور علي', 'عايز اشتري']],
-  ['understand_platform', ['what is tec', 'what can i do', 'how does', 'ايه هو تك', 'اعمل ايه', 'ازاي']],
+  ['find_product',        ['buy', 'looking for a', 'find a', 'shop for', 'اشتري', 'ادور علي', 'عايز اشتري',
+                           'شاحن', 'charger', 'سماعه', 'جوده وسعر', 'ارخص', 'cheapest']],
+  ['understand_platform', ['what is tec', 'what can i do', 'how does', 'ايه هو تك', 'اعمل ايه', 'ازاي', 'مبني عليه']],
   // LAST: the most generic — "ايه هو تطبيق Nexus", "اشرحلي Epic", "و تطبيق Dx".
-  ['explain_app',         ['ايه هو تطبيق', 'اشرحلي', 'اشرح لي', 'يعني ايه', 'ايه تاني', 'explain', 'what does', 'tell me about', 'what is the', /^(و\s*)?تطبيق\s+\S+$/, /^(and\s+)?the\s+\S+\s+app\??$/]],
+  ['explain_app',         ['ايه هو تطبيق', 'اشرحلي', 'اشرح لي', 'يعني ايه', 'ايه تاني', 'explain', 'what does', 'tell me about', 'what is the', /^(و\s*)?تطبيق\s+\S+$/, /^(and\s+)?the\s+\S+\s+app\??$/,
+                           'الاستفاده من', 'السفاده من', 'مميز عن', 'يكون مميز', 'عباره عن', 'في تطبيق', 'قادر اشوف', 'benefit of', 'point of']],
 ];
+
+/**
+ * A turn that only continues the previous one — "وبعدين", "اشرح اكتر", "go on". It has
+ * no objective of its own; recorded on its own it is a null row that says nothing about
+ * the closed set, and the second reading had several. It takes the objective of the
+ * person's previous ask, when that one had one.
+ */
+const CONTINUATION = /^(و\s*)?(بعدين|اشرح اكتر|وضح اكتر|كمل|كملي|وايه كمان|ايه كمان|go on|continue|tell me more|more|and then)\s*[?؟!.]*$/;
+
+/**
+ * A greeting and nothing else. It asks nothing, so it is not observed at all — the same
+ * rule as an empty ask: a row that teaches nobody anything hides the rows that do.
+ */
+const GREETING_ONLY = /^(?:(?:ال)?سلام عليكم(?: ورحمه الله(?: وبركاته)?)?|مرحبا|اهلا|اهلا وسهلا|صباح الخير|مساء الخير|hello|hi|hey|good (?:morning|evening))\s*[!.؟?]*$/;
 
 /** Numeric budget: "under 250 pi", "أقل من 250 باي", "max 100π". */
 const BUDGET = /(?:under|below|less than|max(?:imum)?|up to|within|اقل من|تحت|بحد اقصي|في حدود)\s*([0-9]+(?:\.[0-9]+)?)\s*(?:pi|π|باي|باي كوين)?/i;
@@ -224,6 +252,8 @@ const clip = (s: string, max: number) => (s.length <= max ? s : `${s.slice(0, ma
 export interface ObserveOptions {
   locale?:  'en' | 'ar';
   surface?: string;
+  /** The person's previous ask in this conversation — read only for a continuation. */
+  previous?: string;
 }
 
 /**
@@ -244,8 +274,13 @@ export async function observeIntent(
   if (raw.length < 3) return null;
 
   const hay = normalize(raw);
+  if (GREETING_ONLY.test(hay) && hay.length <= 40) return null;
 
-  const objective = firstHit(VOCABULARY, hay);
+  let objective = firstHit(VOCABULARY, hay);
+  if (objective === null && CONTINUATION.test(hay) && opts.previous) {
+    // One level only: the previous ask is read on its own, never through ITS previous.
+    objective = (await observeIntent(opts.previous, {}))?.objective ?? null;
+  }
 
   // Constraints — only what the user said, with the span it came from.
   const constraints: ObservedConstraint[] = [];

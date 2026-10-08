@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
-import { checkRateLimit }    from '@/lib/ai/rate-limit';
+import { checkRateLimit, checkAttachmentAllowance } from '@/lib/ai/rate-limit';
+import { parseAttachments, claudeContent, geminiParts, attachmentNote, ATTACHMENTS_PER_DAY, type Attachment } from '@/lib/ai/attachments';
 import { verifyContext }     from '@/lib/ai/context-token';
 import { resolveReplyLanguage, replyLanguageLine, type ReplyLanguage } from '@/lib/ai/reply-language';
 import { LOCALE_CODES } from '@/lib/locales';
 import { observeIntent }     from '@/lib/ai/intent-observation';
+import { isProductAsk, searchProducts, productSection } from '@/lib/ai/product-search';
 
 export const runtime = 'edge';
 
@@ -136,7 +138,11 @@ ${userContext?.username ? `- Username: @${userContext.username}` : '- User: Gues
 ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toFixed(2)} TEC` : ''}
 ${userContext?.kycVerified !== undefined ? `- KYC (via Pi): ${userContext.kycVerified ? 'verified' : 'not verified'}` : ''}
 ${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
-${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
+${goals.length
+  ? `- Active goals: ${goals.map(g => g.title).join('; ')}`
+  : userContext?.username
+    ? '- Life goals: NONE shared with you — either they have no active goals, or Goals is not granted to TEC AI (Life → Privacy). If asked, say exactly that.'
+    : ''}
 ${skillsLine}
 ${paceLine}
 ${activityLine}
@@ -155,29 +161,62 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 // ── 1️⃣ Claude ────────────────────────────────────────────
+/**
+ * Claude, as a candidate list like the others (2026-10-08). It was one hardcoded id,
+ * `claude-3-5-sonnet-20240620`, which Anthropic has since retired — so every request
+ * paid a failed call here before falling through to Groq. The retired id stays LAST
+ * (the pinning rule in models-pinned.test.ts: never drop an id production served); a
+ * dead candidate costs one fast 404 and the walk continues.
+ *
+ * Current models think on every request and take `effort` instead of a thinking
+ * budget: `low` suits a chat guide. Their safety classifiers can decline a request;
+ * `fallbacks: "default"` lets the API re-run it on a fallback model inside the same
+ * call. Both are sent only to current models — the retired one would reject them.
+ */
+export const CLAUDE_MODELS = [
+  process.env.ANTHROPIC_MODEL,
+  'claude-opus-5-5',
+  'claude-3-5-sonnet-20240620',   // retired; kept last, see above
+].filter(Boolean) as string[];
+
+const LEGACY_CLAUDE = new Set(['claude-3-5-sonnet-20240620']);
+
+/** Thinking spends from max_tokens on current models — give the answer room. */
+const CLAUDE_MAX_TOKENS = Math.max(MAX_TOKENS, 8192);
+
 const callClaude = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
+  attachments:  Attachment[] = [],
 ): Promise<ProviderResult> => {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:  'POST',
-    signal,
-    headers: {
-      'Content-Type':      'application/json',
-      'x-api-key':         apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model:      'claude-3-5-sonnet-20240620',
-      max_tokens: MAX_TOKENS,
-      system:     systemPrompt,
-      messages,
-      stream:     true,
-    }),
+  const lastUser = messages.map(m => m.role).lastIndexOf('user');
+  const apiMessages = attachments.length && lastUser >= 0
+    ? messages.map((m, i) => (i === lastUser ? { role: m.role, content: claudeContent(m.content, attachments) } : m))
+    : messages;
+
+  return withModelFallback('claude', CLAUDE_MODELS, (model) => {
+    const legacy = LEGACY_CLAUDE.has(model);
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      signal,
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        ...(legacy ? {} : { 'anthropic-beta': 'server-side-fallback-2026-07-01' }),
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: legacy ? MAX_TOKENS : CLAUDE_MAX_TOKENS,
+        system:     systemPrompt,
+        messages:   apiMessages,
+        stream:     true,
+        ...(legacy ? {} : { output_config: { effort: 'low' }, fallbacks: 'default' }),
+      }),
+    });
   });
-  return res.ok ? { ok: true, res } : readFailure(res);
 };
 
 /**
@@ -208,12 +247,19 @@ const callClaude = async (
  */
 export const GROQ_MODELS = [
   process.env.GROQ_MODEL,
-  'llama-3.1-8b-instant',      // pinned by #154 — do not demote without evidence
-  'llama-3.3-70b-versatile',
+  // Verified by /api/ai/health on 2026-10-08: the ONLY Groq id still answering. Moved
+  // to the head with that evidence — the pinned llama-3.1-8b-instant now returns
+  // 404 model_not_found, and every request was paying for it first.
   'openai/gpt-oss-20b',
+  // OpenAI's larger open-weight GPT on Groq's free tier (owner: "free models, add GPT").
+  'openai/gpt-oss-120b',
+  // Previously pinned by #154; 404 on 2026-10-08. Kept (never drop an id production
+  // served) but demoted behind the verified one.
+  'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile',
+  // Decommissioned per Groq (2026-10-08 health). Kept LAST: a retired id costs one fast
+  // 400 and the walk continues.
   'gemma2-9b-it',
-  // Older ids, kept LAST: Groq has been retiring these. A retired id costs one fast 404
-  // and the walk continues, so leaving them in is cheap insurance, not a liability.
   'llama3-8b-8192',
   'llama3-70b-8192',
   'mixtral-8x7b-32768',
@@ -221,11 +267,14 @@ export const GROQ_MODELS = [
 
 export const GEMINI_MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-3.6-flash',          // pinned by #154 — the model that was actually serving
-  'gemini-flash-latest',       // Google's own moving alias
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-3.6-flash',          // pinned by #154 — verified again 2026-10-08 (1.1 s)
+  'gemini-flash-latest',       // Google's own moving alias — verified 2026-10-08 (3.9 s)
+  // Named by Google's own 404s on 2026-10-08 ("update your code to use
+  // models/gemini-3.8-flash"). Not yet probed from here — below the verified two.
+  'gemini-3.8-flash',
+  'gemini-2.5-flash',          // 404 "no longer available to new users" (2026-10-08)
+  'gemini-2.0-flash',          // 404 (2026-10-08)
+  'gemini-1.5-flash',          // 404 (2026-10-08)
 ].filter(Boolean) as string[];
 
 /**
@@ -254,7 +303,7 @@ function classify(status: number, body: string): FailureKind {
   // The model id is retired, or this key has no access to it → the NEXT candidate might.
   if ((status === 404 || status === 400) &&
       /model/i.test(body) &&
-      /(not exist|not found|decommission|unsupported|no longer|access to it)/i.test(body)) {
+      /(not exist|not found|no endpoints found|decommission|unsupported|no longer|access to it|not a valid model)/i.test(body)) {
     return 'model-gone';
   }
   // The model is fine but momentarily unavailable. Gemini answers 503 "This model is
@@ -342,16 +391,65 @@ const callGroq = async (
     }),
   );
 
+// ── 4️⃣ OpenRouter — free GPT and others ──────────────────
+/**
+ * The free route to GPT (2026-10-08). OpenAI's own API has no free tier, and GitHub
+ * Models — the free GPT endpoint people used — was retired in July 2026. OpenRouter
+ * serves OpenAI's open-weight gpt-oss models (and others) under `:free` ids, on an
+ * OpenAI-compatible API: ~20 requests/minute, and per day 50 on an account that never
+ * bought credits, 1,000 once it has bought $10 at any time (OpenRouter's stated rule —
+ * check their limits page; the free roster changes often, which is why this is a
+ * candidate list and a retired id costs one fast 404).
+ *
+ * Text only here: which free models read images changes too often to promise it, and
+ * Gemini already reads them for free.
+ */
+export const OPENROUTER_MODELS = [
+  process.env.OPENROUTER_MODEL,
+  'openai/gpt-oss-120b:free',
+  'openai/gpt-oss-20b:free',
+  'meta-llama/llama-3.3-70b-instruct:free',
+  'deepseek/deepseek-chat-v3-0324:free',
+].filter(Boolean) as string[];
+
+const callOpenRouter = async (
+  messages:     Message[],
+  systemPrompt: string,
+  apiKey:       string,
+  signal?:      AbortSignal,
+): Promise<ProviderResult> =>
+  withModelFallback('openrouter', OPENROUTER_MODELS, (model) =>
+    fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method:  'POST',
+      signal,
+      headers: {
+        'Content-Type':  'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        // OpenRouter's attribution headers — optional, they name the app in its dashboard.
+        'HTTP-Referer':  'https://hub.tecosystem.app',
+        'X-Title':       'TEC AI',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: MAX_TOKENS,
+        messages:   [{ role: 'system', content: systemPrompt }, ...messages],
+        stream:     true,
+      }),
+    }),
+  );
+
 // ── 3️⃣ Gemini ────────────────────────────────────────────
 const callGemini = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
+  attachments:  Attachment[] = [],
 ): Promise<ProviderResult> => {
-  const geminiMessages = messages.map(m => ({
+  const lastUser = messages.map(m => m.role).lastIndexOf('user');
+  const geminiMessages = messages.map((m, i) => ({
     role:  m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
+    parts: i === lastUser && attachments.length ? geminiParts(m.content, attachments) : [{ text: m.content }],
   }));
 
   return withModelFallback('gemini', GEMINI_MODELS, (model) =>
@@ -403,7 +501,7 @@ function createUnifiedStream(provider: string) {
               text = parsed.delta.text;
             }
             if (parsed.delta?.stop_reason === 'max_tokens') capped = true;
-          } else if (provider === 'groq') {
+          } else if (provider === 'groq' || provider === 'openrouter') {
             if (parsed.choices?.[0]?.delta?.content) {
               text = parsed.choices[0].delta.content;
             }
@@ -470,8 +568,12 @@ function recordIntentObservation(
   const secret  = process.env.INTERNAL_SECRET;
   if (!gateway || !secret) return;
 
-  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  const userTurns = messages.filter((m) => m.role === 'user');
+  const lastUser  = userTurns[userTurns.length - 1];
   if (!lastUser?.content) return;
+  // Read ONLY when the last ask is a bare continuation ("وبعدين", "go on") — see
+  // CONTINUATION in lib/ai/intent-observation.ts.
+  const previous  = userTurns[userTurns.length - 2]?.content;
 
   const bearer = req.headers.get('authorization')
     ?? (req.cookies?.get?.('tec_access_token')?.value
@@ -482,6 +584,7 @@ function recordIntentObservation(
   void (async () => {
     try {
       const observation = await observeIntent(lastUser.content, {
+        ...(previous ? { previous } : {}),
         // Narrowed, not cast: the sink refuses anything but en/ar, and an observation
         // dropped for a locale it did not need is one this instrument threw away.
         ...(locale === 'en' || locale === 'ar' ? { locale } : {}),
@@ -587,6 +690,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Attachments (lib/ai/attachments.ts) — for THIS message only, never stored.
+    const parsedAtt = parseAttachments(body.attachments);
+    if (!parsedAtt.ok) {
+      return NextResponse.json(
+        { error: 'Attachments must be up to 3 photos (JPG, PNG, WebP) or PDFs, within the size limit.', code: parsedAtt.code },
+        { status: 400, headers: corsHeaders },
+      );
+    }
+    const attachments = parsedAtt.attachments;
+    if (attachments.length) {
+      const allowance = await checkAttachmentAllowance(userId, attachments.length, ATTACHMENTS_PER_DAY);
+      if (!allowance.ok) {
+        return NextResponse.json(
+          { error: `Today's ${ATTACHMENTS_PER_DAY} attachments are used — try again tomorrow.`, code: 'ATTACH_LIMIT' },
+          { status: 429, headers: corsHeaders },
+        );
+      }
+    }
+
     // IIC 3.3 — observe, and do nothing with it. Never awaited: the answer does not
     // wait on an instrument.
     const obsLocale = replyLanguage.code === 'ar' || replyLanguage.code === 'en'
@@ -594,12 +716,22 @@ export async function POST(req: NextRequest) {
       : replyLanguage.code === null && (uiLocale === 'en' || uiLocale === 'ar') ? uiLocale : undefined;
     recordIntentObservation(req, messages, obsLocale);
 
-    const systemPrompt = buildSystemPrompt(userContext);
+    // Product search — the assistant names real listings or says there are none
+    // (lib/ai/product-search.ts). Awaited, but bounded by its own short timeout.
+    const productAsk = isProductAsk(lastUserText);
+    const products = productAsk && process.env.API_GATEWAY_URL
+      ? await searchProducts(process.env.API_GATEWAY_URL, lastUserText, { internalKey: process.env.INTERNAL_SECRET })
+      : null;
+
+    const systemPrompt = buildSystemPrompt(userContext)
+      + (products ? `\n${productSection(products)}\n` : '')
+      + (attachments.length ? `\n${attachmentNote(attachments)}\n` : '');
     const claudeKey    = process.env.ANTHROPIC_API_KEY;
     const groqKey      = process.env.GROQ_API_KEY;
+    const openrouterKey = process.env.OPENROUTER_API_KEY;
     const geminiKey    = process.env.GEMINI_API_KEY;
 
-    if (!claudeKey && !groqKey && !geminiKey) {
+    if (!claudeKey && !groqKey && !geminiKey && !openrouterKey) {
       return NextResponse.json(
         { error: 'AI service not configured', code: 'NOT_CONFIGURED' },
         { status: 503, headers: corsHeaders },
@@ -647,9 +779,14 @@ export async function POST(req: NextRequest) {
     };
 
     const providers: Array<[string, string | undefined, (s: AbortSignal) => Promise<ProviderResult>]> = [
-      ['claude', claudeKey, (s) => callClaude(messages, systemPrompt, claudeKey!, s)],
-      ['groq',   groqKey,   (s) => callGroq(messages, systemPrompt, groqKey!, s)],
-      ['gemini', geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s)],
+      // FREE first (owner, 2026-10-08): Gemini and Groq have free tiers, OpenRouter
+      // serves free GPT. Claude is paid, so it comes LAST — it answers only when every
+      // free provider failed, and never at all if ANTHROPIC_API_KEY is unset.
+      ['gemini',     geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s, attachments)],
+      // Groq's and OpenRouter's candidates read text only — a message with a photo or PDF never goes there.
+      ['groq',       attachments.length ? undefined : groqKey, (s) => callGroq(messages, systemPrompt, groqKey!, s)],
+      ['openrouter', attachments.length ? undefined : openrouterKey, (s) => callOpenRouter(messages, systemPrompt, openrouterKey!, s)],
+      ['claude',     claudeKey, (s) => callClaude(messages, systemPrompt, claudeKey!, s, attachments)],
     ];
 
     // Put the last provider that worked at the front, so a provider that is currently
@@ -659,6 +796,14 @@ export async function POST(req: NextRequest) {
           (b[0] === lastGoodProvider ? 1 : 0) - (a[0] === lastGoodProvider ? 1 : 0))
       : providers;
     const configured = ordered.filter(([, key]) => !!key);
+    if (attachments.length && !configured.length) {
+      // Only a text-only model is configured. Answering as if the photo had been read
+      // would be the worst outcome — say so instead.
+      return NextResponse.json(
+        { error: 'The assistant cannot read attachments right now — send your question as text.', code: 'ATTACH_UNSUPPORTED' },
+        { status: 503, headers: corsHeaders },
+      );
+    }
 
     let response: Response | null = null;
     let provider = '';

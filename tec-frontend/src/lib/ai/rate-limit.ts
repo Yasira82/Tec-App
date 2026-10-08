@@ -82,3 +82,48 @@ export async function checkRateLimit(key: string): Promise<RateResult> {
 
 /** Test-only: reset the in-memory window. */
 export function __resetMemRateLimit(): void { mem.clear(); }
+
+// ── Attachments: a daily allowance (owner, 2026-10-08) ─────────────────────────
+// A photo or a PDF costs the AI budget far more than a line of text, so each person
+// gets ATTACHMENTS_PER_DAY a day, counted per attachment (not per message). Same
+// shape as the limiter above: durable when Upstash is configured, bounded in-memory
+// otherwise, fail-open on a backend hiccup.
+const dayMem = new Map<string, Entry>();
+
+export async function checkAttachmentAllowance(key: string, count: number, perDay: number): Promise<RateResult> {
+  if (count <= 0) return { ok: true, remaining: perDay };
+  const url   = process.env.UPSTASH_REDIS_REST_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (url && token) {
+    try {
+      const rk = `aiatt:${key}:${new Date().toISOString().slice(0, 10)}`;
+      const res = await fetch(`${url}/pipeline`, {
+        method:  'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body:    JSON.stringify([['INCRBY', rk, String(count)], ['EXPIRE', rk, '90000', 'NX']]),
+        cache:   'no-store',
+      });
+      if (res.ok) {
+        const data  = (await res.json()) as Array<{ result?: unknown }>;
+        const total = Number(data?.[0]?.result ?? NaN);
+        if (Number.isFinite(total) && total > 0) {
+          return { ok: total <= perDay, remaining: Math.max(0, perDay - total) };
+        }
+      }
+    } catch { /* fall through to memory */ }
+  }
+  const now = Date.now();
+  const e = dayMem.get(key);
+  if (e && now < e.resetAt) {
+    if (e.count + count > perDay) return { ok: false, remaining: Math.max(0, perDay - e.count) };
+    e.count += count;
+    return { ok: true, remaining: perDay - e.count };
+  }
+  if (dayMem.size > MAX_KEYS) dayMem.clear();
+  if (count > perDay) return { ok: false, remaining: perDay };
+  dayMem.set(key, { count, resetAt: now + 86_400_000 });
+  return { ok: true, remaining: perDay - count };
+}
+
+/** Test-only. */
+export function __resetAttachmentAllowance(): void { dayMem.clear(); }

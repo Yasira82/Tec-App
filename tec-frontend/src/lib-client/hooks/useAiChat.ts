@@ -14,8 +14,21 @@ import type { Translations } from '@/lib/i18n';
 /** How many previous turns travel with each question, so follow-ups keep context. */
 const HISTORY_TURNS = 8;
 
-/** Longest the first message will wait for personalization before going without it. */
-const CONTEXT_WAIT_MS = 1500;
+/**
+ * Longest a message will wait for personalization before going without it. It was 1.5 s
+ * while the BFF gives each Life/Analytics read 2.5 s — so on a cold backend the first
+ * question went out with no context, and TEC AI said it could not see goals the Settings
+ * screen showed as shared (owner's phone, 2026-10-08).
+ */
+const CONTEXT_WAIT_MS = 4000;
+
+/**
+ * The signed context lives 15 minutes (lib/ai/context-token.ts). It was fetched once per
+ * mount and reused forever, so a drawer left open past that sent an expired token and the
+ * route — correctly — dropped it. Re-read it before it gets that old, or when the last
+ * read brought no token at all.
+ */
+const CONTEXT_FRESH_MS = 10 * 60 * 1000;
 
 const getCsrfToken = (): string => {
   if (typeof document === 'undefined') return '';
@@ -88,10 +101,9 @@ export function useAiChat({ storeKey, open, t }: {
   // specific answer, never a broken one. Held as the in-flight PROMISE, not the resolved
   // value: a user who opens the drawer and types straight away would otherwise send their
   // first — and often only — question before the context landed.
-  const ctxRef = useRef<Promise<Record<string, unknown> | null> | null>(null);
-  useEffect(() => {
-    if (!open || ctxRef.current) return;
-    ctxRef.current = (async () => {
+  const ctxRef = useRef<{ at: number; p: Promise<Record<string, unknown> | null> } | null>(null);
+  const loadContext = useCallback(() => {
+    const p = (async () => {
       try {
         const res = await fetch('/api/bff/ai/context', { credentials: 'include', cache: 'no-store' });
         return res.ok ? await res.json().catch(() => null) : null;
@@ -99,7 +111,17 @@ export function useAiChat({ storeKey, open, t }: {
         return null;   // fail-soft — omit personalization, never block the assistant
       }
     })();
-  }, [open]);
+    ctxRef.current = { at: Date.now(), p };
+    // A read that brought no token is not worth keeping: the next message asks again.
+    void p.then((c) => {
+      if (!(c as { contextToken?: unknown } | null)?.contextToken && ctxRef.current?.p === p) ctxRef.current = null;
+    });
+    return p;
+  }, []);
+  useEffect(() => {
+    if (!open || ctxRef.current) return;
+    loadContext();
+  }, [open, loadContext]);
 
   const send = useCallback(async (question: string, attachments: PreparedAttachment[] = []) => {
     const typed = question.trim();
@@ -138,9 +160,11 @@ export function useAiChat({ storeKey, open, t }: {
       // Wait for the context, but never longer than this — a stalled personalization
       // request must cost a less specific answer, not the answer itself (degrade, don't
       // block). The bubble with its typing dots is already on screen by now.
-      const ctx = ctxRef.current
+      const held = ctxRef.current;
+      const ctxPromise = held && Date.now() - held.at < CONTEXT_FRESH_MS ? held.p : loadContext();
+      const ctx = ctxPromise
         ? await Promise.race([
-            ctxRef.current,
+            ctxPromise,
             new Promise<null>(r => setTimeout(() => r(null), CONTEXT_WAIT_MS)),
           ])
         : null;
@@ -232,7 +256,7 @@ export function useAiChat({ storeKey, open, t }: {
     }
     // `messages` is a real dependency — the request carries the prior turns, so reading
     // a stale copy would silently send an empty history and break follow-up questions.
-  }, [loading, messages, settings, t]);
+  }, [loading, messages, settings, t, loadContext]);
 
   const stop = useCallback(() => abortRef.current?.abort(), []);
 

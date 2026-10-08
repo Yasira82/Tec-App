@@ -28,9 +28,12 @@ const STOP = new Set([
   'عندكم', 'عندك', 'في', 'فيه', 'هل', 'جوده', 'سعر', 'وسعر', 'بسعر', 'كويس', 'حلو', 'رخيص', 'ارخص',
   'اشتري', 'ادور', 'علي', 'عن', 'من', 'او', 'ايه', 'شو', 'حاجه', 'منتج', 'نفسي', 'بس', 'يكون', 'افضل',
   'باي', 'تحت', 'اقل', 'حدود',
+  'متوفر', 'بكام', 'ابحث', 'دور', 'دورلي', 'لاقيلي', 'تلاقيلي', 'الاقي', 'هات', 'هاتلي', 'رشح',
+  'رشحلي', 'انصحني', 'اقترح', 'اقترحلي', 'احسن', 'تعرف', 'لي', 'ليا', 'نوع', 'واحد',
   // English
   'i', 'want', 'need', 'looking', 'for', 'a', 'an', 'the', 'some', 'good', 'cheap', 'cheapest', 'price',
   'quality', 'buy', 'find', 'me', 'please', 'with', 'under', 'below', 'best', 'any', 'pi', 'and', 'or',
+  'recommend', 'suggest', 'where', 'can', 'get', 'you', 'is', 'there', 'have', 'do',
 ]);
 
 const normalize = (s: string) => s
@@ -63,7 +66,10 @@ export function productTerms(ask: string): string[] {
  * a goal or sending Pi. A miss costs a pointer to the shop; a false hit costs a wasted
  * search the prompt tells the model to ignore.
  */
-const BUY_STRONG = /(اشتري|اشتريت|ادور علي|بدور علي|عندكم|في عندكم|\bbuy\b|looking for|shop for|do you have|price of|ارخص|cheapest)/;
+// 2026-10-08, owner's phone: "a good charger" asked as a recommendation or with "عندك"
+// matched nothing here, so no search ran and TEC AI said the catalogue was not in front
+// of it. Recommendation and availability words now count as asking for a product.
+const BUY_STRONG = /(اشتري|اشتريت|ادور علي|بدور علي|عندكم|عندك|متوفر|بكام|ابحث|دورلي|دور لي|لاقيلي|تلاقيلي|الاقي|هاتلي|رشح|انصحني|اقترح|احسن|\bbuy\b|looking for|shop for|do you have|price of|ارخص|cheapest|recommend|suggest|where can i get|\bbest\b)/;
 const WANT       = /(عاوز|عايز|محتاج|ابغي|اريد|\bi want\b|\bi need\b|\bneed a\b|\bwant a\b)/;
 const NOT_A_PRODUCT = /(تطبيق|ابدا|اعرف|افهم|اوفر|ادخر|هدف|اهداف|ابعت|احول|اوثق|اشتراك|\bapp\b|\bsave\b|\bgoal|\bsend\b|\bstart\b|\bverify|\bsubscri)/;
 

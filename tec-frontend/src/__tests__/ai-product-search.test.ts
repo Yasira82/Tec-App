@@ -15,6 +15,11 @@ describe('which asks search the marketplace', () => {
     'عايز اشتري سماعة',
     'I want a phone charger',
     'do you have headphones?',
+    // 2026-10-08, owner's phone — a recommendation, not "I want":
+    'رشحلي شاحن كويس',
+    'عندك شاحن كويس؟',
+    'ايه احسن شاحن',
+    'can you recommend a good charger',
   ])('searches: %s', (ask) => expect(isProductAsk(ask)).toBe(true));
 
   it.each([
@@ -23,10 +28,13 @@ describe('which asks search the marketplace', () => {
     'عاوز ابعت 5 باي لصاحبي',            // sending Pi
     'ايه أضعف خدمة',                     // not about buying at all
     'عاوز',                              // nothing to search for
+    'ايه احسن تطبيق ابدأ بيه',            // the best APP, not a product
   ])('does not: %s', (ask) => expect(isProductAsk(ask)).toBe(false));
 
   it('keeps the product words only', () => {
     expect(productTerms('طيب ما انا قولتلك عاوز شاحن جوده وسعر')).toEqual(['شاحن']);
+    expect(productTerms('رشحلي شاحن كويس')).toEqual(['شاحن']);
+    expect(productTerms('can you recommend a good charger')).toEqual(['charger']);
     expect(productTerms('I want a cheap USB-C charger under 5 pi')).toEqual(['usb', 'charger']);
   });
 });

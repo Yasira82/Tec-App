@@ -8,6 +8,7 @@ import { ChatTranscript }      from '@/components/ai/ChatTranscript';
 import { useAiChat }           from '@/lib-client/hooks/useAiChat';
 import { useTranslation }      from '@/lib/i18n';
 import { Icon }                from '@/components/ui/Icon';
+import { useBackCloses }       from '@/lib-client/back-closes';
 
 /** Per-tab transcript key. See src/lib/ai-session.ts for why sessionStorage. */
 const STORE_KEY = 'tec_ai_drawer';
@@ -34,6 +35,9 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
     if (!override) { setInput(''); setAtts([]); setAttError(null); }
     void send(question, files);
   }, [input, atts, send]);
+
+  // Android's back closes the drawer instead of leaving /hub (lib-client/back-closes.ts).
+  useBackCloses(open, onClose);
 
   // Focus the field when the drawer opens, and let Escape close it.
   useEffect(() => {

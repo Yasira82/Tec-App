@@ -87,6 +87,8 @@ function getCorsHeaders(req: NextRequest) {
 }
 
 interface UserContext {
+  /** Signed in, but the signed context did not come with this message. */
+  contextMissing?: boolean;
   username?: string;
   balance?:  number;
   locale?:   string;
@@ -106,7 +108,10 @@ interface UserContext {
 }
 
 const buildSystemPrompt = (userContext?: UserContext) => {
+  // Completed goals are still the person's goals. Dropping them made a single finished
+  // goal read as "NONE shared" — and the Settings screen said "Goals ✓ shared · 1".
   const goals = (userContext?.goals ?? []).filter(g => !g.done).slice(0, 5);
+  const done  = (userContext?.goals ?? []).filter(g => g.done).slice(0, 5);
   const a     = userContext?.activity;
   const skills = (userContext?.skills ?? []).slice(0, 5);
   const skillsLine = skills.length
@@ -139,8 +144,15 @@ ${userContext?.username ? `- Username: @${userContext.username}` : '- User: Gues
 ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toFixed(2)} TEC` : ''}
 ${userContext?.kycVerified !== undefined ? `- KYC (via Pi): ${userContext.kycVerified ? 'verified' : 'not verified'}` : ''}
 ${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
+${userContext?.contextMissing
+  ? '- Personal context (Life goals, skills, activity): it did NOT reach you for this message — a loading problem, not their choice. If asked about their goals, say you could not load them just now and to ask again in a moment. Never say they shared none.'
+  : ''}
 ${goals.length
   ? `- Active goals: ${goals.map(g => g.title).join('; ')}`
+  : ''}
+${done.length ? `- Completed goals: ${done.map(g => g.title).join('; ')}` : ''}
+${goals.length || done.length || userContext?.contextMissing
+  ? ''
   : userContext?.username
     ? '- Life goals: NONE shared with you — either they have no active goals, or Goals is not granted to TEC AI (Life → Privacy). If asked, say exactly that.'
     : ''}
@@ -693,6 +705,10 @@ export async function POST(req: NextRequest) {
       // body: failing closed here means a less personal answer, and falling open
       // means the prompt states things nobody checked (P6).
       ...(claims ?? {}),
+      // Signed in, but no valid context came with the message (slow, expired, unsigned).
+      // Said to the model as exactly that, so a load problem is never answered as
+      // "you shared no goals".
+      contextMissing: !claims,
     };
 
     if (!messages.length) {

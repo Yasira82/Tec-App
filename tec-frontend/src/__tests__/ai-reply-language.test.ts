@@ -149,7 +149,7 @@ describe('the asks that matched nothing now have words', () => {
   });
 
   it('the five are in the closed set, after the fifteen that were there', () => {
-    expect(OBJECTIVES.slice(-5)).toEqual(['change_language', 'platform_trust', 'compare_apps', 'recommend_app', 'explain_app']);
+    expect(OBJECTIVES.slice(15, 20)).toEqual(['change_language', 'platform_trust', 'compare_apps', 'recommend_app', 'explain_app']);
     expect(OBJECTIVES).toContain('understand_platform');
   });
 

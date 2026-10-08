@@ -136,7 +136,11 @@ ${userContext?.username ? `- Username: @${userContext.username}` : '- User: Gues
 ${userContext?.balance !== undefined ? `- TEC Balance: ${userContext.balance.toFixed(2)} TEC` : ''}
 ${userContext?.kycVerified !== undefined ? `- KYC (via Pi): ${userContext.kycVerified ? 'verified' : 'not verified'}` : ''}
 ${userContext?.focus ? `- Stated focus: ${userContext.focus}` : ''}
-${goals.length ? `- Active goals: ${goals.map(g => g.title).join('; ')}` : ''}
+${goals.length
+  ? `- Active goals: ${goals.map(g => g.title).join('; ')}`
+  : userContext?.username
+    ? '- Life goals: NONE shared with you — either they have no active goals, or Goals is not granted to TEC AI (Life → Privacy). If asked, say exactly that.'
+    : ''}
 ${skillsLine}
 ${paceLine}
 ${activityLine}
@@ -470,8 +474,12 @@ function recordIntentObservation(
   const secret  = process.env.INTERNAL_SECRET;
   if (!gateway || !secret) return;
 
-  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  const userTurns = messages.filter((m) => m.role === 'user');
+  const lastUser  = userTurns[userTurns.length - 1];
   if (!lastUser?.content) return;
+  // Read ONLY when the last ask is a bare continuation ("وبعدين", "go on") — see
+  // CONTINUATION in lib/ai/intent-observation.ts.
+  const previous  = userTurns[userTurns.length - 2]?.content;
 
   const bearer = req.headers.get('authorization')
     ?? (req.cookies?.get?.('tec_access_token')?.value
@@ -482,6 +490,7 @@ function recordIntentObservation(
   void (async () => {
     try {
       const observation = await observeIntent(lastUser.content, {
+        ...(previous ? { previous } : {}),
         // Narrowed, not cast: the sink refuses anything but en/ar, and an observation
         // dropped for a locale it did not need is one this instrument threw away.
         ...(locale === 'en' || locale === 'ar' ? { locale } : {}),

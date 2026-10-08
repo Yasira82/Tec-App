@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
-import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, OPENROUTER_MODELS } from '../chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, openRouterCandidates } from '../chat/route';
 
 export const runtime = 'edge';
 
@@ -109,7 +109,8 @@ export async function GET(req: NextRequest) {
 
   if (openrouterKey) {
     results.openrouter = [];
-    for (const model of OPENROUTER_MODELS) {
+    // Read from OpenRouter's catalogue — the same list the chat route walks.
+    for (const model of await openRouterCandidates()) {
       results.openrouter.push(await probe('https://openrouter.ai/api/v1/chat/completions', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openrouterKey}` },

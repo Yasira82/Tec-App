@@ -8,6 +8,7 @@ import { resolveReplyLanguage, replyLanguageLine, type ReplyLanguage } from '@/l
 import { LOCALE_CODES } from '@/lib/locales';
 import { observeIntent }     from '@/lib/ai/intent-observation';
 import { isProductAsk, searchProducts, productSection } from '@/lib/ai/product-search';
+import { freeOpenRouterModels } from '@/lib/ai/openrouter-free';
 
 export const runtime = 'edge';
 
@@ -303,7 +304,7 @@ function classify(status: number, body: string): FailureKind {
   // The model id is retired, or this key has no access to it → the NEXT candidate might.
   if ((status === 404 || status === 400) &&
       /model/i.test(body) &&
-      /(not exist|not found|no endpoints found|decommission|unsupported|no longer|access to it|not a valid model)/i.test(body)) {
+      /(not exist|not found|no endpoints found|unavailable for free|decommission|unsupported|no longer|access to it|not a valid model)/i.test(body)) {
     return 'model-gone';
   }
   // The model is fine but momentarily unavailable. Gemini answers 503 "This model is
@@ -404,13 +405,17 @@ const callGroq = async (
  * Text only here: which free models read images changes too often to promise it, and
  * Gemini already reads them for free.
  */
-export const OPENROUTER_MODELS = [
-  process.env.OPENROUTER_MODEL,
-  'openai/gpt-oss-120b:free',
-  'openai/gpt-oss-20b:free',
-  'meta-llama/llama-3.3-70b-instruct:free',
-  'deepseek/deepseek-chat-v3-0324:free',
-].filter(Boolean) as string[];
+/**
+ * The candidates are READ from OpenRouter's catalogue, not written here
+ * (lib/ai/openrouter-free.ts): on 2026-10-08 every hardcoded `:free` id — gpt-oss-120b,
+ * gpt-oss-20b, llama-3.3-70b, deepseek-chat-v3 — answered "unavailable for free" in
+ * production the same day it was added. The env override still comes first.
+ */
+export async function openRouterCandidates(): Promise<string[]> {
+  const env = process.env.OPENROUTER_MODEL;
+  const free = await freeOpenRouterModels();
+  return [...(env ? [env] : []), ...free.filter((m) => m !== env)];
+}
 
 const callOpenRouter = async (
   messages:     Message[],
@@ -418,7 +423,7 @@ const callOpenRouter = async (
   apiKey:       string,
   signal?:      AbortSignal,
 ): Promise<ProviderResult> =>
-  withModelFallback('openrouter', OPENROUTER_MODELS, (model) =>
+  withModelFallback('openrouter', await openRouterCandidates(), (model) =>
     fetch('https://openrouter.ai/api/v1/chat/completions', {
       method:  'POST',
       signal,

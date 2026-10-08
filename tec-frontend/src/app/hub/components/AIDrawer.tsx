@@ -1,5 +1,7 @@
 'use client';
 
+import { AttachButton, AttachChips } from '@/components/ai/AttachBar';
+import type { PreparedAttachment } from '@/lib-client/ai/attachments';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { AIMenu }              from '@/components/ai/AIMenu';
 import { ChatTranscript }      from '@/components/ai/ChatTranscript';
@@ -14,6 +16,8 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
   const { t, locale, dir } = useTranslation();
   const [input,    setInput]    = useState('');
   const [menuOpen, setMenuOpen] = useState(false);
+  const [atts,     setAtts]     = useState<PreparedAttachment[]>([]);
+  const [attError, setAttError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const inputRef  = useRef<HTMLTextAreaElement | null>(null);
 
@@ -24,9 +28,12 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
 
   const submit = useCallback((override?: string) => {
     const question = override ?? input;
-    if (!override) setInput('');
-    void send(question);
-  }, [input, send]);
+    // A retry or a picked suggestion sends text only; the composer's attachments go with
+    // the composer's own send, then clear.
+    const files = override ? [] : atts;
+    if (!override) { setInput(''); setAtts([]); setAttError(null); }
+    void send(question, files);
+  }, [input, atts, send]);
 
   // Focus the field when the drawer opens, and let Escape close it.
   useEffect(() => {
@@ -125,7 +132,9 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
           />
         )}
 
+        <AttachChips value={atts} onChange={setAtts} error={attError} />
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 0', alignItems: 'flex-end' }}>
+          <AttachButton value={atts} onChange={setAtts} onError={setAttError} disabled={loading} />
           <textarea
             ref={inputRef}
             value={input}
@@ -145,8 +154,8 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
             <button onClick={stop} aria-label={t.hub.ai.stop}
               style={{ width: 44, height: 44, borderRadius: 14, background: 'var(--tec-fill-soft)', border: '1px solid var(--tec-border)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: 'var(--tec-text-1)' }}>◼</button>
           ) : (
-            <button onClick={() => submit()} disabled={!input.trim()} aria-label={t.hub.ai.send}
-              style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() ? 'var(--tec-gold)' : 'var(--tec-fill-soft)', border: 'none', cursor: input.trim() ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
+            <button onClick={() => submit()} disabled={!input.trim() && !atts.length} aria-label={t.hub.ai.send}
+              style={{ width: 44, height: 44, borderRadius: 14, background: input.trim() || atts.length ? 'var(--tec-gold)' : 'var(--tec-fill-soft)', border: 'none', cursor: input.trim() || atts.length ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, transition: 'all 0.2s' }}>↑</button>
           )}
         </div>
       </div>

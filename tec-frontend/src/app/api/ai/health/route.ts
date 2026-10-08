@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
-import { GROQ_MODELS, GEMINI_MODELS } from '../chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS } from '../chat/route';
 
 export const runtime = 'edge';
 
@@ -80,18 +80,19 @@ export async function GET(req: NextRequest) {
   const results: Record<string, ModelProbe[]> = {};
 
   if (claudeKey) {
-    results.claude = [await probe('https://api.anthropic.com/v1/messages', {
-      method:  'POST',
-      headers: {
-        'Content-Type':      'application/json',
-        'x-api-key':         claudeKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620', max_tokens: 1,
-        messages: [{ role: 'user', content: 'hi' }],
-      }),
-    }, 'claude-3-5-sonnet-20240620')];
+    results.claude = [];
+    for (const model of CLAUDE_MODELS) {
+      results.claude.push(await probe('https://api.anthropic.com/v1/messages', {
+        method:  'POST',
+        headers: {
+          'Content-Type':      'application/json',
+          'x-api-key':         claudeKey,
+          'anthropic-version': '2023-06-01',
+        },
+        // 16, not 1: current models think on every request and spend from max_tokens.
+        body: JSON.stringify({ model, max_tokens: 16, messages: [{ role: 'user', content: 'hi' }] }),
+      }, model));
+    }
   }
 
   if (groqKey) {
@@ -130,7 +131,7 @@ export async function GET(req: NextRequest) {
     working,
     // Named so the fix is obvious from the response itself.
     recommendation: working.length
-      ? `Pin a winner: set GROQ_MODEL / GEMINI_MODEL to one of: ${working.join(', ')}`
+      ? `Pin a winner: set ANTHROPIC_MODEL / GROQ_MODEL / GEMINI_MODEL to one of: ${working.join(', ')}`
       : 'No provider answered. Check the API keys, or that a key has quota left.',
     configured: {
       claude: !!claudeKey,

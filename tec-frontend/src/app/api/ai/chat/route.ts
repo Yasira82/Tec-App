@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
-import { checkRateLimit }    from '@/lib/ai/rate-limit';
+import { checkRateLimit, checkAttachmentAllowance } from '@/lib/ai/rate-limit';
+import { parseAttachments, claudeContent, geminiParts, attachmentNote, ATTACHMENTS_PER_DAY, type Attachment } from '@/lib/ai/attachments';
 import { verifyContext }     from '@/lib/ai/context-token';
 import { resolveReplyLanguage, replyLanguageLine, type ReplyLanguage } from '@/lib/ai/reply-language';
 import { LOCALE_CODES } from '@/lib/locales';
@@ -160,29 +161,62 @@ export async function OPTIONS(req: NextRequest) {
 }
 
 // ── 1️⃣ Claude ────────────────────────────────────────────
+/**
+ * Claude, as a candidate list like the others (2026-10-08). It was one hardcoded id,
+ * `claude-3-5-sonnet-20240620`, which Anthropic has since retired — so every request
+ * paid a failed call here before falling through to Groq. The retired id stays LAST
+ * (the pinning rule in models-pinned.test.ts: never drop an id production served); a
+ * dead candidate costs one fast 404 and the walk continues.
+ *
+ * Current models think on every request and take `effort` instead of a thinking
+ * budget: `low` suits a chat guide. Their safety classifiers can decline a request;
+ * `fallbacks: "default"` lets the API re-run it on a fallback model inside the same
+ * call. Both are sent only to current models — the retired one would reject them.
+ */
+export const CLAUDE_MODELS = [
+  process.env.ANTHROPIC_MODEL,
+  'claude-opus-5-5',
+  'claude-3-5-sonnet-20240620',   // retired; kept last, see above
+].filter(Boolean) as string[];
+
+const LEGACY_CLAUDE = new Set(['claude-3-5-sonnet-20240620']);
+
+/** Thinking spends from max_tokens on current models — give the answer room. */
+const CLAUDE_MAX_TOKENS = Math.max(MAX_TOKENS, 8192);
+
 const callClaude = async (
   messages:     Message[],
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
+  attachments:  Attachment[] = [],
 ): Promise<ProviderResult> => {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method:  'POST',
-    signal,
-    headers: {
-      'Content-Type':      'application/json',
-      'x-api-key':         apiKey,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model:      'claude-3-5-sonnet-20240620',
-      max_tokens: MAX_TOKENS,
-      system:     systemPrompt,
-      messages,
-      stream:     true,
-    }),
+  const lastUser = messages.map(m => m.role).lastIndexOf('user');
+  const apiMessages = attachments.length && lastUser >= 0
+    ? messages.map((m, i) => (i === lastUser ? { role: m.role, content: claudeContent(m.content, attachments) } : m))
+    : messages;
+
+  return withModelFallback('claude', CLAUDE_MODELS, (model) => {
+    const legacy = LEGACY_CLAUDE.has(model);
+    return fetch('https://api.anthropic.com/v1/messages', {
+      method:  'POST',
+      signal,
+      headers: {
+        'Content-Type':      'application/json',
+        'x-api-key':         apiKey,
+        'anthropic-version': '2023-06-01',
+        ...(legacy ? {} : { 'anthropic-beta': 'server-side-fallback-2026-07-01' }),
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: legacy ? MAX_TOKENS : CLAUDE_MAX_TOKENS,
+        system:     systemPrompt,
+        messages:   apiMessages,
+        stream:     true,
+        ...(legacy ? {} : { output_config: { effort: 'low' }, fallbacks: 'default' }),
+      }),
+    });
   });
-  return res.ok ? { ok: true, res } : readFailure(res);
 };
 
 /**
@@ -353,10 +387,12 @@ const callGemini = async (
   systemPrompt: string,
   apiKey:       string,
   signal?:      AbortSignal,
+  attachments:  Attachment[] = [],
 ): Promise<ProviderResult> => {
-  const geminiMessages = messages.map(m => ({
+  const lastUser = messages.map(m => m.role).lastIndexOf('user');
+  const geminiMessages = messages.map((m, i) => ({
     role:  m.role === 'assistant' ? 'model' : 'user',
-    parts: [{ text: m.content }],
+    parts: i === lastUser && attachments.length ? geminiParts(m.content, attachments) : [{ text: m.content }],
   }));
 
   return withModelFallback('gemini', GEMINI_MODELS, (model) =>
@@ -597,6 +633,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Attachments (lib/ai/attachments.ts) — for THIS message only, never stored.
+    const parsedAtt = parseAttachments(body.attachments);
+    if (!parsedAtt.ok) {
+      return NextResponse.json(
+        { error: 'Attachments must be up to 3 photos (JPG, PNG, WebP) or PDFs, within the size limit.', code: parsedAtt.code },
+        { status: 400, headers: corsHeaders },
+      );
+    }
+    const attachments = parsedAtt.attachments;
+    if (attachments.length) {
+      const allowance = await checkAttachmentAllowance(userId, attachments.length, ATTACHMENTS_PER_DAY);
+      if (!allowance.ok) {
+        return NextResponse.json(
+          { error: `Today's ${ATTACHMENTS_PER_DAY} attachments are used — try again tomorrow.`, code: 'ATTACH_LIMIT' },
+          { status: 429, headers: corsHeaders },
+        );
+      }
+    }
+
     // IIC 3.3 — observe, and do nothing with it. Never awaited: the answer does not
     // wait on an instrument.
     const obsLocale = replyLanguage.code === 'ar' || replyLanguage.code === 'en'
@@ -611,7 +666,9 @@ export async function POST(req: NextRequest) {
       ? await searchProducts(process.env.API_GATEWAY_URL, lastUserText, { internalKey: process.env.INTERNAL_SECRET })
       : null;
 
-    const systemPrompt = buildSystemPrompt(userContext) + (products ? `\n${productSection(products)}\n` : '');
+    const systemPrompt = buildSystemPrompt(userContext)
+      + (products ? `\n${productSection(products)}\n` : '')
+      + (attachments.length ? `\n${attachmentNote(attachments)}\n` : '');
     const claudeKey    = process.env.ANTHROPIC_API_KEY;
     const groqKey      = process.env.GROQ_API_KEY;
     const geminiKey    = process.env.GEMINI_API_KEY;
@@ -664,9 +721,10 @@ export async function POST(req: NextRequest) {
     };
 
     const providers: Array<[string, string | undefined, (s: AbortSignal) => Promise<ProviderResult>]> = [
-      ['claude', claudeKey, (s) => callClaude(messages, systemPrompt, claudeKey!, s)],
-      ['groq',   groqKey,   (s) => callGroq(messages, systemPrompt, groqKey!, s)],
-      ['gemini', geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s)],
+      ['claude', claudeKey, (s) => callClaude(messages, systemPrompt, claudeKey!, s, attachments)],
+      // Groq's candidates read text only — a message with a photo or PDF never goes there.
+      ['groq',   attachments.length ? undefined : groqKey, (s) => callGroq(messages, systemPrompt, groqKey!, s)],
+      ['gemini', geminiKey, (s) => callGemini(messages, systemPrompt, geminiKey!, s, attachments)],
     ];
 
     // Put the last provider that worked at the front, so a provider that is currently
@@ -676,6 +734,14 @@ export async function POST(req: NextRequest) {
           (b[0] === lastGoodProvider ? 1 : 0) - (a[0] === lastGoodProvider ? 1 : 0))
       : providers;
     const configured = ordered.filter(([, key]) => !!key);
+    if (attachments.length && !configured.length) {
+      // Only a text-only model is configured. Answering as if the photo had been read
+      // would be the worst outcome — say so instead.
+      return NextResponse.json(
+        { error: 'The assistant cannot read attachments right now — send your question as text.', code: 'ATTACH_UNSUPPORTED' },
+        { status: 503, headers: corsHeaders },
+      );
+    }
 
     let response: Response | null = null;
     let provider = '';

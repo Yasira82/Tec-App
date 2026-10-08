@@ -19,7 +19,7 @@
  * is a deliberate decision with a reason attached rather than an accident.
  */
 import { describe, it, expect } from 'vitest';
-import { GROQ_MODELS, GEMINI_MODELS } from '@/app/api/ai/chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS } from '@/app/api/ai/chat/route';
 
 /** Model ids that have served real production traffic. Removing one needs evidence. */
 const PINNED = {
@@ -51,5 +51,16 @@ describe('provider model candidates', () => {
     // first — a hardcoded list that outranks it cannot be fixed from the dashboard.
     expect(GROQ_MODELS.length).toBeGreaterThan(1);
     expect(GEMINI_MODELS.length).toBeGreaterThan(1);
+  });
+});
+
+describe('Claude candidates (2026-10-08)', () => {
+  it('leads with a current model, after the env override', () => {
+    expect(CLAUDE_MODELS.filter(m => m !== process.env.ANTHROPIC_MODEL)[0]).toBe('claude-opus-5-5');
+  });
+
+  it('keeps the retired id that production served — last, never first', () => {
+    expect(CLAUDE_MODELS).toContain('claude-3-5-sonnet-20240620');
+    expect(CLAUDE_MODELS[CLAUDE_MODELS.length - 1]).toBe('claude-3-5-sonnet-20240620');
   });
 });

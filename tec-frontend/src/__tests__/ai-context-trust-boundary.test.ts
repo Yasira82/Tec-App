@@ -184,7 +184,9 @@ describe('the BFF signs every path it returns', () => {
   it('signs the DEGRADED path too', () => {
     // `kycVerified` alone is still a platform claim. The fail-soft branch — no
     // gateway, no token — returns it, so it needs the signature just as much.
-    expect(bff).toMatch(/return sealed\(out\); \/\/ fail-soft/);
+    // `seen` rides alongside, unsigned — it describes the person's data to the person
+    // and the chat route never reads it.
+    expect(bff).toMatch(/return \{ \.\.\.\(await sealed\(out\)\), seen: notAsked \}; \/\/ fail-soft/);
     expect(bff).not.toMatch(/return out;/);
   });
 });

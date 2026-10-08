@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   listArchives, restoreArchive, deleteArchive, clearAll,
   loadSettings, saveSettings,
@@ -70,6 +70,71 @@ const SOCIAL_LINKS = [
 
 
 type Tab = 'chats' | 'settings' | 'ask' | 'support';
+
+/** The `seen` block of /api/bff/ai/context — what Life actually handed the assistant. */
+interface Seen {
+  life:    'read' | 'no_profile' | 'unavailable' | 'not_asked';
+  consent: Record<string, boolean>;
+  goals:   number;
+  skills:  number | null;
+  pace:    boolean;
+}
+
+/**
+ * "What TEC AI can see now" — read fresh each time Settings opens, so switching a
+ * category in Life shows here on the next look. The second reading asked "can you
+ * see my goals in Life?"; this answers it from the read itself, not from the model.
+ */
+function SeesBlock({ dict }: { dict: (typeof DICTIONARIES)['en'] }) {
+  const tr  = dict.hub.aiMenu;
+  const cat = dict.hub.adminLifeAi.categories;
+  const [seen, setSeen] = useState<Seen | null | 'loading'>('loading');
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res  = await fetch('/api/bff/ai/context', { credentials: 'include', cache: 'no-store' });
+        const body = res.ok ? await res.json().catch(() => null) : null;
+        if (alive) setSeen((body as { seen?: Seen } | null)?.seen ?? null);
+      } catch { if (alive) setSeen(null); }
+    })();
+    return () => { alive = false; };
+  }, []);
+
+  const row = (label: string, value: string, on: boolean) => (
+    <div key={label} style={S.seesRow}>
+      <span>{label}</span>
+      <span style={{ color: on ? '#4ade80' : '#7a7a8a' }}>{on ? '✓ ' : '✗ '}{value}</span>
+    </div>
+  );
+
+  let content: React.ReactNode;
+  if (seen === 'loading') content = <p style={S.seesNote}>{tr.seesChecking}</p>;
+  else if (!seen || seen.life === 'not_asked') content = <p style={S.seesNote}>{tr.seesSignedOut}</p>;
+  else if (seen.life === 'no_profile')   content = <p style={S.seesNote}>{tr.seesNoProfile}</p>;
+  else if (seen.life === 'unavailable')  content = <p style={S.seesNote}>{tr.seesUnavailable}</p>;
+  else {
+    const g = seen.consent.GOALS === true;
+    const k = seen.consent.SKILLS === true;
+    const t = seen.consent.TRAJECTORY === true;
+    content = (
+      <>
+        {row(cat.GOALS,  !g ? tr.seesNotShared : seen.goals ? tr.seesShared.replace('{n}', String(seen.goals)) : tr.seesNoneActive, g)}
+        {row(cat.SKILLS, !k ? tr.seesNotShared : seen.skills ? tr.seesShared.replace('{n}', String(seen.skills)) : tr.seesNoneActive, k)}
+        {row(cat.TRAJECTORY, t ? tr.seesOn : tr.seesNotShared, t)}
+        <p style={S.seesNote}>{tr.seesHow}</p>
+      </>
+    );
+  }
+
+  return (
+    <div data-testid="ai-sees">
+      <div style={S.groupTitle}>{tr.seesTitle}</div>
+      {content}
+    </div>
+  );
+}
 
 type Copy = { now: string; minsAgo: string; hoursAgo: string };
 
@@ -166,6 +231,7 @@ export function AIMenu({
 
         {tab === 'settings' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <SeesBlock dict={dict} />
             <Choice label={tr.replyLang} value={settings.replyLocale}
               options={[['auto', tr.auto], ...LOCALES.map((l) => [l.code, l.native] as [string, string])]}
               onPick={v => update({ replyLocale: v as AiSettings['replyLocale'] })} />
@@ -286,6 +352,8 @@ const S: Record<string, React.CSSProperties> = {
             fontSize: 12, fontFamily: 'inherit' },
   dangerArmed: { background: '#EF444418', borderColor: '#EF444460', fontWeight: 700 },
   groupTitle: { fontSize: 11, color: '#7a7a8a', marginBottom: 8 },
+  seesRow:    { display: 'flex', justifyContent: 'space-between', gap: 8, fontSize: 12, color: '#d4d4dc', padding: '4px 0', borderBottom: '1px solid rgba(255,255,255,0.06)' },
+  seesNote:   { fontSize: 11, color: '#7a7a8a', margin: '6px 0 0', lineHeight: 1.5 },
   star:  { background: 'none', border: 'none', cursor: 'pointer', fontSize: 22,
            color: 'var(--tec-gold)33', padding: 2, lineHeight: 1 },
   rated: { fontSize: 12, color: 'var(--tec-green)', margin: 0 },

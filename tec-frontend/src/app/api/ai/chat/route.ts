@@ -6,6 +6,7 @@ import { verifyContext }     from '@/lib/ai/context-token';
 import { resolveReplyLanguage, replyLanguageLine, type ReplyLanguage } from '@/lib/ai/reply-language';
 import { LOCALE_CODES } from '@/lib/locales';
 import { observeIntent }     from '@/lib/ai/intent-observation';
+import { isProductAsk, searchProducts, productSection } from '@/lib/ai/product-search';
 
 export const runtime = 'edge';
 
@@ -603,7 +604,14 @@ export async function POST(req: NextRequest) {
       : replyLanguage.code === null && (uiLocale === 'en' || uiLocale === 'ar') ? uiLocale : undefined;
     recordIntentObservation(req, messages, obsLocale);
 
-    const systemPrompt = buildSystemPrompt(userContext);
+    // Product search — the assistant names real listings or says there are none
+    // (lib/ai/product-search.ts). Awaited, but bounded by its own short timeout.
+    const productAsk = isProductAsk(lastUserText);
+    const products = productAsk && process.env.API_GATEWAY_URL
+      ? await searchProducts(process.env.API_GATEWAY_URL, lastUserText, { internalKey: process.env.INTERNAL_SECRET })
+      : null;
+
+    const systemPrompt = buildSystemPrompt(userContext) + (products ? `\n${productSection(products)}\n` : '');
     const claudeKey    = process.env.ANTHROPIC_API_KEY;
     const groqKey      = process.env.GROQ_API_KEY;
     const geminiKey    = process.env.GEMINI_API_KEY;

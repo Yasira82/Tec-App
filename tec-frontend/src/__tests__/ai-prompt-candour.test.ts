@@ -38,7 +38,8 @@ describe('the assistant says what it is and what it can see', () => {
   });
 
   it('cannot search a catalogue and says so, pointing to the shop', () => {
-    expect(TEC_SYSTEM_PROMPT).toMatch(/cannot search the\s+catalogue yourself/);
+    expect(TEC_SYSTEM_PROMPT).toMatch(/recommend ONLY from\s+it/);
+    expect(TEC_SYSTEM_PROMPT).toMatch(/cannot search the catalogue yourself/);
   });
 });
 

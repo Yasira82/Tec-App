@@ -5,7 +5,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { isProductAsk, productTerms, rankProducts, searchProducts, productSection } from '@/lib/ai/product-search';
+import { isProductAsk, productTerms, rankProducts, searchProducts, productSection, searchTerms } from '@/lib/ai/product-search';
 
 afterEach(() => vi.unstubAllGlobals());
 
@@ -80,6 +80,23 @@ describe('the search call', () => {
       ok: true, json: async () => ({ data: { products: [{ id: 'n', title: 'Notebook', price: '2', stock: 1 }] } }),
     }));
     expect((await searchProducts('http://gw', 'عاوز شاحن'))?.status).toBe('none');
+  });
+
+  it('an Arabic ask finds an English title — "شاحن" finds "Fast USB-C Charger" (owner\'s phone, 2026-10-08)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true, json: async () => ({ data: { products: [{ id: 'c', title: 'Fast USB-C Charger 20W', price: '3', stock: 5 }] } }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const r = await searchProducts('http://gw', 'رشحلي شاحن كويس');
+    expect(decodeURIComponent(String(fetchMock.mock.calls[0][0])).replace(/\+/g, ' ')).toContain('q=شاحن charger');
+    expect(r?.status).toBe('found');
+  });
+
+  it('the counterparts come after the person\'s own words, six at most', () => {
+    expect(searchTerms(['charger'])).toEqual(['charger', 'شاحن']);
+    expect(searchTerms(['سماعه', 'شاحن', 'كابل', 'جراب'])).toHaveLength(6);
+    expect(searchTerms(['سماعه', 'شاحن', 'كابل', 'جراب']).slice(0, 4)).toEqual(['سماعه', 'شاحن', 'كابل', 'جراب']);
+    expect(searchTerms(['xyz'])).toEqual(['xyz']);
   });
 
   it('a failure is "unavailable", never an empty shop', async () => {

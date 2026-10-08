@@ -79,6 +79,29 @@ export function isProductAsk(ask: string): boolean {
   return (BUY_STRONG.test(h) || WANT.test(h)) && productTerms(ask).length > 0;
 }
 
+/**
+ * The same thing in the other language. Sellers on a Pi marketplace often title in
+ * English; people ask in Arabic. "شاحن" found nothing while a "Charger" may have been
+ * listed (owner's phone, 2026-10-08). A short, closed list of everyday goods — not a
+ * translator — keyed by the normalized word (ة→ه).
+ */
+const ALSO: Record<string, string[]> = {
+  'شاحن': ['charger'], 'charger': ['شاحن'],
+  'سماعه': ['headphones', 'earbuds'], 'سماعات': ['headphones', 'earbuds'], 'headphones': ['سماعه'], 'earbuds': ['سماعه'],
+  'موبايل': ['phone'], 'تليفون': ['phone'], 'جوال': ['phone'], 'هاتف': ['phone'], 'phone': ['موبايل'],
+  'كابل': ['cable'], 'cable': ['كابل'], 'جراب': ['case', 'cover'],
+  'ساعه': ['watch'], 'watch': ['ساعه'], 'لابتوب': ['laptop'], 'laptop': ['لابتوب'],
+  'باور': ['power', 'powerbank'], 'بنك': ['bank'], 'شنطه': ['bag'], 'bag': ['شنطه'],
+  'كتاب': ['book'], 'book': ['كتاب'], 'تيشيرت': ['shirt', 't-shirt'], 'قميص': ['shirt'], 'جزمه': ['shoes'], 'حذاء': ['shoes'],
+};
+
+/** The words actually sent and matched: the person's own first, then their counterparts — at most six (commerce-service's cap). */
+export function searchTerms(terms: string[]): string[] {
+  const out = [...terms];
+  for (const t of terms) for (const a of ALSO[t] ?? []) if (!out.includes(a)) out.push(a);
+  return out.slice(0, 6);
+}
+
 export interface FoundProduct {
   id:      string;
   title:   string;
@@ -119,7 +142,8 @@ export async function searchProducts(
 ): Promise<ProductSearch | null> {
   const terms = productTerms(ask);
   if (!terms.length) return null;               // nothing to search for — say nothing
-  const qs = new URLSearchParams({ q: terms.join(' '), limit: '20' });
+  const words = searchTerms(terms);
+  const qs = new URLSearchParams({ q: words.join(' '), limit: '20' });
   if (opts.maxPrice && opts.maxPrice > 0) qs.set('max_price', String(opts.maxPrice));
   try {
     const controller = new AbortController();
@@ -132,7 +156,7 @@ export async function searchProducts(
     clearTimeout(timer);
     if (!res.ok) return { status: 'unavailable', terms };
     const body = await res.json().catch(() => null) as { data?: { products?: unknown[] }; products?: unknown[] } | null;
-    const products = rankProducts(body?.data?.products ?? body?.products ?? [], terms);
+    const products = rankProducts(body?.data?.products ?? body?.products ?? [], words);
     return products.length ? { status: 'found', terms, products } : { status: 'none', terms };
   } catch {
     return { status: 'unavailable', terms };

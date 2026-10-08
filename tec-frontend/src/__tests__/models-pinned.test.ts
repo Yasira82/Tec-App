@@ -25,7 +25,9 @@ import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, OPENROUTER_MODELS } from '@/
 
 /** Model ids that have served real production traffic. Removing one needs evidence. */
 const PINNED = {
-  groq:   ['llama-3.1-8b-instant'],
+  // gpt-oss-20b first: the only Groq id /api/ai/health found answering on 2026-10-08.
+  // llama-3.1-8b-instant (pinned by #154) now 404s — demoted with that evidence, kept.
+  groq:   ['openai/gpt-oss-20b', 'llama-3.1-8b-instant'],
   gemini: ['gemini-3.6-flash'],
 } as const;
 
@@ -71,7 +73,7 @@ describe('free first, GPT included (owner, 2026-10-08)', () => {
   const route = readFileSync(join(process.cwd(), 'src/app/api/ai/chat/route.ts'), 'utf8');
 
   it('free GPT on Groq sits below the pinned id; OpenRouter leads with free GPT', () => {
-    expect(GROQ_MODELS.indexOf('openai/gpt-oss-120b')).toBeGreaterThan(GROQ_MODELS.indexOf('llama-3.1-8b-instant'));
+    expect(GROQ_MODELS.indexOf('openai/gpt-oss-120b')).toBeGreaterThan(GROQ_MODELS.indexOf('openai/gpt-oss-20b'));
     expect(OPENROUTER_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)[0]).toBe('openai/gpt-oss-120b:free');
     for (const m of OPENROUTER_MODELS.filter(m => m !== process.env.OPENROUTER_MODEL)) expect(m).toMatch(/:free$/);
   });

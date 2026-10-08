@@ -247,15 +247,19 @@ const callClaude = async (
  */
 export const GROQ_MODELS = [
   process.env.GROQ_MODEL,
-  'llama-3.1-8b-instant',      // pinned by #154 — do not demote without evidence
-  'llama-3.3-70b-versatile',
+  // Verified by /api/ai/health on 2026-10-08: the ONLY Groq id still answering. Moved
+  // to the head with that evidence — the pinned llama-3.1-8b-instant now returns
+  // 404 model_not_found, and every request was paying for it first.
   'openai/gpt-oss-20b',
-  // OpenAI's open-weight GPT, served on Groq's free tier (owner: "free models, add GPT",
-  // 2026-10-08). Below the pinned id, per the rule above.
+  // OpenAI's larger open-weight GPT on Groq's free tier (owner: "free models, add GPT").
   'openai/gpt-oss-120b',
+  // Previously pinned by #154; 404 on 2026-10-08. Kept (never drop an id production
+  // served) but demoted behind the verified one.
+  'llama-3.1-8b-instant',
+  'llama-3.3-70b-versatile',
+  // Decommissioned per Groq (2026-10-08 health). Kept LAST: a retired id costs one fast
+  // 400 and the walk continues.
   'gemma2-9b-it',
-  // Older ids, kept LAST: Groq has been retiring these. A retired id costs one fast 404
-  // and the walk continues, so leaving them in is cheap insurance, not a liability.
   'llama3-8b-8192',
   'llama3-70b-8192',
   'mixtral-8x7b-32768',
@@ -263,11 +267,14 @@ export const GROQ_MODELS = [
 
 export const GEMINI_MODELS = [
   process.env.GEMINI_MODEL,
-  'gemini-3.6-flash',          // pinned by #154 — the model that was actually serving
-  'gemini-flash-latest',       // Google's own moving alias
-  'gemini-2.5-flash',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash',
+  'gemini-3.6-flash',          // pinned by #154 — verified again 2026-10-08 (1.1 s)
+  'gemini-flash-latest',       // Google's own moving alias — verified 2026-10-08 (3.9 s)
+  // Named by Google's own 404s on 2026-10-08 ("update your code to use
+  // models/gemini-3.8-flash"). Not yet probed from here — below the verified two.
+  'gemini-3.8-flash',
+  'gemini-2.5-flash',          // 404 "no longer available to new users" (2026-10-08)
+  'gemini-2.0-flash',          // 404 (2026-10-08)
+  'gemini-1.5-flash',          // 404 (2026-10-08)
 ].filter(Boolean) as string[];
 
 /**

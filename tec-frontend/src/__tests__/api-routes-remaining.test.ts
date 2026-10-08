@@ -292,22 +292,22 @@ describe('POST /api/ai/chat', () => {
     delete process.env.GROQ_API_KEY;
   });
 
-  it('falls back to Gemini when Claude and Groq fail', async () => {
+  it('reaches the paid Claude only after the free providers fail (free first, 2026-10-08)', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     process.env.GROQ_API_KEY      = 'gsk-test';
     process.env.GEMINI_API_KEY    = 'gem-test';
     const mockBody = new ReadableStream({
       start(controller) {
         controller.enqueue(new TextEncoder().encode(
-          'data: {"candidates":[{"content":{"parts":[{"text":"Hey"}]}}]}\n\n',
+          'data: {"type":"content_block_delta","delta":{"type":"text_delta","text":"Hey"}}\n\n',
         ));
         controller.close();
       },
     });
     fetchSpy
-      .mockResolvedValueOnce({ ok: false, status: 500, body: null, json: async () => ({}) } as any)
-      .mockResolvedValueOnce({ ok: false, status: 500, body: null, json: async () => ({}) } as any)
-      .mockResolvedValueOnce({ ok: true, status: 200, body: mockBody, json: async () => ({}) } as any);
+      .mockResolvedValueOnce({ ok: false, status: 500, body: null, json: async () => ({}) } as any)   // gemini
+      .mockResolvedValueOnce({ ok: false, status: 500, body: null, json: async () => ({}) } as any)   // groq
+      .mockResolvedValueOnce({ ok: true, status: 200, body: mockBody, json: async () => ({}) } as any); // claude
     const { POST } = await import('@/app/api/ai/chat/route');
     const res = await POST(makeReq({
       method:  'POST',
@@ -316,7 +316,9 @@ describe('POST /api/ai/chat', () => {
       body:    { messages: [{ role: 'user', content: 'hello' }] },
     }));
     expect(res.status).toBe(200);
-    expect(res.headers.get('X-AI-Provider')).toBe('gemini');
+    expect(res.headers.get('X-AI-Provider')).toBe('claude');
+    const urls = fetchSpy.mock.calls.map(c => String(c[0]));
+    expect(urls.findIndex(u => u.includes('generativelanguage'))).toBeLessThan(urls.findIndex(u => u.includes('anthropic')));
 
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;

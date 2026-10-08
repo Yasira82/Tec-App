@@ -113,6 +113,12 @@ export const PREFILL_KEYS: Record<string, Record<string, { param: string; requir
   'life:goal': {
     title:  { param: 'goal',   required: true, accept: (v) => { const t = v.replace(/\s+/g, ' ').trim().slice(0, 80).trim(); return t || null; } },
     target: { param: 'target', accept: (v) => (/^(?:0|[1-9]\d{0,9})(?:\.\d{1,8})?$/.test(v.trim()) && Number(v) > 0 ? v.trim() : null) },
+    // The steps toward it, as the mentor proposed them (owner, 2026-10-08). Life shows
+    // each one under the Add form, removable, and saves them inside the goal only on Add.
+    steps:  { param: 'steps', accept: (v) => {
+      const list = v.split(';').map((x) => x.replace(/\s+/g, ' ').trim().slice(0, 80).trim()).filter(Boolean).slice(0, 5);
+      return list.length ? list.join(';') : null;
+    } },
   },
 };
 

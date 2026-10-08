@@ -307,6 +307,13 @@ function classify(status: number, body: string): FailureKind {
       /(not exist|not found|no endpoints found|unavailable for free|decommission|unsupported|no longer|access to it|not a valid model)/i.test(body)) {
     return 'model-gone';
   }
+  // OpenRouter lists some `:free` models it then refuses with 403 "only available on
+  // agentic harnesses" (production health, 2026-10-08). The key is fine — that one model
+  // is closed to us, and the next candidate answered. Treating it as fatal ended the
+  // walk on the first of them, before the working models were ever tried.
+  if (status === 403 && /(agentic harness|not available to you|not allowed to use this model)/i.test(body)) {
+    return 'model-gone';
+  }
   // The model is fine but momentarily unavailable. Gemini answers 503 "This model is
   // currently experiencing high demand. Spikes in demand are usually temporary." — the
   // API is literally telling us to try again, and a SIBLING model is usually free. The

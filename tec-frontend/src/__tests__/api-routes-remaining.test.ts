@@ -325,6 +325,40 @@ describe('POST /api/ai/chat', () => {
     delete process.env.GEMINI_API_KEY;
   });
 
+  it('walks past an OpenRouter model closed to us with 403 "agentic harnesses" (production health, 2026-10-08)', async () => {
+    process.env.OPENROUTER_API_KEY = 'sk-or-test';
+    const free = (id: string) => ({ id, context_length: 8000, pricing: { prompt: '0', completion: '0' } });
+    const tried: string[] = [];
+    fetchSpy.mockImplementation(async (url: unknown, init?: { body?: string }) => {
+      const u = String(url);
+      if (u.endsWith('/api/v1/models')) {
+        return { ok: true, status: 200, json: async () => ({ data: [free('tm/inkling:free'), free('nv/nemotron:free')] }) } as any;
+      }
+      if (u.includes('openrouter.ai/api/v1/chat/completions')) {
+        const model = JSON.parse(init?.body ?? '{}').model as string;
+        tried.push(model);
+        if (model === 'tm/inkling:free') {
+          return { ok: false, status: 403, body: null, text: async () => '{"error":{"message":"This model is only available on agentic harnesses"}}' } as any;
+        }
+        const body = new ReadableStream({ start(c) { c.enqueue(new TextEncoder().encode('data: {"choices":[{"delta":{"content":"Hi"}}]}\n\n')); c.close(); } });
+        return { ok: true, status: 200, body, json: async () => ({}) } as any;
+      }
+      return { ok: false, status: 500, body: null, json: async () => ({}) } as any;
+    });
+    const { POST } = await import('@/app/api/ai/chat/route');
+    const res = await POST(makeReq({
+      method:  'POST',
+      url:     'http://localhost/api/ai/chat',
+      headers: { 'x-forwarded-for': '10.0.0.10' },
+      body:    { messages: [{ role: 'user', content: 'hello' }] },
+    }));
+    expect(res.status).toBe(200);
+    expect(res.headers.get('X-AI-Provider')).toBe('openrouter');
+    expect(tried).toEqual(['tm/inkling:free', 'nv/nemotron:free']);
+
+    delete process.env.OPENROUTER_API_KEY;
+  });
+
   it('returns 500 on unexpected error', async () => {
     process.env.ANTHROPIC_API_KEY = 'sk-ant-test';
     fetchSpy.mockImplementation(() => { throw new TypeError('unexpected'); });

@@ -133,7 +133,11 @@ export function useAiChat({ storeKey, open, t }: {
     const text  = typed || t.hub.ai.attachOnly;
     // Files stay attached across messages until removed; the 📎 line marks when they arrive.
     const key   = attachmentKey(attachments);
-    const shown = [key !== sentKeyRef.current ? attachmentLine(attachments) : '', typed].filter(Boolean).join('\n');
+    const fresh = key !== sentKeyRef.current;
+    const shown = [fresh ? attachmentLine(attachments) : '', typed].filter(Boolean).join('\n');
+    // The bubble shows the photos themselves at its top; the 📎 line stays in the text
+    // only for the model's history (tec-ai-system-prompt: files from earlier messages).
+    const thumbs = fresh && attachments.length ? attachments.map(a => a.thumb ?? '') : undefined;
     sentKeyRef.current = key;
     setFailedQuestion(null);
 
@@ -146,7 +150,7 @@ export function useAiChat({ storeKey, open, t }: {
     // once at the end — which is why a long reply sat behind three dots and then
     // appeared all at once.
     const history = messages;
-    setMessages(prev => [...prev, { role: 'user', text: shown || text }, { role: 'ai', text: '', streaming: true }]);
+    setMessages(prev => [...prev, { role: 'user', text: shown || text, ...(thumbs ? { thumbs } : {}) }, { role: 'ai', text: '', streaming: true }]);
     setLoading(true);
 
     const replyAt = (body: string) =>

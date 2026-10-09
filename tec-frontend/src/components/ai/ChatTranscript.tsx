@@ -3,6 +3,8 @@
 import { useState, type MutableRefObject } from 'react';
 import { RichText }        from '@/components/ai/RichText';
 import { NavChips }        from '@/components/ai/NavChips';
+import { SentThumbs }      from '@/components/ai/AttachBar';
+import { withoutAttachLine } from '@/lib-client/ai/attachments';
 import { useTranslation }  from '@/lib/i18n';
 import type { ChatMessage } from '@/lib/ai/chat-types';
 import type { Locale }      from '@/lib/i18n';
@@ -111,7 +113,8 @@ export function ChatTranscript({
               fontSize: 13, color: m.role === 'user' ? 'var(--tec-on-gold)' : '#fff', lineHeight: 1.6,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
             }}>
-              {m.role === 'ai' ? <RichText text={m.text} /> : m.text}
+              {m.role === 'user' && <SentThumbs thumbs={m.thumbs} />}
+              {m.role === 'ai' ? <RichText text={m.text} /> : (m.thumbs?.length ? withoutAttachLine(m.text) : m.text)}
               {m.streaming && <span style={{ opacity: 0.5 }}>▌</span>}
               {m.intents && <NavChips intents={m.intents} locale={locale === 'ar' ? 'ar' : 'en'} />}
               {m.role === 'ai' && !m.streaming && m.text.trim() && <CopyButton text={m.text} />}

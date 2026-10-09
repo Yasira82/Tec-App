@@ -7,7 +7,7 @@
  */
 import { useRef } from 'react';
 import { useTranslation } from '@/lib/i18n';
-import { prepareAttachment, MAX_FILES, type PreparedAttachment } from '@/lib-client/ai/attachments';
+import { prepareAttachment, MAX_FILES, MAX_TOTAL_B64, totalSize, type PreparedAttachment } from '@/lib-client/ai/attachments';
 
 /**
  * The /ai page is always dark and does not follow the Hub theme tokens; the drawer does.
@@ -40,6 +40,8 @@ export function AttachButton({
       if (r === 'type') onError(t.hub.ai.attachType);
       else if (r === 'too_big') onError(t.hub.ai.attachTooBig);
       else if (r === 'unreadable') onError(t.hub.ai.attachUnreadable);
+      // Together they must fit one request — six full screenshots can pass the cap.
+      else if (totalSize([...next, r]) > MAX_TOTAL_B64) { onError(t.hub.ai.attachTotal); break; }
       else next.push(r);
     }
     onChange(next);
@@ -59,6 +61,11 @@ export function AttachButton({
   );
 }
 
+/**
+ * What is attached, as a row of square thumbnails (owner, 2026-10-09: "more organised").
+ * It used to be one full-width chip per file with its long name — three of them took
+ * half the drawer. Tiles scroll sideways; × sits on each corner; a counter shows n/6.
+ */
 export function AttachChips({
   value, onChange, error, dark,
 }: { value: PreparedAttachment[]; onChange: (next: PreparedAttachment[]) => void; error?: string | null; dark?: boolean }) {
@@ -66,23 +73,48 @@ export function AttachChips({
   const c = palette(dark);
   if (!value.length && !error) return null;
   return (
-    <div data-testid="ai-attach-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '8px 16px 0' }}>
-      {value.map((a, i) => (
-        <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 8px', borderRadius: 10, background: c.fill, border: `1px solid ${c.border}`, fontSize: 12, color: c.text2, maxWidth: '100%' }}>
-          {a.thumb
-            // eslint-disable-next-line @next/next/no-img-element -- a local data: URL thumbnail, nothing to optimise
-            ? <img src={a.thumb} alt="" width={24} height={24} style={{ borderRadius: 4, objectFit: 'cover' }} />
-            : <span aria-hidden>📄</span>}
-          <span dir="auto" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>{a.name}</span>
-          <button type="button" aria-label={t.hub.ai.attachRemove}
-            onClick={() => onChange(value.filter((_, j) => j !== i))}
-            style={{ background: 'none', border: 'none', color: c.text3, cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
-        </span>
-      ))}
+    <div data-testid="ai-attach-chips" style={{ padding: '8px 16px 0' }}>
       {value.length > 0 && (
-        <span data-testid="ai-attach-kept" style={{ fontSize: 11, color: c.text3, width: '100%' }}>{t.hub.ai.attachKept}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', paddingTop: 6 }}>
+          {value.map((a, i) => (
+            <div key={i} title={a.name} style={{ position: 'relative', flexShrink: 0, width: 56, height: 56 }}>
+              {a.thumb
+                // eslint-disable-next-line @next/next/no-img-element -- a local data: URL thumbnail, nothing to optimise
+                ? <img src={a.thumb} alt={a.name} width={56} height={56}
+                    style={{ width: 56, height: 56, borderRadius: 10, objectFit: 'cover', border: `1px solid ${c.border}`, display: 'block' }} />
+                : <div style={{ width: 56, height: 56, borderRadius: 10, background: c.fill, border: `1px solid ${c.border}`,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontSize: 20, color: c.text2 }}>
+                    📄<span style={{ fontSize: 9, marginTop: 2 }}>PDF</span>
+                  </div>}
+              <button type="button" aria-label={t.hub.ai.attachRemove}
+                onClick={() => onChange(value.filter((_, j) => j !== i))}
+                style={{ position: 'absolute', top: -6, insetInlineEnd: -6, width: 20, height: 20, borderRadius: 10,
+                         background: '#000c', color: '#fff', border: '1px solid #fff4', fontSize: 11, lineHeight: '18px',
+                         padding: 0, cursor: 'pointer' }}>✕</button>
+            </div>
+          ))}
+          <span style={{ fontSize: 11, color: c.text3, flexShrink: 0, paddingInlineStart: 2 }}>{value.length}/{MAX_FILES}</span>
+        </div>
       )}
-      {error && <span role="alert" style={{ fontSize: 12, color: 'var(--tec-red, #ef4444)', width: '100%' }}>{error}</span>}
+      {value.length > 0 && (
+        <div data-testid="ai-attach-kept" style={{ fontSize: 11, color: c.text3, marginTop: 6 }}>{t.hub.ai.attachKept}</div>
+      )}
+      {error && <div role="alert" style={{ fontSize: 12, color: 'var(--tec-red, #ef4444)', marginTop: 4 }}>{error}</div>}
+    </div>
+  );
+}
+
+/** The photos a message carried, as a row of thumbnails at the top of its bubble. */
+export function SentThumbs({ thumbs }: { thumbs?: string[] }) {
+  if (!thumbs?.length) return null;
+  return (
+    <div data-testid="ai-sent-thumbs" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
+      {thumbs.map((src, i) => src
+        // eslint-disable-next-line @next/next/no-img-element -- a local data: URL thumbnail
+        ? <img key={i} src={src} alt="" width={64} height={64}
+            style={{ width: 64, height: 64, borderRadius: 10, objectFit: 'cover', display: 'block' }} />
+        : <div key={i} style={{ width: 64, height: 64, borderRadius: 10, background: '#0002',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22 }}>📄</div>)}
     </div>
   );
 }

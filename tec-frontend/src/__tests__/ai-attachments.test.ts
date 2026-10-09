@@ -6,10 +6,10 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  parseAttachments, claudeContent, geminiParts, attachmentNote, MAX_TOTAL_B64,
+  parseAttachments, claudeContent, geminiParts, attachmentNote, MAX_TOTAL_B64, ATTACHMENTS_PER_DAY,
 } from '@/lib/ai/attachments';
 import { checkAttachmentAllowance, __resetAttachmentAllowance } from '@/lib/ai/rate-limit';
-import { prepareAttachment, toPayload, attachmentLine, attachmentKey, PDF_MAX_BYTES } from '@/lib-client/ai/attachments';
+import { prepareAttachment, toPayload, attachmentLine, attachmentKey, withoutAttachLine, MAX_FILES, PDF_MAX_BYTES } from '@/lib-client/ai/attachments';
 
 const route = readFileSync(join(process.cwd(), 'src/app/api/ai/chat/route.ts'), 'utf8');
 const img = { mediaType: 'image/jpeg', data: 'QUJD' };
@@ -26,7 +26,7 @@ describe('the server accepts a closed, bounded set', () => {
   });
 
   it.each([
-    ['four files', [img, img, img, img]],
+    ['seven files', [img, img, img, img, img, img, img]],
     ['an unknown type', [{ mediaType: 'image/gif', data: 'QUJD' }]],
     ['a data: URL instead of base64', [{ mediaType: 'image/jpeg', data: 'data:image/jpeg;base64,QUJD' }]],
     ['not an array', { mediaType: 'image/jpeg', data: 'QUJD' }],
@@ -139,8 +139,8 @@ describe('files stay with the chat until × or New chat (owner, 2026-10-09: "att
   it('the 📎 line shows when a set arrives, not under every question', () => {
     const a = [{ kind: 'image' as const, mediaType: 'image/jpeg', data: 'QUJD', name: 'shot.jpg' }];
     expect(attachmentKey(a)).toBe('shot.jpg:4');
-    expect(hook).toMatch(/key !== sentKeyRef\.current \? attachmentLine\(attachments\) : ''/);
-    expect(page).toMatch(/key !== sentKeyRef\.current \? attachmentLine\(attachments\) : ''/);
+    expect(hook).toMatch(/const fresh = key !== sentKeyRef\.current;[\s\S]*?fresh \? attachmentLine\(attachments\) : ''/);
+    expect(page).toMatch(/const fresh = key !== sentKeyRef\.current;[\s\S]*?fresh \? attachmentLine\(attachments\) : ''/);
   });
 });
 
@@ -187,5 +187,34 @@ describe('2026-10-09 — three screenshots, "temporarily unavailable", then "I c
     expect(health).toMatch(/if \(withImages\) \{[\s\S]*?Promise\.all\(GEMINI_MODELS\.map/);
     expect(health).toMatch(/setTimeout\(\(\) => controller\.abort\(\), IMAGE_BUDGET_MS\)/);
     expect(health.indexOf('if (withImages)')).toBeLessThan(health.indexOf('if (claudeKey)'));
+  });
+});
+
+describe('the photos look organised, and up to six (owner, 2026-10-09)', () => {
+  const bar    = readFileSync(join(process.cwd(), 'src/components/ai/AttachBar.tsx'), 'utf8');
+  const trans  = readFileSync(join(process.cwd(), 'src/components/ai/ChatTranscript.tsx'), 'utf8');
+  const page   = readFileSync(join(process.cwd(), 'src/app/ai/AiClient.tsx'), 'utf8');
+
+  it('six per message, server and phone agree; twenty a day', () => {
+    expect(MAX_FILES).toBe(6);
+    expect(parseAttachments([img, img, img, img, img, img]).ok).toBe(true);
+    expect(ATTACHMENTS_PER_DAY).toBe(20);
+  });
+
+  it('the tray is a row of square thumbnails with × on the corner and a count', () => {
+    expect(bar).toMatch(/width: 56, height: 56/);
+    expect(bar).toMatch(/overflowX: 'auto'/);
+    expect(bar).toMatch(/\{value\.length\}\/\{MAX_FILES\}/);
+  });
+
+  it('six full screenshots can pass the cap — the phone stops at the request size, with its own message', () => {
+    expect(bar).toMatch(/totalSize\(\[\.\.\.next, r\]\) > MAX_TOTAL_B64\) \{ onError\(t\.hub\.ai\.attachTotal\)/);
+  });
+
+  it('a sent message shows its photos at the top of the bubble, not file names', () => {
+    expect(trans).toMatch(/<SentThumbs thumbs=\{m\.thumbs\} \/>/);
+    expect(page).toMatch(/<SentThumbs thumbs=\{msg\.thumbs\} \/>/);
+    expect(withoutAttachLine('📎 a.jpg · b.jpg\nWhat is in this?')).toBe('What is in this?');
+    expect(withoutAttachLine('no files')).toBe('no files');
   });
 });

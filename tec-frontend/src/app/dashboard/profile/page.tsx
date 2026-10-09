@@ -58,7 +58,9 @@ export default function ProfilePage() {
     : 'Not started — complete to unlock all features';
   const router           = useRouter();
 
-  const handleLogout = () => { logout(); router.push('/'); };
+  // Awaited: navigating first let '/' read the still-present cookie and bounce back
+  // into the same session before the sign-out reached the server.
+  const handleLogout = async () => { await logout(); router.push('/'); };
   const handleDelete = () => {
     if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
       // TODO: DELETE /api/auth/profile

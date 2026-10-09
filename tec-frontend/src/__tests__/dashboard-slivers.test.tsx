@@ -118,7 +118,8 @@ describe('DashboardLayout interactions', () => {
     await act(async () => {});
     fireEvent.click(getByText('Sidebar Logout'));
     expect(logoutFn).toHaveBeenCalled();
-    expect(mockRouterPush).toHaveBeenCalledWith('/');
+    // Sign-out is awaited before leaving the page.
+    await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/'));
   });
 
   it('mobile topbar toggle opens the drawer', async () => {

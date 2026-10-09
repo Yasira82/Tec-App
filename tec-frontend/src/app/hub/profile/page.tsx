@@ -80,7 +80,9 @@ export default function HubProfilePage() {
     : t.hub.profile.kycNotStarted;
   const router           = useRouter();
 
-  const handleLogout = () => { logout(); router.push('/'); };
+  // Awaited: navigating first let '/' read the still-present cookie and bounce back
+  // into the same session before the sign-out reached the server.
+  const handleLogout = async () => { await logout(); router.push('/'); };
   const handleDelete = () => {
     if (confirm(t.hub.profile.deleteConfirm)) {
       // TODO: DELETE /api/auth/profile

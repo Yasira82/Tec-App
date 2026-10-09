@@ -248,7 +248,7 @@ describe('profile actions — confirm-true delete, sign out, quick actions, copy
     });
   });
 
-  it('hub profile Sign Out logs out and routes home', () => {
+  it('hub profile Sign Out logs out and routes home', async () => {
     const logout = vi.fn();
     mockUsePiAuth.mockReturnValue({
       user, isAuthenticated: true, isLoading: false,
@@ -261,7 +261,8 @@ describe('profile actions — confirm-true delete, sign out, quick actions, copy
     expect(signOut).toBeTruthy();
     fireEvent.click(signOut!);
     expect(logout).toHaveBeenCalled();
-    expect(mockRouterPush).toHaveBeenCalledWith('/');
+    // Sign-out is awaited before leaving the page.
+    await waitFor(() => expect(mockRouterPush).toHaveBeenCalledWith('/'));
   });
 
   it.each([

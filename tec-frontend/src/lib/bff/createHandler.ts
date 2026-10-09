@@ -99,9 +99,13 @@ async function extractContext(req: NextRequest): Promise<BFFContext> {
   if (!token) throw new UnauthorizedError();
 
   const ctx = await contextFromToken(token, req);
-  // Handlers read the token from req.cookies to call the gateway — make the
-  // header-supplied token visible to them the same way the refresh path does.
-  if (bearer && !cookie) req.cookies.set('tec_access_token', bearer);
+  // Handlers read the token from req.cookies to call the gateway. Give them THE token
+  // the context was read from — always, not only when no cookie exists. With both
+  // present and naming different accounts (a fresh sign-in held in memory, an older
+  // cookie), the handler asked the gateway as the cookie's account for the header's
+  // account's data: the owner's profile said one account and his balance read
+  // another's wallet (2026-10-09). One request, one identity.
+  if (bearer) req.cookies.set('tec_access_token', bearer);
   return ctx;
 }
 

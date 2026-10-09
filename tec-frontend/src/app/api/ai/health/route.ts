@@ -79,6 +79,9 @@ async function probe(url: string, init: RequestInit, model: string): Promise<Mod
  * model refuses images, or it takes longer than the chat's 20-second budget to start
  * answering with them. This says which, per model, instead of a guess.
  */
+/** The chat's own budget for Gemini when a photo is attached (LAST_PROVIDER_TIMEOUT_MS). */
+const IMAGE_BUDGET_MS = 20_000;
+
 const PROBE_IMAGE = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKklEQVR42u3NMQ0AAAgDsOlDL+q4UMFB0qR/M12nIhAIBAKBQCAQCL4EC5iN4GrrYEkVAAAAAElFTkSuQmCC';
 
 /** Time to the first streamed bytes — the moment the chat route stops its clock. */
@@ -95,7 +98,7 @@ async function probeFirstBytes(url: string, init: RequestInit, model: string): P
     void reader?.cancel().catch(() => {});
     return { model, ok: true, status: res.status, ms: Date.now() - started };
   } catch (e) {
-    return { model, ok: false, status: 0, ms: Date.now() - started, reason: ((e as Error)?.message ?? 'network error').slice(0, 120) };
+    return { model, ok: false, status: 0, ms: Date.now() - started, reason: (e as Error)?.name === 'AbortError' ? `no answer within ${IMAGE_BUDGET_MS} ms` : ((e as Error)?.message ?? 'network error').slice(0, 120) };
   }
 }
 
@@ -108,6 +111,46 @@ export async function GET(req: NextRequest) {
   const groqKey   = process.env.GROQ_API_KEY;
   const geminiKey = process.env.GEMINI_API_KEY;
   const openrouterKey = process.env.OPENROUTER_API_KEY;
+
+  // Photos: opt-in (`?images=1`), Gemini only — the one provider the chat sends them to.
+  // Answered ON ITS OWN and IN PARALLEL: the first version ran the text probes and then
+  // seven image probes one after another, and Vercel cut the function off at 25 s
+  // (504 FUNCTION_INVOCATION_TIMEOUT, owner's phone, 2026-10-09). Each probe gets the
+  // chat's own 20 s budget; a probe still waiting then is reported as too slow.
+  // A URL that does not parse is simply no `?images=1` — never a crashed health check.
+  let withImages = false;
+  try { withImages = new URL(req.url).searchParams.get('images') === '1'; } catch { /* plain check */ }
+  if (withImages) {
+    if (!geminiKey) return NextResponse.json({ images: { configured: false } }, { headers: { 'Cache-Control': 'no-store' } });
+    const images = await Promise.all(GEMINI_MODELS.map((model) => {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), IMAGE_BUDGET_MS);
+      return probeFirstBytes(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`,
+        {
+          method:  'POST',
+          signal:  controller.signal,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: TEC_SYSTEM_PROMPT }] },
+            contents: [{ role: 'user', parts: [
+              { inline_data: { mime_type: 'image/png', data: PROBE_IMAGE } },
+              { text: 'What colour is this picture? One word.' },
+            ] }],
+            generationConfig: { maxOutputTokens: 16 },
+          }),
+        }, model).finally(() => clearTimeout(timer));
+    }));
+    return NextResponse.json({
+      images: {
+        // The chat gives Gemini 20 s to START answering when a photo is attached.
+        budgetMs: IMAGE_BUDGET_MS,
+        working:  images.filter(p => p.ok).map(p => `${p.model} (${p.ms} ms)`),
+        results:  images,
+      },
+    }, { headers: { 'Cache-Control': 'no-store' } });
+  }
+
 
   const results: Record<string, ModelProbe[]> = {};
 
@@ -166,31 +209,6 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  // Photos: opt-in (`?images=1`), Gemini only — the one provider the chat sends them to.
-  // A URL that does not parse is simply no `?images=1` — never a crashed health check.
-  let withImages = false;
-  try { withImages = new URL(req.url).searchParams.get('images') === '1'; } catch { /* plain check */ }
-  let images: ModelProbe[] | undefined;
-  if (withImages && geminiKey) {
-    images = [];
-    for (const model of GEMINI_MODELS) {
-      images.push(await probeFirstBytes(
-        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`,
-        {
-          method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            system_instruction: { parts: [{ text: TEC_SYSTEM_PROMPT }] },
-            contents: [{ role: 'user', parts: [
-              { inline_data: { mime_type: 'image/png', data: PROBE_IMAGE } },
-              { text: 'What colour is this picture? One word.' },
-            ] }],
-            generationConfig: { maxOutputTokens: 16 },
-          }),
-        }, model));
-    }
-  }
-
   const working = Object.entries(results).flatMap(([provider, probes]) =>
     probes.filter(p => p.ok).map(p => `${provider}:${p.model}`));
 
@@ -209,13 +227,5 @@ export async function GET(req: NextRequest) {
       openrouter: !!openrouterKey,
     },
     results,
-    ...(images ? {
-      images: {
-        // The chat gives Gemini 20 s to START answering when a photo is attached.
-        budgetMs: 20_000,
-        working:  images.filter(p => p.ok && p.ms < 20_000).map(p => p.model),
-        results:  images,
-      },
-    } : {}),
   }, { headers: { 'Cache-Control': 'no-store' } });
 }

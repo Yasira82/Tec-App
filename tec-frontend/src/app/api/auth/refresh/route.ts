@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID }                from 'crypto';
+import { withAccountId } from '@/lib/auth/account-id';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -94,7 +95,11 @@ export async function POST(req: NextRequest) {
     // token alone left a live token with no user a day later: /api/auth/me →
     // 401 no_user → "Not signed in" while the wallet still worked (C-13 §1).
     // Copied from the request, never invented — no cookie in, no cookie out.
-    const user = req.cookies.get('tec_user')?.value;
+    // One exception to "copied, never invented": auth-service moves a session that sat
+    // on a duplicate account to the Pioneer's OLDEST account (one Pioneer, one account —
+    // tec-core-backend #395/#396) and says which in `user.id`. The cookie then carries
+    // that id; every other field stays exactly as it was.
+    const user = withAccountId(req.cookies.get('tec_user')?.value, data.user?.id ?? data.data?.user?.id);
     if (user) {
       res.cookies.set('tec_user', user, {
         ...cookieOpts,

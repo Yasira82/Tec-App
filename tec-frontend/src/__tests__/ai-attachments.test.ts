@@ -134,7 +134,7 @@ describe('2026-10-09 — three screenshots, "temporarily unavailable", then "I c
   });
 
   it('/api/ai/health?images=1 sends Gemini a real image the way the chat does, and times the first bytes', () => {
-    expect(health).toMatch(/searchParams\.get\('images'\) === '1'/);
+    expect(health).toMatch(/searchParams\.get\('images'\) === '1'; \} catch/);
     expect(health).toMatch(/inline_data: \{ mime_type: 'image\/png', data: PROBE_IMAGE \}/);
     expect(health).toMatch(/system_instruction: \{ parts: \[\{ text: TEC_SYSTEM_PROMPT \}\] \}/);
     expect(health).toMatch(/streamGenerateContent\?alt=sse/);

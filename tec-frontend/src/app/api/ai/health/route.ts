@@ -167,7 +167,9 @@ export async function GET(req: NextRequest) {
   }
 
   // Photos: opt-in (`?images=1`), Gemini only — the one provider the chat sends them to.
-  const withImages = new URL(req.url).searchParams.get('images') === '1';
+  // A URL that does not parse is simply no `?images=1` — never a crashed health check.
+  let withImages = false;
+  try { withImages = new URL(req.url).searchParams.get('images') === '1'; } catch { /* plain check */ }
   let images: ModelProbe[] | undefined;
   if (withImages && geminiKey) {
     images = [];

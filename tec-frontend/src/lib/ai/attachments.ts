@@ -15,10 +15,10 @@
  *  4. **10 a day per person** — attachments cost far more than text (rate-limit.ts).
  */
 
-export const MAX_ATTACHMENTS    = 3;
+export const MAX_ATTACHMENTS    = 6;
 /** Base64 characters across all attachments — under Vercel's ~4.5 MB body limit with room for the rest. */
 export const MAX_TOTAL_B64      = 4_000_000;
-export const ATTACHMENTS_PER_DAY = 10;
+export const ATTACHMENTS_PER_DAY = 20;
 
 export const IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
 export const PDF_TYPE    = 'application/pdf';

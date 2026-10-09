@@ -1,7 +1,7 @@
 'use client';
 
-import { AttachButton, AttachChips } from '@/components/ai/AttachBar';
-import { attachmentKey, attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
+import { AttachButton, AttachChips, SentThumbs } from '@/components/ai/AttachBar';
+import { attachmentKey, attachmentLine, withoutAttachLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation, fill, bcp47 } from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
@@ -33,6 +33,8 @@ interface Message {
   timestamp: Date;
   intents?:  NavIntent[];
   flows?:    NavFlow[];
+  /** Photos sent with this message, shown at the top of its bubble ('' = a PDF). */
+  thumbs?:   string[];
 }
 
 // The quick questions are hub.ai.quick in the dictionary — all twelve languages.
@@ -144,7 +146,9 @@ export default function AiClient() {
     const asked = content.trim() || t.hub.ai.attachOnly;
     // Files stay attached across messages until removed; the 📎 line marks when they arrive.
     const key   = attachmentKey(attachments);
-    const shown = [key !== sentKeyRef.current ? attachmentLine(attachments) : '', content.trim()].filter(Boolean).join('\n') || asked;
+    const fresh = key !== sentKeyRef.current;
+    const shown = [fresh ? attachmentLine(attachments) : '', content.trim()].filter(Boolean).join('\n') || asked;
+    const thumbs = fresh && attachments.length ? attachments.map(a => a.thumb ?? '') : undefined;
     sentKeyRef.current = key;
     setFailedQuestion(null);
     abortRef.current?.abort();
@@ -155,6 +159,7 @@ export default function AiClient() {
       id:        Date.now().toString(),
       role:      'user',
       content:   shown,
+      ...(thumbs ? { thumbs } : {}),
       timestamp: new Date(),
     };
 
@@ -421,7 +426,8 @@ export default function AiClient() {
                   <div className={styles.messageBubble} dir="auto">
                     {/* Rendered, not printed: the model emits **bold** and bullets, and
                         a raw <p> put the asterisks on screen. Same renderer as the Hub. */}
-                    <RichText text={msg.content} className={styles.messageContent} />
+                    {msg.role === 'user' && <SentThumbs thumbs={msg.thumbs} />}
+                    <RichText text={msg.thumbs?.length ? withoutAttachLine(msg.content) : msg.content} className={styles.messageContent} />
                     {msg.intents && msg.intents.length > 0 && (
                       <div className={styles.intentRow}>
                         <NavChips intents={msg.intents} locale={regLocale} dir={dir}

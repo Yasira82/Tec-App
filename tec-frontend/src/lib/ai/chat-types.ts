@@ -7,4 +7,6 @@ export interface ChatMessage {
   streaming?: boolean;
   /** Destinations the model recommended, once the reply is complete. */
   intents?:   NavIntent[];
+  /** Thumbnails of the photos sent with this message (a PDF is ''). Shown at the top of the bubble. */
+  thumbs?:    string[];
 }

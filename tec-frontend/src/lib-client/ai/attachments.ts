@@ -11,7 +11,7 @@
  * Nothing here uploads anything: the result is base64 that rides in the chat request.
  */
 
-export const MAX_FILES     = 3;
+export const MAX_FILES     = 6;   // owner, 2026-10-09: "more than 3"
 export const PDF_MAX_BYTES = 3 * 1024 * 1024;
 const IMAGE_MAX_SIDE = 1600;
 const JPEG_QUALITY   = 0.82;
@@ -83,6 +83,13 @@ export async function prepareAttachment(file: File): Promise<PreparedAttachment 
     return 'unreadable';
   }
 }
+
+/** Together they must fit one request (the server's MAX_TOTAL_B64). */
+export const MAX_TOTAL_B64 = 4_000_000;
+export const totalSize = (atts: PreparedAttachment[]) => atts.reduce((n, a) => n + a.data.length, 0);
+
+/** Drop the 📎 line a message carries for the model; the bubble shows thumbnails instead. */
+export const withoutAttachLine = (text: string) => text.replace(/^📎[^\n]*\n?/, '');
 
 /** The request payload — the name and thumbnail stay on the phone. */
 export const toPayload = (atts: PreparedAttachment[]) =>

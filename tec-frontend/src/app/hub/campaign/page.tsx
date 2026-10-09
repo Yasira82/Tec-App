@@ -795,7 +795,7 @@ export default function CampaignPage() {
                 // The same sign-out Profile uses. Landing on `/` is what puts
                 // them back at the Pi sign-in — which is the whole point: the
                 // NEXT authenticate is the one that asks for the new scope.
-                onClick={() => { logout(); router.push('/'); }}
+                onClick={async () => { await logout(); router.push('/'); }}
                 style={{
                   marginTop: 12, width: '100%', padding: '10px 12px',
                   background: 'var(--tec-gold)', color: '#0B1020',

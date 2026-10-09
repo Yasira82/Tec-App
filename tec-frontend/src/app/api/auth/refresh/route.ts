@@ -77,7 +77,10 @@ export async function POST(req: NextRequest) {
       path:     '/',
     };
 
-    const res = NextResponse.json({ token: newAccessToken });
+    // accountId: which account the session belongs to after this refresh — the client
+    // reloads onto it when it is not the one on screen (lib-client/pi/account-check.ts).
+    const accountId = data.user?.id ?? data.data?.user?.id ?? null;
+    const res = NextResponse.json({ token: newAccessToken, accountId });
 
     res.cookies.set('tec_access_token', newAccessToken, {
       ...cookieOpts,

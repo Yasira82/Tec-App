@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { loginWithPi, getStoredUser, isPiBrowser, logout as piLogout } from '@/lib-client/pi/pi-auth';
+import { ensureCanonicalAccount } from '@/lib-client/pi/account-check';
 import { tecSession } from '@/lib-client/pi/tec-session';
 import { silentReauth } from '@/lib-client/pi/bff-client';
 import { TecUser } from '@/types/pi.types';
@@ -70,6 +71,8 @@ export const usePiAuth = ({ silentOnLoad = true }: UsePiAuthOptions = {}) => {
       if (cancelled || authSettledRef.current) return;
       if (user) authSettledRef.current = true;
       setState(prev => ({ ...prev, user, isAuthenticated: !!user, isLoading: false, signingIn: false }));
+      // A session opened on a duplicate account moves to the Pioneer's oldest — once per tab.
+      if (user) void ensureCanonicalAccount(user.id);
     };
 
     // 0) In-memory session survives client-side navigation regardless of cookies.

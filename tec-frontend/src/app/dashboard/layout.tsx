@@ -44,7 +44,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => { document.body.style.overflow = ''; };
   }, [mobileOpen, isDesktop]);
 
-  const handleLogout = () => { logout(); router.push('/'); };
+  // Awaited: navigating first let '/' read the still-present cookie and bounce back
+  // into the same session before the sign-out reached the server.
+  const handleLogout = async () => { await logout(); router.push('/'); };
 
   if (isDesktop === null || isLoading || !user) {
     return (

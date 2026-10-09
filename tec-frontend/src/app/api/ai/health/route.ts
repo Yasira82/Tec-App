@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, openRouterCandidates } from '../chat/route';
+import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 
 export const runtime = 'edge';
 
@@ -65,6 +66,36 @@ async function probe(url: string, init: RequestInit, model: string): Promise<Mod
       model, ok: false, status: 0, ms: Date.now() - started,
       reason: ((e as Error)?.message ?? 'network error').slice(0, 120),
     };
+  }
+}
+
+/**
+ * A 32×32 amber PNG — a real image, a few hundred bytes. `?images=1` sends it to each
+ * Gemini model the way the chat does (the full system prompt, streaming, the image
+ * before the words) and times the wait for the first bytes.
+ *
+ * Why: photos go to Gemini only (Groq/OpenRouter read text; Claude is unset), and on
+ * 2026-10-09 three screenshots got "temporarily unavailable" while text worked. Either a
+ * model refuses images, or it takes longer than the chat's 20-second budget to start
+ * answering with them. This says which, per model, instead of a guess.
+ */
+const PROBE_IMAGE = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKklEQVR42u3NMQ0AAAgDsOlDL+q4UMFB0qR/M12nIhAIBAKBQCAQCL4EC5iN4GrrYEkVAAAAAElFTkSuQmCC';
+
+/** Time to the first streamed bytes — the moment the chat route stops its clock. */
+async function probeFirstBytes(url: string, init: RequestInit, model: string): Promise<ModelProbe> {
+  const started = Date.now();
+  try {
+    const res = await fetch(url, init);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      return { model, ok: false, status: res.status, ms: Date.now() - started, reason: body.replace(/\s+/g, ' ').slice(0, 180) };
+    }
+    const reader = res.body?.getReader();
+    await reader?.read();
+    void reader?.cancel().catch(() => {});
+    return { model, ok: true, status: res.status, ms: Date.now() - started };
+  } catch (e) {
+    return { model, ok: false, status: 0, ms: Date.now() - started, reason: ((e as Error)?.message ?? 'network error').slice(0, 120) };
   }
 }
 
@@ -135,6 +166,29 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // Photos: opt-in (`?images=1`), Gemini only — the one provider the chat sends them to.
+  const withImages = new URL(req.url).searchParams.get('images') === '1';
+  let images: ModelProbe[] | undefined;
+  if (withImages && geminiKey) {
+    images = [];
+    for (const model of GEMINI_MODELS) {
+      images.push(await probeFirstBytes(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${geminiKey}`,
+        {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: TEC_SYSTEM_PROMPT }] },
+            contents: [{ role: 'user', parts: [
+              { inline_data: { mime_type: 'image/png', data: PROBE_IMAGE } },
+              { text: 'What colour is this picture? One word.' },
+            ] }],
+            generationConfig: { maxOutputTokens: 16 },
+          }),
+        }, model));
+    }
+  }
+
   const working = Object.entries(results).flatMap(([provider, probes]) =>
     probes.filter(p => p.ok).map(p => `${provider}:${p.model}`));
 
@@ -153,5 +207,13 @@ export async function GET(req: NextRequest) {
       openrouter: !!openrouterKey,
     },
     results,
+    ...(images ? {
+      images: {
+        // The chat gives Gemini 20 s to START answering when a photo is attached.
+        budgetMs: 20_000,
+        working:  images.filter(p => p.ok && p.ms < 20_000).map(p => p.model),
+        results:  images,
+      },
+    } : {}),
   }, { headers: { 'Cache-Control': 'no-store' } });
 }

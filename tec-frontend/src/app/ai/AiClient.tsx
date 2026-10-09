@@ -1,7 +1,7 @@
 'use client';
 
 import { AttachButton, AttachChips } from '@/components/ai/AttachBar';
-import { attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
+import { attachmentKey, attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation, fill, bcp47 } from '@/lib/i18n';
 import { usePiAuth }                   from '@/lib-client/hooks/usePiAuth';
@@ -135,11 +135,17 @@ export default function AiClient() {
     if (q && q.trim()) setInput(q.trim());
   }, []);
 
+  /** The attachment set last shown in the transcript (see sendMessage). */
+  const sentKeyRef = useRef('');
+
   const sendMessage = async (content: string, attachments: PreparedAttachment[] = []) => {
     if ((!content.trim() && !attachments.length) || isLoading) return;
     // A photo with no words still asks something; the transcript shows what was sent.
     const asked = content.trim() || t.hub.ai.attachOnly;
-    const shown = [attachmentLine(attachments), content.trim()].filter(Boolean).join('\n') || asked;
+    // Files stay attached across messages until removed; the 📎 line marks when they arrive.
+    const key   = attachmentKey(attachments);
+    const shown = [key !== sentKeyRef.current ? attachmentLine(attachments) : '', content.trim()].filter(Boolean).join('\n') || asked;
+    sentKeyRef.current = key;
     setFailedQuestion(null);
     abortRef.current?.abort();
     const controller = new AbortController();
@@ -154,7 +160,8 @@ export default function AiClient() {
 
     setMessages(prev => [...prev, userMessage]);
     setInput('');
-    setAtts([]); setAttError(null);
+    // NOT cleared: the files stay with the chat until × or New chat (owner, 2026-10-09).
+    setAttError(null);
     setIsLoading(true);
 
     try {
@@ -339,6 +346,7 @@ export default function AiClient() {
                 abortRef.current?.abort();
                 archiveConversation(STORE_KEY);
                 setFailedQuestion(null);
+                setAtts([]); setAttError(null); sentKeyRef.current = '';
                 setMessages([welcomeMessage()]);
                 setCanRestore(hasArchive(STORE_KEY));
               }}
@@ -452,7 +460,7 @@ export default function AiClient() {
               )}
               {failedQuestion && !isLoading && (
                 // An error message used to be a dead end — the question had to be retyped.
-                <button className={styles.suggestionBtn} onClick={() => sendMessage(failedQuestion)}>
+                <button className={styles.suggestionBtn} onClick={() => sendMessage(failedQuestion, atts)}>
                   {t.hub.ai.tryAgain}
                 </button>
               )}
@@ -467,7 +475,7 @@ export default function AiClient() {
                 <button
                   key={i}
                   className={styles.suggestionBtn}
-                  onClick={() => sendMessage(q)}
+                  onClick={() => sendMessage(q, atts)}
                 >
                   {q}
                 </button>

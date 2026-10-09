@@ -635,6 +635,7 @@ export const zh: typeof en = {
       inputHint: 'Enter 发送 · Shift+Enter 换行',
       helloName: '您好 {name}！👋',
       attach: "附加照片或 PDF",
+      attachKept: '会一直留在这次对话里——每个问题都会带上。点 × 移除。',
       attachRemove: "移除",
       attachTooMany: "每条消息最多 3 个附件。",
       attachType: "仅支持照片（JPG、PNG、WebP、HEIC）和 PDF。",

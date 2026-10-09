@@ -635,6 +635,7 @@ export const es: typeof en = {
       inputHint: 'Enter para enviar · Shift+Enter para nueva línea',
       helloName: '¡Hola, {name}! 👋',
       attach: "Adjuntar una foto o PDF",
+      attachKept: 'Se queda en este chat: va con cada pregunta. Quítala con ×.',
       attachRemove: "Quitar",
       attachTooMany: "Hasta 3 adjuntos por mensaje.",
       attachType: "Solo fotos (JPG, PNG, WebP, HEIC) y PDF.",

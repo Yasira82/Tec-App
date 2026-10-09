@@ -635,6 +635,7 @@ export const hi: typeof en = {
       inputHint: 'भेजने के लिए Enter · नई पंक्ति के लिए Shift+Enter',
       helloName: 'नमस्ते {name}! 👋',
       attach: "फ़ोटो या PDF जोड़ें",
+      attachKept: 'यह इसी बातचीत में रहती है — हर सवाल के साथ जाती है। × से हटाएँ।',
       attachRemove: "हटाएँ",
       attachTooMany: "एक संदेश में अधिकतम 3 अटैचमेंट।",
       attachType: "केवल फ़ोटो (JPG, PNG, WebP, HEIC) और PDF।",

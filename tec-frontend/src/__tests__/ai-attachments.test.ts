@@ -9,7 +9,7 @@ import {
   parseAttachments, claudeContent, geminiParts, attachmentNote, MAX_TOTAL_B64,
 } from '@/lib/ai/attachments';
 import { checkAttachmentAllowance, __resetAttachmentAllowance } from '@/lib/ai/rate-limit';
-import { prepareAttachment, toPayload, attachmentLine, PDF_MAX_BYTES } from '@/lib-client/ai/attachments';
+import { prepareAttachment, toPayload, attachmentLine, attachmentKey, PDF_MAX_BYTES } from '@/lib-client/ai/attachments';
 
 const route = readFileSync(join(process.cwd(), 'src/app/api/ai/chat/route.ts'), 'utf8');
 const img = { mediaType: 'image/jpeg', data: 'QUJD' };
@@ -83,20 +83,64 @@ describe('the route', () => {
   });
 });
 
-describe('10 attachments a day per person', () => {
+describe('10 attachments a day per person — each file counted once', () => {
   beforeEach(() => __resetAttachmentAllowance());
+  const ids = (from: number, n: number) => Array.from({ length: n }, (_, i) => `f${from + i}`);
 
-  it('counts attachments, not messages', async () => {
-    expect((await checkAttachmentAllowance('u1', 3, 10)).ok).toBe(true);
-    expect((await checkAttachmentAllowance('u1', 3, 10)).ok).toBe(true);
-    expect((await checkAttachmentAllowance('u1', 3, 10)).ok).toBe(true);
-    expect((await checkAttachmentAllowance('u1', 3, 10)).ok).toBe(false);   // 12 > 10
-    expect((await checkAttachmentAllowance('u1', 1, 10)).ok).toBe(true);    // exactly 10
+  it('counts distinct files, not messages', async () => {
+    expect((await checkAttachmentAllowance('u1', ids(0, 3), 10)).ok).toBe(true);
+    expect((await checkAttachmentAllowance('u1', ids(3, 3), 10)).ok).toBe(true);
+    expect((await checkAttachmentAllowance('u1', ids(6, 3), 10)).ok).toBe(true);
+    expect((await checkAttachmentAllowance('u1', ids(9, 3), 10)).ok).toBe(false);   // 12 > 10
+    expect((await checkAttachmentAllowance('u1', ids(9, 1), 10)).ok).toBe(true);    // exactly 10
+  });
+
+  it('the same photo asked about again and again costs nothing more ("attach once", 2026-10-09)', async () => {
+    for (let i = 0; i < 20; i++) expect((await checkAttachmentAllowance('u1', ['a', 'b', 'c'], 10)).ok).toBe(true);
+    expect((await checkAttachmentAllowance('u1', ids(0, 7), 10)).ok).toBe(true);    // 3 + 7 = 10
+    expect((await checkAttachmentAllowance('u1', ['a', 'b', 'c'], 10)).ok).toBe(true);  // still free
+    expect((await checkAttachmentAllowance('u1', ['new'], 10)).ok).toBe(false);
+  });
+
+  it('a refused batch is not half-counted', async () => {
+    await checkAttachmentAllowance('u1', ids(0, 9), 10);
+    expect((await checkAttachmentAllowance('u1', ['x', 'y'], 10)).ok).toBe(false);
+    expect((await checkAttachmentAllowance('u1', ['x'], 10)).ok).toBe(true);
   });
 
   it('is per person', async () => {
-    await checkAttachmentAllowance('u1', 10, 10);
-    expect((await checkAttachmentAllowance('u2', 1, 10)).ok).toBe(true);
+    await checkAttachmentAllowance('u1', ids(0, 10), 10);
+    expect((await checkAttachmentAllowance('u2', ['f0'], 10)).ok).toBe(true);
+  });
+
+  it('the route identifies a file by a hash of its bytes', () => {
+    expect(route).toMatch(/crypto\.subtle\.digest\('SHA-256', new TextEncoder\(\)\.encode\(a\.data\)\)/);
+    expect(route).toMatch(/checkAttachmentAllowance\(userId, fileIds, ATTACHMENTS_PER_DAY\)/);
+  });
+});
+
+describe('files stay with the chat until × or New chat (owner, 2026-10-09: "attach once")', () => {
+  const drawer = readFileSync(join(process.cwd(), 'src/app/hub/components/AIDrawer.tsx'), 'utf8');
+  const page   = readFileSync(join(process.cwd(), 'src/app/ai/AiClient.tsx'), 'utf8');
+  const hook   = readFileSync(join(process.cwd(), 'src/lib-client/hooks/useAiChat.ts'), 'utf8');
+
+  it('the drawer sends them with every message — typed, retried or suggested — and does not clear them', () => {
+    expect(drawer).toMatch(/const files = atts;/);
+    expect(drawer).not.toMatch(/setInput\(''\); setAtts\(\[\]\)/);
+    expect(drawer).toMatch(/newChat\(\); setAtts\(\[\]\)/);
+  });
+
+  it('the /ai page does the same', () => {
+    expect(page).toMatch(/sendMessage\(failedQuestion, atts\)/);
+    expect(page).toMatch(/sendMessage\(q, atts\)/);
+    expect(page).toMatch(/setAtts\(\[\]\); setAttError\(null\); sentKeyRef\.current = ''/);
+  });
+
+  it('the 📎 line shows when a set arrives, not under every question', () => {
+    const a = [{ kind: 'image' as const, mediaType: 'image/jpeg', data: 'QUJD', name: 'shot.jpg' }];
+    expect(attachmentKey(a)).toBe('shot.jpg:4');
+    expect(hook).toMatch(/key !== sentKeyRef\.current \? attachmentLine\(attachments\) : ''/);
+    expect(page).toMatch(/key !== sentKeyRef\.current \? attachmentLine\(attachments\) : ''/);
   });
 });
 
@@ -120,5 +164,24 @@ describe('the phone prepares what it sends', () => {
     const p = toPayload([{ kind: 'image', mediaType: 'image/jpeg', data: 'QUJD', name: 'id-card.jpg', thumb: 'data:x' }]);
     expect(p).toEqual([{ mediaType: 'image/jpeg', data: 'QUJD' }]);
     expect(attachmentLine([{ kind: 'pdf', mediaType: 'application/pdf', data: 'x', name: 'bill.pdf' }])).toBe('📎 bill.pdf');
+  });
+});
+
+describe('2026-10-09 — three screenshots, "temporarily unavailable", then "I can\'t view images"', () => {
+  const prompt = readFileSync(join(process.cwd(), 'src/lib/ai/tec-ai-system-prompt.ts'), 'utf8');
+  const health = readFileSync(join(process.cwd(), 'src/app/api/ai/health/route.ts'), 'utf8');
+
+  it('a 📎 line in an earlier message is named for what it is: files no longer here, attach again', () => {
+    expect(prompt).toMatch(/A\s+line in an EARLIER message that starts with 📎/);
+    expect(prompt).toMatch(/ask the person to attach them again with the question/);
+    expect(prompt).toMatch(/Never claim you cannot read images/);
+  });
+
+  it('/api/ai/health?images=1 sends Gemini a real image the way the chat does, and times the first bytes', () => {
+    expect(health).toMatch(/searchParams\.get\('images'\) === '1'; \} catch/);
+    expect(health).toMatch(/inline_data: \{ mime_type: 'image\/png', data: PROBE_IMAGE \}/);
+    expect(health).toMatch(/system_instruction: \{ parts: \[\{ text: TEC_SYSTEM_PROMPT \}\] \}/);
+    expect(health).toMatch(/streamGenerateContent\?alt=sse/);
+    expect(health).toMatch(/budgetMs: 20_000/);
   });
 });

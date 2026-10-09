@@ -635,6 +635,7 @@ export const ru: typeof en = {
       inputHint: 'Enter — отправить · Shift+Enter — новая строка',
       helloName: 'Привет, {name}! 👋',
       attach: "Прикрепить фото или PDF",
+      attachKept: 'Остаётся в этом чате — уходит с каждым вопросом. Убрать — ×.',
       attachRemove: "Убрать",
       attachTooMany: "Не больше 3 вложений в сообщении.",
       attachType: "Только фото (JPG, PNG, WebP, HEIC) и PDF.",

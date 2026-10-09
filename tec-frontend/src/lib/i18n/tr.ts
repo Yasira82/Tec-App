@@ -635,6 +635,7 @@ export const tr: typeof en = {
       inputHint: 'Göndermek için Enter · Yeni satır için Shift+Enter',
       helloName: 'Merhaba {name}! 👋',
       attach: "Fotoğraf veya PDF ekle",
+      attachKept: 'Bu sohbette kalır — her soruyla birlikte gider. × ile kaldır.',
       attachRemove: "Kaldır",
       attachTooMany: "Mesaj başına en fazla 3 ek.",
       attachType: "Yalnızca fotoğraf (JPG, PNG, WebP, HEIC) ve PDF.",

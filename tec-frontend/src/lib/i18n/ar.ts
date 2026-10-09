@@ -647,6 +647,7 @@ export const ar = {
       inputHint: 'Enter للإرسال · Shift+Enter لسطر جديد',
       helloName: 'أهلاً {name}! 👋',
       attach: "أرفق صورة أو ملف PDF",
+      attachKept: 'بتفضل مع المحادثة دي — بتتبعت مع كل سؤال. شيلها بـ ×.',
       attachRemove: "إزالة",
       attachTooMany: "3 مرفقات بالكتير في الرسالة.",
       attachType: "صور (JPG وPNG وWebP وHEIC) وملفات PDF بس.",

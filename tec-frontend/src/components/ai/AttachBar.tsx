@@ -79,6 +79,9 @@ export function AttachChips({
             style={{ background: 'none', border: 'none', color: c.text3, cursor: 'pointer', fontSize: 14, padding: 0 }}>✕</button>
         </span>
       ))}
+      {value.length > 0 && (
+        <span data-testid="ai-attach-kept" style={{ fontSize: 11, color: c.text3, width: '100%' }}>{t.hub.ai.attachKept}</span>
+      )}
       {error && <span role="alert" style={{ fontSize: 12, color: 'var(--tec-red, #ef4444)', width: '100%' }}>{error}</span>}
     </div>
   );

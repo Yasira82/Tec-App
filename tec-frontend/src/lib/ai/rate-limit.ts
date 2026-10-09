@@ -85,44 +85,59 @@ export function __resetMemRateLimit(): void { mem.clear(); }
 
 // ── Attachments: a daily allowance (owner, 2026-10-08) ─────────────────────────
 // A photo or a PDF costs the AI budget far more than a line of text, so each person
-// gets ATTACHMENTS_PER_DAY a day, counted per attachment (not per message). Same
-// shape as the limiter above: durable when Upstash is configured, bounded in-memory
-// otherwise, fail-open on a backend hiccup.
-const dayMem = new Map<string, Entry>();
+// gets ATTACHMENTS_PER_DAY a day. Same shape as the limiter above: durable when Upstash
+// is configured, bounded in-memory otherwise, fail-open on a backend hiccup.
+//
+// Counted per DISTINCT file (owner, 2026-10-09: "attach once"). Files now stay attached
+// across a conversation and go with every message, so counting per send would spend the
+// day's allowance on one photo asked about ten times. Each file is identified by a hash
+// of its bytes; one already counted today is free.
+const dayMem = new Map<string, { ids: Set<string>; resetAt: number }>();
 
-export async function checkAttachmentAllowance(key: string, count: number, perDay: number): Promise<RateResult> {
-  if (count <= 0) return { ok: true, remaining: perDay };
+type Cmd = (string | number)[];
+async function upstash(url: string, token: string, cmds: Cmd[]): Promise<unknown[] | null> {
+  const res = await fetch(`${url}/pipeline`, {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body:    JSON.stringify(cmds.map(c => c.map(String))),
+    cache:   'no-store',
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as Array<{ result?: unknown; error?: unknown }>;
+  return Array.isArray(data) && !data.some(d => d?.error) ? data.map(d => d?.result) : null;
+}
+
+export async function checkAttachmentAllowance(key: string, fileIds: string[], perDay: number): Promise<RateResult> {
+  const ids = [...new Set(fileIds.filter(Boolean))];
+  if (!ids.length) return { ok: true, remaining: perDay };
   const url   = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (url && token) {
     try {
-      const rk = `aiatt:${key}:${new Date().toISOString().slice(0, 10)}`;
-      const res = await fetch(`${url}/pipeline`, {
-        method:  'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body:    JSON.stringify([['INCRBY', rk, String(count)], ['EXPIRE', rk, '90000', 'NX']]),
-        cache:   'no-store',
-      });
-      if (res.ok) {
-        const data  = (await res.json()) as Array<{ result?: unknown }>;
-        const total = Number(data?.[0]?.result ?? NaN);
-        if (Number.isFinite(total) && total > 0) {
-          return { ok: total <= perDay, remaining: Math.max(0, perDay - total) };
-        }
+      const rk = `aiatt2:${key}:${new Date().toISOString().slice(0, 10)}`;
+      const seen = await upstash(url, token, [['SMISMEMBER', rk, ...ids], ['SCARD', rk]]);
+      if (seen) {
+        const flags = (seen[0] as unknown[]) ?? [];
+        const fresh = ids.filter((_, i) => Number(flags[i]) !== 1);
+        const used  = Number(seen[1] ?? 0);
+        if (!fresh.length) return { ok: true, remaining: Math.max(0, perDay - used) };
+        if (used + fresh.length > perDay) return { ok: false, remaining: Math.max(0, perDay - used) };
+        const added = await upstash(url, token, [['SADD', rk, ...fresh], ['EXPIRE', rk, 90000, 'NX']]);
+        if (added) return { ok: true, remaining: Math.max(0, perDay - used - fresh.length) };
       }
     } catch { /* fall through to memory */ }
   }
   const now = Date.now();
-  const e = dayMem.get(key);
-  if (e && now < e.resetAt) {
-    if (e.count + count > perDay) return { ok: false, remaining: Math.max(0, perDay - e.count) };
-    e.count += count;
-    return { ok: true, remaining: perDay - e.count };
+  let e = dayMem.get(key);
+  if (!e || now >= e.resetAt) {
+    if (dayMem.size > MAX_KEYS) dayMem.clear();
+    e = { ids: new Set(), resetAt: now + 86_400_000 };
+    dayMem.set(key, e);
   }
-  if (dayMem.size > MAX_KEYS) dayMem.clear();
-  if (count > perDay) return { ok: false, remaining: perDay };
-  dayMem.set(key, { count, resetAt: now + 86_400_000 });
-  return { ok: true, remaining: perDay - count };
+  const fresh = ids.filter(id => !e!.ids.has(id));
+  if (e.ids.size + fresh.length > perDay) return { ok: false, remaining: Math.max(0, perDay - e.ids.size) };
+  for (const id of fresh) e.ids.add(id);
+  return { ok: true, remaining: perDay - e.ids.size };
 }
 
 /** Test-only. */

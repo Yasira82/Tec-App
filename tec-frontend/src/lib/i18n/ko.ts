@@ -635,6 +635,7 @@ export const ko: typeof en = {
       inputHint: 'Enter로 전송 · Shift+Enter로 줄바꿈',
       helloName: '안녕하세요 {name}님! 👋',
       attach: "사진 또는 PDF 첨부",
+      attachKept: '이 대화에 계속 남아 모든 질문과 함께 보내져요. ×로 삭제하세요.',
       attachRemove: "삭제",
       attachTooMany: "메시지당 최대 3개까지 첨부할 수 있습니다.",
       attachType: "사진(JPG, PNG, WebP, HEIC)과 PDF만 가능합니다.",

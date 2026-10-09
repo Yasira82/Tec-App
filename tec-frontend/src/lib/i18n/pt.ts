@@ -635,6 +635,7 @@ export const pt: typeof en = {
       inputHint: 'Enter para enviar · Shift+Enter para nova linha',
       helloName: 'Olá, {name}! 👋',
       attach: "Anexar foto ou PDF",
+      attachKept: 'Fica nesta conversa — vai junto com cada pergunta. Remova com ×.',
       attachRemove: "Remover",
       attachTooMany: "Até 3 anexos por mensagem.",
       attachType: "Apenas fotos (JPG, PNG, WebP, HEIC) e PDF.",

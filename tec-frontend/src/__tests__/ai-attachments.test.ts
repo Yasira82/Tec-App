@@ -182,6 +182,10 @@ describe('2026-10-09 — three screenshots, "temporarily unavailable", then "I c
     expect(health).toMatch(/inline_data: \{ mime_type: 'image\/png', data: PROBE_IMAGE \}/);
     expect(health).toMatch(/system_instruction: \{ parts: \[\{ text: TEC_SYSTEM_PROMPT \}\] \}/);
     expect(health).toMatch(/streamGenerateContent\?alt=sse/);
-    expect(health).toMatch(/budgetMs: 20_000/);
+    expect(health).toMatch(/const IMAGE_BUDGET_MS = 20_000/);
+    // 2026-10-09: sequential probes hit Vercel's 25 s cut-off (504). On its own, in parallel, each with an abort.
+    expect(health).toMatch(/if \(withImages\) \{[\s\S]*?Promise\.all\(GEMINI_MODELS\.map/);
+    expect(health).toMatch(/setTimeout\(\(\) => controller\.abort\(\), IMAGE_BUDGET_MS\)/);
+    expect(health.indexOf('if (withImages)')).toBeLessThan(health.indexOf('if (claudeKey)'));
   });
 });

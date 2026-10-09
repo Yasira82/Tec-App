@@ -255,3 +255,30 @@ describe('createHandler — response headers', () => {
     expect(res.headers.get('X-Request-Id')).toBeTruthy();
   });
 });
+
+// ── One request, one identity (owner, 2026-10-09) ────────────────
+// A fresh sign-in held in memory (Authorization header) and an older cookie named
+// different accounts. The context came from the header, but handlers called the gateway
+// with the cookie: the profile showed one account, the balance another's wallet.
+describe('a header and a cookie naming different accounts', () => {
+  it('the handler sees the token the context was read from', async () => {
+    mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'acct-fresh' } } as never);
+    const jar = new Map<string, string>([['tec_access_token', 'old-cookie-token']]);
+    const req = {
+      cookies: {
+        get: (n: string) => (jar.has(n) ? { value: jar.get(n)! } : undefined),
+        set: (n: string, v: string) => { jar.set(n, v); },
+      },
+      headers: { get: (n: string) => (n.toLowerCase() === 'authorization' ? 'Bearer fresh-header-token' : null) },
+      method:  'GET',
+      nextUrl: { pathname: '/api/test' },
+      json:    async () => ({}),
+    } as unknown as NextRequest;
+    let seen: { userId?: string; token?: string } = {};
+    const handler = createHandler({
+      handler: async ({ ctx, req: r }) => { seen = { userId: ctx.userId, token: r.cookies.get('tec_access_token')?.value }; return {}; },
+    });
+    await handler(req);
+    expect(seen).toEqual({ userId: 'acct-fresh', token: 'fresh-header-token' });
+  });
+});

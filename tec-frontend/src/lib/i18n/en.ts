@@ -711,6 +711,7 @@ export const en = {
       inputHint: 'Enter to send · Shift+Enter for new line',
       helloName: 'Hi {name}! 👋',
       attach: "Attach a photo or PDF",
+      attachKept: 'Stays with this chat — every question includes it. Remove with ×.',
       attachRemove: "Remove",
       attachTooMany: "Up to 3 attachments per message.",
       attachType: "Photos (JPG, PNG, WebP, HEIC) and PDF only.",

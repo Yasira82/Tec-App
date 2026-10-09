@@ -635,6 +635,7 @@ export const vi: typeof en = {
       inputHint: 'Enter để gửi · Shift+Enter để xuống dòng',
       helloName: 'Chào {name}! 👋',
       attach: "Đính kèm ảnh hoặc PDF",
+      attachKept: 'Giữ trong cuộc trò chuyện này — gửi kèm mọi câu hỏi. Bấm × để bỏ.',
       attachRemove: "Xóa",
       attachTooMany: "Tối đa 3 tệp đính kèm mỗi tin nhắn.",
       attachType: "Chỉ ảnh (JPG, PNG, WebP, HEIC) và PDF.",

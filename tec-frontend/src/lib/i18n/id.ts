@@ -635,6 +635,7 @@ export const id: typeof en = {
       inputHint: 'Enter untuk kirim · Shift+Enter untuk baris baru',
       helloName: 'Halo {name}! 👋',
       attach: "Lampirkan foto atau PDF",
+      attachKept: 'Tetap di obrolan ini — ikut di setiap pertanyaan. Hapus dengan ×.',
       attachRemove: "Hapus",
       attachTooMany: "Maksimal 3 lampiran per pesan.",
       attachType: "Hanya foto (JPG, PNG, WebP, HEIC) dan PDF.",

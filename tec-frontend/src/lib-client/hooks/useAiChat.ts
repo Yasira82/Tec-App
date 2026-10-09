@@ -1,6 +1,6 @@
 'use client';
 
-import { attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
+import { attachmentKey, attachmentLine, toPayload, type PreparedAttachment } from '@/lib-client/ai/attachments';
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { createSseReader }  from '@/lib/ai-stream';
 import { parseNavIntents }  from '@/lib/ai/nav-intents';
@@ -101,6 +101,9 @@ export function useAiChat({ storeKey, open, t }: {
   // specific answer, never a broken one. Held as the in-flight PROMISE, not the resolved
   // value: a user who opens the drawer and types straight away would otherwise send their
   // first — and often only — question before the context landed.
+  /** The attachment set last shown in the transcript (see send). */
+  const sentKeyRef = useRef('');
+
   const ctxRef = useRef<{ at: number; p: Promise<Record<string, unknown> | null> } | null>(null);
   const loadContext = useCallback(() => {
     const p = (async () => {
@@ -128,7 +131,10 @@ export function useAiChat({ storeKey, open, t }: {
     if ((!typed && !attachments.length) || loading) return;
     // A photo with no words still asks something; the transcript shows what was sent.
     const text  = typed || t.hub.ai.attachOnly;
-    const shown = [attachmentLine(attachments), typed].filter(Boolean).join('\n');
+    // Files stay attached across messages until removed; the 📎 line marks when they arrive.
+    const key   = attachmentKey(attachments);
+    const shown = [key !== sentKeyRef.current ? attachmentLine(attachments) : '', typed].filter(Boolean).join('\n');
+    sentKeyRef.current = key;
     setFailedQuestion(null);
 
     // A previous stream must not keep writing into the bubble a new question just created.
@@ -266,6 +272,7 @@ export function useAiChat({ storeKey, open, t }: {
     abortRef.current?.abort();
     archiveConversation(storeKey);
     setMessages([]); setFailedQuestion(null); setCanRestore(hasArchive(storeKey));
+    sentKeyRef.current = '';
   }, [storeKey]);
 
   const restoreTurns = useCallback((turns: StoredTurn[]) => {

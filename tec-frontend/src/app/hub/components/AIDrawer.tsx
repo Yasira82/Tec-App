@@ -29,10 +29,10 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
 
   const submit = useCallback((override?: string) => {
     const question = override ?? input;
-    // A retry or a picked suggestion sends text only; the composer's attachments go with
-    // the composer's own send, then clear.
-    const files = override ? [] : atts;
-    if (!override) { setInput(''); setAtts([]); setAttError(null); }
+    // Attached files STAY with the chat (owner, 2026-10-09: "attach once"): every message —
+    // typed, retried or a picked suggestion — carries them until × or New chat.
+    const files = atts;
+    if (!override) { setInput(''); setAttError(null); }
     void send(question, files);
   }, [input, atts, send]);
 
@@ -101,7 +101,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
               ☰
             </button>
             {messages.length > 0 && (
-              <button onClick={() => { newChat(); setMenuOpen(false); }} aria-label={t.hub.ai.newChat} title={t.hub.ai.newChat}
+              <button onClick={() => { newChat(); setAtts([]); setAttError(null); setMenuOpen(false); }} aria-label={t.hub.ai.newChat} title={t.hub.ai.newChat}
                 style={{ background: 'none', border: '1px solid var(--tec-border)', borderRadius: 10, color: 'var(--tec-text-2)', cursor: 'pointer', fontSize: 11, padding: '5px 10px', fontFamily: 'inherit' }}>
                 {t.hub.ai.newChat}
               </button>

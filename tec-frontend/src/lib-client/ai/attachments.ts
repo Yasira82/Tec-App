@@ -89,5 +89,12 @@ export const toPayload = (atts: PreparedAttachment[]) =>
   atts.map(({ mediaType, data }) => ({ mediaType, data }));
 
 /** One line for the transcript, so the conversation shows what was sent. */
+/**
+ * Which files these are — so a set that stays attached across messages is shown in the
+ * transcript once, not under every question (owner, 2026-10-09: "attach once").
+ */
+export const attachmentKey = (atts: PreparedAttachment[]) =>
+  atts.map(a => `${a.name}:${a.data.length}`).join('|');
+
 export const attachmentLine = (atts: PreparedAttachment[]) =>
   atts.length ? `📎 ${atts.map(a => a.name).join(' · ')}` : '';

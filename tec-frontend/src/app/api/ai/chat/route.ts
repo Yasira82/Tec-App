@@ -728,7 +728,12 @@ export async function POST(req: NextRequest) {
     }
     const attachments = parsedAtt.attachments;
     if (attachments.length) {
-      const allowance = await checkAttachmentAllowance(userId, attachments.length, ATTACHMENTS_PER_DAY);
+      // A file is counted once a day however many messages carry it (rate-limit.ts).
+      const fileIds = await Promise.all(attachments.map(async (a) => {
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(a.data));
+        return Array.from(new Uint8Array(digest).slice(0, 12), b => b.toString(16).padStart(2, '0')).join('');
+      }));
+      const allowance = await checkAttachmentAllowance(userId, fileIds, ATTACHMENTS_PER_DAY);
       if (!allowance.ok) {
         return NextResponse.json(
           { error: `Today's ${ATTACHMENTS_PER_DAY} attachments are used — try again tomorrow.`, code: 'ATTACH_LIMIT' },

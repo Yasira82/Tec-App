@@ -635,6 +635,7 @@ export const fr: typeof en = {
       inputHint: 'Entrée pour envoyer · Maj+Entrée pour aller à la ligne',
       helloName: 'Bonjour {name} ! 👋',
       attach: "Joindre une photo ou un PDF",
+      attachKept: 'Reste dans cette conversation — jointe à chaque question. Retirez-la avec ×.',
       attachRemove: "Retirer",
       attachTooMany: "3 pièces jointes maximum par message.",
       attachType: "Photos (JPG, PNG, WebP, HEIC) et PDF uniquement.",

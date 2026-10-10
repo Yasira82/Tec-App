@@ -6,7 +6,11 @@
 export interface Liabilities {
   wallet:   { balances: { currency: string; wallets: number; amount: string }[]; withdrawals_pending: { count: number; amount: string } } | null;
   payouts:  Record<string, { count: number; amount: string }> | null;
-  hub:      { address: string | null; source: 'seed' | 'address' | null; exists: boolean | null; balance: string | null } | null;
+  hub:      {
+    address: string | null; source: 'seed' | 'address' | null; exists: boolean | null; balance: string | null;
+    /** Each other app's Mainnet wallet — where its sales land (tec-core-backend #410). */
+    apps?: { app: string; address: string | null; exists: boolean | null; balance: string | null; problem?: string }[];
+  } | null;
 }
 
 const n = (v: string | null | undefined) => (v == null ? 0 : Number(v) || 0);
@@ -28,4 +32,11 @@ export function shortfall(l: Liabilities): number | null {
   const o = owed(l);
   if (o == null || !l.hub || l.hub.balance == null) return null;
   return round(Math.max(0, o - n(l.hub.balance)));
+}
+
+/** What the other app wallets hold together — π that can be moved into the Hub wallet. null if one did not answer. */
+export function appsHeld(l: Liabilities): number | null {
+  const apps = l.hub?.apps ?? [];
+  if (apps.some((a) => a.address && a.balance == null)) return null;
+  return round(apps.reduce((t, a) => t + n(a.balance), 0));
 }

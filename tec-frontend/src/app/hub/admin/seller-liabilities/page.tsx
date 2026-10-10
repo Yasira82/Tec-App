@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { usePiAuth }   from '@/lib-client/hooks/usePiAuth';
 import { HubSubShell } from '@/components/hub';
 import { Icon }        from '@/components/ui/Icon';
-import { owed, shortfall, type Liabilities } from '@/lib/admin/seller-liabilities';
+import { appsHeld, owed, shortfall, type Liabilities } from '@/lib/admin/seller-liabilities';
 
 /**
  * Owed to sellers (tec-core-backend #409). Sellers withdraw from the Hub's app wallet
@@ -93,6 +93,22 @@ export default function SellerLiabilitiesPage() {
                     </>
                   )}
               </div>
+
+              {(data.hub?.apps?.length ?? 0) > 0 && (
+                <div style={card}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--tec-text-2)', marginBottom: 4 }}>Other app wallets (Mainnet) — where sales land</div>
+                  {data.hub!.apps!.map((a) => (
+                    <div key={a.app} style={{ marginBottom: 6 }}>
+                      {row(a.app,
+                        a.problem ? a.problem : a.exists === false ? 'not on the chain yet' : a.balance == null ? 'chain did not answer' : fmt(a.balance))}
+                      {a.address && <div dir="ltr" style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--tec-text-3)', overflowWrap: 'anywhere' }}>{a.address}</div>}
+                    </div>
+                  ))}
+                  <div style={{ borderTop: '1px solid var(--tec-border)', marginTop: 6, paddingTop: 6 }}>
+                    {row('Held in app wallets', fmt(appsHeld(data)), 'π you can move into the Hub wallet')}
+                  </div>
+                </div>
+              )}
 
               <div style={{ ...card, borderColor: gap ? 'var(--tec-gold)' : 'var(--tec-border)' }}>
                 {row('To move into the Hub wallet', gap == null ? 'unknown' : fmt(gap))}

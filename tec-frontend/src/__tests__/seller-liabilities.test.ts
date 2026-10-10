@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { owed, shortfall, type Liabilities } from '@/lib/admin/seller-liabilities';
+import { appsHeld, owed, shortfall, type Liabilities } from '@/lib/admin/seller-liabilities';
 
 const L = (over: Partial<Liabilities> = {}): Liabilities => ({
   wallet:  { balances: [{ currency: 'PI', wallets: 2, amount: '10.5' }, { currency: 'TEC', wallets: 1, amount: '99' }], withdrawals_pending: { count: 1, amount: '1' } },
@@ -28,6 +28,15 @@ describe('owed / shortfall', () => {
 
   it('the Hub wallet holds more than owed → 0 to move', () => {
     expect(shortfall(L({ hub: { address: 'G', source: 'seed', exists: true, balance: '100' } }))).toBe(0);
+  });
+});
+
+describe('app wallets (tec-core-backend #410)', () => {
+  const hub = (apps: NonNullable<Liabilities['hub']>['apps']) => ({ address: 'G', source: 'seed' as const, exists: true, balance: '5', apps });
+  it('sums what the app wallets hold; one that did not answer → unknown', () => {
+    expect(appsHeld(L({ hub: hub([{ app: 'ecommerce', address: 'G1', exists: true, balance: '3.5' }, { app: 'commerce', address: 'G2', exists: false, balance: '0' }]) }))).toBe(3.5);
+    expect(appsHeld(L({ hub: hub([{ app: 'ecommerce', address: 'G1', exists: null, balance: null }]) }))).toBeNull();
+    expect(appsHeld(L({ hub: hub([]) }))).toBe(0);
   });
 });
 

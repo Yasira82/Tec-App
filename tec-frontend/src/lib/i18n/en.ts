@@ -582,6 +582,7 @@ export const en = {
       kycNotStarted: 'Not started — complete to unlock all features',
       admin: 'Admin', adminKyc: 'KYC Review', adminKycSub: 'Approve or reject identity submissions',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Who granted the assistant Life data, and how much it is used',
+      adminNetworks: 'Payment networks', adminNetworksSub: 'Which payments moved real π (Mainnet) and which were Test-Pi',
       connectedApps: 'Connected Apps', tecPlatform: 'TEC Platform', piNetwork: 'Pi Network', connected: 'CONNECTED',
       quickActions: 'Quick Actions',
       assets: 'Assets', assetsSub: 'View your assets',

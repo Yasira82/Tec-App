@@ -512,6 +512,7 @@ export const ru: typeof en = {
       kycNotStarted: 'Не начато — пройдите, чтобы открыть все функции',
       admin: 'Админ', adminKyc: 'Проверка KYC', adminKycSub: 'Одобрять или отклонять заявки на проверку личности',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Кто дал ассистенту данные Life и насколько он используется',
+      adminNetworks: 'Сети платежей', adminNetworksSub: 'Какие платежи перевели настоящие π (Mainnet), а какие были Test-Pi',
       connectedApps: 'Подключённые приложения', tecPlatform: 'Платформа TEC', piNetwork: 'Pi Network', connected: 'ПОДКЛЮЧЕНО',
       quickActions: 'Быстрые действия',
       assets: 'Активы', assetsSub: 'Ваши активы',

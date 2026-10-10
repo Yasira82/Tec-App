@@ -520,6 +520,7 @@ export const ar = {
       kycNotStarted: 'لم يبدأ — أكمله لفتح كل المزايا',
       admin: 'الإدارة', adminKyc: 'مراجعة التوثيق', adminKycSub: 'قبول أو رفض طلبات الهوية',
       adminLifeAi: 'Life + الذكاء الاصطناعي', adminLifeAiSub: 'مين سمح للمساعد يقرأ بيانات Life، وقد إيه بيتستخدم',
+      adminNetworks: 'شبكات المدفوعات', adminNetworksSub: 'أي المدفوعات نقلت π حقيقية (Mainnet) وأيها كانت Test-Pi',
       connectedApps: 'التطبيقات المتصلة', tecPlatform: 'منصة TEC', piNetwork: 'شبكة Pi', connected: 'متصل',
       quickActions: 'إجراءات سريعة',
       assets: 'الأصول', assetsSub: 'عرض أصولك',

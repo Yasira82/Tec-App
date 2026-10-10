@@ -512,6 +512,7 @@ export const zh: typeof en = {
       kycNotStarted: '未开始 — 完成后即可解锁全部功能',
       admin: '管理员', adminKyc: 'KYC 审核', adminKycSub: '批准或拒绝身份提交',
       adminLifeAi: 'Life + AI', adminLifeAiSub: '谁授权助手读取 Life 数据，以及使用量',
+      adminNetworks: '支付网络', adminNetworksSub: '哪些付款转移了真实 π（主网），哪些是 Test-Pi',
       connectedApps: '已连接的应用', tecPlatform: 'TEC 平台', piNetwork: 'Pi Network', connected: '已连接',
       quickActions: '快捷操作',
       assets: '资产', assetsSub: '查看您的资产',

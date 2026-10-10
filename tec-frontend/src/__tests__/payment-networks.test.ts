@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { accumulate, zero } from '@/lib/admin/payment-networks';
+import { accumulate, short, zero } from '@/lib/admin/payment-networks';
 
 const page = (over: Partial<Parameters<typeof accumulate>[1]> = {}) => ({
   checked: 2, total: 3, done: false, marked_testnet_but_mainnet: [], sums: zero(), ...over,
@@ -22,6 +22,21 @@ describe('accumulate', () => {
     expect(b.checked).toBe(3);
     expect(b.done).toBe(true);
     expect(b.odd).toEqual(['p9']);
+  });
+});
+
+describe('sender → receiver routes (tec-core-backend #407)', () => {
+  it('the same route adds up across pages; biggest first', () => {
+    const r = (from: string, to: string, count: number, amount: string) => ({ network: 'mainnet' as const, from, to, count, amount });
+    const a = accumulate(undefined, page({ routes: [r('GAKCH', 'GAKCH', 2, '6')] }), 0);
+    const b = accumulate(a, page({ routes: [r('GAKCH', 'GAKCH', 1, '1'), r('GX', 'GY', 1, '10')] }), 2);
+    expect(b.routes).toEqual([r('GX', 'GY', 1, '10'), r('GAKCH', 'GAKCH', 3, '7')]);
+    expect(a.routes[0].count).toBe(2);
+  });
+
+  it('an address is shown the way Pi\'s wallet shows it', () => {
+    expect(short('GAKCHABCDEFGHIJKLMNOPXFAX')).toBe('GAKCH…PXFAX');
+    expect(short(null)).toBe('unknown');
   });
 });
 

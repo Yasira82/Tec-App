@@ -15,7 +15,7 @@ import { Icon }        from '@/components/ui/Icon';
  * READ-ONLY. `role === 'admin'` here is a courtesy; payment-service enforces it.
  */
 
-import { accumulate, zero, type Network, type Payer, type Page, type Result } from '@/lib/admin/payment-networks';
+import { accumulate, short, zero, type Network, type Payer, type Page, type Result } from '@/lib/admin/payment-networks';
 
 const PAGE = 50;
 const LABEL: Record<Network, { text: string; color: string }> = {
@@ -44,7 +44,7 @@ function PayerRow({ payer }: { payer: Payer }) {
         offset = acc.checked;
       }
     } catch (e) {
-      setResult((r) => ({ ...(r ?? { checked: 0, total: 0, done: false, sums: zero(), odd: [] }), error: (e as Error).message }));
+      setResult((r) => ({ ...(r ?? { checked: 0, total: 0, done: false, sums: zero(), odd: [], routes: [] }), error: (e as Error).message }));
     } finally {
       setRunning(false);
     }
@@ -63,6 +63,16 @@ function PayerRow({ payer }: { payer: Payer }) {
               {LABEL[k].text}: {result.sums[k].count} · {result.sums[k].amount} π
             </div>
           ))}
+          {result.routes.length > 0 && (
+            <div style={{ marginTop: 4, display: 'grid', gap: 2 }}>
+              <div style={{ fontSize: 11, color: 'var(--tec-text-2)', fontWeight: 700 }}>Sender → receiver (from the chain)</div>
+              {result.routes.map((r) => (
+                <div key={`${r.network}|${r.from}|${r.to}`} dir="ltr" style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: LABEL[r.network].color }}>
+                  {short(r.from)} → {short(r.to)}{r.from && r.from === r.to ? ' (same wallet)' : ''} · {r.count} · {r.amount} π
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ fontSize: 11, color: 'var(--tec-text-3)' }}>
             {result.done ? 'Checked all' : `Checked ${result.checked} of ${result.total}`}{result.odd.length ? ` · ${result.odd.length} marked Test-Pi but on Mainnet` : ''}
           </div>
@@ -112,7 +122,7 @@ export default function PaymentNetworksPage() {
       ) : (
         <div>
           <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginBottom: 'var(--sp-4)', lineHeight: 1.5 }}>
-            Read-only. Each payment&apos;s transaction is looked up on Mainnet, then Testnet. Nothing is changed.
+            Read-only. Each payment&apos;s transaction is looked up on Mainnet, then Testnet — which network, and which wallet sent and received it. Nothing is changed.
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--tec-red)', marginBottom: 'var(--sp-3)' }}>{error}</div>}
           {payers.map((p) => <PayerRow key={p.user_id} payer={p} />)}

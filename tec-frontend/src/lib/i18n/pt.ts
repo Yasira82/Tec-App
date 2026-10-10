@@ -513,6 +513,7 @@ export const pt: typeof en = {
       admin: 'Admin', adminKyc: 'Análise de KYC', adminKycSub: 'Aprovar ou rejeitar envios de identidade',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Quem deu ao assistente dados do Life e quanto ele é usado',
       adminNetworks: 'Redes de pagamento', adminNetworksSub: 'Quais pagamentos moveram π real (Mainnet) e quais foram Test-Pi',
+      adminVoid: 'Saldos sem lastro', adminVoidSub: 'Reverter saldos TEC sem venda por trás — primeiro uma simulação',
       connectedApps: 'Apps conectados', tecPlatform: 'Plataforma TEC', piNetwork: 'Pi Network', connected: 'CONECTADO',
       quickActions: 'Ações rápidas',
       assets: 'Ativos', assetsSub: 'Ver seus ativos',

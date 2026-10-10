@@ -513,6 +513,7 @@ export const fr: typeof en = {
       admin: 'Admin', adminKyc: 'Examen KYC', adminKycSub: 'Approuver ou refuser les dossiers d’identité',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Qui a confié ses données Life à l’assistant, et son niveau d’usage',
       adminNetworks: 'Réseaux de paiement', adminNetworksSub: 'Quels paiements ont déplacé du vrai π (Mainnet) et lesquels étaient du Test-Pi',
+      adminVoid: 'Soldes sans contrepartie', adminVoidSub: 'Annuler les soldes TEC sans vente derrière — simulation d’abord',
       connectedApps: 'Applications connectées', tecPlatform: 'Plateforme TEC', piNetwork: 'Pi Network', connected: 'CONNECTÉ',
       quickActions: 'Actions rapides',
       assets: 'Actifs', assetsSub: 'Voir vos actifs',

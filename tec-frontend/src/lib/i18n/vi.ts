@@ -513,6 +513,7 @@ export const vi: typeof en = {
       admin: 'Quản trị', adminKyc: 'Duyệt KYC', adminKycSub: 'Duyệt hoặc từ chối hồ sơ danh tính',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Ai đã cho trợ lý dùng dữ liệu Life, và mức độ sử dụng',
       adminNetworks: 'Mạng thanh toán', adminNetworksSub: 'Khoản nào chuyển π thật (Mainnet), khoản nào là Test-Pi',
+      adminVoid: 'Số dư không có bảo chứng', adminVoidSub: 'Hoàn số dư TEC không có giao dịch bán — chạy thử trước',
       connectedApps: 'Ứng dụng đã kết nối', tecPlatform: 'Nền tảng TEC', piNetwork: 'Pi Network', connected: 'ĐÃ KẾT NỐI',
       quickActions: 'Thao tác nhanh',
       assets: 'Tài sản', assetsSub: 'Xem tài sản của bạn',

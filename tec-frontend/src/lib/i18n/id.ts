@@ -513,6 +513,7 @@ export const id: typeof en = {
       admin: 'Admin', adminKyc: 'Tinjauan KYC', adminKycSub: 'Setujui atau tolak pengajuan identitas',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Siapa yang mengizinkan asisten membaca data Life, dan seberapa sering dipakai',
       adminNetworks: 'Jaringan pembayaran', adminNetworksSub: 'Pembayaran mana yang memindahkan π nyata (Mainnet) dan mana yang Test-Pi',
+      adminVoid: 'Saldo tanpa dasar', adminVoidSub: 'Batalkan saldo TEC tanpa penjualan di baliknya — uji coba dulu',
       connectedApps: 'Aplikasi Terhubung', tecPlatform: 'Platform TEC', piNetwork: 'Pi Network', connected: 'TERHUBUNG',
       quickActions: 'Aksi Cepat',
       assets: 'Aset', assetsSub: 'Lihat aset Anda',

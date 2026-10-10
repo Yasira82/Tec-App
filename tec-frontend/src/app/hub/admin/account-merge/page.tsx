@@ -18,6 +18,11 @@ import { Icon }        from '@/components/ui/Icon';
 interface Group { username: string; canonical: string; duplicates: string[] }
 interface Conflict { table: string; id: string; reason: string }
 interface Report { group: Group; moved: Record<string, number>; conflicts: Conflict[] }
+/** Each service merges the rows it owns; the page asks each one. */
+const SERVICES = ['commerce', 'assets'] as const;
+type Service = typeof SERVICES[number];
+type PerService = Partial<Record<Service, Report | { error: string }>>;
+const isReport = (r: Report | { error: string } | undefined): r is Report => !!r && 'moved' in r;
 
 const message = (data: unknown, status: number) =>
   (data as { message?: string; error?: string })?.message ?? (data as { error?: string })?.error ?? `Failed (${status})`;
@@ -30,8 +35,8 @@ export default function AccountMergePage() {
   const [denied, setDenied]   = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [open, setOpen]       = useState<string | null>(null);
-  const [plan, setPlan]       = useState<Report | null>(null);
-  const [done, setDone]       = useState<Report | null>(null);
+  const [plan, setPlan]       = useState<PerService | null>(null);
+  const [done, setDone]       = useState<PerService | null>(null);
   const [typed, setTyped]     = useState('');
   const [busy, setBusy]       = useState(false);
 
@@ -52,38 +57,41 @@ export default function AccountMergePage() {
 
   useEffect(() => { if (!authLoading) void load(); }, [authLoading, load]);
 
-  const dryRun = async (username: string) => {
-    setOpen(username); setPlan(null); setDone(null); setTyped(''); setBusy(true); setError(null);
+  const ask = async (service: Service, init?: RequestInit, username?: string): Promise<Report | { error: string }> => {
     try {
-      const res = await fetch(`/api/admin/account-merge?username=${encodeURIComponent(username)}`, { credentials: 'include', cache: 'no-store' });
+      const q = `service=${service}` + (username ? `&username=${encodeURIComponent(username)}` : '');
+      const res = await fetch(`/api/admin/account-merge?${q}`, { credentials: 'include', cache: 'no-store', ...init });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(message(data, res.status));
-      setPlan(data.data as Report);
+      return res.ok ? (data.data as Report) : { error: message(data, res.status) };
     } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
+      return { error: (e as Error).message };
     }
   };
 
+  const dryRun = async (username: string) => {
+    setOpen(username); setPlan(null); setDone(null); setTyped(''); setBusy(true); setError(null);
+    const out: PerService = {};
+    for (const s of SERVICES) out[s] = await ask(s, undefined, username);
+    setPlan(out);
+    setBusy(false);
+  };
+
+  // Each service merges on its own, in order; one that fails does not undo the others —
+  // each is its own transaction, and a re-run moves only what is still left.
   const merge = async () => {
-    if (!plan || typed !== plan.group.username) return;
+    if (!plan || !open || typed !== open) return;
     setBusy(true); setError(null);
-    try {
-      const res = await fetch('/api/admin/account-merge', {
-        method: 'POST', credentials: 'include',
+    const out: PerService = {};
+    for (const s of SERVICES) {
+      if (!isReport(plan[s])) continue;
+      out[s] = await ask(s, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: plan.group.username, confirm: typed }),
+        body: JSON.stringify({ username: open, confirm: typed }),
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(message(data, res.status));
-      setDone(data.data as Report);
-      setPlan(null); setTyped('');
-    } catch (e) {
-      setError((e as Error).message);
-    } finally {
-      setBusy(false);
     }
+    setDone(out); setPlan(null); setTyped('');
+    setBusy(false);
   };
 
   const moved = (r: Report) => Object.entries(r.moved).filter(([, n]) => n > 0).map(([k, n]) => `${k} ${n}`).join(' · ') || 'nothing to move';
@@ -100,7 +108,7 @@ export default function AccountMergePage() {
       ) : (
         <div>
           <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginBottom: 'var(--sp-4)', lineHeight: 1.5 }}>
-            Sign-in already lands on the oldest account. This moves what commerce keeps under the others — products, orders, reviews, referrals, seller payouts — to it. Payment records are history and stay as they are.
+            Sign-in already lands on the oldest account. This moves what each service keeps under the others to it — commerce (products, orders, reviews, referrals, seller payouts, plans) and assets (ownership, listings). Payment records are history and stay as they are.
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--tec-red)', marginBottom: 'var(--sp-3)' }}>{error}</div>}
           {groups && groups.length === 0 && <div style={{ fontSize: 13, color: 'var(--tec-green)' }}>No Pioneer has more than one account.</div>}
@@ -119,26 +127,40 @@ export default function AccountMergePage() {
 
               {open === g.username && plan && (
                 <div style={{ marginTop: 'var(--sp-3)', display: 'grid', gap: 8 }}>
-                  <div style={{ fontSize: 13, color: 'var(--tec-text-1)' }}>Would move: {moved(plan)}</div>
-                  {plan.conflicts.length > 0 && (
-                    <div style={{ fontSize: 12, color: 'var(--tec-gold)' }}>
-                      {plan.conflicts.length} left on a duplicate: {plan.conflicts.map((c) => `${c.table} (${c.reason})`).join('; ')}
-                    </div>
-                  )}
+                  {SERVICES.map((s) => {
+                    const r = plan[s];
+                    return (
+                      <div key={s} style={{ fontSize: 13, color: 'var(--tec-text-1)' }}>
+                        <b>{s}</b> — {isReport(r) ? `would move: ${moved(r)}` : <span style={{ color: 'var(--tec-red)' }}>{r?.error}</span>}
+                        {isReport(r) && r.conflicts.length > 0 && (
+                          <div style={{ fontSize: 12, color: 'var(--tec-gold)' }}>
+                            {r.conflicts.length} left on a duplicate: {r.conflicts.map((c) => `${c.table} (${c.reason})`).join('; ')}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                   <label style={{ fontSize: 12, color: 'var(--tec-text-2)' }}>
-                    Type <b dir="ltr">{plan.group.username}</b> to merge exactly this
+                    Type <b dir="ltr">{g.username}</b> to merge exactly this
                     <input dir="ltr" value={typed} onChange={(e) => setTyped(e.target.value)} disabled={busy}
                       style={{ display: 'block', width: '100%', marginTop: 6, padding: '10px 12px', borderRadius: 10, background: 'var(--tec-surface-2)', color: 'var(--tec-text-1)', border: '1px solid var(--tec-border)', fontSize: 15 }} />
                   </label>
-                  <button type="button" onClick={() => { void merge(); }} disabled={busy || typed !== plan.group.username}
-                    style={{ padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, background: 'var(--tec-gold)', color: '#000', border: 'none', opacity: busy || typed !== plan.group.username ? 0.4 : 1 }}>
+                  <button type="button" onClick={() => { void merge(); }} disabled={busy || typed !== g.username || !SERVICES.some((s) => isReport(plan[s]))}
+                    style={{ padding: '12px', borderRadius: 12, fontSize: 14, fontWeight: 700, background: 'var(--tec-gold)', color: '#000', border: 'none', opacity: busy || typed !== g.username ? 0.4 : 1 }}>
                     {busy ? 'Merging…' : 'Merge into the oldest'}
                   </button>
                 </div>
               )}
               {open === g.username && done && (
-                <div role="status" style={{ marginTop: 'var(--sp-3)', fontSize: 12, color: 'var(--tec-green)' }}>
-                  Merged: {moved(done)}{done.conflicts.length ? ` · ${done.conflicts.length} left for a person to decide` : ''}
+                <div role="status" style={{ marginTop: 'var(--sp-3)', display: 'grid', gap: 4 }}>
+                  {SERVICES.filter((s) => done[s]).map((s) => {
+                    const r = done[s];
+                    return (
+                      <div key={s} style={{ fontSize: 12, color: isReport(r) ? 'var(--tec-green)' : 'var(--tec-red)' }}>
+                        <b>{s}</b> — {isReport(r) ? `merged: ${moved(r)}${r.conflicts.length ? ` · ${r.conflicts.length} left for a person to decide` : ''}` : r?.error}
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>

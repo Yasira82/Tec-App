@@ -13,6 +13,9 @@ describe('account-merge', () => {
   it('the BFFs send the session token only, to the right services', () => {
     const merge = read('src/app/api/admin/account-merge/route.ts');
     expect(merge).toContain('/api/commerce/admin/account-merge');
+    expect(merge).toContain('/api/assets/admin/account-merge');
+    // the service is picked from a fixed list, never a path from the caller
+    expect(merge).toMatch(/Object\.hasOwn\(SERVICES, service\)/);
     expect(merge).toMatch(/JSON\.stringify\(\{ username, confirm \}\)/);
     const list = read('src/app/api/admin/duplicate-accounts/route.ts');
     expect(list).toContain('/api/auth/admin/duplicate-accounts');
@@ -21,8 +24,9 @@ describe('account-merge', () => {
 
   it('the page merges only what the dry run showed, with the name typed again', () => {
     const src = read('src/app/hub/admin/account-merge/page.tsx');
-    expect(src).toMatch(/disabled=\{busy \|\| typed !== plan\.group\.username\}/);
-    expect(src).toMatch(/username: plan\.group\.username, confirm: typed/);
+    expect(src).toMatch(/disabled=\{busy \|\| typed !== g\.username/);
+    expect(src).toMatch(/if \(!plan \|\| !open \|\| typed !== open\) return/);
+    expect(src).toMatch(/body: JSON\.stringify\(\{ username: open, confirm: typed \}\)/);
   });
 
   it('the Profile links to it', () => {

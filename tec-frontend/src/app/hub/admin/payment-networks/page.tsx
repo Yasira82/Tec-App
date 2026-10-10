@@ -17,7 +17,7 @@ import { Icon }        from '@/components/ui/Icon';
 
 import { accumulate, short, zero, type Network, type Payer, type Page, type Result } from '@/lib/admin/payment-networks';
 
-const PAGE = 50;
+const PAGE = 25;   // each page now waits out a busy chain (tec-core-backend #408) — keep requests short
 const LABEL: Record<Network, { text: string; color: string }> = {
   mainnet:   { text: 'Mainnet (real π)',          color: 'var(--tec-green)' },
   testnet:   { text: 'Testnet (Test-Pi)',         color: 'var(--tec-gold)' },

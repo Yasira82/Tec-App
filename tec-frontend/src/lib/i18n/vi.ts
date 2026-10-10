@@ -515,6 +515,7 @@ export const vi: typeof en = {
       adminNetworks: 'Mạng thanh toán', adminNetworksSub: 'Khoản nào chuyển π thật (Mainnet), khoản nào là Test-Pi',
       adminVoid: 'Số dư không có bảo chứng', adminVoidSub: 'Hoàn số dư TEC không có giao dịch bán — chạy thử trước',
       adminMerge: 'Tài khoản trùng lặp', adminMergeSub: 'Chuyển sản phẩm và đơn hàng của tài khoản trùng sang tài khoản cũ nhất — chạy thử trước',
+      adminOwed: 'Nợ người bán', adminOwedSub: 'Số người bán có thể rút so với ví Hub — chỉ đọc',
       connectedApps: 'Ứng dụng đã kết nối', tecPlatform: 'Nền tảng TEC', piNetwork: 'Pi Network', connected: 'ĐÃ KẾT NỐI',
       quickActions: 'Thao tác nhanh',
       assets: 'Tài sản', assetsSub: 'Xem tài sản của bạn',

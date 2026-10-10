@@ -515,6 +515,7 @@ export const ru: typeof en = {
       adminNetworks: 'Сети платежей', adminNetworksSub: 'Какие платежи перевели настоящие π (Mainnet), а какие были Test-Pi',
       adminVoid: 'Необеспеченные балансы', adminVoidSub: 'Отменить балансы TEC без продаж — сначала пробный прогон',
       adminMerge: 'Дубликаты аккаунтов', adminMergeSub: 'Перенести товары и заказы дубликатов в самый старый аккаунт — сначала пробный прогон',
+      adminOwed: 'Долг продавцам', adminOwedSub: 'Что продавцы могут вывести и баланс кошелька Hub — только чтение',
       connectedApps: 'Подключённые приложения', tecPlatform: 'Платформа TEC', piNetwork: 'Pi Network', connected: 'ПОДКЛЮЧЕНО',
       quickActions: 'Быстрые действия',
       assets: 'Активы', assetsSub: 'Ваши активы',

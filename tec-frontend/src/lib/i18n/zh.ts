@@ -515,6 +515,7 @@ export const zh: typeof en = {
       adminNetworks: '支付网络', adminNetworksSub: '哪些付款转移了真实 π（主网），哪些是 Test-Pi',
       adminVoid: '无支撑余额', adminVoidSub: '撤销没有销售支撑的 TEC 余额——先试运行',
       adminMerge: '重复账户', adminMergeSub: '将重复账户的商品和订单移到最早的账户——先试运行',
+      adminOwed: '应付卖家', adminOwedSub: '卖家可提取金额与 Hub 钱包对比——只读',
       connectedApps: '已连接的应用', tecPlatform: 'TEC 平台', piNetwork: 'Pi Network', connected: '已连接',
       quickActions: '快捷操作',
       assets: '资产', assetsSub: '查看您的资产',

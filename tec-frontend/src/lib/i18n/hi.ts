@@ -512,6 +512,7 @@ export const hi: typeof en = {
       kycNotStarted: 'शुरू नहीं हुआ — सभी सुविधाएँ खोलने के लिए पूरा करें',
       admin: 'एडमिन', adminKyc: 'KYC समीक्षा', adminKycSub: 'पहचान सबमिशन स्वीकार या अस्वीकार करें',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'किसने सहायक को Life डेटा दिया, और इसका कितना उपयोग होता है',
+      adminNetworks: 'भुगतान नेटवर्क', adminNetworksSub: 'किन भुगतानों में असली π (Mainnet) गया और कौन Test-Pi थे',
       connectedApps: 'जुड़े हुए ऐप्स', tecPlatform: 'TEC प्लेटफ़ॉर्म', piNetwork: 'Pi Network', connected: 'जुड़ा हुआ',
       quickActions: 'त्वरित कार्य',
       assets: 'संपत्तियाँ', assetsSub: 'अपनी संपत्तियाँ देखें',

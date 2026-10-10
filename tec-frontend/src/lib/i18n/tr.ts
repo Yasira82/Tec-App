@@ -512,6 +512,7 @@ export const tr: typeof en = {
       kycNotStarted: 'Başlanmadı — tüm özellikleri açmak için tamamlayın',
       admin: 'Yönetici', adminKyc: 'KYC İncelemesi', adminKycSub: 'Kimlik başvurularını onayla veya reddet',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Asistana kimin Life verisi verdiği ve ne kadar kullanıldığı',
+      adminNetworks: 'Ödeme ağları', adminNetworksSub: 'Hangi ödemeler gerçek π (Mainnet) taşıdı, hangileri Test-Pi idi',
       connectedApps: 'Bağlı Uygulamalar', tecPlatform: 'TEC Platformu', piNetwork: 'Pi Network', connected: 'BAĞLI',
       quickActions: 'Hızlı İşlemler',
       assets: 'Varlıklar', assetsSub: 'Varlıklarınızı görün',

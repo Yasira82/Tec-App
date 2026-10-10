@@ -512,6 +512,7 @@ export const vi: typeof en = {
       kycNotStarted: 'Chưa bắt đầu — hoàn tất để mở khóa mọi tính năng',
       admin: 'Quản trị', adminKyc: 'Duyệt KYC', adminKycSub: 'Duyệt hoặc từ chối hồ sơ danh tính',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Ai đã cho trợ lý dùng dữ liệu Life, và mức độ sử dụng',
+      adminNetworks: 'Mạng thanh toán', adminNetworksSub: 'Khoản nào chuyển π thật (Mainnet), khoản nào là Test-Pi',
       connectedApps: 'Ứng dụng đã kết nối', tecPlatform: 'Nền tảng TEC', piNetwork: 'Pi Network', connected: 'ĐÃ KẾT NỐI',
       quickActions: 'Thao tác nhanh',
       assets: 'Tài sản', assetsSub: 'Xem tài sản của bạn',

@@ -512,6 +512,7 @@ export const es: typeof en = {
       kycNotStarted: 'Sin empezar — complétalo para desbloquear todas las funciones',
       admin: 'Admin', adminKyc: 'Revisión KYC', adminKycSub: 'Aprobar o rechazar envíos de identidad',
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Quién dio al asistente datos de Life y cuánto se usa',
+      adminNetworks: 'Redes de pago', adminNetworksSub: 'Qué pagos movieron π real (Mainnet) y cuáles fueron Test-Pi',
       connectedApps: 'Apps conectadas', tecPlatform: 'Plataforma TEC', piNetwork: 'Pi Network', connected: 'CONECTADO',
       quickActions: 'Acciones rápidas',
       assets: 'Activos', assetsSub: 'Ver tus activos',

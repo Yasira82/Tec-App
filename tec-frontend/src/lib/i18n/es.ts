@@ -514,6 +514,7 @@ export const es: typeof en = {
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Quién dio al asistente datos de Life y cuánto se usa',
       adminNetworks: 'Redes de pago', adminNetworksSub: 'Qué pagos movieron π real (Mainnet) y cuáles fueron Test-Pi',
       adminVoid: 'Saldos sin respaldo', adminVoidSub: 'Revertir saldos TEC sin una venta detrás — primero una simulación',
+      adminMerge: 'Cuentas duplicadas', adminMergeSub: 'Mover productos y pedidos de cuentas duplicadas a la más antigua — primero una simulación',
       connectedApps: 'Apps conectadas', tecPlatform: 'Plataforma TEC', piNetwork: 'Pi Network', connected: 'CONECTADO',
       quickActions: 'Acciones rápidas',
       assets: 'Activos', assetsSub: 'Ver tus activos',

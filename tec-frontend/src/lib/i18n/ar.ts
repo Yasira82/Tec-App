@@ -522,6 +522,7 @@ export const ar = {
       adminLifeAi: 'Life + الذكاء الاصطناعي', adminLifeAiSub: 'مين سمح للمساعد يقرأ بيانات Life، وقد إيه بيتستخدم',
       adminNetworks: 'شبكات المدفوعات', adminNetworksSub: 'أي المدفوعات نقلت π حقيقية (Mainnet) وأيها كانت Test-Pi',
       adminVoid: 'أرصدة بلا غطاء', adminVoidSub: 'إلغاء أرصدة TEC اللي مالهاش مبيعات وراها — تجربة أولًا',
+      adminMerge: 'دمج الحسابات المكررة', adminMergeSub: 'نقل منتجات وطلبات الحسابات المكررة لأقدم حساب — تجربة أولًا',
       connectedApps: 'التطبيقات المتصلة', tecPlatform: 'منصة TEC', piNetwork: 'شبكة Pi', connected: 'متصل',
       quickActions: 'إجراءات سريعة',
       assets: 'الأصول', assetsSub: 'عرض أصولك',

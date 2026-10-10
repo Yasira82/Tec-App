@@ -514,6 +514,7 @@ export const tr: typeof en = {
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Asistana kimin Life verisi verdiği ve ne kadar kullanıldığı',
       adminNetworks: 'Ödeme ağları', adminNetworksSub: 'Hangi ödemeler gerçek π (Mainnet) taşıdı, hangileri Test-Pi idi',
       adminVoid: 'Karşılıksız bakiyeler', adminVoidSub: 'Arkasında satış olmayan TEC bakiyelerini geri al — önce deneme',
+      adminMerge: 'Yinelenen hesaplar', adminMergeSub: 'Yinelenen hesapların ürün ve siparişlerini en eski hesaba taşı — önce deneme',
       connectedApps: 'Bağlı Uygulamalar', tecPlatform: 'TEC Platformu', piNetwork: 'Pi Network', connected: 'BAĞLI',
       quickActions: 'Hızlı İşlemler',
       assets: 'Varlıklar', assetsSub: 'Varlıklarınızı görün',

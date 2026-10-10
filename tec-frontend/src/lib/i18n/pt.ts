@@ -515,6 +515,7 @@ export const pt: typeof en = {
       adminNetworks: 'Redes de pagamento', adminNetworksSub: 'Quais pagamentos moveram π real (Mainnet) e quais foram Test-Pi',
       adminVoid: 'Saldos sem lastro', adminVoidSub: 'Reverter saldos TEC sem venda por trás — primeiro uma simulação',
       adminMerge: 'Contas duplicadas', adminMergeSub: 'Mover produtos e pedidos de contas duplicadas para a mais antiga — primeiro uma simulação',
+      adminOwed: 'Devido aos vendedores', adminOwedSub: 'O que os vendedores podem sacar vs. a carteira do Hub — somente leitura',
       connectedApps: 'Apps conectados', tecPlatform: 'Plataforma TEC', piNetwork: 'Pi Network', connected: 'CONECTADO',
       quickActions: 'Ações rápidas',
       assets: 'Ativos', assetsSub: 'Ver seus ativos',

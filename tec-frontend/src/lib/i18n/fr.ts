@@ -515,6 +515,7 @@ export const fr: typeof en = {
       adminNetworks: 'Réseaux de paiement', adminNetworksSub: 'Quels paiements ont déplacé du vrai π (Mainnet) et lesquels étaient du Test-Pi',
       adminVoid: 'Soldes sans contrepartie', adminVoidSub: 'Annuler les soldes TEC sans vente derrière — simulation d’abord',
       adminMerge: 'Comptes en double', adminMergeSub: 'Déplacer produits et commandes des comptes en double vers le plus ancien — simulation d’abord',
+      adminOwed: 'Dû aux vendeurs', adminOwedSub: 'Ce que les vendeurs peuvent retirer face au portefeuille du Hub — lecture seule',
       connectedApps: 'Applications connectées', tecPlatform: 'Plateforme TEC', piNetwork: 'Pi Network', connected: 'CONNECTÉ',
       quickActions: 'Actions rapides',
       assets: 'Actifs', assetsSub: 'Voir vos actifs',

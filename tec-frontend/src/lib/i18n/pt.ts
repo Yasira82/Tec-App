@@ -220,6 +220,21 @@ export const pt: typeof en = {
       loadFailed: 'Não foi possível carregar o saldo', retry: 'Tentar novamente', viewTransactions: 'Ver transações',
       internalBalance: 'Saldo interno do TEC',
       notPiWallet: 'Não é sua carteira da Pi Network · não pode ser sacado para a Pi Network.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Não é sua carteira da Pi Network · você pode sacar para sua carteira Pi.',
+      withdraw: {
+        button: 'Sacar para a Pi Network',
+        amount: 'Valor (π)',
+        limits: 'Até {max} π por saque · restam {left} π hoje',
+        confirm: 'Entre com Pi e saque',
+        working: 'Confirmando com a Pi…',
+        done: '{amount} π enviados para sua carteira Pi.',
+        pending: 'Um saque ainda está sendo confirmado.',
+        cancel: 'Cancelar',
+        invalid: 'Informe um valor de até {max} π (máx. 7 casas decimais).',
+        failed: 'Não foi possível concluir o saque. Seu saldo não mudou.',
+      },
       send: 'Enviar', receive: 'Receber', history: 'Histórico',
       internalOnly: 'Enviar / Receber movem π apenas entre contas TEC.',
       market24h: 'Mercado 24 h',

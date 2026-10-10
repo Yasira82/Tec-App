@@ -220,6 +220,21 @@ export const ko: typeof en = {
       loadFailed: '잔액을 불러오지 못했습니다', retry: '다시 시도', viewTransactions: '거래 보기',
       internalBalance: 'TEC 내부 잔액',
       notPiWallet: 'Pi Network 지갑이 아닙니다 · Pi Network로 인출할 수 없습니다.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Pi Network 지갑이 아닙니다 · Pi 지갑으로 출금할 수 있습니다.',
+      withdraw: {
+        button: 'Pi Network로 출금',
+        amount: '금액 (π)',
+        limits: '1회 최대 {max} π · 오늘 남은 한도 {left} π',
+        confirm: 'Pi로 로그인하고 출금',
+        working: 'Pi와 확인 중…',
+        done: '{amount} π를 Pi 지갑으로 보냈습니다.',
+        pending: '확인 중인 출금이 있습니다.',
+        cancel: '취소',
+        invalid: '{max} π 이하 금액을 입력하세요 (소수점 최대 7자리).',
+        failed: '출금을 완료하지 못했습니다. 잔액은 그대로입니다.',
+      },
       send: '보내기', receive: '받기', history: '내역',
       internalOnly: '보내기 / 받기는 TEC 계정 사이에서만 π를 옮깁니다.',
       market24h: '24시간 시세',

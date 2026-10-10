@@ -246,6 +246,21 @@ export const en = {
       // balance and there is no withdrawal path (payment-service is the only Pi
       // custodian — C-47 Invariant #8). It must read as plainly in Arabic.
       notPiWallet: 'Not your Pi Network wallet · not withdrawable to Pi Network.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Not your Pi Network wallet · you can withdraw it to your Pi wallet.',
+      withdraw: {
+        button: 'Withdraw to Pi Network',
+        amount: 'Amount (π)',
+        limits: 'Up to {max} π per withdrawal · {left} π left today',
+        confirm: 'Sign in with Pi and withdraw',
+        working: 'Confirming with Pi…',
+        done: 'Sent {amount} π to your Pi wallet.',
+        pending: 'A withdrawal is still being confirmed.',
+        cancel: 'Cancel',
+        invalid: 'Enter an amount up to {max} π (at most 7 decimals).',
+        failed: 'The withdrawal could not be completed. Your balance was not changed.',
+      },
       send: 'Send', receive: 'Receive', history: 'History',
       internalOnly: 'Send / Receive move π between TEC accounts only.',
       // The 24h line. Labelled as a MARKET move, not as profit: it is what the

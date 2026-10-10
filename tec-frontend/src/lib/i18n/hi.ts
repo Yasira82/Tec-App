@@ -220,6 +220,21 @@ export const hi: typeof en = {
       loadFailed: 'बैलेंस लोड नहीं हो सका', retry: 'फिर से प्रयास करें', viewTransactions: 'लेन-देन देखें',
       internalBalance: 'TEC आंतरिक बैलेंस',
       notPiWallet: 'यह आपका Pi Network वॉलेट नहीं है · Pi Network पर निकाला नहीं जा सकता।',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'यह आपका Pi Network वॉलेट नहीं है · आप इसे अपने Pi वॉलेट में निकाल सकते हैं।',
+      withdraw: {
+        button: 'Pi Network में निकालें',
+        amount: 'राशि (π)',
+        limits: 'हर निकासी में अधिकतम {max} π · आज बाकी {left} π',
+        confirm: 'Pi से साइन इन करें और निकालें',
+        working: 'Pi से पुष्टि हो रही है…',
+        done: '{amount} π आपके Pi वॉलेट में भेजे गए।',
+        pending: 'एक निकासी की पुष्टि अभी बाकी है।',
+        cancel: 'रद्द करें',
+        invalid: '{max} π तक की राशि दर्ज करें (अधिकतम 7 दशमलव)।',
+        failed: 'निकासी पूरी नहीं हो सकी। आपका बैलेंस नहीं बदला।',
+      },
       send: 'भेजें', receive: 'प्राप्त करें', history: 'इतिहास',
       internalOnly: 'भेजें / प्राप्त करें केवल TEC खातों के बीच π स्थानांतरित करते हैं।',
       market24h: '24 घंटे का बाज़ार',

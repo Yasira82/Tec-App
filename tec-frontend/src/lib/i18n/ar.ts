@@ -219,6 +219,21 @@ export const ar = {
       loadFailed: 'تعذّر تحميل الرصيد', retry: 'إعادة المحاولة', viewTransactions: 'عرض المعاملات',
       internalBalance: 'رصيد TEC الداخلي',
       notPiWallet: 'هذه ليست محفظة Pi Network الخاصة بك · ولا يمكن سحبها إلى Pi Network.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'هذه ليست محفظة Pi Network الخاصة بك · يمكنك سحبها إلى محفظة Pi.',
+      withdraw: {
+        button: 'سحب إلى Pi Network',
+        amount: 'المبلغ (π)',
+        limits: 'حتى {max} π في كل سحب · متبقٍ اليوم {left} π',
+        confirm: 'سجّل الدخول بـ Pi واسحب',
+        working: 'جارٍ التأكيد مع Pi…',
+        done: 'تم إرسال {amount} π إلى محفظة Pi الخاصة بك.',
+        pending: 'هناك عملية سحب ما زالت قيد التأكيد.',
+        cancel: 'إلغاء',
+        invalid: 'أدخل مبلغًا حتى {max} π (بحد أقصى 7 أرقام عشرية).',
+        failed: 'تعذّر إتمام السحب. لم يتغير رصيدك.',
+      },
       send: 'إرسال', receive: 'استقبال', history: 'السجل',
       internalOnly: 'الإرسال والاستقبال ينقلان π بين حسابات TEC فقط.',
       market24h: 'حركة ٢٤ ساعة',

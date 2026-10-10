@@ -220,6 +220,21 @@ export const zh: typeof en = {
       loadFailed: '无法加载余额', retry: '重试', viewTransactions: '查看交易',
       internalBalance: 'TEC 内部余额',
       notPiWallet: '这不是您的 Pi Network 钱包 · 无法提现到 Pi Network。',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: '这不是您的 Pi Network 钱包 · 您可以将其提现到 Pi 钱包。',
+      withdraw: {
+        button: '提现到 Pi Network',
+        amount: '金额 (π)',
+        limits: '每次最多 {max} π · 今日剩余 {left} π',
+        confirm: '使用 Pi 登录并提现',
+        working: '正在与 Pi 确认…',
+        done: '已向您的 Pi 钱包发送 {amount} π。',
+        pending: '有一笔提现仍在确认中。',
+        cancel: '取消',
+        invalid: '请输入不超过 {max} π 的金额（最多 7 位小数）。',
+        failed: '提现未能完成。您的余额未变。',
+      },
       send: '发送', receive: '接收', history: '记录',
       internalOnly: '发送 / 接收只在 TEC 账户之间转移 π。',
       market24h: '24 小时行情',

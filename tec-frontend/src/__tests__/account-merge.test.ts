@@ -14,6 +14,8 @@ describe('account-merge', () => {
     const merge = read('src/app/api/admin/account-merge/route.ts');
     expect(merge).toContain('/api/commerce/admin/account-merge');
     expect(merge).toContain('/api/assets/admin/account-merge');
+    expect(merge).toContain('/api/kyc/admin/account-merge');
+    expect(merge).toContain('/api/notification/admin/account-merge');
     // the service is picked from a fixed list, never a path from the caller
     expect(merge).toMatch(/Object\.hasOwn\(SERVICES, service\)/);
     expect(merge).toMatch(/JSON\.stringify\(\{ username, confirm \}\)/);

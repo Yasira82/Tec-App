@@ -19,7 +19,7 @@ interface Group { username: string; canonical: string; duplicates: string[] }
 interface Conflict { table: string; id: string; reason: string }
 interface Report { group: Group; moved: Record<string, number>; conflicts: Conflict[] }
 /** Each service merges the rows it owns; the page asks each one. */
-const SERVICES = ['commerce', 'assets'] as const;
+const SERVICES = ['commerce', 'assets', 'kyc', 'notifications'] as const;
 type Service = typeof SERVICES[number];
 type PerService = Partial<Record<Service, Report | { error: string }>>;
 const isReport = (r: Report | { error: string } | undefined): r is Report => !!r && 'moved' in r;
@@ -108,7 +108,7 @@ export default function AccountMergePage() {
       ) : (
         <div>
           <div style={{ fontSize: 12, color: 'var(--tec-text-3)', marginBottom: 'var(--sp-4)', lineHeight: 1.5 }}>
-            Sign-in already lands on the oldest account. This moves what each service keeps under the others to it — commerce (products, orders, reviews, referrals, seller payouts, plans) and assets (ownership, listings). Payment records are history and stay as they are.
+            Sign-in already lands on the oldest account. This moves what each service keeps under the others to it — commerce (products, orders, reviews, referrals, seller payouts, plans), assets (ownership, listings), kyc (the most advanced record) and notifications (inbox, devices, settings). Payment records are history and stay as they are.
           </div>
           {error && <div style={{ fontSize: 12, color: 'var(--tec-red)', marginBottom: 'var(--sp-3)' }}>{error}</div>}
           {groups && groups.length === 0 && <div style={{ fontSize: 13, color: 'var(--tec-green)' }}>No Pioneer has more than one account.</div>}

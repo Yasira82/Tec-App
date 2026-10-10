@@ -15,6 +15,8 @@ const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 const SERVICES: Record<string, string> = {
   commerce: '/api/commerce/admin/account-merge',
   assets:   '/api/assets/admin/account-merge',
+  kyc:      '/api/kyc/admin/account-merge',
+  notifications: '/api/notification/admin/account-merge',
 };
 const URL_ = (req: NextRequest) => {
   const service = req.nextUrl.searchParams.get('service') ?? 'commerce';

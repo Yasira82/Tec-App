@@ -584,6 +584,7 @@ export const en = {
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Who granted the assistant Life data, and how much it is used',
       adminNetworks: 'Payment networks', adminNetworksSub: 'Which payments moved real π (Mainnet) and which were Test-Pi',
       adminVoid: 'Unbacked balances', adminVoidSub: 'Reverse TEC balances with no sale behind them — dry run first',
+      adminMerge: 'Duplicate accounts', adminMergeSub: 'Move a Pioneer\'s duplicate accounts\' products and orders to the oldest — dry run first',
       connectedApps: 'Connected Apps', tecPlatform: 'TEC Platform', piNetwork: 'Pi Network', connected: 'CONNECTED',
       quickActions: 'Quick Actions',
       assets: 'Assets', assetsSub: 'View your assets',

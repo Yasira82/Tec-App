@@ -220,6 +220,21 @@ export const vi: typeof en = {
       loadFailed: 'Không thể tải số dư', retry: 'Thử lại', viewTransactions: 'Xem giao dịch',
       internalBalance: 'Số dư nội bộ TEC',
       notPiWallet: 'Không phải ví Pi Network của bạn · không thể rút về Pi Network.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Không phải ví Pi Network của bạn · bạn có thể rút về ví Pi.',
+      withdraw: {
+        button: 'Rút về Pi Network',
+        amount: 'Số tiền (π)',
+        limits: 'Tối đa {max} π mỗi lần · hôm nay còn {left} π',
+        confirm: 'Đăng nhập bằng Pi và rút',
+        working: 'Đang xác nhận với Pi…',
+        done: 'Đã gửi {amount} π về ví Pi của bạn.',
+        pending: 'Một lệnh rút vẫn đang chờ xác nhận.',
+        cancel: 'Hủy',
+        invalid: 'Nhập số tiền tối đa {max} π (tối đa 7 chữ số thập phân).',
+        failed: 'Không thể hoàn tất lệnh rút. Số dư của bạn không thay đổi.',
+      },
       send: 'Gửi', receive: 'Nhận', history: 'Lịch sử',
       internalOnly: 'Gửi / Nhận chỉ chuyển π giữa các tài khoản TEC.',
       market24h: 'Thị trường 24 giờ',

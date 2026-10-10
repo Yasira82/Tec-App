@@ -9,6 +9,8 @@ import { CountUp }   from '@/components/ui/CountUp';
 import { Icon }      from '@/components/ui/Icon';
 import { formatTxDate, type Payment } from '@/lib/dashboard-data';
 import { paymentAppName, paymentKind, type PaymentKind } from '@/lib/hub/payment-app';
+import { useState } from 'react';
+import { WithdrawToPi } from './WithdrawToPi';
 
 interface Props {
   balance:         string;
@@ -31,6 +33,8 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, 
   const locale = dir === 'rtl' ? 'ar' : 'en';
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
+  // True once wallet-service says withdrawals are open for this account (#400).
+  const [canWithdraw, setCanWithdraw] = useState(false);
 
   // Fiat value of THIS balance, and what the last 24h of Pi's price did to it.
   // Null unless both halves are real: no price, no unloaded/failed balance, no
@@ -158,7 +162,7 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, 
               only Pi custodian — C-47 Invariant #8). Stating it plainly avoids any
               impression that this π can be moved to a Pi Network wallet. */}
           <div style={{ fontSize: 10, color: 'var(--tec-text-3)', lineHeight: 1.4, marginBottom: 8 }}>
-            {t.hub.wallet.notPiWallet}
+            {canWithdraw ? t.hub.wallet.withdrawableNote : t.hub.wallet.notPiWallet}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -237,6 +241,8 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, 
       }}>
         {t.hub.wallet.internalOnly}
       </div>
+      {/* To the person's own Pi wallet — renders nothing unless it is open for them. */}
+      <WithdrawToPi onOpenChange={setCanWithdraw} onDone={onRetryBalance} />
       </div>
     </div>
   );

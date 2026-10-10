@@ -220,6 +220,21 @@ export const ru: typeof en = {
       loadFailed: 'Не удалось загрузить баланс', retry: 'Повторить', viewTransactions: 'Смотреть транзакции',
       internalBalance: 'Внутренний баланс TEC',
       notPiWallet: 'Это не ваш кошелёк Pi Network · вывести в Pi Network нельзя.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Это не ваш кошелёк Pi Network · его можно вывести на ваш кошелёк Pi.',
+      withdraw: {
+        button: 'Вывести в Pi Network',
+        amount: 'Сумма (π)',
+        limits: 'До {max} π за вывод · сегодня осталось {left} π',
+        confirm: 'Войти через Pi и вывести',
+        working: 'Подтверждаем с Pi…',
+        done: '{amount} π отправлено на ваш кошелёк Pi.',
+        pending: 'Предыдущий вывод ещё подтверждается.',
+        cancel: 'Отмена',
+        invalid: 'Введите сумму до {max} π (не более 7 знаков после запятой).',
+        failed: 'Вывод не удался. Ваш баланс не изменился.',
+      },
       send: 'Отправить', receive: 'Получить', history: 'История',
       internalOnly: 'Отправка / получение перемещают π только между аккаунтами TEC.',
       market24h: 'Рынок за 24 ч',

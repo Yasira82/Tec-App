@@ -220,6 +220,21 @@ export const id: typeof en = {
       loadFailed: 'Tidak dapat memuat saldo', retry: 'Coba lagi', viewTransactions: 'Lihat transaksi',
       internalBalance: 'Saldo Internal TEC',
       notPiWallet: 'Bukan dompet Pi Network Anda · tidak dapat ditarik ke Pi Network.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Bukan dompet Pi Network Anda · Anda dapat menariknya ke dompet Pi.',
+      withdraw: {
+        button: 'Tarik ke Pi Network',
+        amount: 'Jumlah (π)',
+        limits: 'Maks {max} π per penarikan · sisa hari ini {left} π',
+        confirm: 'Masuk dengan Pi dan tarik',
+        working: 'Mengonfirmasi dengan Pi…',
+        done: '{amount} π telah dikirim ke dompet Pi Anda.',
+        pending: 'Ada penarikan yang masih dikonfirmasi.',
+        cancel: 'Batal',
+        invalid: 'Masukkan jumlah hingga {max} π (maks 7 desimal).',
+        failed: 'Penarikan tidak dapat diselesaikan. Saldo Anda tidak berubah.',
+      },
       send: 'Kirim', receive: 'Terima', history: 'Riwayat',
       internalOnly: 'Kirim / Terima hanya memindahkan π antar akun TEC.',
       market24h: 'Pasar 24 jam',

@@ -220,6 +220,21 @@ export const tr: typeof en = {
       loadFailed: 'Bakiye yüklenemedi', retry: 'Tekrar dene', viewTransactions: 'İşlemleri gör',
       internalBalance: 'TEC Dahili Bakiye',
       notPiWallet: 'Pi Network cüzdanınız değildir · Pi Network’e çekilemez.',
+      // TEC balance → the person's own Pi wallet (tec-core-backend #400). Shown only
+      // when withdrawals are open for this account; notPiWallet stays the default.
+      withdrawableNote: 'Pi Network cüzdanınız değildir · Pi cüzdanınıza çekebilirsiniz.',
+      withdraw: {
+        button: 'Pi Network’e çek',
+        amount: 'Tutar (π)',
+        limits: 'Çekim başına en fazla {max} π · bugün kalan {left} π',
+        confirm: 'Pi ile giriş yap ve çek',
+        working: 'Pi ile doğrulanıyor…',
+        done: '{amount} π Pi cüzdanınıza gönderildi.',
+        pending: 'Bir çekim hâlâ doğrulanıyor.',
+        cancel: 'İptal',
+        invalid: 'En fazla {max} π girin (en fazla 7 ondalık).',
+        failed: 'Çekim tamamlanamadı. Bakiyeniz değişmedi.',
+      },
       send: 'Gönder', receive: 'Al', history: 'Geçmiş',
       internalOnly: 'Gönder / Al yalnızca TEC hesapları arasında π taşır.',
       market24h: '24 saatlik piyasa',

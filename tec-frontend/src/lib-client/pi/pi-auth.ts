@@ -356,6 +356,20 @@ const authenticateWithTimeout = async (timeout?: number): Promise<PiAuthResult> 
   }));
 };
 
+/**
+ * A fresh Pi access token for THIS app (the Hub), for one money-out action.
+ *
+ * A withdrawal to Pi Network is paid to the Pi account Pi names for this token,
+ * in this app — Pi uids are app-local, so a stored one may belong to another of
+ * TEC's apps. Asking Pi now also proves the person is here. Same gate and scopes
+ * as sign-in, so it never widens a consent.
+ */
+export const getPiAccessToken = async (): Promise<string> => {
+  if (!isPiBrowser()) throw new Error(ERRORS.NOT_PI_BROWSER);
+  const { accessToken } = await authenticateWithTimeout();
+  return accessToken;
+};
+
 // ── Login with Pi ─────────────────────────────────────────
 /**
  * Which half of a sign-in is running — so the screen can say where it is.

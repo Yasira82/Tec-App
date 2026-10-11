@@ -8,6 +8,7 @@ import {
   loadConversation, saveConversation, archiveConversation, hasArchive,
   loadSettings, type AiSettings, type StoredTurn,
 } from '@/lib/ai-session';
+import { hydrate } from '@/lib-client/ai/history-sync';
 import type { ChatMessage }  from '@/lib/ai/chat-types';
 import type { Translations } from '@/lib/i18n';
 
@@ -89,6 +90,25 @@ export function useAiChat({ storeKey, open, t }: {
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => { if (open) setCanRestore(hasArchive(storeKey)); }, [open, storeKey]);
+
+  // The server's copy (C-104 §5.4): pulled once, when the assistant first opens, so a
+  // conversation follows the account — not the tab, not the device. It replaces what
+  // is on screen only if the person has not started anything since this mounted.
+  const mountLen  = useRef(messages.length);
+  const hydrated  = useRef(false);
+  useEffect(() => {
+    if (!open || hydrated.current) return;
+    hydrated.current = true;
+    let alive = true;
+    void hydrate(storeKey).then((turns) => {
+      if (!alive) return;
+      setCanRestore(hasArchive(storeKey));
+      if (!turns) return;
+      setMessages((cur) =>
+        cur.length !== mountLen.current || cur.some((m) => m.streaming) ? cur : (turns as ChatMessage[]));
+    });
+    return () => { alive = false; };
+  }, [open, storeKey]);
 
   // Persist after every settled change. A streaming reply is skipped inside
   // saveConversation — restoring a half-sentence would look like a broken answer.

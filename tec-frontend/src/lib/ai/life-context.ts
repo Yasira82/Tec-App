@@ -18,6 +18,11 @@
  * a refusal — never fill the gap). ACTIVITY is never served by the door and is
  * never asked for here.
  *
+ * BUDGET (C-106 §10 Phase 1, L1): the caps a person set per app for this month,
+ * when granted. They are LIMITS, not spending — payment-service owns what was
+ * spent, and the assistant is told it does not know it. A cap stays the string
+ * Life wrote (DECIMAL(20,8), C-47); one that is not a positive decimal is dropped.
+ *
  * Pure: no fetch here. The route fetches; this narrows what came back.
  */
 
@@ -33,8 +38,54 @@ export interface AiLifeContext {
   skills?: { name: string; level: SkillLevel }[];
   /** Their pace from their own logged steps, only when TRAJECTORY is granted AND Life calls it projectable. */
   pace?: { pi_per_week: number; active_days: number };
+  /** This month's self-declared caps per app, when BUDGET is granted — limits, never spending. */
+  budget?: AiLifeBudget;
   /** What they granted, so the prompt can say "not shared" instead of "none". */
   consent: Record<string, boolean>;
+}
+
+export interface AiLifeBudget {
+  /** UTC month, YYYY-MM. */
+  period: string;
+  /** cap_pi is a positive decimal string with at most 8 places — as Life stores it. */
+  caps:   { category: string; cap_pi: string }[];
+}
+
+const BUDGET_PERIOD   = /^\d{4}-(0[1-9]|1[0-2])$/;
+const BUDGET_CATEGORY = /^[a-z][a-z0-9_-]{0,31}$/;      // Life's own rule (identity-service)
+const BUDGET_CAP      = /^(?:0|[1-9]\d{0,11})(?:\.\d{1,8})?$/;
+const MAX_CAPS        = 12;
+
+/** Narrow a served budget; undefined when absent or its month is not a month. Shared with the token's re-narrowing. */
+export function narrowBudget(raw: unknown): AiLifeBudget | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
+  const b = raw as { period?: unknown; caps?: unknown };
+  if (typeof b.period !== 'string' || !BUDGET_PERIOD.test(b.period)) return undefined;
+  const caps = (Array.isArray(b.caps) ? b.caps : [])
+    .map((c) => {
+      const o = c as { category?: unknown; cap_pi?: unknown };
+      const ok = typeof o?.category === 'string' && BUDGET_CATEGORY.test(o.category)
+        && typeof o.cap_pi === 'string' && BUDGET_CAP.test(o.cap_pi) && Number(o.cap_pi) > 0;
+      return ok ? { category: o.category as string, cap_pi: o.cap_pi as string } : undefined;
+    })
+    .filter((c): c is { category: string; cap_pi: string } => c !== undefined)
+    .slice(0, MAX_CAPS);
+  return { period: b.period, caps };
+}
+
+/**
+ * The system-prompt line for a budget — empty when none was served. It says what
+ * the caps are (their own limits) and what the assistant does not know (spending).
+ */
+export function budgetPromptLine(budget: AiLifeBudget | undefined): string {
+  if (!budget) return '';
+  if (!budget.caps.length) {
+    return `- Budget (Life): shared, but no caps set for ${budget.period}. If money planning comes up, they can set a monthly cap per app in Life → Budget.`;
+  }
+  const caps = budget.caps.map((c) => `${c.category} ≤ ${c.cap_pi} π`).join('; ');
+  return `- Budget caps they set in Life for ${budget.period} (their own limits, not spending): ${caps}. `
+    + 'You do not know what they spent — Life shows it beside each cap on its Home; point there for it. '
+    + 'Use the caps to help them stay inside their own plan; never shame, never invent a total.';
 }
 
 const str = (v: unknown): string | undefined => (typeof v === 'string' && v.trim() ? v.trim() : undefined);
@@ -48,7 +99,7 @@ export function lifeContextToAi(payload: unknown): AiLifeContext {
     const o = c as { category?: unknown; granted?: unknown };
     if (typeof o.category === 'string') consent[o.category] = o.granted === true;
   }
-  const ctx = (r.context ?? {}) as { goals?: unknown; preferences?: unknown; skills?: unknown; trajectory?: unknown };
+  const ctx = (r.context ?? {}) as { goals?: unknown; preferences?: unknown; skills?: unknown; trajectory?: unknown; budget?: unknown };
   // A category that is absent from the context was not served — denied, or
   // nothing there. Never read a table the service did not hand over.
   const goals = (Array.isArray(ctx.goals) ? ctx.goals : [])
@@ -75,5 +126,5 @@ export function lifeContextToAi(payload: unknown): AiLifeContext {
     ? { pi_per_week: perWeek, active_days: days }
     : undefined;
 
-  return { goals, focus: str(prefs.focus), skills, pace, consent };
+  return { goals, focus: str(prefs.focus), skills, pace, budget: narrowBudget(ctx.budget), consent };
 }

@@ -1,4 +1,5 @@
 import { PiAuthResult, TecAuthResponse, PiPaymentData, PiPaymentCallbacks } from '@/types/pi.types';
+import { forgetAllConversations } from '@/lib/ai-session';
 import sdk from '@/lib/sdk';
 import { tecSession } from '@/lib-client/pi/tec-session';
 import { piSession }  from '@/lib-client/pi/pi-session';
@@ -75,6 +76,9 @@ export const getStoredUser = () => {
 };
 
 export const logout = async () => {
+  // Conversations with TEC AI are kept on the device for a signed-in person
+  // (lib/ai-session.ts). Signing out is the moment a phone may change hands.
+  forgetAllConversations();
   tecSession.clear();
   try {
     await fetch('/api/auth/logout', {

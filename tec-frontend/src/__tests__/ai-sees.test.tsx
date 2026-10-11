@@ -21,8 +21,17 @@ describe('what TEC AI sees', () => {
   it('goals shared, with the count; skills not shared; pace shared', async () => {
     open({ life: 'read', consent: { GOALS: true, SKILLS: false, TRAJECTORY: true }, goals: 3, skills: null, pace: false });
     await waitFor(() => expect(screen.getByText(/shared · 3/)).toBeTruthy());
-    expect(screen.getByText(/not shared/)).toBeTruthy();
+    // Skills and Budget are both off here — each row says so on its own.
+    expect(screen.getAllByText(/not shared/)).toHaveLength(2);
     expect(screen.getByText(/Life → Privacy/)).toBeTruthy();
+  });
+
+  it('budget shared: the number of caps set this month — the caps themselves stay in Life', async () => {
+    open({ life: 'read', consent: { BUDGET: true }, goals: 0, skills: null, pace: false, budget: 2 });
+    await waitFor(() => expect(screen.getByText('Budget')).toBeTruthy());
+    const row = screen.getByText('Budget').parentElement as HTMLElement;
+    expect(row.textContent).toMatch(/shared · 2/);
+    expect(row.textContent).not.toMatch(/π/);
   });
 
   it('shared but empty is not the same as not shared', async () => {

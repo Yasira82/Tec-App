@@ -4,6 +4,7 @@ import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 import { checkRateLimit, checkAttachmentAllowance } from '@/lib/ai/rate-limit';
 import { parseAttachments, claudeContent, geminiParts, attachmentNote, ATTACHMENTS_PER_DAY, type Attachment } from '@/lib/ai/attachments';
 import { verifyContext }     from '@/lib/ai/context-token';
+import { budgetPromptLine, type AiLifeBudget } from '@/lib/ai/life-context';
 import { resolveReplyLanguage, replyLanguageLine, type ReplyLanguage } from '@/lib/ai/reply-language';
 import { LOCALE_CODES } from '@/lib/locales';
 import { observeIntent }     from '@/lib/ai/intent-observation';
@@ -105,6 +106,8 @@ interface UserContext {
   /** A1 — from Life's consent door: the ladder word per skill, and a pace only when Life calls it projectable. */
   skills?:      { name: string; level: string }[];
   pace?:        { pi_per_week: number; active_days: number };
+  /** Life's door, when BUDGET is granted: this month's caps — the person's limits, never their spending. */
+  budget?:      AiLifeBudget;
 }
 
 const buildSystemPrompt = (userContext?: UserContext) => {
@@ -158,6 +161,7 @@ ${goals.length || done.length || userContext?.contextMissing
     : ''}
 ${skillsLine}
 ${paceLine}
+${budgetPromptLine(userContext?.budget)}
 ${activityLine}
 ${userContext?.replyLanguage ? replyLanguageLine(userContext.replyLanguage) : ''}
 ${userContext?.replyLength === 'short'

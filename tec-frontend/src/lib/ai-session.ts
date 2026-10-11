@@ -55,6 +55,32 @@ function owner(): string | null {
   }
 }
 
+/** Whether a person (not a guest) is signed in — the server copy is theirs only then. */
+export function isSignedIn(): boolean { return owner() !== null; }
+
+// ── The server copy (C-104 §5.4) ──────────────────────────────────────────────
+// A signed-in person's conversations are also kept by identity-service, so they
+// follow the account, not the device. This file stays synchronous and local; a
+// SINK, installed by the client (lib-client/ai/history-sync.ts), mirrors every
+// change to the server. `muted` keeps the internal steps of one operation (a
+// restore archives and saves on the way) from being sent as separate operations.
+
+export interface ConversationSink {
+  save(key: string, turns: StoredTurn[]): void;
+  archive(key: string): void;
+  restore(key: string, id: string): void;
+  remove(key: string, id: string): void;
+  clear(key: string): void;
+}
+let sink: ConversationSink | null = null;
+let muted = false;
+export function setConversationSink(next: ConversationSink | null): void { sink = next; }
+const mirror = (f: (s: ConversationSink) => void): void => {
+  if (!sink || muted || !isSignedIn()) return;
+  try { f(sink); } catch { /* the device copy is already written — the server catches up next time */ }
+};
+const quietly = <T>(f: () => T): T => { const was = muted; muted = true; try { return f(); } finally { muted = was; } };
+
 /** Where `key` lives for whoever is signed in now. */
 function slot(key: string): { store: Storage; name: string } {
   const who = owner();
@@ -134,6 +160,7 @@ export function saveConversation(key: string, turns: StoredTurn[]): void {
     // reload would look like the assistant broke.
     const settled = turns.filter(t => t.text.trim());
     setItem(key, JSON.stringify(settled.slice(-MAX_TURNS)));
+    mirror(s => s.save(key, settled.slice(-MAX_TURNS)));
   } catch {
     /* quota, private mode, or storage disabled — forgetting beats crashing */
   }
@@ -205,6 +232,7 @@ export function archiveConversation(key: string): void {
   // Nothing worth keeping? Then leave the archive alone — clearing an empty thread must
   // not disturb conversations the user might still want back.
   if (!turns.length) { clearConversation(key); return; }
+  mirror(s => s.archive(key));
 
   writeArchives(key, [
     { id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -227,22 +255,45 @@ export function restoreArchive<T extends StoredTurn>(key: string, id: string): T
   const list  = readArchives(key);
   const found = list.find(a => a.id === id);
   if (!found) return [];
+  mirror(s => s.restore(key, id));
   // The live thread is archived first — restoring must never silently discard whatever
-  // the user is in the middle of.
-  archiveConversation(key);
-  saveConversation(key, found.turns);
-  writeArchives(key, readArchives(key).filter(a => a.id !== id));
+  // the user is in the middle of. One operation for the server, so its steps are muted.
+  quietly(() => {
+    archiveConversation(key);
+    saveConversation(key, found.turns);
+    writeArchives(key, readArchives(key).filter(a => a.id !== id));
+  });
   return found.turns as T[];
 }
 
 export function deleteArchive(key: string, id: string): void {
   writeArchives(key, readArchives(key).filter(a => a.id !== id));
+  mirror(s => s.remove(key, id));
 }
 
 /** Wipe everything this surface stored — live thread and every archive. */
 export function clearAll(key: string): void {
-  clearConversation(key);
+  quietly(() => clearConversation(key));
   try { removeItem(archiveKey(key)); } catch { /* already gone */ }
+  mirror(s => s.clear(key));
+}
+
+/**
+ * Replace the device copy with what the server holds — no mirroring back. Used when
+ * the assistant opens (the server is the person's record; the device is a cache).
+ * `archivesOnly` refreshes the list after an archive or restore, so its ids are the
+ * server's and a later restore or delete names the right row.
+ */
+export function replaceFromServer(key: string, live: StoredTurn[] | null, archives: ArchivedChat[], archivesOnly = false): void {
+  quietly(() => {
+    try {
+      if (!archivesOnly) {
+        if (live && live.length) setItem(key, JSON.stringify(live.slice(-MAX_TURNS)));
+        else removeItem(key);
+      }
+      writeArchives(key, archives);
+    } catch { /* storage disabled — the screen still shows what came back */ }
+  });
 }
 
 // ── Assistant settings ────────────────────────────────────────────────────────

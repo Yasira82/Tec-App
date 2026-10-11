@@ -78,6 +78,8 @@ interface Seen {
   goals:   number;
   skills:  number | null;
   pace:    boolean;
+  /** Caps served for this month; null = not served. Optional: an older BFF does not send it. */
+  budget?: number | null;
 }
 
 /**
@@ -118,11 +120,13 @@ function SeesBlock({ dict }: { dict: (typeof DICTIONARIES)['en'] }) {
     const g = seen.consent.GOALS === true;
     const k = seen.consent.SKILLS === true;
     const t = seen.consent.TRAJECTORY === true;
+    const b = seen.consent.BUDGET === true;
     content = (
       <>
         {row(cat.GOALS,  !g ? tr.seesNotShared : seen.goals ? tr.seesShared.replace('{n}', String(seen.goals)) : tr.seesNoneActive, g)}
         {row(cat.SKILLS, !k ? tr.seesNotShared : seen.skills ? tr.seesShared.replace('{n}', String(seen.skills)) : tr.seesNoneActive, k)}
         {row(cat.TRAJECTORY, t ? tr.seesOn : tr.seesNotShared, t)}
+        {row(cat.BUDGET, !b ? tr.seesNotShared : seen.budget ? tr.seesShared.replace('{n}', String(seen.budget)) : tr.seesNoneActive, b)}
         <p style={S.seesNote}>{tr.seesHow}</p>
       </>
     );

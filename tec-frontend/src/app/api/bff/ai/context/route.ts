@@ -1,6 +1,6 @@
 import { createHandler } from '@/lib/bff/createHandler';
 import { signContext }   from '@/lib/ai/context-token';
-import { lifeContextToAi, type SkillLevel } from '@/lib/ai/life-context';
+import { lifeContextToAi, type SkillLevel, type AiLifeBudget } from '@/lib/ai/life-context';
 
 /**
  * TEC AI — personalization context (C-104 reasoning input · C-121 pipeline).
@@ -82,6 +82,8 @@ export interface AiSeen {
   goals:   number;
   skills:  number | null;
   pace:    boolean;
+  /** Caps served for this month; null = BUDGET not served. */
+  budget:  number | null;
 }
 
 // Narrow, defensive extractors — backends evolve; never throw on a shape change.
@@ -97,6 +99,8 @@ export interface AiContext {
   /** A1 — what Life's door served when SKILLS / TRAJECTORY are granted (lib/ai/life-context.ts). */
   skills?:     { name: string; level: SkillLevel }[];
   pace?:       { pi_per_week: number; active_days: number };
+  /** Life's door, when BUDGET is granted: this month's caps per app — limits, never spending. */
+  budget?:     AiLifeBudget;
   /**
    * The same context, SIGNED for this caller — the only form `/api/ai/chat`
    * will accept (see lib/ai/context-token.ts).
@@ -131,6 +135,7 @@ export const GET = createHandler<Record<string, never>, AiContext>({
           activity:    c.activity,
           skills:      c.skills,
           pace:        c.pace,
+          budget:      c.budget,
         },
         ctx.userId,
         process.env.JWT_SECRET,
@@ -149,7 +154,7 @@ export const GET = createHandler<Record<string, never>, AiContext>({
     } catch { /* no username — the assistant greets generically */ }
 
     const out: AiContext = { username, kycVerified: ctx.kycVerified, goals: [] };
-    const notAsked: AiSeen = { life: 'not_asked', consent: {}, goals: 0, skills: null, pace: false };
+    const notAsked: AiSeen = { life: 'not_asked', consent: {}, goals: 0, skills: null, pace: false, budget: null };
     if (!gateway || !token) return { ...(await sealed(out)), seen: notAsked }; // fail-soft: base context only
 
     // Life is read through its CONSENT-GATED door only (lib/ai/life-context.ts):
@@ -172,6 +177,7 @@ export const GET = createHandler<Record<string, never>, AiContext>({
       goals:   life.goals.length,
       skills:  life.skills ? life.skills.length : null,
       pace:    !!life.pace,
+      budget:  life.budget ? life.budget.caps.length : null,
     };
     out.goals = life.goals;
     out.focus = life.focus;
@@ -179,6 +185,7 @@ export const GET = createHandler<Record<string, never>, AiContext>({
     // never a score, never the entry log (C-106 §11b: the door serves a pace).
     if (life.skills) out.skills = life.skills;
     if (life.pace)   out.pace   = life.pace;
+    if (life.budget) out.budget = life.budget;
 
     // Activity — own aggregates only (never presented to the AI as financial truth).
     const ov = (overviewRaw as { data?: Record<string, unknown> })?.data ?? (overviewRaw as Record<string, unknown>) ?? {};

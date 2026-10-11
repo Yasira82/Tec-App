@@ -1,5 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose';
-import { SKILL_LEVELS, type SkillLevel } from './life-context';
+import { SKILL_LEVELS, narrowBudget, type SkillLevel, type AiLifeBudget } from './life-context';
 
 /**
  * The AI's personal context, signed by the server that assembled it.
@@ -74,6 +74,8 @@ export interface AiContextClaims {
   skills?:     { name: string; level: SkillLevel }[];
   /** A1 — from Life's door when TRAJECTORY is granted and Life calls it projectable. */
   pace?:       { pi_per_week: number; active_days: number };
+  /** From Life's door when BUDGET is granted: this month's caps — limits, never spending. */
+  budget?:     AiLifeBudget;
 }
 
 /** Mint a context token for ONE user. Returns null if signing is not possible. */
@@ -157,6 +159,7 @@ export async function verifyContext(
           ? { pi_per_week: p.pi_per_week, active_days: p.active_days }
           : undefined;
       })(),
+      budget: narrowBudget(c.budget),
     };
   } catch {
     return null;

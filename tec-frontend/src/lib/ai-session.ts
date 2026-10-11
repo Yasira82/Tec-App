@@ -5,11 +5,19 @@
  * reloads — you ask a question, navigate to the app it recommended, come back, and the
  * thread is gone. For an assistant that is the single largest quality gap.
  *
- * **sessionStorage, deliberately — not localStorage.** A transcript is personal content:
- * it can name goals, balances, and what the user is trying to do. sessionStorage dies
- * with the tab, so a shared or borrowed device does not hand the next person a history.
- * It is also not a token, so it does not touch the ADR-001 rule (tokens are cookie-only,
- * never storage) — but it is close enough to that line to be worth stating.
+ * **Where it is kept.** A transcript is personal content: it can name goals, balances,
+ * and what the user is trying to do.
+ *
+ *   - A SIGNED-IN person: localStorage, under a key scoped to their account. It used to be
+ *     sessionStorage for everyone, and Pi Browser closes tabs freely — the owner lost every
+ *     conversation (2026-10-11). Scoped per account, one person never sees another's on a
+ *     shared phone; they review and delete them from the assistant's menu (restore · delete
+ *     one · clear all); and signing out wipes every conversation on the device
+ *     (`forgetAllConversations`, called by `logout()`).
+ *   - A GUEST: sessionStorage, as before — nothing outlives the tab without an account.
+ *
+ * It is not a token, so it does not touch the ADR-001 rule (tokens are cookie-only, never
+ * storage) — but it is close enough to that line to be worth stating.
  *
  * Every access is wrapped: Pi Browser and private modes can make storage throw on read
  * OR write, and a chat assistant that crashes because it could not save a draft is worse
@@ -20,6 +28,82 @@
 import { isLocaleCode, type LocaleCode } from '@/lib/locales';
 const MAX_TURNS = 40;
 
+/** The two surfaces that store conversations. Every key this file writes starts with one. */
+const SURFACES = ['tec_ai_page', 'tec_ai_drawer'] as const;
+
+/**
+ * The signed-in account, from the `tec_user` cookie — or null for a guest. Read here and
+ * not from a hook so storage stays a plain function. Decoded until it parses: a cookie
+ * written before 2026-10-10 was encoded twice.
+ */
+function owner(): string | null {
+  try {
+    const row = document.cookie.split('; ').find(r => r.startsWith('tec_user='));
+    if (!row) return null;
+    let v = row.slice('tec_user='.length);
+    for (let i = 0; i < 3; i++) {
+      try {
+        const u = JSON.parse(v) as { id?: unknown; piUsername?: unknown };
+        const id = typeof u?.id === 'string' && u.id ? u.id
+                 : typeof u?.piUsername === 'string' && u.piUsername ? u.piUsername : null;
+        return id;
+      } catch { v = decodeURIComponent(v); }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+/** Where `key` lives for whoever is signed in now. */
+function slot(key: string): { store: Storage; name: string } {
+  const who = owner();
+  return who ? { store: localStorage, name: `${key}@${who}` } : { store: sessionStorage, name: key };
+}
+
+function getItem(key: string): string | null {
+  const { store, name } = slot(key);
+  const v = store.getItem(name);
+  if (v !== null || store === sessionStorage) return v;
+  // Signed in, nothing on the device yet: a conversation kept only in this tab (before
+  // this change, or from before signing in) moves to the device instead of vanishing.
+  const tabOnly = sessionStorage.getItem(key);
+  if (tabOnly !== null) {
+    store.setItem(name, tabOnly);
+    sessionStorage.removeItem(key);
+  }
+  return tabOnly;
+}
+function setItem(key: string, value: string): void {
+  const { store, name } = slot(key);
+  store.setItem(name, value);
+}
+function removeItem(key: string): void {
+  const { store, name } = slot(key);
+  store.removeItem(name);
+  if (store !== sessionStorage) sessionStorage.removeItem(key);
+}
+
+/**
+ * Every conversation on this device, for every account — live threads and archives —
+ * and nothing else (settings, carts and other keys are left alone). Called on sign-out.
+ */
+export function forgetAllConversations(): void {
+  for (const store of [() => localStorage, () => sessionStorage]) {
+    try {
+      const s = store();
+      const doomed: string[] = [];
+      for (let i = 0; i < s.length; i++) {
+        const k = s.key(i);
+        if (k && SURFACES.some(p => k === p || k.startsWith(`${p}@`) || k.startsWith(`${p}:`))) doomed.push(k);
+      }
+      doomed.forEach(k => s.removeItem(k));
+    } catch {
+      /* storage disabled — there is nothing kept to forget */
+    }
+  }
+}
+
 export interface StoredTurn {
   role: string;
   text: string;
@@ -27,7 +111,7 @@ export interface StoredTurn {
 
 export function loadConversation<T extends StoredTurn>(key: string): T[] {
   try {
-    const raw = sessionStorage.getItem(key);
+    const raw = getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -49,7 +133,7 @@ export function saveConversation(key: string, turns: StoredTurn[]): void {
     // A reply still being streamed is not saved mid-flight — a half-sentence restored on
     // reload would look like the assistant broke.
     const settled = turns.filter(t => t.text.trim());
-    sessionStorage.setItem(key, JSON.stringify(settled.slice(-MAX_TURNS)));
+    setItem(key, JSON.stringify(settled.slice(-MAX_TURNS)));
   } catch {
     /* quota, private mode, or storage disabled — forgetting beats crashing */
   }
@@ -57,7 +141,7 @@ export function saveConversation(key: string, turns: StoredTurn[]): void {
 
 export function clearConversation(key: string): void {
   try {
-    sessionStorage.removeItem(key);
+    removeItem(key);
   } catch {
     /* nothing to do — the caller has already cleared its own state */
   }
@@ -68,8 +152,8 @@ export function clearConversation(key: string): void {
 // with no way back. Starting a new chat is not the same intent as destroying the old one.
 //
 // This is now a real LIST, not a single slot: the menu shows past conversations and any
-// one of them can be restored. Still sessionStorage, still tab-scoped — the reasoning at
-// the top of this file applies to an archive exactly as it applies to a live thread.
+// one of them can be restored. Kept exactly where the live thread is kept (see the top of
+// this file) — the same account scope, the same wipe on sign-out.
 
 /** How many past conversations are kept. Old ones fall off the end. */
 const MAX_ARCHIVES = 10;
@@ -87,7 +171,7 @@ const archiveKey = (key: string) => `${key}:archive`;
 
 function readArchives(key: string): ArchivedChat[] {
   try {
-    const raw = sessionStorage.getItem(archiveKey(key));
+    const raw = getItem(archiveKey(key));
     if (!raw) return [];
     const parsed = JSON.parse(raw) as unknown;
     if (!Array.isArray(parsed)) return [];
@@ -102,7 +186,7 @@ function readArchives(key: string): ArchivedChat[] {
 
 function writeArchives(key: string, list: ArchivedChat[]): void {
   try {
-    sessionStorage.setItem(archiveKey(key), JSON.stringify(list.slice(0, MAX_ARCHIVES)));
+    setItem(archiveKey(key), JSON.stringify(list.slice(0, MAX_ARCHIVES)));
   } catch {
     /* quota or storage disabled — losing an archive beats crashing the assistant */
   }
@@ -158,7 +242,7 @@ export function deleteArchive(key: string, id: string): void {
 /** Wipe everything this surface stored — live thread and every archive. */
 export function clearAll(key: string): void {
   clearConversation(key);
-  try { sessionStorage.removeItem(archiveKey(key)); } catch { /* already gone */ }
+  try { removeItem(archiveKey(key)); } catch { /* already gone */ }
 }
 
 // ── Assistant settings ────────────────────────────────────────────────────────

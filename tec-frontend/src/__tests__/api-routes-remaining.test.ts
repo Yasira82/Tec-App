@@ -78,6 +78,7 @@ function makeReq({
       },
     },
     json: async () => body ?? {},
+    text: async () => JSON.stringify(body ?? {}),
   } as unknown as NextRequest;
 }
 
@@ -122,6 +123,9 @@ describe('POST /api/ai/chat', () => {
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.GEMINI_API_KEY;
+    // These cases test the Hub's own copy (the fallback); the forward to tec-ai-service
+    // has its own spec (ai-service-forward.test.ts).
+    process.env.AI_SERVICE_CHAT = 'off';
     // outer beforeEach ran vi.resetAllMocks() — re-arm jwtVerify to resolve a user
     // id derived FROM the token (keeps the per-user rate limiter isolated per ip).
     mockJwtVerify.mockImplementation(async (token: string) => ({ payload: { sub: `user-${token}` } }));

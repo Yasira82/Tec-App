@@ -289,9 +289,11 @@ describe('AI chat route', () => {
     },
     cookies: { get: () => undefined },
     json: async () => opts.body ?? { messages: [{ role: 'user', content: 'Hello' }] },
+    text: async () => JSON.stringify(opts.body ?? { messages: [{ role: 'user', content: 'Hello' }] }),
   } as unknown as NextRequest);
 
   beforeEach(async () => {
+    process.env.AI_SERVICE_CHAT = 'off';   // the Hub's own copy; the forward has ai-service-forward.test.ts
     delete process.env.ANTHROPIC_API_KEY;
     delete process.env.GROQ_API_KEY;
     delete process.env.GEMINI_API_KEY;
@@ -459,6 +461,7 @@ describe('AI chat route', () => {
     const badReq = {
       ...makeAiReq({ ip: '10.1.0.9' }),
       json: async () => { throw new Error('bad json'); },
+      text: async () => '{ not json',
     } as unknown as NextRequest;
     const res = await POST(badReq);
     expect(res.status).toBe(500);

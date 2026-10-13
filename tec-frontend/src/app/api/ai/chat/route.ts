@@ -633,9 +633,64 @@ function recordIntentObservation(
   })();
 }
 
+// ── tec-ai-service first ─────────────────────────────────
+/**
+ * TEC AI's reasoning now runs in tec-ai-service (`POST /identity/ai/chat`, reached through
+ * the gateway as `/api/identity/ai/chat`) — the same code as below, moved with its tests
+ * (tec-core-backend #419). This route forwards the request there first and passes the answer
+ * through as it streams.
+ *
+ * The code below stays as the fallback (owner, 2026-10-13: "the Hub falls back to its own
+ * code"). A reply is the service's ONLY when it carries `x-tec-ai: service`; anything else —
+ * the gateway cannot reach the service, the service is down, or it has no provider key yet
+ * (it answers NOT_CONFIGURED without the marker) — and this route answers by itself, exactly
+ * as before. So a broken service costs the user nothing but a moment.
+ *
+ * `AI_SERVICE_CHAT=off` skips the forward entirely.
+ */
+async function forwardToService(req: NextRequest, rawBody: string, corsHeaders: Record<string, string>): Promise<Response | null> {
+  const gateway = process.env.API_GATEWAY_URL;
+  if (!gateway || process.env.AI_SERVICE_CHAT === 'off') return null;
+  const bearer = req.headers.get('authorization')
+    ?? (req.cookies?.get?.('tec_access_token')?.value ? `Bearer ${req.cookies.get('tec_access_token')!.value}` : null);
+  if (!bearer) return null;   // no session — the local gate below answers SIGN_IN
+
+  try {
+    const res = await fetch(`${gateway.replace(/\/$/, '')}/api/identity/ai/chat`, {
+      method:  'POST',
+      headers: {
+        'Content-Type':  'application/json',
+        'authorization': bearer,
+        ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),
+      },
+      body:  rawBody,
+      cache: 'no-store',
+    });
+    if (res.headers.get('x-tec-ai') !== 'service') {
+      await res.body?.cancel().catch(() => undefined);
+      return null;
+    }
+    const headers: Record<string, string> = { ...corsHeaders };
+    for (const h of ['content-type', 'cache-control', 'retry-after', 'x-ai-provider', 'x-tec-ai']) {
+      const v = res.headers.get(h);
+      if (v) headers[h] = v;
+    }
+    return new NextResponse(res.body, { status: res.status, headers });
+  } catch (err) {
+    console.error('[AI] tec-ai-service unreachable — answering locally:', (err as Error)?.message);
+    return null;
+  }
+}
+
 // ── Main POST Handler ─────────────────────────────────────
 export async function POST(req: NextRequest) {
   const corsHeaders = getCorsHeaders(req);
+
+  // The body can be read once; the forward and the local path both need it.
+  // An unreadable body is answered by the local path below (500), as before.
+  const rawBody = await req.text().catch(() => '');
+  const fromService = await forwardToService(req, rawBody, corsHeaders);
+  if (fromService) return fromService;
 
   // ── Auth gate — logged-in TEC users only (protects the paid AI budget) ──
   const userId = await authenticate(req);
@@ -656,7 +711,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = JSON.parse(rawBody);
 
     const messages: Message[] = Array.isArray(body.messages) && body.messages.length > 0
       ? body.messages

@@ -75,6 +75,7 @@ async function ask() {
     headers:  { get: (h: string) => (h === 'authorization' ? `Bearer ${token}` : '') },
     cookies:  { get: () => undefined },
     json:     async () => ({ messages: [{ role: 'user', content: 'hi' }] }),
+    text:     async () => JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] }),
   } as unknown as import('next/server').NextRequest;
 
   return POST(req);

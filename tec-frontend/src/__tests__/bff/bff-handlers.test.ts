@@ -253,6 +253,26 @@ describe('GET /api/bff/payments/history', () => {
     const res  = await GET(makeReq({ token: 'tok', search: 'limit=10&sort=desc' }));
     expect(res.status).toBe(200);
   });
+
+  // The Hub's own wallet card asks with `?limit=3` and no sort. searchParams.get()
+  // answers null for an absent param, and zod's .default() fills only undefined —
+  // so every such call was a 400 (Vercel logs, 2026-10-16: "Validation error …
+  // fieldErrors: { sort }"). An absent param must mean the default.
+  it('an absent sort or limit takes the default instead of a 400', async () => {
+    authOk();
+    gatewayOk({ payments: [], total: 0 });
+    const res = await GET(makeReq({ token: 'tok', search: 'limit=3' }));
+    expect(res.status).toBe(200);
+    authOk();
+    gatewayOk({ payments: [], total: 0 });
+    expect((await GET(makeReq({ token: 'tok' }))).status).toBe(200);
+  });
+
+  it('a sort that is not asc/desc is still refused', async () => {
+    authOk();
+    const res = await GET(makeReq({ token: 'tok', search: 'sort=sideways' }));
+    expect(res.status).toBe(400);
+  });
 });
 
 // ────────────────────────────────────────────────────────────────

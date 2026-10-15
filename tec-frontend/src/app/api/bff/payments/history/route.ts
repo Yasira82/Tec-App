@@ -13,9 +13,11 @@ export const GET = createHandler({
   handler: async ({ ctx, req }) => {
     const token            = req.cookies.get('tec_access_token')?.value ?? '';
     const { searchParams } = req.nextUrl;
+    // `?? undefined`: get() answers null for an absent param, and .default() fills
+    // only undefined — so `?limit=3` alone (the Hub's wallet card) was a 400.
     const { limit, sort }  = QuerySchema.parse({
-      limit: searchParams.get('limit'),
-      sort:  searchParams.get('sort'),
+      limit: searchParams.get('limit') ?? undefined,
+      sort:  searchParams.get('sort')  ?? undefined,
     });
 
     const res = await fetch(

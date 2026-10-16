@@ -33,6 +33,9 @@ const mockSearchParamsGet   = vi.hoisted(() => vi.fn((_k: string) => null as str
 // fresh objects per render cause an infinite re-render loop.
 const stableRouter       = vi.hoisted(() => ({ push: vi.fn(), back: vi.fn(), replace: vi.fn() }));
 const stableSearchParams = vi.hoisted(() => ({ get: (k: string) => mockSearchParamsGet(k) }));
+// The wallet page's Pi-payments list fetches on its own; these tests queue fetch
+// answers for the wallet flows, so the list is stubbed out (it has its own spec).
+vi.mock('@/lib-client/hooks/useAppPayments', () => ({ useAppPayments: () => null, APP_PAYMENTS_LIMIT: 20 }));
 vi.mock('next/navigation', () => ({
   useRouter:       () => stableRouter,
   usePathname:     () => '/dashboard',

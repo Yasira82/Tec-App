@@ -2,7 +2,8 @@
  * Three Hub suggestions (owner, 2026-10-05):
  *
  *   1. what each app is for, under its name — a List view beside the Grid;
- *   2. the last Pi payments on the wallet card, each named by its app;
+ *   2. the last Pi payments, each named by its app — on the wallet page since
+ *      2026-10-16 (moved off the Hub card, owner);
  *   3. search — shown as a list, so a match on the description shows it.
  *
  * The rules pinned here are the ones a refactor would quietly break: the view
@@ -16,6 +17,8 @@ import { render, screen, fireEvent, waitFor } from '@/test-utils/render-with-loc
 import { renderHook } from '@testing-library/react';
 import { HubAppsGrid } from '@/components/hub/HubAppsGrid';
 import { HubWalletCard } from '@/components/hub/HubWalletCard';
+import { AppPayments } from '@/components/wallet/AppPayments';
+import { useAppPayments, APP_PAYMENTS_LIMIT } from '@/lib-client/hooks/useAppPayments';
 import { paymentAppName, paymentKind } from '@/lib/hub/payment-app';
 import { normalizePayment, type Payment } from '@/lib/dashboard-data';
 import { en } from '@/lib/i18n/en';
@@ -107,23 +110,23 @@ describe('which app a payment was for', () => {
   });
 });
 
-describe('wallet card — recent payments', () => {
+describe('wallet page — Pi payments to apps (moved off the Hub card, 2026-10-16)', () => {
   const pay = (over: Partial<Payment>): Payment => ({
     id: 'p', amount: 1, status: 'completed', type: 'payment', createdAt: '2026-10-05T10:00:00Z', ...over,
   });
 
   it('is absent until the history has loaded', () => {
-    render(<HubWalletCard balance="1.00" piPrice={null} recent={null} />);
+    render(<AppPayments payments={null} />);
     expect(screen.queryByText(en.hub.wallet.recentTitle)).toBeNull();
   });
 
   it('says so when there are none', () => {
-    render(<HubWalletCard balance="1.00" piPrice={null} recent={[]} />);
+    render(<AppPayments payments={[]} />);
     expect(screen.getByText(en.hub.wallet.recentEmpty)).toBeTruthy();
   });
 
   it('names each payment by its app, with the amount and where it stands', () => {
-    render(<HubWalletCard balance="1.00" piPrice={null} recent={[
+    render(<AppPayments payments={[
       pay({ id: '1', source: 'ecommerce', amount: 2.5 }),
       pay({ id: '2', source: 'mystery', status: 'created' }),
       pay({ id: '3', status: 'failed' }),
@@ -137,36 +140,45 @@ describe('wallet card — recent payments', () => {
   });
 
   it('reads in Arabic', () => {
-    render(<HubWalletCard balance="1.00" piPrice={null} recent={[pay({ source: 'life' })]} />, { locale: 'ar' });
+    render(<AppPayments payments={[pay({ source: 'life' })]} />, { locale: 'ar' });
     expect(screen.getByText(ar.hub.wallet.recentTitle)).toBeTruthy();
     expect(screen.getByText(paymentAppName('life', 'ar')!)).toBeTruthy();
     expect(screen.getByText(ar.hub.wallet.status.completed)).toBeTruthy();
   });
+
+  it('the Hub card no longer lists payments', () => {
+    render(<HubWalletCard balance="1.00" piPrice={null} />);
+    expect(screen.queryByText(en.hub.wallet.recentTitle)).toBeNull();
+  });
 });
 
-describe('useHubData — recent payments', () => {
-  it('loads the last 3 from the BFF history route', async () => {
-    global.fetch = vi.fn(async (url: string) => ({
+describe('useAppPayments — the wallet page list', () => {
+  it('loads the newest payments from the BFF history route', async () => {
+    global.fetch = vi.fn(async () => ({
       ok: true,
-      json: async () => String(url).includes('/payments/history')
-        ? { success: true, data: { payments: [
-            { id: 'x', amount: '1', status: 'completed', created_at: '2026-10-05T00:00:00Z', source: 'zone' },
-          ] } }
-        : { balance: '1' },
+      json: async () => ({ success: true, data: { payments: [
+        { id: 'x', amount: '1', status: 'completed', created_at: '2026-10-05T00:00:00Z', source: 'zone' },
+      ] } }),
     })) as any;
-    const { result } = renderHook(() => useHubData('user-1'));
-    await waitFor(() => expect(result.current.recentPayments).not.toBeNull());
-    expect(result.current.recentPayments![0]).toMatchObject({ id: 'x', source: 'zone', status: 'completed' });
+    const { result } = renderHook(() => useAppPayments(true));
+    await waitFor(() => expect(result.current).not.toBeNull());
+    expect(result.current![0]).toMatchObject({ id: 'x', source: 'zone', status: 'completed' });
     const urls = (global.fetch as any).mock.calls.map((c: unknown[]) => String(c[0]));
-    expect(urls.some((u: string) => u.includes('/api/bff/payments/history?limit=3'))).toBe(true);
+    expect(urls.some((u: string) => u.includes(`/api/bff/payments/history?limit=${APP_PAYMENTS_LIMIT}&sort=desc`))).toBe(true);
   });
 
   it('stays null when the history fails — no fabricated empty list', async () => {
-    global.fetch = vi.fn(async (url: string) => String(url).includes('/payments/history')
-      ? { ok: false, status: 502, json: async () => ({}) }
-      : { ok: true, json: async () => ({ balance: '1' }) }) as any;
+    global.fetch = vi.fn(async () => ({ ok: false, status: 502, json: async () => ({}) })) as any;
+    const { result } = renderHook(() => useAppPayments(true));
+    await new Promise((r) => setTimeout(r, 20));
+    expect(result.current).toBeNull();
+  });
+
+  it('the Hub home no longer asks for payment history', async () => {
+    global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ balance: '1' }) })) as any;
     const { result } = renderHook(() => useHubData('user-1'));
     await waitFor(() => expect(result.current.balance).toBe('1.00'));
-    expect(result.current.recentPayments).toBeNull();
+    const urls = (global.fetch as any).mock.calls.map((c: unknown[]) => String(c[0]));
+    expect(urls.some((u: string) => u.includes('/payments/history'))).toBe(false);
   });
 });

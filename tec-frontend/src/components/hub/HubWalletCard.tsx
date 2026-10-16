@@ -1,14 +1,12 @@
 'use client';
 
-import { useTranslation, bcp47 } from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
 
 import { useRouter } from 'next/navigation';
 import { haptic }    from '@/lib/hub/utils';
 import { PiPrice }   from '@/lib/hub/types';
 import { CountUp }   from '@/components/ui/CountUp';
 import { Icon }      from '@/components/ui/Icon';
-import { formatTxDate, type Payment } from '@/lib/dashboard-data';
-import { paymentAppName, paymentKind, type PaymentKind } from '@/lib/hub/payment-app';
 import { useState } from 'react';
 import { WithdrawToPi } from './WithdrawToPi';
 
@@ -17,20 +15,10 @@ interface Props {
   piPrice:         PiPrice | null;
   balanceError?:   boolean;
   onRetryBalance?: () => void;
-  /** Last few payments, newest first. `null` (not loaded / failed) shows nothing. */
-  recent?:         Payment[] | null;
 }
 
-const KIND_COLOR: Record<PaymentKind, string> = {
-  completed: 'var(--tec-green)',
-  pending:   'var(--tec-gold)',
-  failed:    'var(--tec-red)',
-  cancelled: 'var(--tec-text-3)',
-};
-
-export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, recent = null }: Props) {
-  const { t, dir, locale: uiLocale } = useTranslation();
-  const locale = dir === 'rtl' ? 'ar' : 'en';
+export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance }: Props) {
+  const { t } = useTranslation();
   const router  = useRouter();
   const priceUp = (piPrice?.change24h ?? 0) >= 0;
   // True once wallet-service says withdrawals are open for this account (#400).
@@ -171,47 +159,6 @@ export function HubWalletCard({ balance, piPrice, balanceError, onRetryBalance, 
           </div>
         </div>
       </button>
-
-      {/* Recent payments — what the π went to, by app. Only once the history has
-          loaded: before that (or if it failed) the section is absent, never an
-          empty list that would read as "you have paid nothing". The full list,
-          with every status, is on the wallet page. */}
-      {recent && (
-        <div style={{ borderTop: '1px solid var(--tec-border)', padding: '11px 16px 6px' }}>
-          <div style={{ fontSize: 10, color: 'var(--tec-text-3)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 600, marginBottom: 4 }}>
-            {t.hub.wallet.recentTitle}
-          </div>
-          {recent.length === 0 ? (
-            <div style={{ fontSize: 12, color: 'var(--tec-text-3)', padding: '6px 0 6px' }}>{t.hub.wallet.recentEmpty}</div>
-          ) : recent.map((p, i) => {
-            const kind = paymentKind(p.status);
-            const when = formatTxDate(p.createdAt, bcp47(uiLocale));
-            return (
-              <button key={p.id || i} className="tec-btn" onClick={() => go('/dashboard/wallet')}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                  padding: '8px 0', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'start',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--tec-border)',
-                }}>
-                <span style={{ flex: 1, minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--tec-text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {paymentAppName(p.source, locale) ?? t.hub.wallet.paymentGeneric}
-                  </span>
-                  {when && <span style={{ display: 'block', fontSize: 10, color: 'var(--tec-text-3)', marginTop: 2 }}>{when}</span>}
-                </span>
-                <span style={{ textAlign: 'end', flexShrink: 0 }}>
-                  <span dir="ltr" style={{ display: 'block', fontSize: 13, fontWeight: 800, color: 'var(--tec-text-1)', fontVariantNumeric: 'tabular-nums' }}>
-                    {p.amount.toFixed(2)} π
-                  </span>
-                  <span style={{ display: 'block', fontSize: 10, fontWeight: 700, color: KIND_COLOR[kind], marginTop: 2 }}>
-                    {t.hub.wallet.status[kind]}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* Quick actions — open the real wallet Send/Receive/history flow.
           Segments of the same card: hairlines instead of three more borders. */}

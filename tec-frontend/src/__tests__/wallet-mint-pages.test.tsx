@@ -13,6 +13,9 @@ const mockUsePiAuth         = vi.hoisted(() => vi.fn());
 const mockUsePiSdkReady     = vi.hoisted(() => vi.fn());
 
 // ── Module mocks ─────────────────────────────────────────────────────────────
+// The wallet page's Pi-payments list fetches on its own; these tests queue fetch
+// answers for the wallet flows, so the list is stubbed out (it has its own spec).
+vi.mock('@/lib-client/hooks/useAppPayments', () => ({ useAppPayments: () => null, APP_PAYMENTS_LIMIT: 20 }));
 vi.mock('@/lib-client/hooks/useWallet', () => ({
   useWallet:   mockUseWallet,
   TxType:      {},

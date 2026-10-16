@@ -6,6 +6,8 @@ import { useWalletRealtime, WalletUpdatedEvent }     from '@/lib-client/hooks/us
 import { sessionToken }                              from '@/lib-client/pi/session-source';
 import { useTranslation, errorText }                 from '@/lib/i18n';
 import { buildHeaders }                              from '@/lib/request-id';
+import { useAppPayments }                            from '@/lib-client/hooks/useAppPayments';
+import { AppPayments }                               from '@/components/wallet/AppPayments';
 import styles from './wallet.module.css';
 
 function getTypeIcon(type: string) {
@@ -283,6 +285,7 @@ export default function WalletPage() {
     page, totalPages, filterType, filterStatus,
     refetch, setPage, setFilterType, setFilterStatus, updateBalance,
   } = useWallet();
+  const appPayments = useAppPayments(true);
 
   const [liveFlash,   setLiveFlash]   = useState(false);
   const [showSend,    setShowSend]    = useState(false);
@@ -395,6 +398,15 @@ export default function WalletPage() {
           </div>
         </div>
       </section>
+
+      {/* ── Pi payments to TEC apps (payment-service) — moved here from the Hub's home
+          card (owner, 2026-10-16) so every money list is in one place. Not the ledger
+          history below: these are Pi paid through the Pi SDK, by app. ── */}
+      {appPayments && (
+        <section className={`${styles.transactionsSection} fade-up-2`}>
+          <AppPayments payments={appPayments} />
+        </section>
+      )}
 
       {/* ── Transactions ── */}
       <section className={`${styles.transactionsSection} fade-up-2`}>

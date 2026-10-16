@@ -14,6 +14,9 @@ import React from 'react';
 import { render, screen, act, waitFor } from '@/test-utils/render-with-locale';
 
 // ─── next/navigation ────────────────────────────────────────────
+// The wallet page's Pi-payments list fetches on its own; these tests queue fetch
+// answers for the wallet flows, so the list is stubbed out (it has its own spec).
+vi.mock('@/lib-client/hooks/useAppPayments', () => ({ useAppPayments: () => null, APP_PAYMENTS_LIMIT: 20 }));
 vi.mock('next/navigation', () => ({
   useRouter:       () => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn(), refresh: vi.fn(), prefetch: vi.fn() }),
   usePathname:     () => '/dashboard',

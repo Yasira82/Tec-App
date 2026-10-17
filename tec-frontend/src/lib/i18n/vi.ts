@@ -514,7 +514,7 @@ export const vi: typeof en = {
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'Ai đã cho trợ lý dùng dữ liệu Life, và mức độ sử dụng',
       adminNetworks: 'Mạng thanh toán', adminNetworksSub: 'Khoản nào chuyển π thật (Mainnet), khoản nào là Test-Pi',
       adminVoid: 'Số dư không có bảo chứng', adminVoidSub: 'Hoàn số dư TEC không có giao dịch bán — chạy thử trước',
-      adminMerge: 'Tài khoản trùng lặp', adminMergeSub: 'Chuyển sản phẩm và đơn hàng của tài khoản trùng sang tài khoản cũ nhất — chạy thử trước',
+      adminMerge: 'Tài khoản trùng lặp', adminMergeSub: 'Chuyển sản phẩm và đơn hàng của tài khoản trùng sang tài khoản cũ nhất — chạy thử trước', adminErase: 'Xóa tài khoản', adminEraseSub: 'Theo yêu cầu gửi privacy@ — phần của từng dịch vụ, chạy thử trước',
       adminOwed: 'Nợ người bán', adminOwedSub: 'Số người bán có thể rút so với ví Hub — chỉ đọc',
       connectedApps: 'Ứng dụng đã kết nối', tecPlatform: 'Nền tảng TEC', piNetwork: 'Pi Network', connected: 'ĐÃ KẾT NỐI',
       quickActions: 'Thao tác nhanh',

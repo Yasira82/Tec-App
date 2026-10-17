@@ -514,7 +514,7 @@ export const hi: typeof en = {
       adminLifeAi: 'Life + AI', adminLifeAiSub: 'किसने सहायक को Life डेटा दिया, और इसका कितना उपयोग होता है',
       adminNetworks: 'भुगतान नेटवर्क', adminNetworksSub: 'किन भुगतानों में असली π (Mainnet) गया और कौन Test-Pi थे',
       adminVoid: 'बिना आधार वाले बैलेंस', adminVoidSub: 'बिना बिक्री वाले TEC बैलेंस उलटें — पहले ड्राई रन',
-      adminMerge: 'डुप्लिकेट खाते', adminMergeSub: 'डुप्लिकेट खातों के उत्पाद और ऑर्डर सबसे पुराने खाते में ले जाएँ — पहले ड्राई रन',
+      adminMerge: 'डुप्लिकेट खाते', adminMergeSub: 'डुप्लिकेट खातों के उत्पाद और ऑर्डर सबसे पुराने खाते में ले जाएँ — पहले ड्राई रन', adminErase: 'खाता मिटाएँ', adminEraseSub: 'privacy@ पर अनुरोध पर — हर सेवा का हिस्सा, पहले ड्राई रन',
       adminOwed: 'विक्रेताओं का बकाया', adminOwedSub: 'विक्रेता क्या निकाल सकते हैं बनाम Hub वॉलेट — केवल पढ़ने के लिए',
       connectedApps: 'जुड़े हुए ऐप्स', tecPlatform: 'TEC प्लेटफ़ॉर्म', piNetwork: 'Pi Network', connected: 'जुड़ा हुआ',
       quickActions: 'त्वरित कार्य',

@@ -514,7 +514,7 @@ export const ko: typeof en = {
       adminLifeAi: 'Life + AI', adminLifeAiSub: '누가 어시스턴트에 Life 데이터를 허락했는지, 얼마나 쓰이는지',
       adminNetworks: '결제 네트워크', adminNetworksSub: '실제 π(메인넷)를 옮긴 결제와 Test-Pi 결제 구분',
       adminVoid: '근거 없는 잔액', adminVoidSub: '판매 근거가 없는 TEC 잔액 취소 — 먼저 시험 실행',
-      adminMerge: '중복 계정', adminMergeSub: '중복 계정의 상품과 주문을 가장 오래된 계정으로 이동 — 먼저 시험 실행',
+      adminMerge: '중복 계정', adminMergeSub: '중복 계정의 상품과 주문을 가장 오래된 계정으로 이동 — 먼저 시험 실행', adminErase: '계정 삭제', adminEraseSub: 'privacy@ 요청에 따라 — 각 서비스의 부분, 먼저 시험 실행',
       adminOwed: '판매자 미지급금', adminOwedSub: '판매자가 출금할 수 있는 금액 vs. Hub 지갑 — 읽기 전용',
       connectedApps: '연결된 앱', tecPlatform: 'TEC 플랫폼', piNetwork: 'Pi Network', connected: '연결됨',
       quickActions: '빠른 작업',

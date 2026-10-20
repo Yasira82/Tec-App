@@ -340,9 +340,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     piDomain:         'life.pi',
     emoji:            '🌱',
     // Life's core since 2026-10-16 is the conversation, not the goal list (owner, 2026-10-20: a
-    // Round 3 Pioneer reading "goals and preferences" would add a goal and never try it).
-    description:      { en: 'Talk it through — a step — the change · Goals · Activity', ar: 'محادثة — خطوة — تغيير · أهداف ونشاط' },
-    valueProp:        { en: 'Talk through a problem that keeps happening, choose one small step, and see what changes — privately.', ar: 'اتكلم عن مشكلة بتتكرر معاك، اختار خطوة صغيرة، وشوف إيه اللي اتغيّر — وبخصوصية.' },
+    // Round 3 Pioneer reading "goals and preferences" would add a goal and never try it). Since
+    // 2026-10-20 it is framed as a personal life coach — a coach, not an adviser («بناء الإنسان»).
+    description:      { en: 'Your personal life coach · Goals · Skills', ar: 'مدرّبك الشخصي للحياة · أهداف ومهارات' },
+    valueProp:        { en: 'Your personal life coach: talk about anything you want to change or build, choose your own next step, and see what changes — privately.', ar: 'مدرّبك الشخصي للحياة: اتكلم عن أي حاجة عاوز تغيّرها أو تبنيها، اختار خطوتك الجاية بنفسك، وشوف إيه اللي اتغيّر — وبخصوصية.' },
     // Shipped July 2026 (tec-life — C-106 System of Record: Goals/Preferences + Activity, C-123 login)
     status:           'live',
     layer:            'domain',

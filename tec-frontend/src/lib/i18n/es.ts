@@ -288,7 +288,7 @@ export const es: typeof en = {
       missionsIntro: 'Visita estas apps y luego reclama {reward} π. Gratis — sin pagos en ningún paso.',
       missionConnection: 'Este enlace te lleva al grupo de TEC — saluda y publica allí la dirección de tu billetera de Pi Mainnet. Así la solicitud se rellena sola y no tendrás que escribir nada más.',
       missionChat: 'Abre un chat y envía un mensaje — abrir la app no es suficiente aquí',
-      missionLife: 'Empieza una conversación sobre algo que te pasa una y otra vez e intenta llegar a un resumen y un pequeño paso. En tu informe, describe lo que pasó: no hace falta compartir de qué hablaste.',
+      missionLife: 'Habla con tu coach personal de vida en Life sobre algo que quieras cambiar o construir en tu vida e intenta llegar a un resumen y un pequeño paso. En tu informe, describe lo que pasó: no hace falta compartir de qué hablaste.',
       stopReason: {
         title: '¿No vas a terminar? Un toque nos dice por qué — es lo más útil que nos puedes enviar.',
         open: '¿No vas a terminar? Dinos por qué',

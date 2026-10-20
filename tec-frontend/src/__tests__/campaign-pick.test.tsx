@@ -258,6 +258,8 @@ describe('Life says what to try — and that the report needs none of its words 
 
   it('every language has the hint, and the page passes it for Life only', () => {
     expect(ar.hub.campaignPage.missionLife).toContain('مش لازم تكتب كلام محادثتك');
+    expect(ar.hub.campaignPage.missionLife).toContain('مدرّبك الشخصي');
+    expect(en.hub.campaignPage.missionLife).toContain('personal life coach');
     const page = readFileSync(join(process.cwd(), 'src/app/hub/campaign/page.tsx'), 'utf8');
     expect(page).toMatch(/hintOf=\{\(slug\) => \(slug === 'life' \? c\.missionLife : undefined\)\}/);
   });

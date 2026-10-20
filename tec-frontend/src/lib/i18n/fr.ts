@@ -288,6 +288,7 @@ export const fr: typeof en = {
       missionsIntro: 'Visitez ces applications, puis réclamez {reward} π. Gratuit — aucun paiement à aucune étape.',
       missionConnection: 'Ce lien vous mène au groupe TEC — dites bonjour et publiez-y l’adresse de votre portefeuille Pi Mainnet. La demande se remplit alors toute seule et il ne reste rien à saisir.',
       missionChat: 'Ouvrez une discussion et envoyez un message — ouvrir l’application ne suffit pas ici',
+      missionLife: 'Commencez une conversation sur quelque chose qui vous arrive souvent, et essayez d’arriver à un résumé et à un petit pas. Dans votre rapport, décrivez ce qui s’est passé — inutile de partager ce que vous avez dit.',
       stopReason: {
         title: 'Vous n’allez pas terminer ? Un appui nous dit pourquoi — c’est le retour le plus utile que vous puissiez nous envoyer.',
         open: 'Vous n’allez pas terminer ? Dites-nous pourquoi',

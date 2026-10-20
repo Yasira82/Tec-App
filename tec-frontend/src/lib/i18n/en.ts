@@ -337,6 +337,7 @@ export const en = {
       // quickest way, and it is now the quickest way for a reason that holds.
       missionConnection: 'This link puts you in the TEC group — say hello, and post your Pi Mainnet wallet address there. Then the claim fills itself in and there is nothing left to type.',
       missionChat:  'Open a chat and send one message — opening the app is not enough here',
+      missionLife: 'Start a conversation about something that keeps happening to you, and try to reach a summary and one small step. In your report, describe what happened — you do not need to share what you talked about.',
       stopReason: {
         title:  'Not going to finish? One tap tells us why — it is the most useful thing you can send us.',
         open:   'Not going to finish? Tell us why',

@@ -288,6 +288,7 @@ export const vi: typeof en = {
       missionsIntro: 'Ghé thăm các ứng dụng này, rồi nhận {reward} π. Miễn phí — không phải trả tiền ở bất kỳ bước nào.',
       missionConnection: 'Liên kết này đưa bạn vào nhóm TEC — hãy chào mọi người và đăng địa chỉ ví Pi Mainnet của bạn ở đó. Khi đó yêu cầu sẽ tự điền và bạn không cần gõ gì thêm.',
       missionChat: 'Mở một cuộc trò chuyện và gửi một tin nhắn — chỉ mở ứng dụng là chưa đủ',
+      missionLife: 'Hãy bắt đầu một cuộc trò chuyện về điều cứ lặp lại với bạn, và cố đi đến một bản tóm tắt cùng một bước nhỏ. Trong báo cáo, hãy kể điều đã xảy ra — bạn không cần chia sẻ nội dung đã trò chuyện.',
       stopReason: {
         title: 'Không định hoàn thành? Một chạm cho chúng tôi biết lý do — đó là điều hữu ích nhất bạn có thể gửi.',
         open: 'Không định hoàn thành? Cho chúng tôi biết lý do',

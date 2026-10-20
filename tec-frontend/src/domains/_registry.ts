@@ -339,8 +339,10 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'Life', ar: 'الحياة' },
     piDomain:         'life.pi',
     emoji:            '🌱',
-    description:      { en: 'Personal context — Goals · Preferences · Activity', ar: 'السياق الشخصي — أهداف وتفضيلات ونشاط' },
-    valueProp:        { en: 'Set your goals and preferences so the ecosystem works for you — privately.', ar: 'حدّد أهدافك وتفضيلاتك عشان المنظومة تشتغل لصالحك، وبخصوصية.' },
+    // Life's core since 2026-10-16 is the conversation, not the goal list (owner, 2026-10-20: a
+    // Round 3 Pioneer reading "goals and preferences" would add a goal and never try it).
+    description:      { en: 'Talk it through — a step — the change · Goals · Activity', ar: 'محادثة — خطوة — تغيير · أهداف ونشاط' },
+    valueProp:        { en: 'Talk through a problem that keeps happening, choose one small step, and see what changes — privately.', ar: 'اتكلم عن مشكلة بتتكرر معاك، اختار خطوة صغيرة، وشوف إيه اللي اتغيّر — وبخصوصية.' },
     // Shipped July 2026 (tec-life — C-106 System of Record: Goals/Preferences + Activity, C-123 login)
     status:           'live',
     layer:            'domain',

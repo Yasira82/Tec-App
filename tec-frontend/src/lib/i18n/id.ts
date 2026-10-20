@@ -288,6 +288,7 @@ export const id: typeof en = {
       missionsIntro: 'Kunjungi aplikasi-aplikasi ini, lalu klaim {reward} π. Gratis — tanpa pembayaran di langkah mana pun.',
       missionConnection: 'Tautan ini membawa Anda ke grup TEC — sapa semua orang, dan kirim alamat dompet Pi Mainnet Anda di sana. Setelah itu klaim terisi sendiri dan tidak ada lagi yang perlu diketik.',
       missionChat: 'Buka obrolan dan kirim satu pesan — membuka aplikasi saja tidak cukup',
+      missionLife: 'Mulailah percakapan tentang sesuatu yang terus terjadi padamu, dan coba sampai pada ringkasan serta satu langkah kecil. Di laporanmu, ceritakan apa yang terjadi — kamu tidak perlu membagikan isi percakapanmu.',
       stopReason: {
         title: 'Tidak akan menyelesaikan? Satu ketukan memberi tahu kami alasannya — itu hal paling berguna yang bisa Anda kirim.',
         open: 'Tidak akan menyelesaikan? Beri tahu alasannya',

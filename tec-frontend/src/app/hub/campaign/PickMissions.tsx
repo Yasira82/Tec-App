@@ -99,7 +99,7 @@ const draftOf = (m: PickMission): Draft => ({
 
 export function PickMissions({
   assigned, count, missions, swapsLeft, rewardPi, strings: s,
-  nameOf, linkOf, onOpen, onChanged,
+  nameOf, linkOf, onOpen, onChanged, hintOf,
 }: {
   assigned:  boolean;
   /** How many apps this round gives a pioneer — 3 by default, 6 in the owner's round. */
@@ -109,6 +109,8 @@ export function PickMissions({
   rewardPi:  number;
   strings:   PickStrings;
   nameOf:    (slug: string) => string;
+  /** What to try in this app, when "open it" is not enough to learn anything (Life). */
+  hintOf?:   (slug: string) => string | undefined;
   linkOf:    (slug: string) => string;
   onOpen:    (slug: string) => void;
   onChanged: () => void | Promise<void>;
@@ -185,6 +187,9 @@ export function PickMissions({
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ fontSize: 'var(--text-sm)', fontWeight: 700, color: 'var(--tec-text-1)' }}>{nameOf(m.app)}</div>
                 <div style={{ fontSize: 11.5, marginTop: 2, color: tone }}>{line}</div>
+                {hintOf?.(m.app) && status !== 'APPROVED' && (
+                  <div data-testid={`hint-${m.app}`} style={{ fontSize: 11.5, marginTop: 4, color: 'var(--tec-text-2)', lineHeight: 1.5 }}>{hintOf(m.app)}</div>
+                )}
               </div>
               <span style={{ fontSize: 'var(--text-sm)', color: 'var(--tec-gold)' }}>→</span>
             </a>

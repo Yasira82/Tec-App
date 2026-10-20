@@ -242,3 +242,25 @@ describe('wiring', () => {
     }
   });
 });
+
+describe('Life says what to try — and that the report needs none of its words (owner, 2026-10-20)', () => {
+  it('the hint shows under Life until approved, and under no other app', () => {
+    const hintOf = (slug: string) => (slug === 'life' ? en.hub.campaignPage.missionLife : undefined);
+    setup([mission('life'), mission('zone')], { hintOf });
+    expect(screen.getByTestId('hint-life').textContent).toContain('you do not need to share what you talked about');
+    expect(screen.queryByTestId('hint-zone')).toBeNull();
+  });
+
+  it('gone once the report is approved', () => {
+    setup([mission('life', { status: 'APPROVED', report: 'r' })], { hintOf: () => 'x' });
+    expect(screen.queryByTestId('hint-life')).toBeNull();
+  });
+
+  it('every language has the hint, and the page passes it for Life only', () => {
+    expect(ar.hub.campaignPage.missionLife).toContain('مش لازم تكتب كلام محادثتك');
+    expect(ar.hub.campaignPage.missionLife).toContain('مدرّبك الشخصي');
+    expect(en.hub.campaignPage.missionLife).toContain('personal life coach');
+    const page = readFileSync(join(process.cwd(), 'src/app/hub/campaign/page.tsx'), 'utf8');
+    expect(page).toMatch(/hintOf=\{\(slug\) => \(slug === 'life' \? c\.missionLife : undefined\)\}/);
+  });
+});

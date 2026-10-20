@@ -288,6 +288,7 @@ export const tr: typeof en = {
       missionsIntro: 'Bu uygulamaları ziyaret edin, sonra {reward} π alın. Ücretsiz — hiçbir adımda ödeme yok.',
       missionConnection: 'Bu bağlantı sizi TEC grubuna götürür — merhaba deyin ve Pi Mainnet cüzdan adresinizi orada paylaşın. Böylece talep kendiliğinden dolar ve yazacak bir şey kalmaz.',
       missionChat: 'Bir sohbet açıp bir mesaj gönderin — uygulamayı açmak burada yetmez',
+      missionLife: 'Life’taki kişisel yaşam koçunla hayatında değiştirmek ya da inşa etmek istediğin bir şey hakkında konuş ve bir özete ve küçük bir adıma ulaşmaya çalış. Raporunda ne olduğunu anlat — ne konuştuğunu paylaşman gerekmez.',
       stopReason: {
         title: 'Bitirmeyecek misiniz? Tek dokunuşla nedenini söyleyin — bize gönderebileceğiniz en faydalı şey bu.',
         open: 'Bitirmeyecek misiniz? Nedenini söyleyin',

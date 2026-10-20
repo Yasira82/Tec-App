@@ -1038,6 +1038,9 @@ export default function CampaignPage() {
                   rewardPi={me.reward_pi}
                   strings={c.pick}
                   nameOf={(slug) => nameOf(slug, locale)}
+                  // Life is a conversation: opening it shows a home screen and teaches nothing.
+                  // The hint says what to try — and that the report needs none of its words.
+                  hintOf={(slug) => (slug === 'life' ? c.missionLife : undefined)}
                   linkOf={(slug) => signed(withReturnMark(hrefFor(slug)))}
                   onOpen={(slug) => { recordOpen(slug); signed.spent(withReturnMark(hrefFor(slug))); }}
                   onChanged={load}

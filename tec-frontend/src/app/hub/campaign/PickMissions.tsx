@@ -39,6 +39,8 @@ export interface PickStrings {
   observedLabel: string; problemQ: string; yes: string; no: string;
   problemLabel: string; goodLabel: string; suggestion: string;
   send: string; resend: string; edit: string; failed: string;
+  /** `{app}`: the other app this exact report was already sent for. */
+  copied: string;
   swap: string; swapReason: string; swapConfirm: string; cancel: string;
   problemTag: string; goodTag: string; suggested: string;
 }
@@ -96,6 +98,10 @@ interface Draft { observed: string; had_problem: boolean | null; detail: string;
 const draftOf = (m: PickMission): Draft => ({
   observed: m.report ?? '', had_problem: m.had_problem ?? null, detail: m.detail ?? '', suggestion: m.suggestion ?? '',
 });
+
+/** Same words, whatever the case, spacing or punctuation — the service's `sameReport`. */
+const words = (t: string) => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const sameWords = (a: string | null | undefined, b: string) => !!a && words(b) !== '' && words(a) === words(b);
 
 export function PickMissions({
   assigned, count, missions, swapsLeft, rewardPi, strings: s,
@@ -243,6 +249,12 @@ export function PickMissions({
                 </label>
                 <button
                   onClick={() => {
+                    // The service refuses this too; saying it here says it in the pioneer's language.
+                    const copiedFrom = missions.find((o) => o.app !== m.app && sameWords(o.report, d.observed));
+                    if (copiedFrom) {
+                      setErrors((x) => ({ ...x, [m.app]: s.copied.replace('{app}', nameOf(copiedFrom.app)) }));
+                      return;
+                    }
                     void run(m.app, 'report', {
                       app: m.app, observed: d.observed.trim(), had_problem: d.had_problem, detail: d.detail.trim(),
                       ...(d.suggestion.trim() ? { suggestion: d.suggestion.trim() } : {}),

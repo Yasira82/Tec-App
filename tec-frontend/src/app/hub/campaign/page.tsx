@@ -13,6 +13,7 @@ import { useBackGoesToHub } from '@/lib-client/back-to-hub';
 import { useTranslation, fill } from '@/lib/i18n';
 import { StopReasonCard, type StopReason } from './StopReasonCard';
 import { PickMissions, type PickMission } from './PickMissions';
+import { missionHint } from './mission-hint';
 
 /**
  * The Pi reward campaign.
@@ -1038,9 +1039,11 @@ export default function CampaignPage() {
                   rewardPi={me.reward_pi}
                   strings={c.pick}
                   nameOf={(slug) => nameOf(slug, locale)}
-                  // Life is a conversation: opening it shows a home screen and teaches nothing.
-                  // The hint says what to try — and that the report needs none of its words.
-                  hintOf={(slug) => (slug === 'life' ? c.missionLife : undefined)}
+                  // Opening an app shows its home screen and teaches nothing — and six reports
+                  // that only say "I opened it" read the same, word for word (Round 3, owner's
+                  // own test). Each app names one real thing to do, so a report has something
+                  // specific to describe. Life adds that its report needs none of the conversation.
+                  hintOf={(slug) => missionHint(c, slug)}
                   linkOf={(slug) => signed(withReturnMark(hrefFor(slug)))}
                   onOpen={(slug) => { recordOpen(slug); signed.spent(withReturnMark(hrefFor(slug))); }}
                   onChanged={load}

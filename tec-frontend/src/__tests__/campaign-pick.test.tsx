@@ -17,6 +17,8 @@ import { ReportReview } from '@/app/hub/admin/campaign/ReportReview';
 import { FunnelCard } from '@/app/hub/admin/campaign/FunnelCard';
 import { en } from '@/lib/i18n/en';
 import { ar } from '@/lib/i18n/ar';
+import { DICTIONARIES } from '@/lib/i18n';
+import { missionHint } from '@/app/hub/campaign/mission-hint';
 
 const ok = (body: unknown = { success: true }) =>
   vi.fn(async (_u: RequestInfo | URL, _i?: RequestInit) => ({ ok: true, status: 200, json: async () => body }) as Response);
@@ -54,6 +56,27 @@ describe('the report form', () => {
     setup([mission('zone')]);
     expect(screen.getByText('Open it from here and sign in there with Pi')).toBeTruthy();
     expect(screen.queryByText('Send report')).toBeNull();
+  });
+
+  it('the same words already sent for another app are stopped here, named, and never posted', async () => {
+    const f = ok(); vi.stubGlobal('fetch', f);
+    setup([
+      mission('life', { status: 'SUBMITTED', report: 'I signed in and opened the map.' }),
+      mission('zone', { arrived: true }),
+    ]);
+    fireEvent.change(screen.getByLabelText('What happened while you used the app?'), { target: { value: '  i signed in, and opened the MAP ' } });
+    fireEvent.click(screen.getByRole('radio', { name: 'No' }));
+    fireEvent.change(screen.getByLabelText('What did you find clear or useful?'), { target: { value: 'The badge page was clear.' } });
+    fireEvent.click(screen.getByText('Send report'));
+    expect(await screen.findByText(/You sent these same words for LIFE/)).toBeTruthy();
+    expect(f).not.toHaveBeenCalled();
+  });
+
+  it('every language says it, with the app named', () => {
+    for (const [lang, dict] of Object.entries(DICTIONARIES)) {
+      expect(dict.hub.campaignPage.pick.copied, lang).toContain('{app}');
+    }
+    expect(ar.hub.campaignPage.pick.copied).toContain('نفس الكلام');
   });
 
   it('a report with no problem asks what was clear or useful — and is sent whole', async () => {
@@ -243,12 +266,14 @@ describe('wiring', () => {
   });
 });
 
-describe('Life says what to try — and that the report needs none of its words (owner, 2026-10-20)', () => {
-  it('the hint shows under Life until approved, and under no other app', () => {
-    const hintOf = (slug: string) => (slug === 'life' ? en.hub.campaignPage.missionLife : undefined);
+describe('every campaign app says what to try (Life: owner 2026-10-20 · the rest: Round 3, 2026-10-30)', () => {
+  const APPS = ['tec', 'commerce', 'ecommerce', 'assets', 'life', 'zone'];
+
+  it('the hint shows under each app until approved', () => {
+    const hintOf = (slug: string) => missionHint(en.hub.campaignPage, slug);
     setup([mission('life'), mission('zone')], { hintOf });
     expect(screen.getByTestId('hint-life').textContent).toContain('you do not need to share what you talked about');
-    expect(screen.queryByTestId('hint-zone')).toBeNull();
+    expect(screen.getByTestId('hint-zone').textContent).toContain('verification page');
   });
 
   it('gone once the report is approved', () => {
@@ -256,11 +281,31 @@ describe('Life says what to try — and that the report needs none of its words 
     expect(screen.queryByTestId('hint-life')).toBeNull();
   });
 
-  it('every language has the hint, and the page passes it for Life only', () => {
+  it('all six apps have their own line in every language — and an unknown app has none', () => {
+    for (const [lang, dict] of Object.entries(DICTIONARIES)) {
+      const lines = APPS.map((a) => missionHint(dict.hub.campaignPage, a));
+      for (const [i, line] of lines.entries()) {
+        expect(line, `${lang}/${APPS[i]}`).toBeTruthy();
+      }
+      expect(new Set(lines).size, `${lang}: two apps share a line`).toBe(APPS.length);
+      if (lang !== 'en') {
+        for (const [i, line] of lines.entries()) {
+          expect(line, `${lang}/${APPS[i]} is the English text`).not.toBe(missionHint(en.hub.campaignPage, APPS[i]!));
+        }
+      }
+    }
+    expect(missionHint(en.hub.campaignPage, 'nexus')).toBeUndefined();
     expect(ar.hub.campaignPage.missionLife).toContain('مش لازم تكتب كلام محادثتك');
-    expect(ar.hub.campaignPage.missionLife).toContain('مدرّبك الشخصي');
-    expect(en.hub.campaignPage.missionLife).toContain('personal life coach');
+  });
+
+  it('nothing in the tasks asks a pioneer to pay — the campaign promises no payment at any step', () => {
+    for (const a of ['commerce', 'ecommerce', 'assets']) {
+      expect(missionHint(en.hub.campaignPage, a)).toMatch(/do not (need|have) to (buy|list)/);
+    }
+  });
+
+  it('the page passes the hint for every app', () => {
     const page = readFileSync(join(process.cwd(), 'src/app/hub/campaign/page.tsx'), 'utf8');
-    expect(page).toMatch(/hintOf=\{\(slug\) => \(slug === 'life' \? c\.missionLife : undefined\)\}/);
+    expect(page).toMatch(/hintOf=\{\(slug\) => missionHint\(c, slug\)\}/);
   });
 });

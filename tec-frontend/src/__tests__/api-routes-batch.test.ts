@@ -244,36 +244,54 @@ describe('GET /api/health', () => {
 // health/services
 // ═══════════════════════════════════════════════════════════════
 describe('GET /api/health/services', () => {
-  it('returns 200 when all services OK', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() => okRes({ status: 'ok' }));
+  // The per-service verdicts come from the gateway's /health/detailed (8 Nov 2026):
+  // the old per-path checks hit /<svc>/health, which no service serves.
+  const byUrl = (detailed: Promise<Response>) => (url: string | URL | Request) =>
+    String(url).endsWith('/health/detailed') ? detailed : okRes({ status: 'ok' });
+
+  it('returns 200 when the gateway and every service it checks are ok', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(byUrl(okRes({ dependencies: { payment: 'ok', life: 'ok' } })) as typeof fetch);
     const { GET } = await import('@/app/api/health/services/route');
     const res = await GET();
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.ok).toBe(true);
-    expect(Array.isArray(body.services)).toBe(true);
+    expect(body.services.map((s: { name: string }) => s.name)).toEqual(['gateway', 'payment', 'life']);
   });
 
-  it('returns 207 when some services fail', async () => {
-    let call = 0;
-    vi.spyOn(globalThis, 'fetch').mockImplementation(() => {
-      call++;
-      return call % 2 === 0 ? failRes(503) : okRes({});
-    });
+  it('asks /health/detailed with the internal key, never a public per-service path', async () => {
+    const spy = vi.spyOn(globalThis, 'fetch').mockImplementation(byUrl(okRes({ dependencies: { kyc: 'ok' } })) as typeof fetch);
+    const { GET } = await import('@/app/api/health/services/route');
+    await GET();
+    const urls = spy.mock.calls.map((c) => String(c[0]));
+    expect(urls).toEqual(['https://gw.test/health', 'https://gw.test/health/detailed']);
+    expect((spy.mock.calls[1][1] as RequestInit).headers).toEqual({ 'x-internal-key': 'int-secret' });
+  });
+
+  it('returns 207 and names the service when one is degraded (207 from the gateway)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(byUrl(failRes(207, { dependencies: { payment: 'degraded', kyc: 'ok' } })) as typeof fetch);
+    const { GET } = await import('@/app/api/health/services/route');
+    const res = await GET();
+    expect(res.status).toBe(207);
+    const body = await res.json();
+    expect(body.services).toContainEqual(expect.objectContaining({ name: 'payment', status: 'error' }));
+  });
+
+  it('a refused or unreachable per-service check is an error, never silence (P6)', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(byUrl(failRes(403)) as typeof fetch);
     const { GET } = await import('@/app/api/health/services/route');
     const res = await GET();
     expect(res.status).toBe(207);
     const body = await res.json();
     expect(body.ok).toBe(false);
+    expect(body.services.some((s: { status: string }) => s.status === 'error')).toBe(true);
   });
 
-  it('handles individual service fetch errors', async () => {
+  it('handles the gateway being unreachable', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('timeout'));
     const { GET } = await import('@/app/api/health/services/route');
-    const res = await GET();
-    const body = await res.json();
-    expect(Array.isArray(body.services)).toBe(true);
-    expect(body.services.some((s: { status: string }) => s.status === 'error')).toBe(true);
+    const body = await (await GET()).json();
+    expect(body.services.every((s: { status: string }) => s.status === 'error')).toBe(true);
   });
 });
 

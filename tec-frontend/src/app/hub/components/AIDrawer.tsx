@@ -80,7 +80,7 @@ export function AIDrawer({ open, onClose }: { open: boolean; onClose: () => void
           `dir` — the shell used to stay LTR on an Arabic page, so the header and the
           starter chips read right-to-left inside a left-to-right frame. */}
       <div role="dialog" aria-modal="true" aria-label={t.hub.ai.dialog} dir={dir}
-        style={{ position: 'fixed', top: '5vh', bottom: 0, left: 0, right: 0, zIndex: 301, background: 'var(--tec-surface-1)', borderTop: '1px solid var(--tec-border-gold)', borderRadius: '24px 24px 0 0', padding: '0 0 24px', display: 'flex', flexDirection: 'column' }}>
+        style={{ position: 'fixed', top: '5vh', bottom: 0, left: 0, right: 0, zIndex: 301, background: 'var(--tec-surface-1)', borderTop: '1px solid var(--tec-border-gold)', borderRadius: '24px 24px 0 0', padding: '0 0 24px', paddingBottom: 'max(24px, env(safe-area-inset-bottom), var(--tec-safe-bottom-fallback, 0px))', display: 'flex', flexDirection: 'column' }}>
 
         <div style={{ display: 'flex', justifyContent: 'center', padding: '12px 0 0' }}>
           <div style={{ width: 40, height: 4, borderRadius: 2, background: 'var(--tec-border)' }} />

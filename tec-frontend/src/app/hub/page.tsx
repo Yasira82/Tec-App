@@ -253,7 +253,7 @@ function HubPageInner() {
       dir={dir}
       style={{ minHeight: '100vh', background: 'var(--tec-bg)', color: 'var(--tec-text-1)', fontFamily: 'var(--font-sans)',
         // Clears the fixed bottom nav. Nothing else hovers over the content any more.
-        paddingBottom: 88 }}
+        paddingBottom: 'calc(88px + var(--tec-safe-bottom-fallback, 0px))' }}
     >
       {externalPayment && (
         <PaymentModal payment={externalPayment} onClose={closePaymentModal} onSuccess={handlePaymentSuccess} />

@@ -78,8 +78,10 @@ describe('the route', () => {
   });
 
   it('Claude leads with a current model; the retired id is last', () => {
-    expect(route).toMatch(/'claude-opus-5-5',\s*\n\s*'claude-3-5-sonnet-20240620'/);
-    expect(route).toMatch(/fallbacks: 'default'/);
+    // Claude's candidate list and its request shape live in lib/ai/providers.ts (11 Nov 2026).
+    const providers = readFileSync(join(process.cwd(), 'src/lib/ai/providers.ts'), 'utf8');
+    expect(providers).toMatch(/'claude-opus-5-5',\s*\n\s*'claude-3-5-sonnet-20240620'/);
+    expect(providers).toMatch(/fallbacks: 'default'/);
   });
 });
 

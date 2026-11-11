@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
-import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, openRouterCandidates } from '../chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, openRouterCandidates } from '@/lib/ai/providers';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 
 export const runtime = 'edge';

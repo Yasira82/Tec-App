@@ -47,7 +47,7 @@ export function HubBottomNav({ onOpenAi }: { onOpenAi: () => void }) {
       backdropFilter: 'blur(24px) saturate(1.8)', WebkitBackdropFilter: 'blur(24px) saturate(1.8)',
       borderTop: '1px solid var(--tec-border)',
       display: 'flex', padding: '10px 4px',
-      paddingBottom: 'max(10px, env(safe-area-inset-bottom))', zIndex: 150,
+      paddingBottom: 'max(10px, env(safe-area-inset-bottom), var(--tec-safe-bottom-fallback, 0px))', zIndex: 150,
       // The nav owns the bottom strip of the screen — which is exactly where a
       // thumb swipes. Without this it eats every scroll that starts down here and
       // the page simply does not move. `pan-y` hands vertical drags to the page

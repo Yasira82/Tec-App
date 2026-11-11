@@ -8,6 +8,7 @@ import './globals.css';
 import '@/styles/tec-design-tokens.css';
 import Script from 'next/script';
 import { THEME_BOOT_SCRIPT } from '@/lib-client/theme';
+import { SAFE_BOTTOM_BOOT_SCRIPT } from '@/lib-client/safe-bottom';
 import localFont from 'next/font/local';
 import { ClientProviders } from '@/components/ClientProviders';
 import PiSdkLoader from '@/components/PiSdkLoader';
@@ -136,6 +137,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             which is worse than not offering the choice at all. Inline and
             synchronous by necessity: anything deferred paints too late. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* Reserves room under the bottom bar where Pi Browser draws the page
+            beneath Android's buttons and reports no inset (lib-client/safe-bottom). */}
+        <script dangerouslySetInnerHTML={{ __html: SAFE_BOTTOM_BOOT_SCRIPT }} />
       </head>
       <body>
         <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />

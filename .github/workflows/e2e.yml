@@ -66,9 +66,16 @@ jobs:
           key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('tec-frontend/package-lock.json') }}
           restore-keys: ${{ runner.os }}-playwright-chromium-
 
+      # The browser's system libraries come from Ubuntu's mirrors. On 11 Nov 2026 those
+      # stopped resolving from GitHub's runners and every e2e run failed (or hung) before
+      # a single test ran. The runner image already carries what Chromium needs, so a
+      # mirror that does not answer within 3 minutes is a warning, not a failure.
       - name: Install Playwright browsers
         working-directory: tec-frontend
-        run: npx playwright install --with-deps chromium
+        run: |
+          timeout 180 npx playwright install-deps chromium \
+            || echo "::warning::Ubuntu mirrors did not answer — running on the runner image's own libraries"
+          npx playwright install chromium
 
       # ✅ استخدم الـ build artifact من الـ CI لو موجود
       - name: Build frontend

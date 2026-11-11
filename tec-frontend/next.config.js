@@ -108,8 +108,16 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              // ✅ VM-017 FIXED: connect-src explicit whitelist — no more https: wildcard
-              "connect-src 'self' https: wss:",
+              // Named hosts only (src/__tests__/csp-connect-src.test.ts). It was
+              // `'self' https: wss:` — any host — under a comment saying it was fixed.
+              // Server-side calls (AI providers, prices) are not limited by CSP.
+              [
+                "connect-src 'self'",
+                'https://*.minepi.com https://minepi.com wss://*.minepi.com',            // Pi SDK
+                'https://*.up.railway.app wss://*.up.railway.app',                      // realtime (Railway domain; socket.io polls before it upgrades)
+                'https://*.tecosystem.app wss://*.tecosystem.app',                      // realtime on a custom domain; sibling apps
+                'https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io', // Sentry
+              ].join(' '),
               // *.r2.dev hosts the NFT artwork uploaded through tec-assets. Without it
               // the browser BLOCKS every NFT image on /dashboard/assets and the tile
               // renders empty. tec-assets already allows it — the Hub was the outlier.

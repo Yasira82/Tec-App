@@ -127,7 +127,9 @@ if (isHubNavigation() || !window.Pi || !piReady) {
 ```
 
 ### Auth Pattern
-- SSO: Hub sets HttpOnly cookies → apps read cookies
+- SSO: Hub sets the session cookies → apps read them. `tec_access_token` is readable by script
+  **by decision** (ADR-001 — Pi Browser must read it); the CSP's `connect-src` names its hosts so an
+  injected script cannot post it anywhere. `tec_refresh_token` is HttpOnly.
 - Cookies: tec_access_token, tec_csrf, tec_user
 - NEVER localStorage, NEVER sessionStorage for tokens
 - CSRF token required on all POST/PUT/DELETE BFF routes

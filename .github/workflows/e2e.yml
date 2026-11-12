@@ -51,7 +51,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: tec-frontend/node_modules
-          key: ${{ runner.os }}-frontend-${{ hashFiles('tec-frontend/package-lock.json') }}
+          key: ${{ runner.os }}-frontend-${{ hashFiles('package-lock.json') }}
           restore-keys: ${{ runner.os }}-frontend-
 
       - name: Install dependencies
@@ -63,7 +63,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('tec-frontend/package-lock.json') }}
+          key: ${{ runner.os }}-playwright-chromium-${{ hashFiles('package-lock.json') }}
           restore-keys: ${{ runner.os }}-playwright-chromium-
 
       # The browser's system libraries come from Ubuntu's mirrors. On 11 Nov 2026 those

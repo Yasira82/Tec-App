@@ -128,8 +128,9 @@ jobs:
         run: npm run typecheck
         working-directory: tec-frontend
 
-      - name: Test
-        run: npm test
+      # TEC-AUDIT-0037: the same tests, with the coverage floor in vitest.config.ts.
+      - name: Test (with the coverage floor — vitest.config.ts)
+        run: npm run test:coverage
         working-directory: tec-frontend
 
       - name: Build

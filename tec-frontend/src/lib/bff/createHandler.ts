@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // ══════════════════════════════════════════════════════════════
 //  BFF Handler Factory — v3
@@ -134,7 +135,7 @@ async function refreshAtGateway(req: NextRequest): Promise<RefreshedTokens | nul
 
   const attempt = (async (): Promise<RefreshedTokens | null> => {
     try {
-      const res = await fetch(`${gateway}/api/v1/auth/refresh`, {
+      const res = await gatewayFetch(`${gateway}/api/v1/auth/refresh`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refresh}` },
         cache:   'no-store',

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Pi usernames that still have more than one account — admin, read-only
@@ -11,7 +12,7 @@ export async function GET(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    const res = await fetch(`${GATEWAY}/api/auth/admin/duplicate-accounts`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/auth/admin/duplicate-accounts`, {
       headers: { Authorization: `Bearer ${token}` },
       cache:   'no-store',
     });

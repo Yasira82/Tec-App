@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -12,7 +13,7 @@ export const POST = createHandler({
   handler: async ({ input, ctx, req }) => {
     const accessToken = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/notification/device-tokens`,
       {
         method:  'POST',

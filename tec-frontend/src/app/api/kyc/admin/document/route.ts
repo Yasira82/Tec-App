@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // Admin-only: stream a stored KYC document image to the reviewer, SAME-ORIGIN.
 // The Hub server fetches the raw bytes from tec-storage-service (which reads the
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
     const key = req.nextUrl.searchParams.get('key');
     if (!key) return NextResponse.json({ error: 'key required' }, { status: 400 });
 
-    const res = await fetch(`${GATEWAY}/api/storage/admin/object`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/storage/admin/object`, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ key }),

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'listing_id and payment_id required' }, { status: 400 });
   }
 
-  const res = await fetch(
+  const res = await gatewayFetch(
     `${GATEWAY}/api/assets/marketplace/${body.listing_id}/buy`,
     {
       method:  'POST',

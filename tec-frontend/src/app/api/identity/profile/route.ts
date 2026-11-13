@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/profile`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json().catch(() => ({}));
@@ -23,7 +24,7 @@ export async function PATCH(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const res = await fetch(`${GATEWAY}/api/identity/profile`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/profile`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

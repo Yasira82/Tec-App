@@ -1,8 +1,9 @@
 import { createHandler } from '@/lib/bff/createHandler';
 import { NextResponse }  from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const fetchWallet = async (token: string, userId: string, requestId: string, gatewayUrl: string) =>
-  fetch(`${gatewayUrl}/api/wallets?userId=${encodeURIComponent(userId)}`, {
+  gatewayFetch(`${gatewayUrl}/api/wallets?userId=${encodeURIComponent(userId)}`, {
     headers: {
       'Authorization':   `Bearer ${token}`,
       'x-request-id':    requestId,

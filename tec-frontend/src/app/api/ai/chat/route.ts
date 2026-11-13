@@ -13,6 +13,7 @@ import {
   callClaude, callGroq, callOpenRouter, callGemini, createUnifiedStream,
   type Message, type ProviderResult,
 } from '@/lib/ai/providers';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 export const runtime = 'edge';
 
@@ -223,7 +224,7 @@ function recordIntentObservation(
         ...(locale === 'en' || locale === 'ar' ? { locale } : {}),
       });
       if (!observation) return;
-      await fetch(`${gateway.replace(/\/$/, '')}/api/analytics/ai/intent-observation`, {
+      await gatewayFetch(`${gateway.replace(/\/$/, '')}/api/analytics/ai/intent-observation`, {
         method:  'POST',
         headers: {
           'Content-Type':   'application/json',
@@ -261,7 +262,7 @@ async function forwardToService(req: NextRequest, rawBody: string, corsHeaders: 
   if (!bearer) return null;   // no session — the local gate below answers SIGN_IN
 
   try {
-    const res = await fetch(`${gateway.replace(/\/$/, '')}/api/identity/ai/chat`, {
+    const res = await gatewayFetch(`${gateway.replace(/\/$/, '')}/api/identity/ai/chat`, {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',

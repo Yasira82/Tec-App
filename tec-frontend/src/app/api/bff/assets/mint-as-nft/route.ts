@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
     );
     const userId = payload.sub ?? payload.id;
 
-    const res = await fetch(`${GATEWAY}/api/v1/assets/${assetId}/mint-as-nft`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/v1/assets/${assetId}/mint-as-nft`, {
       method:  'POST',
       headers: {
         'Content-Type':  'application/json',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify } from 'jose';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // ⚠️ TEMP diagnostic — why are wallet (access token) AND /api/auth/refresh both
 // returning 401? Reports access-token verify + refresh-token presence + the
@@ -45,7 +46,7 @@ export async function GET(req: NextRequest) {
   // 2) Refresh token: ask the backend exactly what the Hub's /api/auth/refresh asks
   if (refresh && gateway) {
     try {
-      const r = await fetch(`${gateway}/api/v1/auth/refresh`, {
+      const r = await gatewayFetch(`${gateway}/api/v1/auth/refresh`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${refresh}` },
       });

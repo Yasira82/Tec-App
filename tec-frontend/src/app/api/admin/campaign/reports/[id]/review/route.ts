@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Round 3: the owner reviews one report — approve, or ask for a revision with a
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'action must be approve, revise or reopen' }, { status: 400 });
   }
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/reports/${encodeURIComponent(id)}/review`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/reports/${encodeURIComponent(id)}/review`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: body.action, ...(typeof body.note === 'string' ? { note: body.note.slice(0, 500) } : {}) }),

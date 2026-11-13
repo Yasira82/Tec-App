@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -9,7 +10,7 @@ export async function POST(req: NextRequest) {
   }
   try {
     const body = await req.json();
-    const res = await fetch(`${GATEWAY}/api/commerce/orders/checkout`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/commerce/orders/checkout`, {
       method: 'POST',
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

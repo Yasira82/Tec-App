@@ -2,6 +2,7 @@
 // with `server-only` because that package throws under the unit-test runtime;
 // the module makes network calls and is never imported by client components.
 import { normalizePlan, entitlementsFor, type PlanId } from './entitlements';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -28,7 +29,7 @@ export async function checkAssetQuota(token: string, userId: string): Promise<Qu
 export async function fetchUserPlan(token: string): Promise<PlanId> {
   if (!token || !GATEWAY) return 'FREE';
   try {
-    const res = await fetch(`${GATEWAY}/api/commerce/subscriptions/status`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/commerce/subscriptions/status`, {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       cache:   'no-store',
     });
@@ -50,7 +51,7 @@ export async function fetchUserPlan(token: string): Promise<PlanId> {
 export async function countUserAssets(token: string, userId: string): Promise<number | null> {
   if (!token || !GATEWAY || !userId) return null;
   try {
-    const res = await fetch(`${GATEWAY}/api/assets/user/${encodeURIComponent(userId)}`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/assets/user/${encodeURIComponent(userId)}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -18,7 +19,7 @@ export async function POST(req: NextRequest) {
 
     const idempotencyKey = req.headers.get('idempotency-key') ?? crypto.randomUUID();
 
-    const res = await fetch(`${GATEWAY}/api/payments/a2u`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/payments/a2u`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAssetQuota }           from '@/lib/subscription/plan.server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     // ✅ الـ route الجديد
-    const res = await fetch(`${GATEWAY}/api/assets/provision`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/assets/provision`, {
       method: 'POST',
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID }                from 'crypto';
 import { withAccountId } from '@/lib/auth/account-id';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -31,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     let backendRes: Response;
     try {
-      backendRes = await fetch(`${GATEWAY}/api/v1/auth/refresh`, {
+      backendRes = await gatewayFetch(`${GATEWAY}/api/v1/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -11,7 +12,7 @@ export const GET = createHandler({
     const limit = Math.min(Number(searchParams.get('limit') ?? 20), 50);
     const page  = Math.max(Number(searchParams.get('page')  ?? 1),  1);
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/notification?userId=${ctx.userId}&limit=${limit}&page=${page}`,
       {
         headers: {

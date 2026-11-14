@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { buildCsp, enforceNoEval, makeNonce, NONCE_HEADER } from '@/lib/csp';
 
 // '/hub' is CLIENT-guarded (C-123 §7): its shell must always render so the
 // client can resolve the session cookie-independently (memory → /api/auth/me →
@@ -79,9 +80,31 @@ function isTrustedCsrf(req: NextRequest): boolean {
   return false;
 }
 
+// ── Content-Security-Policy, with a fresh nonce per request (lib/csp.ts) ─────
+// The request carries the nonce (x-nonce) and the policy, so Next.js stamps its own
+// scripts and the layout can stamp ours; the response carries the policy to the
+// browser, plus a report-only twin that refuses eval (TEC-AUDIT-0004).
+function csp(req: NextRequest) {
+  const nonce = makeNonce();
+  const dev   = process.env.NODE_ENV === 'development';
+  const enforced   = buildCsp(nonce, { dev, allowEval: !enforceNoEval() });
+  const reportOnly = buildCsp(nonce, { dev, allowEval: false });
+  const requestHeaders = new Headers(req.headers);
+  requestHeaders.set(NONCE_HEADER, nonce);
+  requestHeaders.set('Content-Security-Policy', enforced);
+  const stamp = <T extends NextResponse>(res: T): T => {
+    res.headers.set('Content-Security-Policy', enforced);
+    if (reportOnly !== enforced) res.headers.set('Content-Security-Policy-Report-Only', reportOnly);
+    return res;
+  };
+  const next = () => stamp(NextResponse.next({ request: { headers: requestHeaders } }));
+  return { stamp, next };
+}
+
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const method       = req.method.toUpperCase();
+  const { stamp, next } = csp(req);
 
   // ── Page protection ────────────────────────────────────────
   const isPublicHub  = PUBLIC_HUB_ROUTES.some(r => pathname.startsWith(r));
@@ -92,7 +115,7 @@ export function middleware(req: NextRequest) {
     if (!token || token.trim() === '') {
       const loginUrl = new URL('/', req.url);
       loginUrl.searchParams.set('redirect', pathname);
-      return NextResponse.redirect(loginUrl);
+      return stamp(NextResponse.redirect(loginUrl));
     }
   }
 
@@ -100,18 +123,18 @@ export function middleware(req: NextRequest) {
   if (!CSRF_SAFE_METHODS.has(method)) {
     const isCsrfProtected = CSRF_PROTECTED.some(r => pathname.startsWith(r));
     if (isCsrfProtected && !isTrustedCsrf(req)) {
-      return NextResponse.json(
+      return stamp(NextResponse.json(
         { error: 'Invalid CSRF token', code: 'CSRF_INVALID' },
         { status: 403 },
-      );
+      ));
     }
-    return NextResponse.next();
+    return next();
   }
 
   // ── Safe method → ensure a tec_csrf cookie exists ──────────
   // Self-mints the double-submit token on any page load. Per-origin —
   // no cross-domain cookie sharing required (apps are on separate domains).
-  const res = NextResponse.next();
+  const res = next();
   if (!req.cookies.get('tec_csrf')?.value) {
     res.cookies.set('tec_csrf', crypto.randomUUID(), CSRF_COOKIE_OPTS);
   }

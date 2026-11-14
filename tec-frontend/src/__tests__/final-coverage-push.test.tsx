@@ -41,6 +41,7 @@ const mockCookieStore = vi.hoisted(() => ({
 }));
 vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => mockCookieStore),
+  headers: vi.fn(async () => new Headers({ 'x-nonce': 'AAAAAAAAAAAAAAAAAAAAAA==' })),
 }));
 
 vi.mock('next/font/local', () => ({
@@ -340,11 +341,10 @@ describe('PaymentDiagnostics', () => {
 
 // ── app/layout.tsx ────────────────────────────────────────────────
 describe('RootLayout', () => {
-  it('renders html shell with providers and Pi SDK script', () => {
+  // The layout reads this request's CSP nonce (TEC-AUDIT-0004), so it is async.
+  it('renders html shell with providers and Pi SDK script', async () => {
     const { getByTestId, getByText } = render(
-      <RootLayout>
-        <span>page-content</span>
-      </RootLayout>,
+      await RootLayout({ children: <span>page-content</span> }),
     );
     expect(getByTestId('providers')).toBeTruthy();
     expect(getByTestId('pi-sdk-loader')).toBeTruthy();

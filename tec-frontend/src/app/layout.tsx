@@ -7,6 +7,8 @@ import './globals.css';
 // utility classes); defining it once removes that class of bug entirely.
 import '@/styles/tec-design-tokens.css';
 import Script from 'next/script';
+import { headers } from 'next/headers';
+import { NONCE_HEADER } from '@/lib/csp';
 import { THEME_BOOT_SCRIPT } from '@/lib-client/theme';
 import { SAFE_BOTTOM_BOOT_SCRIPT } from '@/lib-client/safe-bottom';
 import localFont from 'next/font/local';
@@ -125,7 +127,10 @@ const sdkTimeoutEnv = process.env.NEXT_PUBLIC_PI_SDK_TIMEOUT
   : 25000;
 const sdkTimeout = sdkTimeoutEnv > 0 && sdkTimeoutEnv < 120000 ? sdkTimeoutEnv : 25000;
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // This request's CSP nonce (middleware → lib/csp.ts). Without it the two boot
+  // scripts below are refused: the policy no longer allows inline scripts wholesale.
+  const nonce = (await headers()).get(NONCE_HEADER) ?? undefined;
   return (
     /* `suppressHydrationWarning`: the boot script below stamps `data-theme` on
        this element before React hydrates, so the server markup and the client
@@ -136,13 +141,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             renders dark, then snaps to light — a flash on every single load,
             which is worse than not offering the choice at all. Inline and
             synchronous by necessity: anything deferred paints too late. */}
-        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
         {/* Reserves room under the bottom bar where Pi Browser draws the page
             beneath Android's buttons and reports no inset (lib-client/safe-bottom). */}
-        <script dangerouslySetInnerHTML={{ __html: SAFE_BOTTOM_BOOT_SCRIPT }} />
+        <script nonce={nonce} dangerouslySetInnerHTML={{ __html: SAFE_BOTTOM_BOOT_SCRIPT }} />
       </head>
       <body>
-        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" />
+        <Script src="https://sdk.minepi.com/pi-sdk.js" strategy="beforeInteractive" nonce={nonce} />
         <PiSdkLoader sandbox={piSandbox} timeout={sdkTimeout} />
         <PlatformHealthProvider>
           <BackendOfflineBanner />

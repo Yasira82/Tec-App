@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-const nextConfig = require('../../next.config.js');
+import { buildCsp } from '@/lib/csp';
 
 /**
  * connect-src names the hosts the page may send data to. It read `'self' https: wss:` —
@@ -12,9 +12,9 @@ const nextConfig = require('../../next.config.js');
  * a tecosystem.app host), and Sentry's ingest. Server-side calls (AI providers, prices)
  * are not limited by CSP and do not belong here.
  */
+// The policy is built per request now (lib/csp.ts, TEC-AUDIT-0004) — read the production one.
 async function connectSrc(): Promise<string[]> {
-  const rules: { source: string; headers: { key: string; value: string }[] }[] = await nextConfig.headers();
-  const csp = rules.flatMap((r) => r.headers).find((h) => h.key === 'Content-Security-Policy')?.value ?? '';
+  const csp = buildCsp('AAAAAAAAAAAAAAAAAAAAAA==', { allowEval: false });
   const directive = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src ')) ?? '';
   return directive.split(/\s+/).slice(1);
 }

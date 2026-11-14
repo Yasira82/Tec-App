@@ -234,6 +234,15 @@ export function createHandler<TInput = Record<string, never>, TOutput = unknown>
       // 4) Execute handler
       const result = await config.handler({ input, ctx, req });
 
+      // A handler that built its own response (a 401, a stream) gets it sent as built.
+      // It used to be serialised into a 200 body — the wallet route's "session expired"
+      // reached the browser as 200 OK (TEC-AUDIT-0034). Refreshed cookies still ride on it.
+      if (result instanceof NextResponse) {
+        if (refreshed) setRefreshedCookies(result, refreshed);
+        result.headers.set('X-Request-Id', ctx.requestId);
+        return result;
+      }
+
       // 5) Log success
       console.info('[BFF]', {
         path:      req.nextUrl.pathname,

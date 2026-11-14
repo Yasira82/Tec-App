@@ -18,10 +18,12 @@ subscriptions, and ecosystem coordination.
 
 - Next.js 15 App Router + TypeScript strict
 - PostgreSQL + Prisma
-- @yasser172/tec-ui (shared design system)
-- @yasser172/tec-auth (usePiAuth, ssoRedirect)
-- @yasser172/tec-sdk (server-side BFF calls only)
-- packages/tec-core-sdk (browser Pi SDK hooks)
+- @yasser172/tec-sdk (server-side BFF calls only) — held at 1.2.2: see the Two-SDK Boundary
+- Browser Pi + session code: `tec-frontend/src/lib-client/` (`pi/PiRuntime.ts`, `pi/pi-auth.ts`, `hooks/usePiAuth.ts`)
+- **Not dependencies** (checked 14 Nov 2026, TEC-AUDIT-0045): `@yasser172/tec-ui` — the Hub
+  styles itself from `src/styles/tec-design-tokens.css`; `@yasser172/tec-auth` — the Hub IS the
+  SSO authority and has its own auth code; the package is for the apps that consume Hub SSO.
+  Whether the Hub adopts either is an open decision (ADR), not a fact to assume.
 - Deployment: Vercel (frontend) + Railway (backend services)
 
 ---
@@ -103,10 +105,15 @@ Rule: No upstream layer may weaken a downstream invariant.
 
 ### Two-SDK Boundary (DO NOT CROSS)
 ```
-Client Components  →  packages/tec-core-sdk  (usePiAuth, useTecWallet)
+Client Components  →  src/lib-client/*      (usePiAuth, PiRuntime, pi-auth)
 API Routes (BFF)   →  @yasser172/tec-sdk     (TecSdk.payment.*, TecSdk.auth.*)
 ```
-Never import tec-sdk npm in Client Components.
+Never import tec-sdk npm in Client Components — **directly or through a wrapper** (`src/lib/sdk.ts`
+is server code). `src/__tests__/sdk-boundary.test.ts` follows imports transitively and fails on it.
+One known path remains, named in that test: `lib-client/pi/pi-payment.ts` → `lib/sdk.ts` for
+`getPaymentStatus()` (no production caller; cannot work in a browser). Until it is removed or
+replaced by a server route that checks the caller owns the payment, the Hub stays on tec-sdk 1.2.2:
+1.3.0+ imports node's `async_hooks`, which fails the page build (TEC-AUDIT-0045).
 Never import axios or Pi SDK directly in API Routes.
 
 ### ADR-007 — Pi Foreign Session (CRITICAL)
@@ -199,10 +206,8 @@ tec-frontend/
         PiCircuitBreaker.ts      # Circuit breaker: 3 failures → OPEN 60s
     styles/
       tec-design-tokens.css
-packages/
-  tec-core-sdk/
-  tec-ui/
 ```
+(There is no `packages/` folder: the root `workspaces` entry `packages/*` matches nothing.)
 
 ---
 
@@ -245,10 +250,10 @@ Hub is the **Conductor**. Every other repo is an instrument.
 
 ```
 HUB (tec-app) — Control Plane / Conductor
-  ├── @yasser172/tec-auth    ← Auth package
   ├── tec-core-backend       ← All backend microservices
-  ├── @yasser172/tec-sdk     ← Server BFF SDK
-  ├── @yasser172/tec-ui      ← Shared design system
+  ├── @yasser172/tec-sdk     ← Server BFF SDK (the Hub's only @yasser172 dependency)
+  ├── @yasser172/tec-auth    ← Auth package the APPS use to consume Hub SSO (not the Hub)
+  ├── @yasser172/tec-ui      ← Design system of the APPS (not the Hub)
   ├── tec-ecommerce
   ├── tec-assets
   └── tec-commerce
@@ -316,7 +321,7 @@ git status            # clean
 
 | Direction | Repos / Services |
 |-----------|----------------|
-| Upstream | `@yasser172/tec-auth` · `@yasser172/tec-ui` · `@yasser172/tec-sdk` · `tec-core-backend` (Gateway:4000) |
+| Upstream | `@yasser172/tec-sdk` · `tec-core-backend` (gateway) — not `tec-auth` / `tec-ui` (the Hub depends on neither, TEC-AUDIT-0045) |
 | Downstream | `tec-ecommerce` · `tec-assets` · `tec-commerce` — all consume Hub SSO + `/hub?pay=1` |
 
 ### Cross-Repo Workflow Triggers

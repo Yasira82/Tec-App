@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { gatewayFetch } from '@/lib/gateway-fetch';
 
+// The upload goes to object storage, not the gateway; it still needs a deadline,
+// or a stalled PUT holds the function until the platform kills it (TEC-AUDIT-0033).
+const UPLOAD_TIMEOUT_MS = 60_000;
+
 // Server-proxied document upload. The browser POSTs the file to THIS same-origin
 // route (no CORS), then the server:
 //   1. asks tec-storage-service (via the gateway) for a presigned upload URL,
@@ -49,6 +53,7 @@ export async function POST(req: NextRequest) {
 
     // 2) server-side PUT of the bytes to R2 (no CORS from the server)
     const putRes = await fetch(uploadUrl, {
+      signal: AbortSignal.timeout(UPLOAD_TIMEOUT_MS),
       method:  'PUT',
       headers: { 'Content-Type': file.type },
       body:    Buffer.from(await file.arrayBuffer()),

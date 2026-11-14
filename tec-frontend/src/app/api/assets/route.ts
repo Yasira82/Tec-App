@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     // ✅ الـ route الجديد بعد fix الـ global prefix
     const url = userId ? `${GATEWAY}/api/assets/user/${userId}` : `${GATEWAY}/api/assets`;
 
-    const res = await fetch(url, {
+    const res = await gatewayFetch(url, {
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
     });
     const data = await res.json().catch(() => ({}));

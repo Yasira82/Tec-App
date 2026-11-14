@@ -18,7 +18,7 @@ subscriptions, and ecosystem coordination.
 
 - Next.js 15 App Router + TypeScript strict
 - PostgreSQL + Prisma
-- @yasser172/tec-sdk (server-side BFF calls only) — held at 1.2.2: see the Two-SDK Boundary
+- @yasser172/tec-sdk ^1.4.0 (server-side BFF calls only — see the Two-SDK Boundary)
 - Browser Pi + session code: `tec-frontend/src/lib-client/` (`pi/PiRuntime.ts`, `pi/pi-auth.ts`, `hooks/usePiAuth.ts`)
 - **Not dependencies** (checked 14 Nov 2026, TEC-AUDIT-0045): `@yasser172/tec-ui` — the Hub
   styles itself from `src/styles/tec-design-tokens.css`; `@yasser172/tec-auth` — the Hub IS the
@@ -110,10 +110,9 @@ API Routes (BFF)   →  @yasser172/tec-sdk     (TecSdk.payment.*, TecSdk.auth.*)
 ```
 Never import tec-sdk npm in Client Components — **directly or through a wrapper** (`src/lib/sdk.ts`
 is server code). `src/__tests__/sdk-boundary.test.ts` follows imports transitively and fails on it.
-One known path remains, named in that test: `lib-client/pi/pi-payment.ts` → `lib/sdk.ts` for
-`getPaymentStatus()` (no production caller; cannot work in a browser). Until it is removed or
-replaced by a server route that checks the caller owns the payment, the Hub stays on tec-sdk 1.2.2:
-1.3.0+ imports node's `async_hooks`, which fails the page build (TEC-AUDIT-0045).
+Since tec-sdk 1.3.0 the SDK imports node's `async_hooks`: a browser path to it fails the page build.
+The last such path (`getPaymentStatus()` in `lib-client/pi/pi-payment.ts` — no production caller,
+and in a browser it had no gateway address) was removed on 14 Nov 2026 (TEC-AUDIT-0045).
 Never import axios or Pi SDK directly in API Routes.
 
 ### ADR-007 — Pi Foreign Session (CRITICAL)
@@ -321,7 +320,7 @@ git status            # clean
 
 | Direction | Repos / Services |
 |-----------|----------------|
-| Upstream | `@yasser172/tec-sdk` · `tec-core-backend` (gateway) — not `tec-auth` / `tec-ui` (the Hub depends on neither, TEC-AUDIT-0045) |
+| Upstream | `@yasser172/tec-sdk` ^1.4.0 · `tec-core-backend` (gateway) — not `tec-auth` / `tec-ui` (the Hub depends on neither, TEC-AUDIT-0045) |
 | Downstream | `tec-ecommerce` · `tec-assets` · `tec-commerce` — all consume Hub SSO + `/hub?pay=1` |
 
 ### Cross-Repo Workflow Triggers

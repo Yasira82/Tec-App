@@ -64,27 +64,12 @@ describe('the Two-SDK boundary', () => {
     expect([..."import type { X } from '@yasser172/tec-sdk';".matchAll(IMPORT)][0]![0]).toMatch(/^import\s+type\s/);
   });
 
-  // THE HUB ONLY — one known path, named so nothing NEW can hide behind it:
-  // lib-client/pi/pi-payment.ts → lib/sdk.ts, for getPaymentStatus(). No production
-  // code calls it (PiRuntime re-exports it); in a browser it cannot work (no gateway
-  // address — the SDK falls back to http://localhost:4000). The Hub stays on
-  // tec-sdk 1.2.2 until it is gone, because 1.3.0+ imports async_hooks and the page
-  // build would fail. The owner decides: remove it, or read the payment through a
-  // server route that checks the caller owns it (TEC-AUDIT-0045, 14 Nov 2026).
-  const KNOWN = ['src/lib-client/pi/pi-payment.ts → src/lib/sdk.ts → @yasser172/tec-sdk'];
-
   it('no browser code reaches @yasser172/tec-sdk, directly or through a wrapper', () => {
     const offenders = files(SRC)
       .filter(isBrowserCode)
       .map((f) => chainToServerSdk(f))
       .filter((c): c is string[] => c !== null)
-      .map((c) => c.map((p) => (p.startsWith('/') ? relative(process.cwd(), p) : p)).join(' → '))
-      .filter((chain) => !KNOWN.some((k) => chain.endsWith(k)));
+      .map((c) => c.map((p) => (p.startsWith('/') ? relative(process.cwd(), p) : p)).join(' → '));
     expect(offenders).toEqual([]);
-  });
-
-  it('the known path is still there — when it goes, delete it from KNOWN and move to tec-sdk ^1.4.0', () => {
-    const f = join(SRC, 'lib-client/pi/pi-payment.ts');
-    expect(chainToServerSdk(f)?.map((p) => (p.startsWith('/') ? relative(process.cwd(), p) : p)).join(' → ')).toBe(KNOWN[0]);
   });
 });

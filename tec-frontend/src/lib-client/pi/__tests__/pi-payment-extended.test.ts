@@ -37,7 +37,7 @@ vi.mock('@/lib/request-id', () => ({
   storeRequestId:    vi.fn(),
 }));
 
-import { getPaymentStatus, createA2UPayment } from '../pi-payment';
+import { createA2UPayment } from '../pi-payment';
 
 describe('pi-payment extended', () => {
 
@@ -46,23 +46,6 @@ describe('pi-payment extended', () => {
     process.env.API_GATEWAY_URL = 'https://api.example.com';
   });
 
-  // ── getPaymentStatus ────────────────────────────────────
-  describe('getPaymentStatus', () => {
-    it('returns payment status from SDK', async () => {
-      const result = await getPaymentStatus('pay-123');
-      expect(result.status).toBe('completed');
-      expect(result.amount).toBe(1);
-    });
-
-    it('throws when SDK fails', async () => {
-      const { default: sdk } = await import('@/lib/sdk');
-      vi.mocked(sdk.payment.getPayment).mockRejectedValueOnce(
-        new Error('Payment not found')
-      );
-
-      await expect(getPaymentStatus('invalid-id')).rejects.toThrow('Payment not found');
-    });
-  });
 
   // ── createA2UPayment ────────────────────────────────────
   describe('createA2UPayment', () => {

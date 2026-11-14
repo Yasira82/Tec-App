@@ -114,14 +114,14 @@ describe('logout', () => {
     mockFetch({ ok: true });
   });
 
-  it('calls /api/auth/logout and clears SDK token', async () => {
+  it('calls /api/auth/logout — and nothing of the server SDK (the session is cookies the server clears)', async () => {
     await logout();
     expect(global.fetch).toHaveBeenCalledWith('/api/auth/logout', {
       method: 'POST',
       credentials: 'include',
       headers: { 'x-csrf-token': '' },
     });
-    expect(sdk.clearAuthToken).toHaveBeenCalled();
+    expect(sdk.clearAuthToken).not.toHaveBeenCalled();
   });
 
   it('does not throw on fetch failure', async () => {

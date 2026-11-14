@@ -287,7 +287,7 @@ git status            # clean
 ### SHARED
 - Identity: tec-auth-service + Hub SSO
 - Cookie names: `tec_access_token`, `tec_csrf`, `tec_user` — LOCKED
-- Payment runtime: tec-payment-service contracts (ADR-004 Outbox)
+- Payment runtime: tec-payment-service contracts (its outbox; the contract is ADR-009)
 - Pi SDK: PiRuntime.* (PAL)
 - Hub payment URL: `/hub?pay=1&...` ONLY
 

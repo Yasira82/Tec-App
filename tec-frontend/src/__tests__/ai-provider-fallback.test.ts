@@ -12,7 +12,7 @@
  *    more candidates were sitting in the list unused.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { GEMINI_MODELS } from '@/app/api/ai/chat/route';
+import { GEMINI_MODELS } from '@/lib/ai/providers';
 
 const KEY = 'test-key';
 /** The first candidate actually tried — read from the list, never hardcoded, so

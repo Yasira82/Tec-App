@@ -103,32 +103,9 @@ const nextConfig = {
           { key: 'Referrer-Policy',         value: 'strict-origin-when-cross-origin' },
           { key: 'X-DNS-Prefetch-Control',  value: 'on'                              },
           { key: 'Permissions-Policy',      value: 'camera=(), microphone=()'        },
-          {
-            key:   'Content-Security-Policy',
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              // Named hosts only (src/__tests__/csp-connect-src.test.ts). It was
-              // `'self' https: wss:` — any host — under a comment saying it was fixed.
-              // Server-side calls (AI providers, prices) are not limited by CSP.
-              [
-                "connect-src 'self'",
-                'https://*.minepi.com https://minepi.com wss://*.minepi.com',            // Pi SDK
-                'https://*.up.railway.app wss://*.up.railway.app',                      // realtime (Railway domain; socket.io polls before it upgrades)
-                'https://*.tecosystem.app wss://*.tecosystem.app',                      // realtime on a custom domain; sibling apps
-                'https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io', // Sentry
-              ].join(' '),
-              // *.r2.dev hosts the NFT artwork uploaded through tec-assets. Without it
-              // the browser BLOCKS every NFT image on /dashboard/assets and the tile
-              // renders empty. tec-assets already allows it — the Hub was the outlier.
-              "img-src 'self' data: blob: *.railway.app *.vercel.app *.r2.dev",
-              "style-src 'self' 'unsafe-inline'",
-              "font-src 'self' data:",
-              "frame-src 'self' sdk.minepi.com *.minepi.com",
-              "worker-src 'self' blob:",
-              "frame-ancestors 'self' *.minepi.com minepi.com",
-            ].join('; '),
-          },
+          // Content-Security-Policy is NOT here: it carries a fresh nonce per
+          // request, so the middleware sends it (src/lib/csp.ts, TEC-AUDIT-0004).
+          // A fixed string here could only allow inline scripts wholesale.
         ],
       },
       {

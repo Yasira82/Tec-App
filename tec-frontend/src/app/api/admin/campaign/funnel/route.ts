@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * The campaign funnel: viewed → tapped → arrived → qualified → claimed → paid, per
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/funnel`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/funnel`, {
       headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
     });
     const data = await res.json().catch(() => ({}));

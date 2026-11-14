@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // Admin-only: verify a user's KYC. Gateway → tec-kyc-service enforces admin.
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest) {
     const level  = body?.level === 'L2' ? 'L2' : 'L1';
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
 
-    const res  = await fetch(`${GATEWAY}/api/kyc/admin/verify/${encodeURIComponent(userId)}`, {
+    const res  = await gatewayFetch(`${GATEWAY}/api/kyc/admin/verify/${encodeURIComponent(userId)}`, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ level }),

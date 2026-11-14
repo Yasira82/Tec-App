@@ -282,3 +282,18 @@ describe('a header and a cookie naming different accounts', () => {
     expect(seen).toEqual({ userId: 'acct-fresh', token: 'fresh-header-token' });
   });
 });
+
+// ── A handler's own response is sent as built (TEC-AUDIT-0034) ──────────────
+describe('a handler that returns its own response', () => {
+  it('keeps its status — it used to be serialised into a 200 body', async () => {
+    const { NextResponse } = await import('next/server');
+    const handler = createHandler({
+      requireAuth: false,
+      handler: async () => NextResponse.json({ error: 'TOKEN_EXPIRED' }, { status: 401 }),
+    });
+    const res = await handler(makeReq({ method: 'GET' }));
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'TOKEN_EXPIRED' });
+    expect(res.headers.get('X-Request-Id')).toBeTruthy();
+  });
+});

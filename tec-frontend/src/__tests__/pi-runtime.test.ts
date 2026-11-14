@@ -42,7 +42,6 @@ vi.mock('@/lib-client/pi/pi-auth', () => ({
 vi.mock('@/lib-client/pi/pi-payment', () => ({
   createU2APayment: vi.fn(),
   createA2UPayment: vi.fn(),
-  getPaymentStatus: vi.fn(),
 }));
 
 import { PiRuntime }        from '@/lib-client/pi/PiRuntime';

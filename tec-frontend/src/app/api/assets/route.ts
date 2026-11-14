@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { checkAssetQuota }           from '@/lib/subscription/plan.server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -23,7 +24,7 @@ export async function GET(req: NextRequest) {
     // ✅ الـ route الجديد بعد fix الـ global prefix
     const url = userId ? `${GATEWAY}/api/assets/user/${userId}` : `${GATEWAY}/api/assets`;
 
-    const res = await fetch(url, {
+    const res = await gatewayFetch(url, {
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
     });
     const data = await res.json().catch(() => ({}));
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     // ✅ الـ route الجديد
-    const res = await fetch(`${GATEWAY}/api/assets/provision`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/assets/provision`, {
       method: 'POST',
       headers: { Authorization: authHeader, 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

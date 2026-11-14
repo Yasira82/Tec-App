@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -9,7 +10,7 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const res = await fetch(`${GATEWAY}/api/notification/read-all`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/notification/read-all`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     });

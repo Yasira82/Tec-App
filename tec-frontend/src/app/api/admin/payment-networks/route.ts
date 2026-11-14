@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Which network each payment's π moved on — admin, read-only (tec-core-backend #401).
@@ -24,7 +25,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/payment/admin/network-report${qs.toString() ? `?${qs}` : ''}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' },
     );

@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -11,7 +12,7 @@ export const GET = createHandler({
     const limit = Math.min(Number(searchParams.get('limit') ?? 10), 50);
     const sort  = searchParams.get('sort') ?? 'desc';
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/commerce/orders?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
       {
         headers: {
@@ -40,7 +41,7 @@ export const POST = createHandler({
   handler: async ({ input, ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/commerce/orders`,
       {
         method:  'POST',

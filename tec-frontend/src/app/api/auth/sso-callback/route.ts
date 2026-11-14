@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { NONCE_HEADER } from '@/lib/csp';
 import { jwtVerify }                 from 'jose';
 
 const ALLOWED_AUDIENCES = [
@@ -83,6 +84,11 @@ export async function GET(req: NextRequest) {
     { name: 'tec_csrf',         value: csrf,                 maxAge: 60 * 60 * 24 },
   ];
   const esc = (s: string) => s.replace(/</g, '\\u003c');
+  // The page's one script carries this request's CSP nonce (middleware → lib/csp.ts):
+  // the policy no longer runs inline scripts that lack it, and this one is what
+  // finishes the sign-in. Base64 only — checked, so it cannot break out of the quote.
+  const nonce     = req.headers.get(NONCE_HEADER) ?? '';
+  const nonceAttr = /^[A-Za-z0-9+/=]+$/.test(nonce) ? ` nonce="${nonce}"` : '';
 
   const html = `<!doctype html>
 <html><head><meta charset="utf-8"><title>TEC — Signing in…</title>
@@ -92,7 +98,7 @@ export async function GET(req: NextRequest) {
 <body style="margin:0;background:#050816;color:var(--tec-gold);font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh">
 <div style="text-align:center"><div style="font-size:28px;font-weight:900">TEC</div>
 <div style="font-size:13px;color:#9ca3af;margin-top:8px">Signing you in…</div></div>
-<script>
+<script${nonceAttr}>
 (function () {
   var redirect = ${esc(JSON.stringify(redirect))};
   var cookies  = ${esc(JSON.stringify(jsCookies))};

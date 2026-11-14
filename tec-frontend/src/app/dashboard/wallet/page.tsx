@@ -281,7 +281,7 @@ function ReceiveModal({ walletId, balance, onClose }: {
 export default function WalletPage() {
   const { t } = useTranslation();
   const {
-    wallet, transactions, isLoading, isRefreshing, error,
+    wallet, transactions, isLoading, isRefreshing, error, txError,
     page, totalPages, filterType, filterStatus,
     refetch, setPage, setFilterType, setFilterStatus, updateBalance,
   } = useWallet();
@@ -436,7 +436,9 @@ export default function WalletPage() {
             <span>Date</span><span>TX Hash</span>
           </div>
           <div className={styles.tableBody}>
-            {transactions.length === 0
+            {txError
+              ? <TransactionsUnavailable onRetry={refetch} />
+              : transactions.length === 0
               ? <EmptyTransactions />
               : transactions.map(tx => <TransactionRow key={tx.id} tx={tx} />)
             }
@@ -477,6 +479,16 @@ function TransactionRow({ tx }: { tx: Transaction }) {
           : <span style={{ color: 'var(--muted)' }}>—</span>
         }
       </div>
+    </div>
+  );
+}
+
+function TransactionsUnavailable({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className={styles.emptyState} role="alert">
+      <span>⚠️</span>
+      <p>Could not load your transactions.</p>
+      <button type="button" className={styles.paginationBtn} onClick={onRetry}>Retry</button>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // Admin-only: reject a user's KYC with a reason. Gateway → tec-kyc-service enforces admin.
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
     if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 });
     if (!reason) return NextResponse.json({ error: 'reason required' }, { status: 400 });
 
-    const res  = await fetch(`${GATEWAY}/api/kyc/admin/reject/${encodeURIComponent(userId)}`, {
+    const res  = await gatewayFetch(`${GATEWAY}/api/kyc/admin/reject/${encodeURIComponent(userId)}`, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ reason }),

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Amount must be a positive number' }, { status: 400 });
     }
 
-    const res = await fetch(`${GATEWAY}/api/wallets/transfer`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/wallets/transfer`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

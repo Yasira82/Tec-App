@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { networkMetadata } from '@/lib/pi-network';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // ✅ Canonical payment-create contract (ADR-009) — IDENTICAL across all 4 apps.
 //    - Gateway path: ${GW}/api/payment/create  (gateway rewrites ^/api/payment → /payments)
@@ -84,7 +85,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const idempotencyKey = idempotency_key ?? randomUUID();
 
   try {
-    const res = await fetch(`${GW}/api/payment/create`, {
+    const res = await gatewayFetch(`${GW}/api/payment/create`, {
       method: 'POST',
       headers: {
         'Content-Type':    'application/json',

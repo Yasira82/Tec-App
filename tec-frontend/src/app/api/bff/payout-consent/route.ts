@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Does this account still need to sign in again before it can be paid?
@@ -30,7 +31,7 @@ export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
     try {
-      const res = await fetch(`${GATEWAY}/api/v1/auth/me`, {
+      const res = await gatewayFetch(`${GATEWAY}/api/v1/auth/me`, {
         headers: {
           Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
           'x-request-id': ctx.requestId,

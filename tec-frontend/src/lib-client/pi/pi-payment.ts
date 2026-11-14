@@ -2,7 +2,6 @@ import { resolvePiAppId } from '@/lib-client/pi/pi-app-id';
 import { getAccessToken, getStoredUser, waitForPiSDK } from './pi-auth';
 import { sessionToken } from './session-source';
 import { piSession } from '@/lib-client/pi/pi-session';
-import sdk           from '@/lib/sdk';
 import { buildHeaders } from '@/lib/request-id';
 import {
   APPROVAL_TIMEOUT_MS,
@@ -331,15 +330,6 @@ export const createU2APayment = async (
     startApprovalTimer();
     invoke(0);
   });
-};
-
-export const getPaymentStatus = async (paymentId: string): Promise<PaymentResult> => {
-  try {
-    const result = await sdk.payment.getPayment(paymentId);
-    return result as unknown as PaymentResult;
-  } catch (err) {
-    throw new Error(err instanceof Error ? err.message : 'Failed to fetch payment status');
-  }
 };
 
 export const testPiSDK = (): boolean => {

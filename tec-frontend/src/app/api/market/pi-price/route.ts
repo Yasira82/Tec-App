@@ -35,6 +35,8 @@ export async function GET(req: Request) {
   try {
     const res = await fetch('https://www.okx.com/api/v5/market/ticker?instId=PI-USDT', {
       cache: 'no-store',
+      // A price that has not come in 8 s is not coming; the catch below answers instead.
+      signal: AbortSignal.timeout(8_000),
       headers: { 'Content-Type': 'application/json' },
     });
 

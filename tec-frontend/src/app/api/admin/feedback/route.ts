@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * The feedback inbox — admin read + triage.
@@ -38,7 +39,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/identity/feedback${qs.toString() ? `?${qs}` : ''}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' },
     );
@@ -61,7 +62,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/feedback/${encodeURIComponent(id)}/status`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/feedback/${encodeURIComponent(id)}/status`, {
       method:  'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ status }),

@@ -51,7 +51,7 @@ vi.mock('@/lib/request-id', () => ({
   buildHeaders: vi.fn().mockReturnValue({ 'x-request-id': 'test-request-id' }),
 }));
 
-import { createA2UPayment, createU2APayment, getPaymentStatus, testPiSDK } from '@/lib-client/pi/pi-payment';
+import { createA2UPayment, createU2APayment, testPiSDK } from '@/lib-client/pi/pi-payment';
 import sdk from '@/lib/sdk';
 
 const TEST_UUID =
@@ -92,21 +92,6 @@ describe('pi-payment', () => {
     });
   });
 
-  // ── getPaymentStatus ──────────────────────────────────────
-  describe('getPaymentStatus', () => {
-    it('returns payment result from SDK', async () => {
-      const mockPayment = { success: true, status: 'completed', amount: 1, memo: 'test' };
-      vi.mocked(sdk.payment.getPayment).mockResolvedValue(mockPayment as never);
-      const result = await getPaymentStatus('payment-id-123');
-      expect(result).toEqual(mockPayment);
-      expect(sdk.payment.getPayment).toHaveBeenCalledWith('payment-id-123');
-    });
-
-    it('throws on SDK error', async () => {
-      vi.mocked(sdk.payment.getPayment).mockRejectedValue(new Error('Not found'));
-      await expect(getPaymentStatus('bad-id')).rejects.toThrow('Not found');
-    });
-  });
 
   // ── createA2UPayment ──────────────────────────────────────
   describe('createA2UPayment', () => {

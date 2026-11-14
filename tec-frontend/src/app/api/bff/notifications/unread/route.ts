@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -10,7 +11,7 @@ export const GET = createHandler({
     // NEW-R: the notification-service has NO /unread-count route (it 404'd).
     // The base GET /notifications already returns { data: { notifications, unreadCount } }.
     // Use it and surface just the count.
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/notification?userId=${ctx.userId}&limit=1`,
       {
         headers: {

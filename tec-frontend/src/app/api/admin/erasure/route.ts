@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Erase an account across services — admin (tec-core-backend #437,
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const username = req.nextUrl.searchParams.get('username') ?? '';
   try {
-    return pass(await fetch(`${BASE}/preview?username=${encodeURIComponent(username)}`, {
+    return pass(await gatewayFetch(`${BASE}/preview?username=${encodeURIComponent(username)}`, {
       headers: { Authorization: `Bearer ${token}` },
       cache:   'no-store',
     }));
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { username, confirm, ref } = (body ?? {}) as Record<string, unknown>;
   try {
-    return pass(await fetch(BASE, {
+    return pass(await gatewayFetch(BASE, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ username, confirm, ref }),

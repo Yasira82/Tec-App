@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * TEC balance → the signed-in person's own Pi Network wallet (tec-core-backend #400).
@@ -14,7 +15,7 @@ import { createHandler } from '@/lib/bff/createHandler';
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 async function walletCall(method: 'GET' | 'POST', token: string, requestId: string, body?: unknown) {
-  const res = await fetch(`${GATEWAY}/api/wallets/withdraw-to-pi`, {
+  const res = await gatewayFetch(`${GATEWAY}/api/wallets/withdraw-to-pi`, {
     method,
     headers: {
       Authorization:  `Bearer ${token}`,

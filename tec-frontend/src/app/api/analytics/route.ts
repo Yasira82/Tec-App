@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -14,7 +15,7 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${GATEWAY}/api/analytics/${endpoint}`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/analytics/${endpoint}`, {
       headers: {
         'Content-Type': 'application/json',
         ...(authHeader ? { Authorization: authHeader } : {}),

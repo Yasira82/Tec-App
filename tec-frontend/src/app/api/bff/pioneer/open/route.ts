@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
 import { LIVE_DOMAINS } from '@/domains/_registry';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // POST /api/bff/pioneer/open — record that the caller opened an app (ticks their
 // Pioneer Quest, and grants the Founding number on completion). The owner is the
@@ -40,7 +41,7 @@ export const POST = createHandler({
   }),
   handler: async ({ input, ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
-    const res = await fetch(`${GW}/api/identity/pioneer/open`, {
+    const res = await gatewayFetch(`${GW}/api/identity/pioneer/open`, {
       method:  'POST',
       headers: {
         Authorization:  `Bearer ${token}`,

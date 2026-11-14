@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ count: 0 }, { status: 200 });
 
   try {
-    const res = await fetch(`${GATEWAY}/api/notification?limit=1`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/notification?limit=1`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

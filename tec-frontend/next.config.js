@@ -108,16 +108,11 @@ const nextConfig = {
             value: [
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval' sdk.minepi.com *.minepi.com",
-              // Named hosts only (src/__tests__/csp-connect-src.test.ts). It was
-              // `'self' https: wss:` — any host — under a comment saying it was fixed.
-              // Server-side calls (AI providers, prices) are not limited by CSP.
-              [
-                "connect-src 'self'",
-                'https://*.minepi.com https://minepi.com wss://*.minepi.com',            // Pi SDK
-                'https://*.up.railway.app wss://*.up.railway.app',                      // realtime (Railway domain; socket.io polls before it upgrades)
-                'https://*.tecosystem.app wss://*.tecosystem.app',                      // realtime on a custom domain; sibling apps
-                'https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.ingest.de.sentry.io', // Sentry
-              ].join(' '),
+              // The policy proven in Pi Browser (src/__tests__/csp-connect-src.test.ts).
+              // A named list (#324, 11 Nov 2026) broke Pi sign-in — the Pi SDK reaches a
+              // host it did not name (TEC-AUDIT-0051). It comes back only after it ran
+              // Report-Only and a Pi Browser sign-in and payment reported nothing.
+              "connect-src 'self' https: wss:",
               // *.r2.dev hosts the NFT artwork uploaded through tec-assets. Without it
               // the browser BLOCKS every NFT image on /dashboard/assets and the tile
               // renders empty. tec-assets already allows it — the Hub was the outlier.

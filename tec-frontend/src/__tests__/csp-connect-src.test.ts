@@ -2,15 +2,17 @@ import { describe, it, expect } from 'vitest';
 const nextConfig = require('../../next.config.js');
 
 /**
- * connect-src names the hosts the page may send data to. It read `'self' https: wss:` —
- * ANY host — under a comment claiming the wildcard was gone ("VM-017 FIXED"). With
- * 'unsafe-inline' in script-src, one injected script could post a session's data
- * anywhere. Engineering review, 2026-11-11.
+ * connect-src — which hosts the page may send data to.
  *
- * The list is what the browser really reaches: this app's own BFF ('self'), the Pi SDK,
- * the realtime socket (its URL comes from /api/bff/realtime — a Railway public domain or
- * a tecosystem.app host), and Sentry's ingest. Server-side calls (AI providers, prices)
- * are not limited by CSP and do not belong here.
+ * #324 (11 Nov 2026) narrowed it from `'self' https: wss:` to a named list. On 15 Nov the
+ * owner could not sign in to the Hub in Pi Browser: `Pi.authenticate` failed in the page and
+ * no request reached the server. A Vercel rollback to the deployment before #324 made
+ * sign-in work again (TEC-AUDIT-0051): the list misses a host the Pi SDK reaches, and which
+ * one cannot be read from here (the SDK is served by Pi). Every other app kept
+ * `https: wss:` and kept working.
+ *
+ * So this is the policy proven in Pi Browser. A narrower list comes back only after it has
+ * run in a Report-Only policy and a Pi Browser sign-in and payment reported nothing.
  */
 async function connectSrc(): Promise<string[]> {
   const rules: { source: string; headers: { key: string; value: string }[] }[] = await nextConfig.headers();
@@ -20,23 +22,7 @@ async function connectSrc(): Promise<string[]> {
 }
 
 describe('CSP connect-src', () => {
-  it('names hosts — no bare scheme, no star', async () => {
-    const sources = await connectSrc();
-    expect(sources.length).toBeGreaterThan(1);
-    for (const s of sources) {
-      expect(['https:', 'wss:', 'http:', 'ws:', '*', 'data:', 'blob:']).not.toContain(s);
-    }
-  });
-
-  it('still allows everything the browser actually uses', async () => {
-    const sources = await connectSrc();
-    for (const needed of [
-      "'self'",
-      'https://*.minepi.com',          // Pi SDK
-      'wss://*.up.railway.app',        // realtime socket (Railway public domain)
-      'https://*.up.railway.app',      // socket.io's polling handshake before the upgrade
-      'wss://*.tecosystem.app',        // realtime on a custom domain
-      'https://*.ingest.sentry.io',    // Sentry
-    ]) expect(sources).toContain(needed);
+  it("is the policy proven in Pi Browser: 'self' https: wss:", async () => {
+    expect(await connectSrc()).toEqual(["'self'", 'https:', 'wss:']);
   });
 });

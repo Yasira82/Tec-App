@@ -365,7 +365,7 @@ function Row({ claim, onDone, canSend }: {
         </div>
       )}
       {claim.note && (
-        <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--tec-text-3)' }}>{claim.note}</div>
+        <div style={{ marginTop: 6, fontSize: 11.5, color: 'var(--tec-text-3)' }}><bdi dir="auto">{claim.note}</bdi></div>
       )}
       {error && (
         <div role="alert" style={{ marginTop: 8, fontSize: 12, color: 'var(--tec-red)' }}>{error}</div>

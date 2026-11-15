@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<ReviewReport['status'], string> = {
 const head = { fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--tec-text-3)', margin: 'var(--sp-3) 0 6px' } as const;
 const small = { padding: '7px 14px', borderRadius: 8, font: 'inherit', fontSize: 12, fontWeight: 800, cursor: 'pointer' } as const;
 
-export function ReportReview() {
+export function ReportReview({ onReviewed }: { onReviewed?: () => void } = {}) {
   const [reports, setReports] = useState<ReviewReport[]>([]);
   const [busy, setBusy]       = useState<string | null>(null);
   const [revising, setRevising] = useState<string | null>(null);
@@ -59,6 +59,7 @@ export function ReportReview() {
       if (!res.ok) throw new Error(d?.message ?? d?.error ?? `HTTP ${res.status}`);
       setRevising(null); setNote('');
       load();
+      onReviewed?.();
     } catch (e) {
       setError((e as Error).message);
     } finally { setBusy(null); }
@@ -82,7 +83,7 @@ export function ReportReview() {
             </span>
           </div>
           {r.status === 'SWAPPED' ? (
-            <div>Why: “{r.swap_reason}”</div>
+            <div>Why: “<bdi dir="auto">{r.swap_reason}</bdi>”</div>
           ) : (
             <>
               {r.evidence && (
@@ -92,10 +93,10 @@ export function ReportReview() {
                     : '○ Opened from the campaign — the app did not report a Pi sign-in'}
                 </div>
               )}
-              <div>What happened: “{r.report}”</div>
-              <div>{r.had_problem ? 'Problem' : 'No problem — clear / useful'}: “{r.detail}”</div>
-              {r.suggestion && <div style={{ color: 'var(--tec-gold)' }}>Suggestion: “{r.suggestion}”</div>}
-              {r.status === 'NEEDS_REVISION' && r.review_note && <div style={{ color: 'var(--tec-text-3)' }}>Your note: “{r.review_note}”</div>}
+              <div>What happened: “<bdi dir="auto">{r.report}</bdi>”</div>
+              <div>{r.had_problem ? 'Problem' : 'No problem — clear / useful'}: “<bdi dir="auto">{r.detail}</bdi>”</div>
+              {r.suggestion && <div style={{ color: 'var(--tec-gold)' }}>Suggestion: “<bdi dir="auto">{r.suggestion}</bdi>”</div>}
+              {r.status === 'NEEDS_REVISION' && r.review_note && <div style={{ color: 'var(--tec-text-3)' }}>Your note: “<bdi dir="auto">{r.review_note}</bdi>”</div>}
             </>
           )}
 
@@ -104,7 +105,7 @@ export function ReportReview() {
               not the app). The service refuses it after a claim. */}
           {(r.status === 'SUBMITTED' || r.status === 'APPROVED') && (revising === r.id ? (
             <div style={{ marginTop: 6 }}>
-              <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 500))} rows={2}
+              <textarea dir="auto" value={note} onChange={(e) => setNote(e.target.value.slice(0, 500))} rows={2}
                 placeholder="What should they add or clarify? They will read this."
                 aria-label="Revision note"
                 style={{ width: '100%', padding: 8, borderRadius: 8, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 12.5, boxSizing: 'border-box' }} />

@@ -168,7 +168,8 @@ describe('the owner\'s review queue', () => {
     render(<ReportReview />);
     await waitFor(() => expect(screen.getByText(/Submit did nothing/)).toBeTruthy());
     expect(screen.getByText(/1 waiting for review/)).toBeTruthy();
-    expect(screen.getByText(/Suggestion: “Add a spinner”/)).toBeTruthy();
+    // The suggestion is its own isolate (campaign-text-direction.test.tsx); the line reads the same.
+    expect(screen.getByText('Add a spinner').parentElement?.textContent).toBe('Suggestion: “Add a spinner”');
     expect(screen.getByText(/White page after sign-in/)).toBeTruthy();
     fireEvent.click(screen.getByText('Approve'));
     await waitFor(() => expect(f.mock.calls.some(([u]) => String(u).includes('/review'))).toBe(true));

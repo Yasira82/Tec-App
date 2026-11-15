@@ -202,15 +202,15 @@ export function PickMissions({
 
             {status === 'NEEDS_REVISION' && m.review_note && (
               <div data-testid={`note-${m.app}`} style={{ marginTop: 10, padding: 'var(--sp-3)', borderRadius: 10, background: 'rgba(251,180,74,0.10)', border: '1px solid var(--tec-border-gold)', fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>
-                <strong>{s.ownerNote}</strong> {m.review_note}
+                <strong>{s.ownerNote}</strong> <bdi dir="auto">{m.review_note}</bdi>
               </div>
             )}
 
             {showSent && (
               <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--tec-text-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                <div>“{m.report}”</div>
-                {m.detail && <div style={{ marginTop: 4 }}>{m.had_problem ? s.problemTag : s.goodTag} “{m.detail}”</div>}
-                {m.suggestion && <div style={{ marginTop: 4, color: 'var(--tec-text-3)' }}>{s.suggested} “{m.suggestion}”</div>}
+                <div>“<bdi dir="auto">{m.report}</bdi>”</div>
+                {m.detail && <div style={{ marginTop: 4 }}>{m.had_problem ? s.problemTag : s.goodTag} “<bdi dir="auto">{m.detail}</bdi>”</div>}
+                {m.suggestion && <div style={{ marginTop: 4, color: 'var(--tec-text-3)' }}>{s.suggested} “<bdi dir="auto">{m.suggestion}</bdi>”</div>}
                 {status === 'SUBMITTED' && (
                   <button onClick={() => { setEditing((x) => ({ ...x, [m.app]: true })); setDrafts((x) => ({ ...x, [m.app]: draftOf(m) })); }}
                     style={{ ...linkButton, marginTop: 6 }}>{s.edit}</button>
@@ -221,7 +221,7 @@ export function PickMissions({
             {canWrite && (
               <div style={{ marginTop: 6 }}>
                 <label style={label}>{s.observedLabel}
-                  <textarea value={d.observed} rows={3} aria-label={s.observedLabel}
+                  <textarea dir="auto" value={d.observed} rows={3} aria-label={s.observedLabel}
                     onChange={(e) => set({ observed: e.target.value.slice(0, TEXT_MAX) })} style={area} />
                 </label>
                 <div style={label}>{s.problemQ}</div>
@@ -239,12 +239,12 @@ export function PickMissions({
                 </div>
                 {d.had_problem !== null && (
                   <label style={label}>{d.had_problem ? s.problemLabel : s.goodLabel}
-                    <textarea value={d.detail} rows={3} aria-label={d.had_problem ? s.problemLabel : s.goodLabel}
+                    <textarea dir="auto" value={d.detail} rows={3} aria-label={d.had_problem ? s.problemLabel : s.goodLabel}
                       onChange={(e) => set({ detail: e.target.value.slice(0, TEXT_MAX) })} style={area} />
                   </label>
                 )}
                 <label style={label}>{s.suggestion}
-                  <textarea value={d.suggestion} rows={2} aria-label={s.suggestion}
+                  <textarea dir="auto" value={d.suggestion} rows={2} aria-label={s.suggestion}
                     onChange={(e) => set({ suggestion: e.target.value.slice(0, SUGGESTION_MAX) })} style={area} />
                 </label>
                 <button
@@ -271,7 +271,7 @@ export function PickMissions({
             {status === 'ASSIGNED' && swapsLeft > 0 && (swapping === m.app ? (
               <div style={{ marginTop: 10 }}>
                 <label style={label}>{s.swapReason}
-                  <textarea value={reason} rows={2} aria-label={s.swapReason}
+                  <textarea dir="auto" value={reason} rows={2} aria-label={s.swapReason}
                     onChange={(e) => setReason(e.target.value.slice(0, TEXT_MAX))} style={area} />
                 </label>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8, alignItems: 'center' }}>

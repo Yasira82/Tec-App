@@ -87,7 +87,7 @@ export function StopReasonCard({ strings: s, initial, onSaved, collapsed = false
       <div style={box} data-testid="stop-reason-saved">
         <div style={{ fontSize: 13, color: 'var(--tec-text-2)', lineHeight: 1.6 }}>{s.thanks}</div>
         <div style={{ fontSize: 12.5, color: 'var(--tec-text-3)', marginTop: 6 }}>
-          {s.reasons[saved.reason]}{saved.note ? ` — “${saved.note}”` : ''}
+          {s.reasons[saved.reason]}{saved.note ? <> — “<bdi dir="auto">{saved.note}</bdi>”</> : ''}
         </div>
         <button onClick={() => setOpen(true)}
           style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, color: 'var(--tec-gold)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', font: 'inherit' }}>
@@ -113,7 +113,7 @@ export function StopReasonCard({ strings: s, initial, onSaved, collapsed = false
           </button>
         ))}
       </div>
-      <textarea value={note} onChange={(e) => setNote(e.target.value.slice(0, 280))} placeholder={s.note} rows={2}
+      <textarea dir="auto" value={note} onChange={(e) => setNote(e.target.value.slice(0, 280))} placeholder={s.note} rows={2}
         style={{ width: '100%', marginTop: 'var(--sp-3)', padding: 10, borderRadius: 10, border: '1px solid var(--tec-border)', background: 'transparent', color: 'var(--tec-text-1)', font: 'inherit', fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
       <button onClick={() => { void send(); }} disabled={!pick || busy}
         style={{ marginTop: 'var(--sp-3)', width: '100%', padding: '11px 0', borderRadius: 12, border: 'none', cursor: pick && !busy ? 'pointer' : 'default', background: 'var(--tec-gold)', color: 'var(--tec-on-gold)', fontWeight: 800, fontSize: 13.5, opacity: pick && !busy ? 1 : 0.5 }}>

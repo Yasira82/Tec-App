@@ -118,7 +118,7 @@ export function FunnelCard() {
         <div style={{ marginTop: 8 }}>
           {f.notes.map((n, i) => (
             <div key={i} style={{ fontSize: 12, color: 'var(--tec-text-2)', padding: '4px 0', lineHeight: 1.5 }}>
-              “{n.note}” <span style={{ color: 'var(--tec-text-4)' }}>— {n.reason} · {day(n.at)}</span>
+              “<bdi dir="auto">{n.note}</bdi>” <span style={{ color: 'var(--tec-text-4)' }}>— {n.reason} · {day(n.at)}</span>
             </div>
           ))}
         </div>

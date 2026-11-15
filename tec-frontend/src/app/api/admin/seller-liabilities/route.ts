@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * What is owed to sellers, and what the Hub wallet holds — admin, read-only
@@ -10,7 +11,7 @@ const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 const read = async (path: string, token: string): Promise<{ status: number; data: unknown }> => {
   try {
-    const res = await fetch(`${GATEWAY}${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
+    const res = await gatewayFetch(`${GATEWAY}${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
     const body = await res.json().catch(() => ({}));
     return { status: res.status, data: res.ok ? (body?.data ?? body) : null };
   } catch {

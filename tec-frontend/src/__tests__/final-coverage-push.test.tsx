@@ -41,6 +41,7 @@ const mockCookieStore = vi.hoisted(() => ({
 }));
 vi.mock('next/headers', () => ({
   cookies: vi.fn(async () => mockCookieStore),
+  headers: vi.fn(async () => new Headers({ 'x-nonce': 'AAAAAAAAAAAAAAAAAAAAAA==' })),
 }));
 
 vi.mock('next/font/local', () => ({
@@ -215,14 +216,18 @@ describe('pi-auth remaining branches', () => {
     expect(getRefreshToken()).toBeNull();
   });
 
-  it('resolvePendingPayment returns resolved action on success', async () => {
-    mockResolveIncomplete.mockResolvedValue({ status: 'resolved' });
+  it('resolvePendingPayment goes through the app\'s own route and returns its action', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 200, json: async () => ({ action: 'completed' }) });
     const result = await resolvePendingPayment('pi-pay-1');
-    expect(result).toEqual({ action: 'resolved' });
+    expect(result).toEqual({ action: 'completed' });
+    const [url, init] = (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0]!;
+    expect(url).toBe('/api/payment/resolve-incomplete');
+    expect(JSON.parse(init.body)).toEqual({ pi_payment_id: 'pi-pay-1' });
+    expect(mockResolveIncomplete).not.toHaveBeenCalled();
   });
 
-  it('resolvePendingPayment returns null on sdk failure', async () => {
-    mockResolveIncomplete.mockRejectedValue(new Error('terminal'));
+  it('resolvePendingPayment returns null when the route refuses', async () => {
+    global.fetch = vi.fn().mockResolvedValue({ ok: false, status: 502, json: async () => ({}) });
     const result = await resolvePendingPayment('pi-pay-2');
     expect(result).toBeNull();
   });
@@ -336,11 +341,10 @@ describe('PaymentDiagnostics', () => {
 
 // ── app/layout.tsx ────────────────────────────────────────────────
 describe('RootLayout', () => {
-  it('renders html shell with providers and Pi SDK script', () => {
+  // The layout reads this request's CSP nonce (TEC-AUDIT-0004), so it is async.
+  it('renders html shell with providers and Pi SDK script', async () => {
     const { getByTestId, getByText } = render(
-      <RootLayout>
-        <span>page-content</span>
-      </RootLayout>,
+      await RootLayout({ children: <span>page-content</span> }),
     );
     expect(getByTestId('providers')).toBeTruthy();
     expect(getByTestId('pi-sdk-loader')).toBeTruthy();

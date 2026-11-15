@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
 import { randomUUID }                from 'crypto';
 import { checkAssetQuota }           from '@/lib/subscription/plan.server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
     metadata.extension = '.pi';
   }
 
-  const res = await fetch(`${GATEWAY}/api/assets/provision`, {
+  const res = await gatewayFetch(`${GATEWAY}/api/assets/provision`, {
     method:  'POST',
     headers: {
       'Content-Type':   'application/json',

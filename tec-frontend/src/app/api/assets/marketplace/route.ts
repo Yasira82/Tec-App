@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
   const query = searchParams.toString();
 
   try {
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/assets/marketplace${query ? `?${query}` : ''}`,
       { cache: 'no-store' },
     );

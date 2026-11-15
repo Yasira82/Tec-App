@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // GET /api/bff/pioneer/stats — public honest campaign counter (real Founding spots
 // claimed / remaining). The /pioneers page is public, so this is unauthenticated;
@@ -10,7 +11,7 @@ export const GET = createHandler({
   requireAuth: false,
   handler: async ({ req }) => {
     try {
-      const res = await fetch(`${GW}/api/identity/pioneer/stats`, {
+      const res = await gatewayFetch(`${GW}/api/identity/pioneer/stats`, {
         headers: { 'x-request-id': req.headers.get('x-request-id') ?? crypto.randomUUID() },
         cache:   'no-store',
       });

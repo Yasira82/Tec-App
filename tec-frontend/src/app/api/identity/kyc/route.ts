@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -7,7 +8,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/kyc`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/kyc`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     const data = await res.json().catch(() => ({}));

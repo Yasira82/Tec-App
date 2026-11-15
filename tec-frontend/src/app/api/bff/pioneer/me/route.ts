@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // GET /api/bff/pioneer/me — the caller's OWN Pioneer Quest (progress + Founding
 // number). The owner is resolved from the VERIFIED JWT by identity-service, never a
@@ -11,7 +12,7 @@ export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
-    const res = await fetch(`${GW}/api/identity/pioneer/me`, {
+    const res = await gatewayFetch(`${GW}/api/identity/pioneer/me`, {
       headers: { Authorization: `Bearer ${token}`, 'x-request-id': ctx.requestId },
       cache:   'no-store',
     });

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 // Public campaign state: reward, seats, remaining, which apps. No per-user data,
 // so no auth — this is what the landing copy reads.
@@ -6,7 +7,7 @@ const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
 export async function GET() {
   try {
-    const res  = await fetch(`${GATEWAY}/api/identity/campaign/status`, { cache: 'no-store' });
+    const res  = await gatewayFetch(`${GATEWAY}/api/identity/campaign/status`, { cache: 'no-store' });
     const data = await res.json().catch(() => ({}));
     return NextResponse.json(data, { status: res.status });
   } catch {

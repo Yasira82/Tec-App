@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const ASSET_SERVICE = process.env.API_GATEWAY_URL ?? '';
 
@@ -6,7 +7,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl;
   const params = searchParams.toString();
   try {
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${ASSET_SERVICE}/api/assets/marketplace${params ? `?${params}` : ''}`,
       { headers: { 'Content-Type': 'application/json' } }
     );
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
   const endpoint = req.nextUrl.searchParams.get('action') ?? 'list';
   try {
     const body = await req.json();
-    const res = await fetch(`${ASSET_SERVICE}/api/assets/marketplace/${endpoint}`, {
+    const res = await gatewayFetch(`${ASSET_SERVICE}/api/assets/marketplace/${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

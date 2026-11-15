@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -16,7 +17,7 @@ export const GET = createHandler({
     const params = new URLSearchParams({ page, limit });
     if (status) params.set('status', status);
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/wallets/${encodeURIComponent(walletId)}/transactions?${params}`,
       {
         headers: {

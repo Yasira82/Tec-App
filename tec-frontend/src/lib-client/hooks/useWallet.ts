@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { sessionUserId } from '@/lib-client/pi/session-source';
 import { bffFetch } from '@/lib-client/pi/bff-client';
+import { reportError } from '@/lib/observability';
 
 /** Sentinel, not prose: a hook has no locale. The page maps it to the reader's
  *  language — this string used to reach the screen as English inside Arabic. */
@@ -41,6 +42,8 @@ interface UseWalletReturn {
   isLoading:       boolean;
   isRefreshing:    boolean;
   error:           string | null;
+  /** The history failed to load (not the same as an empty history). */
+  txError:         boolean;
   filterType:      TxType | 'all';
   filterStatus:    TxStatus | 'all';
   setFilterType:   (v: TxType | 'all')   => void;
@@ -96,6 +99,8 @@ export function useWallet(): UseWalletReturn {
   const [isLoading,    setIsLoading]    = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error,        setError]        = useState<string | null>(null);
+  // The history failed to load — distinct from an empty history (TEC-AUDIT-0028).
+  const [txError,      setTxError]      = useState(false);
   const [filterType,   setFilterType]   = useState<TxType | 'all'>('all');
   const [filterStatus, setFilterStatus] = useState<TxStatus | 'all'>('all');
 
@@ -119,6 +124,7 @@ export function useWallet(): UseWalletReturn {
     if (silent) setIsRefreshing(true);
     else        setIsLoading(true);
     setError(null);
+    setTxError(false);
 
     try {
       // ── Balance + walletId ──────────────────────────────
@@ -193,8 +199,19 @@ export function useWallet(): UseWalletReturn {
           const list = (txData.transactions ?? []).map(t => ({ ...t, amount: Number(t.amount) }));
           setTransactions(list);
           setTotal(txData.total ?? 0);
+        } else {
+          setTransactions([]);
+          setTxError(true);
+          reportError(new Error(`Wallet history failed: ${txRes.status}`), { where: 'useWallet.history' });
         }
-      } catch { /* transactions مش إلزامية */ }
+      } catch (txErr) {
+        // The balance loaded; only the history did not. Say so on screen instead of
+        // showing "No transactions yet" — a statement about money that would be false.
+        if ((txErr as Error).name === 'AbortError') throw txErr;
+        setTransactions([]);
+        setTxError(true);
+        reportError(txErr, { where: 'useWallet.history' });
+      }
 
       setPageState(targetPage);
     } catch (err: unknown) {
@@ -227,7 +244,7 @@ export function useWallet(): UseWalletReturn {
 
   return {
     wallet, transactions, total, totalPages, page, hasMore,
-    isLoading, isRefreshing, error,
+    isLoading, isRefreshing, error, txError,
     filterType, filterStatus, setFilterType, setFilterStatus,
     refetch, loadMore, setPage, updateBalance,
   };

@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -11,7 +12,7 @@ export const GET = createHandler({
     const limit = Math.min(Number(searchParams.get('limit') ?? 20), 50);
     const page  = Math.max(Number(searchParams.get('page')  ?? 1),  1);
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/notification?userId=${ctx.userId}&limit=${limit}&page=${page}`,
       {
         headers: {
@@ -48,7 +49,7 @@ export const PATCH = createHandler({
     // NEW-S: these endpoints take NO body (userId comes from the auth header).
     // Do NOT send Content-Type: application/json with an empty body — Fastify
     // rejects it ("Body cannot be empty when content-type is set to application/json") → 400.
-    const res = await fetch(target, {
+    const res = await gatewayFetch(target, {
       method:  'PATCH',
       headers: {
         'Authorization': `Bearer ${token}`,

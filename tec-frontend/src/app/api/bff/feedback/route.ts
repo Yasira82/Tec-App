@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Feedback → the feedback module in `tec-identity-service`, via the gateway.
@@ -34,7 +35,7 @@ export const POST = createHandler({
   requireAuth: true,
   schema: SubmitSchema,
   handler: async ({ input, ctx, req }) => {
-    const res = await fetch(`${gateway()}/api/identity/feedback`, {
+    const res = await gatewayFetch(`${gateway()}/api/identity/feedback`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
@@ -63,7 +64,7 @@ export const POST = createHandler({
 export const GET = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
-    const res = await fetch(`${gateway()}/api/identity/feedback/mine`, {
+    const res = await gatewayFetch(`${gateway()}/api/identity/feedback/mine`, {
       headers: {
         'Authorization': `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
         'x-request-id':  ctx.requestId,

@@ -440,13 +440,38 @@ describe('GET /api/bff/wallet/balance', () => {
     expect(body.walletId).toBeNull();
   });
 
-  it('returns zero balance when gateway fails with non-401 error', async () => {
+  // TEC-AUDIT-0034: these two answered `{ balance: '0' }` with a 200 — a fabricated
+  // zero every balance screen had been written to refuse (C-135 §4).
+  it('a failing wallet service is a 503 — never a zero balance', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
     fetchSpy.mockResolvedValueOnce(gwErr(503));
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
+    expect(res.status).toBe(503);
     const body = await res.json();
-    expect(body.balance).toBe('0');
+    expect(body.balance).toBeUndefined();
+    expect(body.error).toBe('WALLET_UNAVAILABLE');
+  });
+
+  it('an answer it cannot read is a 502 — never a zero balance', async () => {
+    for (const answer of [{ items: [] }, { wallets: [{ id: 'w', balance: 'lots', currency: 'PI', is_primary: true, updated_at: 'x' }] }, { wallets: 'none' }]) {
+      mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
+      fetchSpy.mockResolvedValueOnce(gw(answer));
+      const { GET } = await import('@/app/api/bff/wallet/balance/route');
+      const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
+      expect(res.status).toBe(502);
+      expect((await res.json()).balance).toBeUndefined();
+    }
+  });
+
+  it('a decimal string from wallet-service passes through exactly (ADR-009)', async () => {
+    mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
+    fetchSpy.mockResolvedValueOnce(gw({
+      wallets: [{ id: 'w-1', balance: '12.12345678', currency: 'PI', is_primary: true, wallet_address: null, updated_at: '2026-11-14T00:00:00Z' }],
+    }));
+    const { GET } = await import('@/app/api/bff/wallet/balance/route');
+    const body = await (await GET(makeReq({ cookies: { tec_access_token: 'tok' } }))).json();
+    expect(body.balance).toBe('12.12345678');
   });
 
   it('attempts token refresh on TOKEN_EXPIRED 401 response', async () => {
@@ -479,13 +504,13 @@ describe('GET /api/bff/wallet/balance', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(3);
   });
 
-  it('returns zero balance when 401 without TOKEN_EXPIRED code', async () => {
+  it('a 401 without TOKEN_EXPIRED is a 401 — not a zero balance', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
     fetchSpy.mockResolvedValueOnce({ ok: false, status: 401, json: async () => ({ error: { code: 'UNAUTHORIZED' } }) } as any);
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
-    const body = await res.json();
-    expect(body.balance).toBe('0');
+    expect(res.status).toBe(401);
+    expect((await res.json()).balance).toBeUndefined();
   });
 
   it('selects primary PI wallet when multiple wallets exist', async () => {
@@ -1355,15 +1380,15 @@ describe('GET /api/bff/wallet/balance — malformed bodies', () => {
     json: async () => { throw new Error('malformed body'); },
   }) as any;
 
-  it('401 with unreadable error body falls through to zero balance', async () => {
+  it('401 with unreadable error body is a 401 — not a zero balance (TEC-AUDIT-0034)', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
     fetchSpy
       .mockResolvedValueOnce(badJson(401))   // err body unreadable → code undefined → no refresh
       .mockResolvedValue(badJson(401));      // !ok errData also unreadable
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
-    const body = await res.json();
-    expect(body.balance).toBe('0');
+    expect(res.status).toBe(401);
+    expect((await res.json()).balance).toBeUndefined();
   });
 
   it('refresh response body unreadable → token stays empty → zero balance', async () => {
@@ -1380,13 +1405,12 @@ describe('GET /api/bff/wallet/balance — malformed bodies', () => {
     expect([200, 401]).toContain(res.status);
   });
 
-  it('success body unreadable → zero balance', async () => {
+  it('success body unreadable → 502, never a zero balance (TEC-AUDIT-0034)', async () => {
     mockJwtVerify.mockResolvedValueOnce({ payload: { sub: 'u-1' } });
     fetchSpy.mockResolvedValueOnce(badJson(200, true));
     const { GET } = await import('@/app/api/bff/wallet/balance/route');
     const res  = await GET(makeReq({ cookies: { tec_access_token: 'tok' } }));
-    const body = await res.json();
-    expect(body.balance).toBe('0');
-    expect(body.walletId).toBeNull();
+    expect(res.status).toBe(502);
+    expect((await res.json()).balance).toBeUndefined();
   });
 });

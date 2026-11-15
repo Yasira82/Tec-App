@@ -1,3 +1,4 @@
+import { gatewayFetch } from '@/lib/gateway-fetch';
 /**
  * TEC AI's product search — the assistant names REAL products, or says there are none.
  *
@@ -148,7 +149,7 @@ export async function searchProducts(
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-    const res = await fetch(`${gateway.replace(/\/$/, '')}/api/commerce/products?${qs}`, {
+    const res = await gatewayFetch(`${gateway.replace(/\/$/, '')}/api/commerce/products?${qs}`, {
       headers: { ...(opts.internalKey ? { 'x-internal-key': opts.internalKey } : {}) },
       cache: 'no-store',
       signal: controller.signal,

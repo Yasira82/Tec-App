@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Take a campaign seat.
@@ -30,7 +31,7 @@ export const POST = createHandler({
   schema: z.object({ wallet_address: z.string().trim().min(1).max(120).optional() }).optional(),
   handler: async ({ input, ctx, req }) => {
     const typed = input?.wallet_address;
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/claim`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/claim`, {
       method: 'POST',
       headers: {
         Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,
@@ -69,7 +70,7 @@ export const POST = createHandler({
 export const DELETE = createHandler({
   requireAuth: true,
   handler: async ({ ctx, req }) => {
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/claim`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/claim`, {
       method: 'DELETE',
       headers: {
         Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Reverse TEC balances with no sale behind them — admin (tec-core-backend #402).
@@ -17,7 +18,7 @@ export async function GET(req: NextRequest) {
   const token = req.cookies.get('tec_access_token')?.value;
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   try {
-    return pass(await fetch(URL_(), { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }));
+    return pass(await gatewayFetch(URL_(), { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' }));
   } catch {
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const { runId, expectedTotal, confirm } = (body ?? {}) as Record<string, unknown>;
   try {
-    return pass(await fetch(URL_(), {
+    return pass(await gatewayFetch(URL_(), {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ runId, expectedTotal, confirm }),

@@ -106,20 +106,23 @@ describe('pi-auth: incomplete payment recovery', () => {
     expect(sdk.payment.resolveIncomplete).not.toHaveBeenCalled();
   });
 
-  it('falls to Step 2 (SDK) when backend returns non-ok', async () => {
+  it('a failed backend resolve goes on to cancel — the browser never asks the server SDK (TEC-AUDIT-0045)', async () => {
     setupWindow({ identifier: 'pi_pay_456' });
 
-    mockFetch({
+    const fetchSpy = mockFetch({
       '/api/payment/resolve-incomplete': {
         ok: false, status: 500, json: async () => ({ error: 'Server error' }),
       } as Response,
+      '/api/payment/cancel': {
+        ok: true, status: 200, json: async () => ({ action: 'cancelled' }),
+      } as Response,
     });
-    vi.mocked(sdk.payment.resolveIncomplete).mockResolvedValue(undefined as any);
 
     await loginWithPi();
     await new Promise(r => setTimeout(r, 10));
 
-    expect(sdk.payment.resolveIncomplete).toHaveBeenCalledWith('pi_pay_456');
+    expect(sdk.payment.resolveIncomplete).not.toHaveBeenCalled();
+    expect(fetchSpy.mock.calls.some(([u]) => String(u).includes('/api/payment/cancel'))).toBe(true);
   });
 
   it('falls to Step 3 (cancel) when Steps 1 and 2 both fail', async () => {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
 
     // ✅ لو بعتنا piUsername — نحوله لـ userId أول
     if (piUsername && !userId) {
-      const userRes  = await fetch(
+      const userRes  = await gatewayFetch(
         `${GATEWAY}/api/v1/auth/user-by-username?piUsername=${encodeURIComponent(piUsername)}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -26,7 +27,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const res     = await fetch(
+    const res     = await gatewayFetch(
       `${GATEWAY}/api/wallets?userId=${encodeURIComponent(resolvedUserId!)}`,
       { headers: { Authorization: `Bearer ${token}` } },
     );

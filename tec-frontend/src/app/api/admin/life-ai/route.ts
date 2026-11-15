@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * M1 — the two numbers before any Life/AI expansion (Tec-App #285 · backend #387):
@@ -25,7 +26,7 @@ interface Half { data: unknown | null; status: number }
 
 async function read(path: string, token: string): Promise<Half> {
   try {
-    const res  = await fetch(`${GATEWAY}${path}`, {
+    const res  = await gatewayFetch(`${GATEWAY}${path}`, {
       headers: { Authorization: `Bearer ${token}` }, cache: 'no-store',
     });
     const body = await res.json().catch(() => ({}));

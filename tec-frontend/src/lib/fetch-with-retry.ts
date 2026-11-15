@@ -4,6 +4,7 @@ interface FetchWithRetryOptions extends RequestInit {
   onRetry?:    (attempt: number, error: Error) => void;
 }
 
+const ATTEMPT_TIMEOUT_MS = 30_000;
 const RETRIABLE_STATUS = new Set([429, 500, 502, 503, 504]);
 
 export async function fetchWithRetry(
@@ -16,7 +17,8 @@ export async function fetchWithRetry(
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      const res = await fetch(url, fetchOptions);
+      // Each attempt has its own deadline (TEC-AUDIT-0033): a hung attempt is a failed one.
+      const res = await fetch(url, { ...fetchOptions, signal: fetchOptions.signal ?? AbortSignal.timeout(ATTEMPT_TIMEOUT_MS) });
 
       if (!RETRIABLE_STATUS.has(res.status) || attempt === maxRetries) {
         return res;

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -11,7 +12,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const { id } = await params;
 
-    const res = await fetch(`${GATEWAY}/api/notification/${id}/read`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/notification/${id}/read`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     });

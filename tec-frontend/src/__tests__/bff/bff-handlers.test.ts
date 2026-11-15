@@ -296,12 +296,12 @@ describe('GET /api/bff/wallet/balance', () => {
     expect(res.status).toBe(401);
   });
 
-  it('returns zero balance when gateway fails', async () => {
+  it('a failing gateway is a 503, never a fabricated zero (TEC-AUDIT-0034)', async () => {
     authOk();
     gatewayFail(503);
     const res  = await GET(makeReq({ token: 'tok' }));
-    const body = await res.json();
-    expect(body.balance).toBe('0');
+    expect(res.status).toBe(503);
+    expect((await res.json()).balance).toBeUndefined();
   });
 
   it('returns balance from PI wallet', async () => {

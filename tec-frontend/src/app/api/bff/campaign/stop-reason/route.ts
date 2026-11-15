@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * "Why did you stop?" — one of five reasons and an optional note (the Round 3
@@ -18,7 +19,7 @@ export const POST = createHandler({
     note:   z.string().max(280).optional(),
   }),
   handler: async ({ input, ctx, req }) => {
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/stop-reason`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/stop-reason`, {
       method: 'POST',
       headers: {
         Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,

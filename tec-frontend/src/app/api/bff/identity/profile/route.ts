@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -8,7 +9,7 @@ export const GET = createHandler({
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/identity/profile?userId=${ctx.userId}`,
       {
         headers: {
@@ -34,7 +35,7 @@ export const PATCH = createHandler({
   handler: async ({ input, ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/identity/profile`,
       {
         method:  'PATCH',

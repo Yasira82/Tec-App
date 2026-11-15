@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const limit = searchParams.get('limit') ?? '50';
 
-    const res = await fetch(`${GATEWAY}/api/notification?limit=${limit}`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/notification?limit=${limit}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',

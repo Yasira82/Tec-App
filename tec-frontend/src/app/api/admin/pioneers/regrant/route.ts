@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Re-ask commerce for Founding gifts that never arrived.
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/pioneer/regrant`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/pioneer/regrant`, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}` },
       cache:   'no-store',

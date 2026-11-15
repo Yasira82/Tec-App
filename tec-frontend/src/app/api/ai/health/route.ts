@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
-import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, openRouterCandidates } from '../chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS, openRouterCandidates } from '@/lib/ai/providers';
 import { TEC_SYSTEM_PROMPT } from '@/lib/ai/tec-ai-system-prompt';
 
 export const runtime = 'edge';
@@ -49,11 +49,14 @@ async function authenticate(req: NextRequest): Promise<string | null> {
   }
 }
 
+/** A provider that has not answered a probe in this long counts as down, not as pending. */
+const PROBE_TIMEOUT_MS = 30_000;
+
 /** One tiny non-streaming call. `max_tokens: 1` keeps a full probe close to free. */
 async function probe(url: string, init: RequestInit, model: string): Promise<ModelProbe> {
   const started = Date.now();
   try {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     const ms  = Date.now() - started;
     if (res.ok) return { model, ok: true, status: res.status, ms };
     const body = await res.text().catch(() => '');
@@ -88,7 +91,7 @@ const PROBE_IMAGE = 'iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAIAAAD8GO2jAAAAKklEQVR42u3
 async function probeFirstBytes(url: string, init: RequestInit, model: string): Promise<ModelProbe> {
   const started = Date.now();
   try {
-    const res = await fetch(url, init);
+    const res = await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(PROBE_TIMEOUT_MS) });
     if (!res.ok) {
       const body = await res.text().catch(() => '');
       return { model, ok: false, status: res.status, ms: Date.now() - started, reason: body.replace(/\s+/g, ' ').slice(0, 180) };

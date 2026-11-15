@@ -21,7 +21,7 @@ import { join } from 'node:path';
  * is a deliberate decision with a reason attached rather than an accident.
  */
 import { describe, it, expect } from 'vitest';
-import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS } from '@/app/api/ai/chat/route';
+import { CLAUDE_MODELS, GROQ_MODELS, GEMINI_MODELS } from '@/lib/ai/providers';
 
 /** Model ids that have served real production traffic. Removing one needs evidence. */
 const PINNED = {
@@ -71,6 +71,9 @@ describe('Claude candidates (2026-10-08)', () => {
 
 describe('free first, GPT included (owner, 2026-10-08)', () => {
   const route = readFileSync(join(process.cwd(), 'src/app/api/ai/chat/route.ts'), 'utf8');
+  // The provider calls and their candidate lists live in lib/ai/providers.ts since
+  // 11 Nov 2026; the ORDER the route tries them in stays in the route.
+  const providers = readFileSync(join(process.cwd(), 'src/lib/ai/providers.ts'), 'utf8');
 
   it('free GPT on Groq sits below the verified id', () => {
     expect(GROQ_MODELS.indexOf('openai/gpt-oss-120b')).toBeGreaterThan(GROQ_MODELS.indexOf('openai/gpt-oss-20b'));
@@ -78,8 +81,8 @@ describe('free first, GPT included (owner, 2026-10-08)', () => {
 
   it('OpenRouter has no hardcoded :free ids — they are read from its catalogue', () => {
     // Every hardcoded :free id answered "unavailable for free" in production on 2026-10-08.
-    expect(route).not.toMatch(/'[a-z0-9-]+\/[a-z0-9.-]+:free'/);
-    expect(route).toMatch(/freeOpenRouterModels\(\)/);
+    for (const file of [route, providers]) expect(file).not.toMatch(/'[a-z0-9-]+\/[a-z0-9.-]+:free'/);
+    expect(providers).toMatch(/freeOpenRouterModels\(\)/);
   });
 
   it('tries the free providers before the paid one', () => {
@@ -89,7 +92,7 @@ describe('free first, GPT included (owner, 2026-10-08)', () => {
   });
 
   it('an OpenRouter "no endpoints found" moves to the next candidate', () => {
-    expect(route).toMatch(/no endpoints found/);
-    expect(route).toMatch(/unavailable for free/);
+    expect(providers).toMatch(/no endpoints found/);
+    expect(providers).toMatch(/unavailable for free/);
   });
 });

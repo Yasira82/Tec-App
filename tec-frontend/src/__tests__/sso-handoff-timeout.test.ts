@@ -41,7 +41,8 @@ describe('every outbound hop in the login handoff is bounded', () => {
     // The guard that matters. A future hop added without a bound re-opens the
     // exact failure, and it re-opens it silently.
     for (const [name, src] of [['sso', sso], ['refresh', refresh]] as const) {
-      const calls = src.split('fetch(').length - 1;
+      // gatewayFetch (TEC-AUDIT-0033) is a fetch too, and must still carry its own bound here.
+      const calls = src.split(/fetch\(|gatewayFetch\(/).length - 1;
       const bounded = src.split('AbortSignal.timeout(').length - 1;
       expect(`${name}: ${bounded} bounded of ${calls}`).toBe(`${name}: ${calls} bounded of ${calls}`);
     }

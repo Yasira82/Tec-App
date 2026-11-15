@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
 
-    const res = await fetch(`${GATEWAY}/api/kyc/upload`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/kyc/upload`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,

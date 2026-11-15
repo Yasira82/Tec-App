@@ -2,7 +2,7 @@
  * pi-payment.ts — remaining uncovered paths:
  *   retryFetch retry/exhaustion, approval/completion timeout timers,
  *   invalid ID formats, completion !ok, onError scope-lost,
- *   synchronous createPayment throw + retry, getPaymentStatus error.
+ *   synchronous createPayment throw + retry.
  *
  * payment-timeouts is mocked with tiny values so real timers fire fast.
  */
@@ -55,7 +55,6 @@ vi.mock('@/lib/request-id', () => ({
 import {
   createU2APayment,
   createA2UPayment,
-  getPaymentStatus,
 } from '@/lib-client/pi/pi-payment';
 
 type PiCallbacks = {
@@ -225,18 +224,5 @@ describe('createA2UPayment retryFetch behaviour', () => {
     });
     await expect(createA2UPayment({ toUserId: 'x', amount: 1, memo: 'm' } as any))
       .rejects.toThrow('Bad recipient');
-  });
-});
-
-describe('getPaymentStatus', () => {
-  it('returns payment from sdk', async () => {
-    mockGetPayment.mockResolvedValue({ status: 'completed' });
-    const result = await getPaymentStatus('pay-1');
-    expect(result.status).toBe('completed');
-  });
-
-  it('wraps sdk errors', async () => {
-    mockGetPayment.mockRejectedValue(new Error('gateway 503'));
-    await expect(getPaymentStatus('pay-1')).rejects.toThrow('gateway 503');
   });
 });

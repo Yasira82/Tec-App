@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Merge a Pioneer's duplicate accounts into the oldest — admin (tec-core-backend #403).
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
   const url = URL_(req);
   if (!url) return unknown();
   try {
-    return pass(await fetch(`${url}?username=${encodeURIComponent(username)}`, {
+    return pass(await gatewayFetch(`${url}?username=${encodeURIComponent(username)}`, {
       headers: { Authorization: `Bearer ${token}` },
       cache:   'no-store',
     }));
@@ -51,7 +52,7 @@ export async function POST(req: NextRequest) {
   const url = URL_(req);
   if (!url) return unknown();
   try {
-    return pass(await fetch(url, {
+    return pass(await gatewayFetch(url, {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({ username, confirm }),

@@ -1,4 +1,5 @@
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 interface RawAsset {
   id:        string;
@@ -16,7 +17,7 @@ export const GET = createHandler({
   handler: async ({ ctx, req }) => {
     const token = req.cookies.get('tec_access_token')?.value ?? '';
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/assets/user/${encodeURIComponent(ctx.userId)}`,
       {
         headers: {

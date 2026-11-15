@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * Correct the address on a claim that has not been paid yet.
@@ -21,7 +22,7 @@ export const PATCH = createHandler({
   requireAuth: true,
   schema: z.object({ wallet_address: z.string().trim().min(1).max(120) }),
   handler: async ({ input, ctx, req }) => {
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/claim/address`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/claim/address`, {
       method: 'PATCH',
       headers: {
         Authorization:  `Bearer ${req.cookies.get('tec_access_token')?.value ?? ''}`,

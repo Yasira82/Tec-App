@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY = process.env.API_GATEWAY_URL ?? '';
 
@@ -9,7 +10,7 @@ export async function GET(req: NextRequest) {
   }
   try {
     const search = req.nextUrl.search;
-    const res = await fetch(`${GATEWAY}/api/payments/history${search}`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/payments/history${search}`, {
       headers: {
         Authorization: authHeader,
         'Content-Type': 'application/json',

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { timingSafeEqual } from 'crypto';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const PAYMENT_SERVICE = process.env.PAYMENT_SERVICE_URL!;
 const INTERNAL_KEY = process.env.INTERNAL_SECRET!;
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${PAYMENT_SERVICE}/payments/reconcile`, {
+    const res = await gatewayFetch(`${PAYMENT_SERVICE}/payments/reconcile`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

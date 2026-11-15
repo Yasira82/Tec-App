@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 /**
  * The payout queue, and recording a transfer.
@@ -15,7 +16,7 @@ export async function GET(req: NextRequest) {
   if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const status = req.nextUrl.searchParams.get('status');
   try {
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GATEWAY}/api/identity/campaign/claims${status ? `?status=${encodeURIComponent(status)}` : ''}`,
       { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' },
     );
@@ -54,7 +55,7 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const res = await fetch(`${GATEWAY}/api/identity/campaign/claims/${encodeURIComponent(id)}/${action}`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/claims/${encodeURIComponent(id)}/${action}`, {
       method:  'PATCH',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify(action === 'paid' ? { tx_id: body?.tx_id ?? '' } : { note: body?.note ?? '' }),

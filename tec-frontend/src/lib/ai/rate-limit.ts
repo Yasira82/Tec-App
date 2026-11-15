@@ -20,6 +20,10 @@ export interface RateResult {
 export const RATE_LIMIT    = 20;   // requests…
 export const RATE_WINDOW_S = 60;   // …per this many seconds, per authenticated user
 
+// Upstash answers in milliseconds; one that hangs must not hold the AI request.
+// A timeout is an error like any other here → the in-memory fallback (TEC-AUDIT-0033).
+const UPSTASH_TIMEOUT_MS = 2_000;
+
 // ── Durable backend: Upstash Redis REST (edge-safe, atomic fixed window) ──────
 // One round-trip pipeline: INCR the per-user key; set EXPIRE only on the first hit
 // (NX) so the window doesn't slide. Returns null when unconfigured or on any error
@@ -36,6 +40,7 @@ async function durableCheck(key: string): Promise<RateResult | null> {
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify([['INCR', rk], ['EXPIRE', rk, String(RATE_WINDOW_S), 'NX']]),
       cache:   'no-store',
+      signal:  AbortSignal.timeout(UPSTASH_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     const data  = (await res.json()) as Array<{ result?: unknown }>;
@@ -101,6 +106,7 @@ async function upstash(url: string, token: string, cmds: Cmd[]): Promise<unknown
     headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body:    JSON.stringify(cmds.map(c => c.map(String))),
     cache:   'no-store',
+    signal:  AbortSignal.timeout(UPSTASH_TIMEOUT_MS),
   });
   if (!res.ok) return null;
   const data = (await res.json()) as Array<{ result?: unknown; error?: unknown }>;

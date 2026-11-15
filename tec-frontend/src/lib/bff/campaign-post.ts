@@ -1,3 +1,4 @@
+import { gatewayFetch } from '@/lib/gateway-fetch';
 /**
  * POST one Round 3 action to identity-service's campaign API.
  *
@@ -13,7 +14,7 @@ export async function campaignPost(
   token: string,
   requestId: string,
 ): Promise<unknown> {
-  const res = await fetch(`${GATEWAY}/api/identity/campaign/${path}`, {
+  const res = await gatewayFetch(`${GATEWAY}/api/identity/campaign/${path}`, {
     method: 'POST',
     headers: {
       Authorization:  `Bearer ${token}`,

@@ -1,5 +1,6 @@
 import { z }             from 'zod';
 import { createHandler } from '@/lib/bff/createHandler';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GW = process.env.API_GATEWAY_URL ?? '';
 
@@ -20,7 +21,7 @@ export const GET = createHandler({
       sort:  searchParams.get('sort')  ?? undefined,
     });
 
-    const res = await fetch(
+    const res = await gatewayFetch(
       `${GW}/api/payment/history?userId=${ctx.userId}&limit=${limit}&sort=${sort}`,
       {
         headers: {

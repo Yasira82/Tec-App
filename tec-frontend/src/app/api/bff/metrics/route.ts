@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { gatewayFetch } from '@/lib/gateway-fetch';
 
 const GATEWAY   = process.env.API_GATEWAY_URL ?? '';
 const WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -16,7 +17,7 @@ export async function GET(req: NextRequest) {
   if (!GATEWAY) return NextResponse.json({ error: 'Gateway not configured' }, { status: 503 });
 
   try {
-    const res = await fetch(`${GATEWAY}/api/payment/history?limit=100&sort=desc`, {
+    const res = await gatewayFetch(`${GATEWAY}/api/payment/history?limit=100&sort=desc`, {
       headers: {
         Authorization:    `Bearer ${token}`,
         ...(process.env.INTERNAL_SECRET && { 'x-internal-key': process.env.INTERNAL_SECRET }),

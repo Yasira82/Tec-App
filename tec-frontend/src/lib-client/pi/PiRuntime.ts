@@ -1,7 +1,7 @@
 'use client';
 
 import { piSession }                                             from './pi-session';
-import { createU2APayment, createA2UPayment, getPaymentStatus } from './pi-payment';
+import { createU2APayment, createA2UPayment } from './pi-payment';
 import { loginWithPi, getAccessToken, getStoredUser, isPiBrowser } from './pi-auth';
 import { piCircuitBreaker }                                      from './PiCircuitBreaker';
 import type { PiPaymentData, PiPaymentCallbacks }                from '@/types/pi.types';
@@ -53,7 +53,6 @@ export const PiRuntime = {
   circuitBreaker:  piCircuitBreaker,
   session:         piSession,
   createA2UPayment,
-  getPaymentStatus,
   loginWithPi,
   getAccessToken,
   getStoredUser,

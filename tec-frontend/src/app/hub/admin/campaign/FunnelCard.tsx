@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ReportReview } from './ReportReview';
 
 /**
@@ -32,6 +32,14 @@ const STAGES: { key: keyof Funnel['stages']; label: string }[] = [
 ];
 
 const pct = (n: number, of: number) => (of > 0 ? `${Math.round((n / of) * 100)}%` : '—');
+/**
+ * The Hub's own mission. It is open from the start (the pioneer is already there),
+ * so no app ever confirms an arrival for it and "tapped → arrived" is always 0 —
+ * shown in red, it read as a broken app (phone check, 15 Nov 2026). Its row says
+ * "—" instead. The same id as the platform service's HUB_APP.
+ */
+const HUB_APP = 'tec';
+
 const day = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 
 
@@ -39,7 +47,9 @@ export function FunnelCard() {
   const [f, setF] = useState<Funnel | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  // Loaded again after every review, so the counts above the queue never disagree
+  // with it (phone check, 15 Nov 2026: "1 Waiting" over "0 waiting for review").
+  const load = useCallback(() => {
     fetch('/api/admin/campaign/funnel', { credentials: 'include', cache: 'no-store' })
       .then(async (r) => {
         const d = await r.json().catch(() => ({}));
@@ -48,6 +58,7 @@ export function FunnelCard() {
       })
       .catch((e: Error) => setError(e.message));
   }, []);
+  useEffect(() => { load(); }, [load]);
 
 
   const box = { padding: 'var(--sp-4)', borderRadius: 14, border: '1px solid var(--tec-border)', background: 'var(--tec-surface-1)', marginBottom: 'var(--sp-4)' } as const;
@@ -85,8 +96,14 @@ export function FunnelCard() {
             <div key={a.app} style={{ display: 'flex', gap: 8, fontSize: 12.5, color: 'var(--tec-text-2)', padding: '3px 0' }}>
               <span style={{ flex: 1 }}>{a.app}</span>
               {f.mode === 'pick' && <span>{a.assigned ?? 0} · {a.approved ?? 0} · {a.swapped ?? 0} ·</span>}
-              <span>{a.tapped} → {a.arrived}</span>
-              <span style={{ width: 44, textAlign: 'end', color: a.tapped > 0 && a.arrived / a.tapped < 0.7 ? 'var(--tec-red)' : 'var(--tec-text-3)' }}>{pct(a.arrived, a.tapped)}</span>
+              {a.app === HUB_APP ? (
+                <><span>{a.tapped} → —</span><span style={{ width: 44, textAlign: 'end', color: 'var(--tec-text-3)' }}>—</span></>
+              ) : (
+                <>
+                  <span>{a.tapped} → {a.arrived}</span>
+                  <span style={{ width: 44, textAlign: 'end', color: a.tapped > 0 && a.arrived / a.tapped < 0.7 ? 'var(--tec-red)' : 'var(--tec-text-3)' }}>{pct(a.arrived, a.tapped)}</span>
+                </>
+              )}
             </div>
           ))}
         </>
@@ -124,7 +141,7 @@ export function FunnelCard() {
         </div>
       )}
 
-      {f.mode === 'pick' && <ReportReview />}
+      {f.mode === 'pick' && <ReportReview onReviewed={load} />}
     </section>
   );
 }

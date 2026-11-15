@@ -33,7 +33,7 @@ const STATUS_LABEL: Record<ReviewReport['status'], string> = {
 const head = { fontSize: 11, fontWeight: 700, letterSpacing: 1.2, textTransform: 'uppercase', color: 'var(--tec-text-3)', margin: 'var(--sp-3) 0 6px' } as const;
 const small = { padding: '7px 14px', borderRadius: 8, font: 'inherit', fontSize: 12, fontWeight: 800, cursor: 'pointer' } as const;
 
-export function ReportReview() {
+export function ReportReview({ onReviewed }: { onReviewed?: () => void } = {}) {
   const [reports, setReports] = useState<ReviewReport[]>([]);
   const [busy, setBusy]       = useState<string | null>(null);
   const [revising, setRevising] = useState<string | null>(null);
@@ -59,6 +59,7 @@ export function ReportReview() {
       if (!res.ok) throw new Error(d?.message ?? d?.error ?? `HTTP ${res.status}`);
       setRevising(null); setNote('');
       load();
+      onReviewed?.();
     } catch (e) {
       setError((e as Error).message);
     } finally { setBusy(null); }

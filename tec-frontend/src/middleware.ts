@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { buildCsp, enforceNoEval, makeNonce, NONCE_HEADER } from '@/lib/csp';
+import { buildCsp, enforceNamedConnect, enforceNoEval, makeNonce, NONCE_HEADER } from '@/lib/csp';
 
 // '/hub' is CLIENT-guarded (C-123 §7): its shell must always render so the
 // client can resolve the session cookie-independently (memory → /api/auth/me →
@@ -87,8 +87,9 @@ function isTrustedCsrf(req: NextRequest): boolean {
 function csp(req: NextRequest) {
   const nonce = makeNonce();
   const dev   = process.env.NODE_ENV === 'development';
-  const enforced   = buildCsp(nonce, { dev, allowEval: !enforceNoEval() });
-  const reportOnly = buildCsp(nonce, { dev, allowEval: false });
+  const enforced   = buildCsp(nonce, { dev, allowEval: !enforceNoEval(), namedConnect: enforceNamedConnect() });
+  // What is not proven yet runs here, reported and never blocked: no eval, named hosts.
+  const reportOnly = buildCsp(nonce, { dev, allowEval: false, namedConnect: true });
   const requestHeaders = new Headers(req.headers);
   requestHeaders.set(NONCE_HEADER, nonce);
   requestHeaders.set('Content-Security-Policy', enforced);

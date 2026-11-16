@@ -10,7 +10,10 @@
  */
 export const CONTACT_EMAIL = 'yasserrr.fox17@gmail.com';
 
-/** International form for `tel:`; WhatsApp's wa.me takes the same digits without the +. */
+/**
+ * International form for `tel:`; WhatsApp's wa.me takes the same digits without the +.
+ * The support menu only — the legal pages carry the email and no number (owner, 16 Nov 2026).
+ */
 export const CONTACT_PHONE = '+201109742713';
 
 export const mailto = (subject?: string) =>

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import styles from './legal.module.css';
-import { CONTACT_EMAIL, CONTACT_PHONE } from '@/lib/contact';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 const SECTIONS_EN = [
   { id: 'overview', title: '1. Overview', content: `TEC Ecosystem ("TEC", "we", "our", or "us") operates a suite of 24 sovereign applications built on the Pi Network blockchain. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use any TEC application.\n\nBy accessing or using any TEC application, you agree to the terms of this Privacy Policy.` },
@@ -120,10 +120,6 @@ export default function PrivacyPage() {
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>Email</span>
                   <a href={`mailto:${s.contact.email}`} className={styles.contactLink}>{s.contact.email}</a>
-                </p>
-                <p className={styles.contactItem}>
-                  <span className={styles.contactLabel}>{locale === 'ar' ? 'الهاتف / واتساب' : 'Phone / WhatsApp'}</span>
-                  <a href={`tel:${CONTACT_PHONE}`} className={styles.contactLink} dir="ltr">{CONTACT_PHONE}</a>
                 </p>
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>{locale === 'ar' ? 'الجهة' : 'Entity'}</span>

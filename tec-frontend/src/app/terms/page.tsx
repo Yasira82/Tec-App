@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import styles from '../privacy/legal.module.css';
-import { CONTACT_EMAIL, CONTACT_PHONE } from '@/lib/contact';
+import { CONTACT_EMAIL } from '@/lib/contact';
 
 const SECTIONS_EN = [
   { id: 'acceptance', title: '1. Acceptance of Terms', content: `By accessing or using any application within TEC Ecosystem ("TEC") ecosystem, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.\n\nIf you do not agree to these Terms, you must immediately cease all use of TEC services.` },
@@ -130,10 +130,6 @@ export default function TermsPage() {
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>Email</span>
                   <a href={`mailto:${s.contact.email}`} className={styles.contactLink}>{s.contact.email}</a>
-                </p>
-                <p className={styles.contactItem}>
-                  <span className={styles.contactLabel}>{locale === 'ar' ? 'الهاتف / واتساب' : 'Phone / WhatsApp'}</span>
-                  <a href={`tel:${CONTACT_PHONE}`} className={styles.contactLink} dir="ltr">{CONTACT_PHONE}</a>
                 </p>
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>{locale === 'ar' ? 'الجهة' : 'Entity'}</span>

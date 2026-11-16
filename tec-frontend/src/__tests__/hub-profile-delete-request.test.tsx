@@ -12,6 +12,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen } from '@/test-utils/render-with-locale';
 import { CONTACT_EMAIL } from '@/lib/contact';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 const mockUsePiAuth = vi.hoisted(() => vi.fn());
 vi.mock('next/navigation', () => ({
@@ -53,6 +55,15 @@ describe('/hub/profile — delete account', () => {
     screen.getByRole('link', { name: 'Request deletion' }).click();
     expect(confirm).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('legal pages', () => {
+  it('publish no phone number (owner, 16 Nov 2026)', () => {
+    for (const p of ['privacy', 'terms']) {
+      const src = readFileSync(join(__dirname, '..', 'app', p, 'page.tsx'), 'utf8');
+      expect(src, p).not.toMatch(/tel:|CONTACT_PHONE/);
+    }
   });
 });
 

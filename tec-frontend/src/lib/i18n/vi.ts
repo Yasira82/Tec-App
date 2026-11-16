@@ -296,6 +296,7 @@ export const vi: typeof en = {
       missionZone: 'Tìm một ứng dụng hoặc dự án trong sổ đăng ký, mở trang xác minh và đọc bằng chứng. Trong báo cáo, hãy nói có rõ ràng điều gì đã được kiểm tra và ai kiểm tra không.',
       missionNexus: 'Mở Templates rồi mở một mẫu điều phối để xem các bước. Trong báo cáo, hãy cho biết mẫu đó dùng để làm gì và bước nào rõ ràng, bước nào không.',
       missionVip: 'Xem các hạng thành viên, rồi mở một hạng và đọc các quyền lợi. Bạn không cần mua gì. Trong báo cáo, hãy cho biết quyền lợi nào rõ ràng và ứng dụng nào mang lại từng quyền lợi.',
+      missionTitan: 'Mở tab Modules, rồi mở một mô-đun. Trong báo cáo, hãy cho biết mô-đun đó làm gì, hệ thống nào phụ trách nó, và điều gì rõ ràng, điều gì không.',
       stopReason: {
         title: 'Không định hoàn thành? Một chạm cho chúng tôi biết lý do — đó là điều hữu ích nhất bạn có thể gửi.',
         open: 'Không định hoàn thành? Cho chúng tôi biết lý do',

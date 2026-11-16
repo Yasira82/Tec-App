@@ -70,7 +70,7 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'Assets', ar: 'الأصول' },
     piDomain:         'assets.pi',
     emoji:            '💎',
-    description:      { en: 'Ownership Engine — NFTs · Domains · Real Estate', ar: 'محرك الملكية' },
+    description:      { en: 'Ownership Engine — NFTs · Domains', ar: 'محرك الملكية — NFTs ونطاقات' },
     valueProp:        { en: 'Own and manage your Pi-native assets — NFTs, domains and more — in one wallet.', ar: 'تملّك وادِر أصولك على باي — NFTs ونطاقات وغيرها — في محفظة واحدة.' },
     status:           'live',
     layer:            'core',
@@ -197,8 +197,8 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'Ecommerce', ar: 'التجارة الإلكترونية' },
     piDomain:         'ecommerce.pi',
     emoji:            '🏬',
-    description:      { en: 'B2C Stores — Products · Storefronts · Delivery', ar: 'متاجر إلى المستهلك' },
-    valueProp:        { en: 'Shop Pi-native stores — real products, storefronts and delivery.', ar: 'اتسوّق من متاجر باي — منتجات حقيقية وواجهات وتوصيل.' },
+    description:      { en: 'B2C Stores — Products · Storefronts', ar: 'متاجر إلى المستهلك — منتجات وواجهات' },
+    valueProp:        { en: 'Shop Pi-native stores — browse real products and the storefronts that sell them.', ar: 'اتسوّق من متاجر باي — منتجات حقيقية والمتاجر اللي بتبيعها.' },
     status:           'live',
     layer:            'domain',
     group:            'commerce',
@@ -486,8 +486,8 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'VIP', ar: 'في آي بي' },
     piDomain:         'vip.pi',
     emoji:            '👑',
-    description:      { en: 'Premium Experience — Tiers · Benefits · Concierge', ar: 'تجربة مميّزة — طبقات ومزايا وخدمة' },
-    valueProp:        { en: 'Unlock premium experiences and benefits across the whole ecosystem.', ar: 'افتح تجارب ومزايا مميّزة عبر المنظومة كلها.' },
+    description:      { en: 'Membership — Tiers · Benefits', ar: 'العضوية — مستويات ومزايا' },
+    valueProp:        { en: 'See the membership tiers and which TEC app gives each benefit — benefits are coming soon.', ar: 'شوف مستويات العضوية وكل ميزة بيقدّمها أنهي تطبيق في TEC — المزايا جاية قريب.' },
     // Shipped July 2026 (tec-vip — C-128 Premium Experience Runtime: "What
     // exclusive benefits do I receive?"). System of Privilege (cross-cutting): it
     // translates recognition + achievement into premium experience across the
@@ -540,8 +540,8 @@ export const DOMAIN_REGISTRY: Record<string, DomainConfig> = {
     name:             { en: 'Titan', ar: 'تيتان' },
     piDomain:         'titan.pi',
     emoji:            '🏛️',
-    description:      { en: 'Enterprise OS — Business · Team · Operations on Pi', ar: 'نظام تشغيل المؤسسات — أعمال وفريق وعمليات' },
-    valueProp:        { en: 'Run your organization on Pi — team, roles and operations in one console.', ar: 'شغّل مؤسستك على باي — فريق وأدوار وعمليات في لوحة واحدة.' },
+    description:      { en: 'Enterprise OS — Preview · Modules', ar: 'نظام تشغيل المؤسسات — معاينة ووحدات' },
+    valueProp:        { en: 'Preview: the map of an enterprise OS on Pi, and which system owns each part.', ar: 'معاينة: خريطة نظام تشغيل المؤسسات على باي، وكل جزء تابع لأنهي نظام.' },
     // Shipped July 2026 (tec-titan — Enterprise Operating Platform: the B2B/
     // institutional counterpart to Life (Personal OS). Orgs manage identity, team +
     // roles, operations, commerce, procurement, reputation on Pi. V0/V1 read-only

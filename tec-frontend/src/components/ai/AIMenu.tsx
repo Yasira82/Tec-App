@@ -8,6 +8,7 @@ import {
 } from '@/lib/ai-session';
 import { DICTIONARIES, type Locale } from '@/lib/i18n';
 import { LOCALES, localeInfo } from '@/lib/locales';
+import { CONTACT_EMAIL, CONTACT_PHONE } from '@/lib/contact';
 
 /**
  * The assistant's own menu — archived chats, settings, starter questions, support.
@@ -36,16 +37,16 @@ const SUPPORT_LINKS = [
   // 201109742713 — one number for both WhatsApp and Call, as it was before.
   // `Call` was held on the old line for a round while only "the WhatsApp number
   // changed" had been said; the owner then confirmed the phone moved too.
-  { emoji: '📱', label: 'WhatsApp', href: 'https://wa.me/201109742713',      color: '#25D366' },
+  { emoji: '📱', label: 'WhatsApp', href: `https://wa.me/${CONTACT_PHONE.slice(1)}`, color: '#25D366' },
   // A group INVITE link, replacing the personal @Yasira17 handle. An invite is
   // revocable from inside Telegram; a handle is not, and it also pointed at one
   // person's account rather than at the platform.
   { emoji: '✈️', label: 'Telegram', href: 'https://t.me/+7yEiJGgSZ2QzM2M0',  color: '#229ED9' },
-  { emoji: '📧', label: 'Email',    href: 'mailto:yasserrr.fox17@gmail.com', color: 'var(--tec-gold)' },
+  { emoji: '📧', label: 'Email',    href: `mailto:${CONTACT_EMAIL}`, color: 'var(--tec-gold)' },
   // Same number as WhatsApp above — they are one line, and a support panel that
   // offers two different numbers makes the user choose which one is real.
   // +20 is the dialling form; wa.me above takes the same digits without the +.
-  { emoji: '📞', label: 'Call',     href: 'tel:+201109742713',               color: '#7ee7c0' },
+  { emoji: '📞', label: 'Call',     href: `tel:${CONTACT_PHONE}`, color: '#7ee7c0' },
 ] as const;
 
 /**

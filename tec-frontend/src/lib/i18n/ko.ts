@@ -534,9 +534,9 @@ export const ko: typeof en = {
       kyc: 'KYC', kycSub: '신원 인증',
       account: '계정',
       signOut: '로그아웃', signOutSub: 'TEC에서 로그아웃',
-      deleteAccount: '계정 삭제', deleteAccountSub: '계정과 모든 데이터를 영구 삭제합니다.',
+      deleteAccount: '계정 삭제', deleteAccountSub: '계정과 모든 데이터의 영구 삭제를 원하시면 이메일을 보내 주세요. 확인 답장을 드립니다.',
       delete: '삭제',
-      deleteConfirm: '정말 계정을 삭제할까요? 이 작업은 되돌릴 수 없습니다.',
+      deleteRequest: '삭제 요청',
     },
     kyc: {
       title: '신원 인증', subtitle: 'KYC — 고객 확인',

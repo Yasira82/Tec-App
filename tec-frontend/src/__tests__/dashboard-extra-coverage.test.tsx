@@ -737,17 +737,6 @@ describe('DashboardProfilePage (dashboard/profile)', () => {
     expect(copyBtns.length).toBeGreaterThan(0);
   });
 
-  it('handleDelete called — confirm returns false — no crash', async () => {
-    const { default: Page } = await import('@/app/dashboard/profile/page');
-    const { container } = render(<Page />);
-    const deleteBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Delete Account'),
-    );
-    expect(deleteBtn).toBeTruthy();
-    fireEvent.click(deleteBtn!);
-    expect(window.confirm).toHaveBeenCalled();
-  });
-
   it('renders N/A for Member Since when no createdAt', async () => {
     mockUsePiAuth.mockReturnValue({
       ...defaultAuthState,
@@ -836,16 +825,6 @@ describe('HubProfilePage (hub/profile)', () => {
     const { default: Page } = await import('@/app/hub/profile/page');
     const { container } = render(<Page />);
     expect(container.textContent).toContain('N/A');
-  });
-
-  it('handleDelete calls confirm and does nothing when cancelled', async () => {
-    const { default: Page } = await import('@/app/hub/profile/page');
-    const { container } = render(<Page />);
-    const deleteBtn = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Delete'),
-    );
-    if (deleteBtn) fireEvent.click(deleteBtn);
-    expect(window.confirm).toHaveBeenCalled();
   });
 
   it('names the role instead of printing the enum', async () => {

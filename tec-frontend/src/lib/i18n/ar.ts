@@ -542,9 +542,9 @@ export const ar = {
       kyc: 'التوثيق', kycSub: 'توثيق الهوية',
       account: 'الحساب',
       signOut: 'تسجيل الخروج', signOutSub: 'الخروج من TEC',
-      deleteAccount: 'حذف الحساب', deleteAccountSub: 'حذف حسابك وكل بياناتك نهائيًا.',
+      deleteAccount: 'حذف الحساب', deleteAccountSub: 'راسلنا لحذف حسابك وكل بياناتك نهائيًا، وسنرد عليك لتأكيد الحذف.',
       delete: 'حذف',
-      deleteConfirm: 'هل أنت متأكد أنك تريد حذف حسابك؟ لا يمكن التراجع عن هذا الإجراء.',
+      deleteRequest: 'طلب الحذف',
     },
     kyc: {
       title: 'توثيق الهوية', subtitle: 'KYC — اعرف عميلك',

@@ -534,9 +534,9 @@ export const pt: typeof en = {
       kyc: 'KYC', kycSub: 'Verificação de identidade',
       account: 'Conta',
       signOut: 'Sair', signOutSub: 'Sair do TEC',
-      deleteAccount: 'Excluir conta', deleteAccountSub: 'Exclui permanentemente sua conta e todos os dados.',
+      deleteAccount: 'Excluir conta', deleteAccountSub: 'Envie-nos um e-mail para excluir permanentemente sua conta e todos os dados. Responderemos para confirmar.',
       delete: 'Excluir',
-      deleteConfirm: 'Tem certeza de que quer excluir sua conta? Esta ação não pode ser desfeita.',
+      deleteRequest: 'Solicitar exclusão',
     },
     kyc: {
       title: 'Verificação de identidade', subtitle: 'KYC — Conheça seu cliente',

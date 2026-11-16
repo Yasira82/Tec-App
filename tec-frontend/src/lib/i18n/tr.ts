@@ -534,9 +534,9 @@ export const tr: typeof en = {
       kyc: 'KYC', kycSub: 'Kimlik doğrulama',
       account: 'Hesap',
       signOut: 'Çıkış Yap', signOutSub: 'TEC’ten çıkış yap',
-      deleteAccount: 'Hesabı Sil', deleteAccountSub: 'Hesabınızı ve tüm verilerinizi kalıcı olarak silin.',
+      deleteAccount: 'Hesabı Sil', deleteAccountSub: 'Hesabınızı ve tüm verilerinizi kalıcı olarak silmek için bize e-posta gönderin. Onay için yanıt veririz.',
       delete: 'Sil',
-      deleteConfirm: 'Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.',
+      deleteRequest: 'Silme talebi',
     },
     kyc: {
       title: 'Kimlik Doğrulama', subtitle: 'KYC — Müşterini Tanı',

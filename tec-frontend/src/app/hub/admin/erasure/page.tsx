@@ -9,7 +9,7 @@ import { Icon }        from '@/components/ui/Icon';
  * Erase an account across services (tec-core-backend #437,
  * KB audits/ACCOUNT_ERASURE_PLAN_2026-10-17.md).
  *
- * The request arrives at privacy@tec.pi; it is carried out here. The dry run asks every
+ * The request arrives by email (CONTACT_EMAIL, src/lib/contact.ts — the profile page's "Request deletion"); it is carried out here. The dry run asks every
  * service what it would remove and changes nothing. The erasure needs the name typed again and
  * the request it answers, and is only offered after a dry run of the same name. A part that did
  * not answer is shown as not done — run it again: every part is idempotent. `role === 'admin'`

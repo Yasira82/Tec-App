@@ -534,9 +534,9 @@ export const es: typeof en = {
       kyc: 'KYC', kycSub: 'Verificación de identidad',
       account: 'Cuenta',
       signOut: 'Cerrar sesión', signOutSub: 'Salir de TEC',
-      deleteAccount: 'Eliminar cuenta', deleteAccountSub: 'Elimina para siempre tu cuenta y todos tus datos.',
+      deleteAccount: 'Eliminar cuenta', deleteAccountSub: 'Escríbenos para eliminar para siempre tu cuenta y todos tus datos. Te responderemos para confirmarlo.',
       delete: 'Eliminar',
-      deleteConfirm: '¿Seguro que quieres eliminar tu cuenta? Esta acción no se puede deshacer.',
+      deleteRequest: 'Solicitar eliminación',
     },
     kyc: {
       title: 'Verificación de identidad', subtitle: 'KYC — Conoce a tu cliente',

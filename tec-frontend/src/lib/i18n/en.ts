@@ -604,9 +604,9 @@ export const en = {
       kyc: 'KYC', kycSub: 'Identity verification',
       account: 'Account',
       signOut: 'Sign Out', signOutSub: 'Log out of TEC',
-      deleteAccount: 'Delete Account', deleteAccountSub: 'Permanently delete your account and all data.',
+      deleteAccount: 'Delete Account', deleteAccountSub: 'Email us to permanently delete your account and all data. We reply to confirm.',
       delete: 'Delete',
-      deleteConfirm: 'Are you sure you want to delete your account? This action cannot be undone.',
+      deleteRequest: 'Request deletion',
     },
     kyc: {
       title: 'Identity Verification', subtitle: 'KYC — Know Your Customer',

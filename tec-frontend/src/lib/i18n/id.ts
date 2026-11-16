@@ -534,9 +534,9 @@ export const id: typeof en = {
       kyc: 'KYC', kycSub: 'Verifikasi identitas',
       account: 'Akun',
       signOut: 'Keluar', signOutSub: 'Keluar dari TEC',
-      deleteAccount: 'Hapus Akun', deleteAccountSub: 'Hapus akun dan semua data Anda secara permanen.',
+      deleteAccount: 'Hapus Akun', deleteAccountSub: 'Kirim email kepada kami untuk menghapus akun dan semua data Anda secara permanen. Kami akan membalas untuk konfirmasi.',
       delete: 'Hapus',
-      deleteConfirm: 'Yakin ingin menghapus akun Anda? Tindakan ini tidak dapat dibatalkan.',
+      deleteRequest: 'Minta penghapusan',
     },
     kyc: {
       title: 'Verifikasi Identitas', subtitle: 'KYC — Kenali Pelanggan Anda',

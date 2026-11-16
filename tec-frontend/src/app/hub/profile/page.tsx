@@ -9,6 +9,7 @@ import { useSubscriptionPlan } from '@/lib-client/hooks/useSubscriptionPlan';
 import { useKyc }        from '@/lib-client/hooks/useKyc';
 import { normalizePlan } from '@/lib/subscription/entitlements';
 import { HubSubShell }   from '@/components/hub';
+import { mailto }        from '@/lib/contact';
 import { DashboardCard } from '@/components/dashboard';
 import { FeedbackCard } from '@/components/feedback/FeedbackCard';
 
@@ -83,11 +84,10 @@ export default function HubProfilePage() {
   // Awaited: navigating first let '/' read the still-present cookie and bounce back
   // into the same session before the sign-out reached the server.
   const handleLogout = async () => { await logout(); router.push('/'); };
-  const handleDelete = () => {
-    if (confirm(t.hub.profile.deleteConfirm)) {
-      // TODO: DELETE /api/auth/profile
-    }
-  };
+  // There is no self-service delete: an admin erases an account on request
+  // (/hub/admin/erasure). This used to confirm "cannot be undone" and then do nothing,
+  // which told the person their account was gone while it stayed. It is the request now.
+  const deleteHref = mailto(`Delete my TEC account: @${user?.piUsername ?? ''}`);
 
   const initial = user?.piUsername?.[0]?.toUpperCase() ?? '?';
 
@@ -303,10 +303,10 @@ export default function HubProfilePage() {
               <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-red)', marginBottom: 2 }}>{t.hub.profile.deleteAccount}</div>
               <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)' }}>{t.hub.profile.deleteAccountSub}</div>
             </div>
-            <button onClick={handleDelete}
-              style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-              {t.hub.profile.delete}
-            </button>
+            <a href={deleteHref}
+              style={{ padding: '8px 16px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0, textDecoration: 'none' }}>
+              {t.hub.profile.deleteRequest}
+            </a>
           </div>
         </div>
       </DashboardCard>

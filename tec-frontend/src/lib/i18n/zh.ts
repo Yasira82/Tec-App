@@ -534,9 +534,9 @@ export const zh: typeof en = {
       kyc: 'KYC', kycSub: '身份验证',
       account: '账户',
       signOut: '退出登录', signOutSub: '退出 TEC',
-      deleteAccount: '删除账户', deleteAccountSub: '永久删除您的账户及所有数据。',
+      deleteAccount: '删除账户', deleteAccountSub: '发邮件给我们以永久删除您的账户及所有数据，我们会回复确认。',
       delete: '删除',
-      deleteConfirm: '确定要删除您的账户吗？此操作无法撤销。',
+      deleteRequest: '申请删除',
     },
     kyc: {
       title: '身份验证', subtitle: 'KYC — 了解您的客户',

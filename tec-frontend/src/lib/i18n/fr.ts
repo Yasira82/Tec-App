@@ -296,6 +296,7 @@ export const fr: typeof en = {
       missionZone: 'Cherchez une app ou un projet dans le registre, ouvrez sa page de vérification et lisez ses preuves. Dans votre rapport, dites s’il était clair ce qui a été vérifié et par qui.',
       missionNexus: 'Ouvrez Templates puis un modèle de coordination pour voir ses étapes. Dans votre rapport, dites à quoi sert le modèle et quelles étapes étaient claires ou non.',
       missionVip: 'Regardez les niveaux d’adhésion, puis ouvrez-en un et lisez ses avantages. Inutile d’acheter quoi que ce soit. Dans votre rapport, dites quels avantages étaient clairs et quelle app offre chacun.',
+      missionTitan: 'Ouvrez l’onglet Modules, puis un module. Dans votre rapport, dites ce que fait le module, quel système en est responsable et ce qui était clair ou non.',
       stopReason: {
         title: 'Vous n’allez pas terminer ? Un appui nous dit pourquoi — c’est le retour le plus utile que vous puissiez nous envoyer.',
         open: 'Vous n’allez pas terminer ? Dites-nous pourquoi',

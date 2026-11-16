@@ -296,6 +296,7 @@ export const tr: typeof en = {
       missionZone: 'Kayıtta bir uygulama ya da proje ara, doğrulama sayfasını aç ve kanıtlarını oku. Raporunda neyin ve kim tarafından kontrol edildiğinin açık olup olmadığını yaz.',
       missionNexus: 'Templates\'ı açın ve bir koordinasyon şablonunu açıp adımlarına bakın. Raporunuzda şablonun ne işe yaradığını ve hangi adımların açık olup hangilerinin olmadığını yazın.',
       missionVip: 'Üyelik seviyelerine bakın, sonra bir seviyeyi açıp avantajlarını okuyun. Bir şey satın almanız gerekmiyor. Raporunuzda hangi avantajların açık olduğunu ve her birini hangi uygulamanın verdiğini yazın.',
+      missionTitan: 'Modules sekmesini açın, sonra bir modülü açın. Raporunuzda modülün ne yaptığını, hangi sistemin ondan sorumlu olduğunu ve neyin açık olup neyin olmadığını yazın.',
       stopReason: {
         title: 'Bitirmeyecek misiniz? Tek dokunuşla nedenini söyleyin — bize gönderebileceğiniz en faydalı şey bu.',
         open: 'Bitirmeyecek misiniz? Nedenini söyleyin',

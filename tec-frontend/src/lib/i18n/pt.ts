@@ -296,6 +296,7 @@ export const pt: typeof en = {
       missionZone: 'Procure um app ou projeto no registro, abra a página de verificação e leia as evidências. No seu relatório, diga se ficou claro o que foi verificado e por quem.',
       missionNexus: 'Abra Templates e depois um modelo de coordenação para ver as etapas. No seu relatório, diga para que serve o modelo e quais etapas ficaram claras ou não.',
       missionVip: 'Veja os níveis de assinatura e depois abra um nível e leia os benefícios. Você não precisa comprar nada. No seu relatório, diga quais benefícios ficaram claros e qual app oferece cada um.',
+      missionTitan: 'Abra a aba Modules e depois um módulo. No seu relatório, diga o que o módulo faz, qual sistema é responsável por ele e o que ficou claro ou não.',
       stopReason: {
         title: 'Não vai terminar? Um toque nos diz o porquê — é a coisa mais útil que você pode nos enviar.',
         open: 'Não vai terminar? Diga o porquê',

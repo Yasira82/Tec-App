@@ -18,6 +18,7 @@ export function missionHint(c: CampaignCopy, slug: string): string | undefined {
     zone:      c.missionZone,
     nexus:     c.missionNexus,
     vip:       c.missionVip,
+    titan:     c.missionTitan,
   };
   return hints[slug];
 }

@@ -267,9 +267,9 @@ describe('wiring', () => {
   });
 });
 
-describe('every campaign app says what to try (Life: owner 2026-10-20 · the rest: Round 3, 2026-10-30 · Nexus, VIP: 2026-11-16)', () => {
+describe('every campaign app says what to try (Life: owner 2026-10-20 · the rest: Round 3, 2026-10-30 · Nexus, VIP, Titan: 2026-11-16)', () => {
   // Commerce keeps its line though it left Round 3 (owner, 2026-11-16): a later round may bring it back.
-  const APPS = ['tec', 'commerce', 'ecommerce', 'assets', 'life', 'zone', 'nexus', 'vip'];
+  const APPS = ['tec', 'commerce', 'ecommerce', 'assets', 'life', 'zone', 'nexus', 'vip', 'titan'];
 
   it('the hint shows under each app until approved', () => {
     const hintOf = (slug: string) => missionHint(en.hub.campaignPage, slug);
@@ -296,7 +296,7 @@ describe('every campaign app says what to try (Life: owner 2026-10-20 · the res
         }
       }
     }
-    expect(missionHint(en.hub.campaignPage, 'titan')).toBeUndefined();
+    expect(missionHint(en.hub.campaignPage, 'legend')).toBeUndefined();
     expect(ar.hub.campaignPage.missionLife).toContain('مش لازم تكتب كلام محادثتك');
   });
 

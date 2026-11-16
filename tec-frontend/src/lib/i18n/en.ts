@@ -343,6 +343,8 @@ export const en = {
       missionEcommerce: 'Open one product, then open the store that sells it. You do not need to buy anything. In your report, say what you saw on the product and on the store.',
       missionAssets: 'Open the Marketplace, then your Portfolio. You do not need to buy anything. In your report, say what you found in each and what was clear or not.',
       missionZone: 'Search the registry for an app or a project, open its verification page and read its evidence. In your report, say whether it was clear what was checked and by whom.',
+      missionNexus: 'Open Templates and open one coordination template to see its steps. In your report, say what the template is for and which steps were clear or not.',
+      missionVip: 'Look at the membership tiers, then open one tier and read its benefits. You do not need to buy anything. In your report, say which benefits were clear and which app gives each one.',
       stopReason: {
         title:  'Not going to finish? One tap tells us why — it is the most useful thing you can send us.',
         open:   'Not going to finish? Tell us why',

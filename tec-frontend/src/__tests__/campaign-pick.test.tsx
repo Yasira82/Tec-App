@@ -267,8 +267,9 @@ describe('wiring', () => {
   });
 });
 
-describe('every campaign app says what to try (Life: owner 2026-10-20 · the rest: Round 3, 2026-10-30)', () => {
-  const APPS = ['tec', 'commerce', 'ecommerce', 'assets', 'life', 'zone'];
+describe('every campaign app says what to try (Life: owner 2026-10-20 · the rest: Round 3, 2026-10-30 · Nexus, VIP: 2026-11-16)', () => {
+  // Commerce keeps its line though it left Round 3 (owner, 2026-11-16): a later round may bring it back.
+  const APPS = ['tec', 'commerce', 'ecommerce', 'assets', 'life', 'zone', 'nexus', 'vip'];
 
   it('the hint shows under each app until approved', () => {
     const hintOf = (slug: string) => missionHint(en.hub.campaignPage, slug);
@@ -282,7 +283,7 @@ describe('every campaign app says what to try (Life: owner 2026-10-20 · the res
     expect(screen.queryByTestId('hint-life')).toBeNull();
   });
 
-  it('all six apps have their own line in every language — and an unknown app has none', () => {
+  it('every round app has its own line in every language — and an unknown app has none', () => {
     for (const [lang, dict] of Object.entries(DICTIONARIES)) {
       const lines = APPS.map((a) => missionHint(dict.hub.campaignPage, a));
       for (const [i, line] of lines.entries()) {
@@ -295,7 +296,7 @@ describe('every campaign app says what to try (Life: owner 2026-10-20 · the res
         }
       }
     }
-    expect(missionHint(en.hub.campaignPage, 'nexus')).toBeUndefined();
+    expect(missionHint(en.hub.campaignPage, 'titan')).toBeUndefined();
     expect(ar.hub.campaignPage.missionLife).toContain('مش لازم تكتب كلام محادثتك');
   });
 

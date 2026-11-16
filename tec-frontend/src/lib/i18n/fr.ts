@@ -294,6 +294,8 @@ export const fr: typeof en = {
       missionEcommerce: 'Ouvrez un produit, puis la boutique qui le vend. Inutile d’acheter. Dans votre rapport, dites ce que vous avez vu sur le produit et sur la boutique.',
       missionAssets: 'Ouvrez le Marketplace, puis votre Portfolio. Inutile d’acheter. Dans votre rapport, dites ce que vous avez trouvé dans chacun et ce qui était clair ou non.',
       missionZone: 'Cherchez une app ou un projet dans le registre, ouvrez sa page de vérification et lisez ses preuves. Dans votre rapport, dites s’il était clair ce qui a été vérifié et par qui.',
+      missionNexus: 'Ouvrez Templates puis un modèle de coordination pour voir ses étapes. Dans votre rapport, dites à quoi sert le modèle et quelles étapes étaient claires ou non.',
+      missionVip: 'Regardez les niveaux d’adhésion, puis ouvrez-en un et lisez ses avantages. Inutile d’acheter quoi que ce soit. Dans votre rapport, dites quels avantages étaient clairs et quelle app offre chacun.',
       stopReason: {
         title: 'Vous n’allez pas terminer ? Un appui nous dit pourquoi — c’est le retour le plus utile que vous puissiez nous envoyer.',
         open: 'Vous n’allez pas terminer ? Dites-nous pourquoi',

@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import styles from '../privacy/legal.module.css';
+import { CONTACT_EMAIL, CONTACT_PHONE } from '@/lib/contact';
 
 const SECTIONS_EN = [
   { id: 'acceptance', title: '1. Acceptance of Terms', content: `By accessing or using any application within TEC Ecosystem ("TEC") ecosystem, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service.\n\nIf you do not agree to these Terms, you must immediately cease all use of TEC services.` },
@@ -31,7 +32,7 @@ const SECTIONS_EN = [
     'Circumvent any security or access control measures',
   ]},
   { id: 'disclaimer', title: '6. Disclaimer & Limitation of Liability', content: `TEC services are provided "as is" without warranties. We do not guarantee uninterrupted or error-free service. To the maximum extent permitted by law, TEC shall not be liable for any indirect, incidental, or consequential damages.` },
-  { id: 'contact', title: '7. Contact', content: 'For questions regarding these Terms:', contact: { email: 'legal@tec.pi', entity: 'TEC Ecosystem', response: 'We aim to respond within 5 business days.' } },
+  { id: 'contact', title: '7. Contact', content: 'For questions regarding these Terms:', contact: { email: CONTACT_EMAIL, entity: 'TEC Ecosystem', response: 'We aim to respond within 5 business days.' } },
 ];
 
 const SECTIONS_AR = [
@@ -61,7 +62,7 @@ const SECTIONS_AR = [
     'التحايل على أي تدابير أمنية أو ضوابط الوصول',
   ]},
   { id: 'disclaimer', title: '6. إخلاء المسؤولية وتحديد المسؤولية', content: `تُقدَّم خدمات TEC "كما هي" دون ضمانات. لا نضمن خدمة متواصلة أو خالية من الأخطاء. إلى أقصى حد يسمح به القانون، لن يكون TEC مسؤولاً عن أي أضرار غير مباشرة أو عرضية أو تبعية.` },
-  { id: 'contact', title: '7. التواصل', content: 'للاستفسار عن هذه الشروط:', contact: { email: 'legal@tec.pi', entity: 'TEC Ecosystem', response: 'نهدف للرد خلال 5 أيام عمل.' } },
+  { id: 'contact', title: '7. التواصل', content: 'للاستفسار عن هذه الشروط:', contact: { email: CONTACT_EMAIL, entity: 'TEC Ecosystem', response: 'نهدف للرد خلال 5 أيام عمل.' } },
 ];
 
 export default function TermsPage() {
@@ -129,6 +130,10 @@ export default function TermsPage() {
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>Email</span>
                   <a href={`mailto:${s.contact.email}`} className={styles.contactLink}>{s.contact.email}</a>
+                </p>
+                <p className={styles.contactItem}>
+                  <span className={styles.contactLabel}>{locale === 'ar' ? 'الهاتف / واتساب' : 'Phone / WhatsApp'}</span>
+                  <a href={`tel:${CONTACT_PHONE}`} className={styles.contactLink} dir="ltr">{CONTACT_PHONE}</a>
                 </p>
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>{locale === 'ar' ? 'الجهة' : 'Entity'}</span>

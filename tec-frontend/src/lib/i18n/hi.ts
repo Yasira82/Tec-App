@@ -534,9 +534,9 @@ export const hi: typeof en = {
       kyc: 'KYC', kycSub: 'पहचान सत्यापन',
       account: 'खाता',
       signOut: 'साइन आउट', signOutSub: 'TEC से लॉग आउट करें',
-      deleteAccount: 'खाता हटाएँ', deleteAccountSub: 'अपना खाता और सारा डेटा स्थायी रूप से हटाएँ।',
+      deleteAccount: 'खाता हटाएँ', deleteAccountSub: 'अपना खाता और सारा डेटा स्थायी रूप से हटाने के लिए हमें ईमेल करें। पुष्टि के लिए हम जवाब देंगे।',
       delete: 'हटाएँ',
-      deleteConfirm: 'क्या आप सच में अपना खाता हटाना चाहते हैं? यह कार्रवाई वापस नहीं हो सकती।',
+      deleteRequest: 'हटाने का अनुरोध',
     },
     kyc: {
       title: 'पहचान सत्यापन', subtitle: 'KYC — अपने ग्राहक को जानें',

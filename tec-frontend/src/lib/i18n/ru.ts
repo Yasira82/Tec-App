@@ -534,9 +534,9 @@ export const ru: typeof en = {
       kyc: 'KYC', kycSub: 'Проверка личности',
       account: 'Аккаунт',
       signOut: 'Выйти', signOutSub: 'Выйти из TEC',
-      deleteAccount: 'Удалить аккаунт', deleteAccountSub: 'Навсегда удалить аккаунт и все данные.',
+      deleteAccount: 'Удалить аккаунт', deleteAccountSub: 'Напишите нам, чтобы навсегда удалить аккаунт и все данные. Мы ответим для подтверждения.',
       delete: 'Удалить',
-      deleteConfirm: 'Точно удалить аккаунт? Это действие нельзя отменить.',
+      deleteRequest: 'Запросить удаление',
     },
     kyc: {
       title: 'Проверка личности', subtitle: 'KYC — «Знай своего клиента»',

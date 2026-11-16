@@ -534,9 +534,9 @@ export const vi: typeof en = {
       kyc: 'KYC', kycSub: 'Xác minh danh tính',
       account: 'Tài khoản',
       signOut: 'Đăng xuất', signOutSub: 'Đăng xuất khỏi TEC',
-      deleteAccount: 'Xóa tài khoản', deleteAccountSub: 'Xóa vĩnh viễn tài khoản và toàn bộ dữ liệu.',
+      deleteAccount: 'Xóa tài khoản', deleteAccountSub: 'Gửi email cho chúng tôi để xóa vĩnh viễn tài khoản và toàn bộ dữ liệu. Chúng tôi sẽ trả lời để xác nhận.',
       delete: 'Xóa',
-      deleteConfirm: 'Bạn có chắc muốn xóa tài khoản? Hành động này không thể hoàn tác.',
+      deleteRequest: 'Yêu cầu xóa',
     },
     kyc: {
       title: 'Xác minh danh tính', subtitle: 'KYC — Định danh khách hàng',

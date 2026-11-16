@@ -473,7 +473,7 @@ function TransactionRow({ tx }: { tx: Transaction }) {
       <div className={styles.txDate}>{formatDate(tx.createdAt)}</div>
       <div className={styles.txHash}>
         {hash
-          ? <a href="#" className={styles.hashLink}>{hash.slice(0, 10)}...</a>
+          ? <span className={styles.hashLink} title={hash}>{hash.slice(0, 10)}...</span>
           : <span style={{ color: 'var(--muted)' }}>—</span>
         }
       </div>

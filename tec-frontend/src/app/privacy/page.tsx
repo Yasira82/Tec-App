@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from '@/lib/i18n';
 import styles from './legal.module.css';
+import { CONTACT_EMAIL, CONTACT_PHONE } from '@/lib/contact';
 
 const SECTIONS_EN = [
   { id: 'overview', title: '1. Overview', content: `TEC Ecosystem ("TEC", "we", "our", or "us") operates a suite of 24 sovereign applications built on the Pi Network blockchain. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use any TEC application.\n\nBy accessing or using any TEC application, you agree to the terms of this Privacy Policy.` },
@@ -25,8 +26,8 @@ const SECTIONS_EN = [
     'Rectification: Request correction of inaccurate data',
     'Erasure: Request deletion of your personal data',
     'Portability: Request transfer of your data',
-  ], footer: 'To exercise any of these rights, contact us at privacy@tec.pi.' },
-  { id: 'contact', title: '7. Contact', content: 'For privacy-related inquiries:', contact: { email: 'privacy@tec.pi', entity: 'TEC Ecosystem', response: 'We aim to respond within 5 business days.' } },
+  ], footer: `To exercise any of these rights, contact us at ${CONTACT_EMAIL}.` },
+  { id: 'contact', title: '7. Contact', content: 'For privacy-related inquiries:', contact: { email: CONTACT_EMAIL, entity: 'TEC Ecosystem', response: 'We aim to respond within 5 business days.' } },
 ];
 
 const SECTIONS_AR = [
@@ -50,8 +51,8 @@ const SECTIONS_AR = [
     'التصحيح: طلب تصحيح البيانات غير الدقيقة',
     'الحذف: طلب حذف بياناتك الشخصية',
     'قابلية النقل: طلب نقل بياناتك',
-  ], footer: 'لممارسة أي من هذه الحقوق، تواصل معنا على privacy@tec.pi.' },
-  { id: 'contact', title: '7. التواصل', content: 'للاستفسارات المتعلقة بالخصوصية:', contact: { email: 'privacy@tec.pi', entity: 'TEC Ecosystem', response: 'نهدف للرد خلال 5 أيام عمل.' } },
+  ], footer: `لممارسة أي من هذه الحقوق، تواصل معنا على ${CONTACT_EMAIL}.` },
+  { id: 'contact', title: '7. التواصل', content: 'للاستفسارات المتعلقة بالخصوصية:', contact: { email: CONTACT_EMAIL, entity: 'TEC Ecosystem', response: 'نهدف للرد خلال 5 أيام عمل.' } },
 ];
 
 export default function PrivacyPage() {
@@ -119,6 +120,10 @@ export default function PrivacyPage() {
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>Email</span>
                   <a href={`mailto:${s.contact.email}`} className={styles.contactLink}>{s.contact.email}</a>
+                </p>
+                <p className={styles.contactItem}>
+                  <span className={styles.contactLabel}>{locale === 'ar' ? 'الهاتف / واتساب' : 'Phone / WhatsApp'}</span>
+                  <a href={`tel:${CONTACT_PHONE}`} className={styles.contactLink} dir="ltr">{CONTACT_PHONE}</a>
                 </p>
                 <p className={styles.contactItem}>
                   <span className={styles.contactLabel}>{locale === 'ar' ? 'الجهة' : 'Entity'}</span>

@@ -268,14 +268,12 @@ describe('profile actions — confirm-true delete, sign out, quick actions, copy
   it.each([
     ['hub',       HubProfilePage],
     ['dashboard', DashboardProfilePage],
-  ] as const)('%s profile Delete with confirm=true runs the delete handler', (_n, Page) => {
+  ] as const)('%s profile Delete is an email request, never a confirm that deletes nothing', (_n, Page) => {
     const { container } = render(<Page />);
-    const del = Array.from(container.querySelectorAll('button')).find(
-      b => b.textContent?.includes('Delete'),
-    );
-    expect(del).toBeTruthy();
+    const del = Array.from(container.querySelectorAll('a')).find(a => a.textContent?.includes('Request deletion'));
+    expect(del?.getAttribute('href')).toMatch(/^mailto:/);
     fireEvent.click(del!);
-    expect(window.confirm).toHaveBeenCalled();
+    expect(window.confirm).not.toHaveBeenCalled();
   });
 
   it.each([

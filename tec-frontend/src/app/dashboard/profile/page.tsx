@@ -6,6 +6,7 @@ import { usePiAuth }                     from '@/lib-client/hooks/usePiAuth';
 import { useSubscriptionPlan }           from '@/lib-client/hooks/useSubscriptionPlan';
 import { useKyc }                        from '@/lib-client/hooks/useKyc';
 import { DashboardShell, DashboardCard } from '@/components/dashboard';
+import { mailto }                        from '@/lib/contact';
 
 // ── Info Row ───────────────────────────────────────────────────
 function InfoRow({ label, value, mono, copyable }: {
@@ -61,11 +62,9 @@ export default function ProfilePage() {
   // Awaited: navigating first let '/' read the still-present cookie and bounce back
   // into the same session before the sign-out reached the server.
   const handleLogout = async () => { await logout(); router.push('/'); };
-  const handleDelete = () => {
-    if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      // TODO: DELETE /api/auth/profile
-    }
-  };
+  // No self-service delete exists — an admin erases on request (/hub/admin/erasure). This
+  // confirmed "cannot be undone" and then did nothing; it is the request now.
+  const deleteHref = mailto(`Delete my TEC account: @${user?.piUsername ?? ''}`);
 
   const initial = user?.piUsername?.[0]?.toUpperCase() ?? '?';
 
@@ -181,13 +180,13 @@ export default function ProfilePage() {
           <div>
             <div style={{ fontSize: 'var(--text-sm)', fontWeight: 600, color: 'var(--tec-red)', marginBottom: 4 }}>Delete Account</div>
             <div style={{ fontSize: 'var(--text-xs)', color: 'var(--tec-text-3)', lineHeight: 1.5 }}>
-              Permanently delete your account and all associated data.
+              Email us to permanently delete your account and all data. We reply to confirm.
             </div>
           </div>
-          <button onClick={handleDelete}
-            style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0 }}>
-            Delete Account
-          </button>
+          <a href={deleteHref}
+            style={{ padding: '10px 20px', borderRadius: 'var(--radius-md)', background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)', color: 'var(--tec-red)', fontSize: 'var(--text-sm)', fontWeight: 600, cursor: 'pointer', flexShrink: 0, textDecoration: 'none' }}>
+            Request deletion
+          </a>
         </div>
       </DashboardCard>
 

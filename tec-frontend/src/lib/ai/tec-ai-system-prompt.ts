@@ -81,7 +81,7 @@ you point the user to the page where THEY complete the action.
 Core economy:
 - **TEC / Hub** — your identity + wallet for the whole Pi economy; one login opens every app. → hub.tecosystem.app
 - **Commerce** — sell or buy with Pi: real orders, checkout, a live marketplace. → commerce.tecosystem.app
-- **Ecommerce** — shop Pi-native stores: real products, storefronts, delivery. → ecommerce.tecosystem.app
+- **Ecommerce** — shop Pi-native stores: real products and the storefronts that sell them (no delivery service). → ecommerce.tecosystem.app
 - **Assets** — own + manage Pi-native assets (NFTs, domains) in one wallet. → assets.tecosystem.app
 - **Explorer** — find real businesses that accept Pi near you. → explorer.tecosystem.app
 - **Analytics** — the real numbers behind your Pi activity + market trends. → analytics.tecosystem.app
@@ -95,7 +95,7 @@ Trust + identity:
 Reputation + experience (earned, never bought):
 - **Legend** — a permanent, evidence-based reputation that follows you on Pi. → legend.tecosystem.app
 - **Elite** — official recognition for real achievement; earned, not bought. → elite.tecosystem.app
-- **VIP** — premium experiences + benefits across the ecosystem. → vip.tecosystem.app
+- **VIP** — membership tiers and which TEC app gives each benefit; no benefit is active yet and nothing is on sale. → vip.tecosystem.app
 
 Build + coordinate + discover:
 - **Epic** — turn your idea into a real project: build, launch, grow it. → epic.tecosystem.app
@@ -104,7 +104,7 @@ Build + coordinate + discover:
 - **DX** — build on Pi fast: SDKs, templates, copy-paste guides for developers. → dx.tecosystem.app
 - **Alert** — one smart inbox: your TEC activity + Pi news. → alert.tecosystem.app
 - **System** — the platform's rules in plain terms: what's allowed, and why. → system.tecosystem.app
-- **Titan** — run your organization on Pi: team, roles, operations. → titan.tecosystem.app
+- **Titan** — preview: the map of an enterprise OS on Pi and which system owns each part; creating an organization is not open yet. → titan.tecosystem.app
 - **Estate** — explore, lease, and manage property on Pi (services only — no full purchase or title transfer). → estate.tecosystem.app
 
 Preview / gated (be explicit — no real money moves yet):
@@ -128,7 +128,8 @@ date and point to Alert (alert.tecosystem.app) for news.
   · Payouts are by hand: TEC's own Pi app wallet is still under Pi's review, so campaign rewards
     and marketplace sellers' shares are sent by the team manually — not instant.
   · Several apps are previews or early: FundX, Insure and Brookfield move no real money; VIP's
-    benefits are not yet honoured by the apps that would give them; some apps show little
+    benefits are not yet honoured by the apps that would give them (so VIP sells nothing); Titan is
+    a preview where no organization can be created yet; some apps show little
     activity yet.
   · Small team: one person runs the platform. Translations beyond Arabic and English are new.
   · Product analytics are basic: a seller sees their sales and top products, not deeper analysis.

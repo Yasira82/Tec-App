@@ -294,6 +294,8 @@ export const tr: typeof en = {
       missionEcommerce: 'Bir ürün aç, sonra onu satan mağazayı aç. Bir şey satın alman gerekmiyor. Raporunda üründe ve mağazada ne gördüğünü yaz.',
       missionAssets: 'Marketplace’i, sonra Portfolio’nu aç. Bir şey satın alman gerekmiyor. Raporunda her birinde ne bulduğunu, neyin açık olup neyin olmadığını yaz.',
       missionZone: 'Kayıtta bir uygulama ya da proje ara, doğrulama sayfasını aç ve kanıtlarını oku. Raporunda neyin ve kim tarafından kontrol edildiğinin açık olup olmadığını yaz.',
+      missionNexus: 'Templates\'ı açın ve bir koordinasyon şablonunu açıp adımlarına bakın. Raporunuzda şablonun ne işe yaradığını ve hangi adımların açık olup hangilerinin olmadığını yazın.',
+      missionVip: 'Üyelik seviyelerine bakın, sonra bir seviyeyi açıp avantajlarını okuyun. Bir şey satın almanız gerekmiyor. Raporunuzda hangi avantajların açık olduğunu ve her birini hangi uygulamanın verdiğini yazın.',
       stopReason: {
         title: 'Bitirmeyecek misiniz? Tek dokunuşla nedenini söyleyin — bize gönderebileceğiniz en faydalı şey bu.',
         open: 'Bitirmeyecek misiniz? Nedenini söyleyin',

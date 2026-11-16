@@ -294,6 +294,8 @@ export const id: typeof en = {
       missionEcommerce: 'Buka satu produk, lalu buka toko yang menjualnya. Tidak perlu membeli apa pun. Di laporanmu, ceritakan apa yang kamu lihat di produk dan di toko.',
       missionAssets: 'Buka Marketplace, lalu Portfolio-mu. Tidak perlu membeli apa pun. Di laporanmu, ceritakan apa yang kamu temukan di masing-masing dan apa yang jelas atau tidak.',
       missionZone: 'Cari sebuah app atau proyek di registri, buka halaman verifikasinya dan baca buktinya. Di laporanmu, katakan apakah jelas apa yang diperiksa dan oleh siapa.',
+      missionNexus: 'Buka Templates lalu buka satu templat koordinasi untuk melihat langkah-langkahnya. Dalam laporanmu, sebutkan templat itu untuk apa dan langkah mana yang jelas atau tidak.',
+      missionVip: 'Lihat tingkat keanggotaan, lalu buka satu tingkat dan baca manfaatnya. Kamu tidak perlu membeli apa pun. Dalam laporanmu, sebutkan manfaat mana yang jelas dan app mana yang memberikan masing-masing.',
       stopReason: {
         title: 'Tidak akan menyelesaikan? Satu ketukan memberi tahu kami alasannya — itu hal paling berguna yang bisa Anda kirim.',
         open: 'Tidak akan menyelesaikan? Beri tahu alasannya',

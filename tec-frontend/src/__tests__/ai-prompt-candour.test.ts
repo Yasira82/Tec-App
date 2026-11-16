@@ -21,6 +21,16 @@ describe('the assistant is candid about TEC', () => {
     expect(TEC_SYSTEM_PROMPT).toMatch(/previews or early/);
     expect(TEC_SYSTEM_PROMPT).toMatch(/one person runs the platform/);
   });
+
+  // Round 3 credibility review (16 Nov 2026): the app lines must say what each app does
+  // TODAY — the assistant repeats them to people deciding whether to trust TEC.
+  it('does not promise what VIP, Titan or Ecommerce do not do', () => {
+    expect(TEC_SYSTEM_PROMPT).not.toMatch(/VIP\*\* — premium experiences/);
+    expect(TEC_SYSTEM_PROMPT).not.toMatch(/run your organization on Pi/);
+    expect(TEC_SYSTEM_PROMPT).not.toMatch(/storefronts, delivery/);
+    expect(TEC_SYSTEM_PROMPT).toMatch(/no benefit is active yet and nothing is on sale/);
+    expect(TEC_SYSTEM_PROMPT).toMatch(/creating an organization is not open yet/);
+  });
 });
 
 describe('the assistant says what it is and what it can see', () => {

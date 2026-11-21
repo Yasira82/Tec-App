@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { jwtVerify }                 from 'jose';
+import { firstUse }                  from '@/lib/sso-once';
 
 const ALLOWED_AUDIENCES = [
   'https://tec-app-frontend.vercel.app',
@@ -7,6 +8,8 @@ const ALLOWED_AUDIENCES = [
   'https://hub-test.tecosystem.app',
 ];
 
+// This instance's own memory of used tokens: a quick first check only. The answer that holds for every
+// instance is auth-service's (`firstUse`, src/lib/sso-once.ts — the engineering audit, 21 Nov 2026).
 const usedJtis = new Map<string, number>();
 
 const isJtiUsed = (jti: string): boolean => {
@@ -52,10 +55,15 @@ export async function GET(req: NextRequest) {
   const jti = payload.jti as string;
   if (!jti)           return NextResponse.json({ error: 'missing_jti' },     { status: 401 });
   if (isJtiUsed(jti)) return NextResponse.json({ error: 'replay_detected' }, { status: 401 });
-  markJtiUsed(jti);
 
   const accessToken = payload.accessToken as string;
   const user        = payload.user as Record<string, unknown>;
+
+  // Once across every instance — or not at all (P6). Another instance's memory is not this one's.
+  const once = accessToken ? await firstUse(jti, accessToken) : 'unavailable';
+  if (once === 'replayed')    return NextResponse.json({ error: 'replay_detected' },       { status: 401 });
+  if (once === 'unavailable') return NextResponse.json({ error: 'sso_check_unavailable' }, { status: 503 });
+  markJtiUsed(jti);
   const csrf        = crypto.randomUUID();
 
   // 200 HTML landing page — NOT a redirect. Production logs proved Pi Browser

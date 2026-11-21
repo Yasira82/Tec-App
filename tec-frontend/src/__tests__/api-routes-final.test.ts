@@ -12,6 +12,10 @@ import type { NextRequest } from 'next/server';
 // ── Hoisted mocks ─────────────────────────────────────────────
 const mockJwtVerify = vi.hoisted(() => vi.fn());
 
+// The sign-in token's first use, as auth-service answers it (src/lib/sso-once.ts). Each test may say otherwise.
+const mockFirstUse = vi.fn(async () => 'first' as 'first' | 'replayed' | 'unavailable');
+vi.mock('@/lib/sso-once', () => ({ firstUse: (...a: unknown[]) => mockFirstUse(...(a as [])) }));
+
 vi.mock('jose', () => ({
   jwtVerify: mockJwtVerify,
 }));
@@ -663,6 +667,26 @@ describe('GET /api/auth/sso-callback', () => {
     expect(res.status).toBe(401);
     const body = await res.json();
     expect(body.error).toBe('replay_detected');
+    mockJwtVerify.mockReset();
+  });
+
+  it('returns 401 when ANOTHER instance already used it (auth-service says so) — the audit, 21 Nov 2026', async () => {
+    mockJwtVerify.mockResolvedValue({ payload: { jti: `elsewhere-${Date.now()}`, accessToken: 'tok', user: { id: 'u3', piUsername: 'carl' } } });
+    mockFirstUse.mockResolvedValueOnce('replayed');
+    const { GET } = await import('@/app/api/auth/sso-callback/route');
+    const res = await GET(makeCallbackReq({ token: 'sso-tok' }));
+    expect(res.status).toBe(401);
+    expect(res.headers.get('set-cookie')).toBeNull();
+    mockJwtVerify.mockReset();
+  });
+
+  it('returns 503 and sets nothing when the use cannot be checked (P6)', async () => {
+    mockJwtVerify.mockResolvedValue({ payload: { jti: `unchecked-${Date.now()}`, accessToken: 'tok', user: { id: 'u4', piUsername: 'dina' } } });
+    mockFirstUse.mockResolvedValueOnce('unavailable');
+    const { GET } = await import('@/app/api/auth/sso-callback/route');
+    const res = await GET(makeCallbackReq({ token: 'sso-tok' }));
+    expect(res.status).toBe(503);
+    expect(res.headers.get('set-cookie')).toBeNull();
     mockJwtVerify.mockReset();
   });
 });
